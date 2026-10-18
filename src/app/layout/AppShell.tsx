@@ -6,8 +6,6 @@ const TABS = [
   { to: '/diary', label: '日记', icon: '📖', end: false },
   { to: '/health', label: '健康', icon: '💪', end: false },
   { to: '/finance', label: '经济', icon: '💰', end: false },
-  { to: '/assistant', label: '助手', icon: '✨', end: false },
-  { to: '/calendar', label: '日历', icon: '📅', end: false },
   { to: '/me', label: '我的', icon: '👤', end: false },
 ]
 

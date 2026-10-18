@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
+import { Link } from 'react-router'
 import { MASCOT_SIZE_PX, useBall } from '../../app/providers/BallProvider'
 import { useTheme } from '../../app/providers/ThemeProvider'
 import { Mascot } from './Mascot'
@@ -137,13 +138,22 @@ function AssistantSheet({ onClose }: { onClose: () => void }) {
       <div className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[75dvh] w-full max-w-md flex-col rounded-t-2xl border-t border-line bg-surface">
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
           <span className="text-sm font-medium">星芒助手</span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-sm text-muted transition-colors hover:text-fg"
-          >
-            关闭
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/assistant"
+              onClick={onClose}
+              className="text-sm text-muted transition-colors hover:text-brand"
+            >
+              完整页面
+            </Link>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-sm text-muted transition-colors hover:text-fg"
+            >
+              关闭
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-6">

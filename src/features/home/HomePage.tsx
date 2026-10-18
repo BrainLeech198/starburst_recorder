@@ -4,9 +4,7 @@ const ENTRIES = [
   { to: '/diary', icon: '📖', label: '日记', desc: '随手记下今天' },
   { to: '/health', icon: '💪', label: '健康', desc: '睡眠 · 心情 · 体重' },
   { to: '/finance', icon: '💰', label: '经济', desc: '每一笔收支' },
-  { to: '/assistant', icon: '✨', label: '助手', desc: '问它，或让它写报告' },
   { to: '/calendar', icon: '📅', label: '日历', desc: '待设计' },
-  { to: '/me', icon: '👤', label: '我的', desc: '账户与设置' },
 ]
 
 function Starburst() {
