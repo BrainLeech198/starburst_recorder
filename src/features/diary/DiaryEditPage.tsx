@@ -124,34 +124,34 @@ export default function DiaryEditPage() {
         </div>
       </div>
 
-      <div className="-mx-4 mt-4 flex items-center justify-center gap-2 border-y border-line px-4 py-2 text-sm">
-        <span>{formatDateCn(entry.dateKey)}</span>
-        <span>{weekdayLabel(entry.dateKey)}</span>
-        <button
-          type="button"
-          onClick={() => setWeatherOpen(true)}
-          className="text-brand underline decoration-dotted underline-offset-4"
-        >
-          （{weather || '天气待填写'}）
-        </button>
-      </div>
-
       {!editing && (
-        <p className="mt-3 text-xs text-muted">当前只读。点右上角切换成「编辑开启」即可修改。</p>
+        <p className="mt-4 text-xs text-muted">当前只读。点右上角切换成「编辑开启」即可修改。</p>
       )}
 
-      {editing ? (
-        <textarea
-          value={value}
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={flush}
-          rows={16}
-          spellCheck={false}
-          className="ruled mt-3 w-full resize-none bg-transparent text-sm text-fg outline-none"
-        />
-      ) : (
-        <div className="ruled mt-3 min-h-[50vh] text-sm text-fg">
-          {value.trim() === '' ? (
+      <div className="mt-4 overflow-hidden rounded-lg border border-line">
+        <div className="flex items-center justify-center gap-2 border-b border-line px-4 py-2 text-sm">
+          <span>{formatDateCn(entry.dateKey)}</span>
+          <span>{weekdayLabel(entry.dateKey)}</span>
+          <button
+            type="button"
+            onClick={() => setWeatherOpen(true)}
+            className="text-brand underline decoration-dotted underline-offset-4"
+          >
+            （{weather || '天气待填写'}）
+          </button>
+        </div>
+
+        <div className="ruled min-h-[50vh] px-4 text-sm text-fg">
+          {editing ? (
+            <textarea
+              value={value}
+              onChange={(event) => setDraft(event.target.value)}
+              onBlur={flush}
+              rows={16}
+              spellCheck={false}
+              className="block w-full resize-none bg-transparent text-fg outline-none"
+            />
+          ) : value.trim() === '' ? (
             <p className="m-0 text-muted">（还没有内容）</p>
           ) : (
             paragraphs.map((paragraph, index) =>
@@ -168,7 +168,7 @@ export default function DiaryEditPage() {
             )
           )}
         </div>
-      )}
+      </div>
 
       {confirmOpen && (
         <ConfirmDialog
