@@ -8,6 +8,8 @@ import { Mascot } from './Mascot'
 const POS_KEY = 'starburst.ball.pos'
 const EDGE = 8
 const DRAG_THRESHOLD = 5
+/** 多久没有交互后，吉祥物自动贴到最近的边、只露半边 */
+const PEEK_DELAY_MS = 30_000
 
 interface Point {
   x: number
@@ -42,6 +44,24 @@ function clampToViewport(point: Point, size: number): Point {
   }
 }
 
+/** 贴到最近的一条边，只露半边 */
+function peekTarget(point: Point, size: number): Point {
+  const width = window.innerWidth
+  const height = window.innerHeight
+  const gaps = [
+    { edge: 'left', value: point.x },
+    { edge: 'right', value: width - (point.x + size) },
+    { edge: 'top', value: point.y },
+    { edge: 'bottom', value: height - (point.y + size) },
+  ] as const
+  const nearest = gaps.reduce((a, b) => (b.value < a.value ? b : a))
+
+  if (nearest.edge === 'left') return { x: -size / 2, y: point.y }
+  if (nearest.edge === 'right') return { x: width - size / 2, y: point.y }
+  if (nearest.edge === 'top') return { x: point.x, y: -size / 2 }
+  return { x: point.x, y: height - size / 2 }
+}
+
 export default function FloatingAssistant() {
   const { prefs } = useBall()
   const { accent } = useTheme()
@@ -49,6 +69,10 @@ export default function FloatingAssistant() {
 
   const [pos, setPos] = useState<Point>(() => readPos() ?? defaultPos(size))
   const [open, setOpen] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const [hovering, setHovering] = useState(false)
+  const [peeking, setPeeking] = useState(false)
+  const [tick, setTick] = useState(0)
 
   const dragStart = useRef<Point | null>(null)
   const dragOffset = useRef<Point | null>(null)
@@ -63,10 +87,38 @@ export default function FloatingAssistant() {
     return () => window.removeEventListener('resize', onResize)
   }, [size])
 
-  // 渲染时统一收敛到可视区，球体大小变化也能兜住
-  const shown = clampToViewport(pos, size)
+  // 长时间没有交互（且没在悬停、面板没开着）就贴边半藏
+  useEffect(() => {
+    if (open || hovering) return
+    const timer = window.setTimeout(() => setPeeking(true), PEEK_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [open, hovering, tick])
+
+  const restPos = clampToViewport(pos, size)
+  const shown = peeking ? peekTarget(restPos, size) : restPos
+
+  /** 任何交互都把它叫出来，并重新开始计时 */
+  function wake() {
+    setPeeking(false)
+    setTick((value) => value + 1)
+  }
+
+  function handlePointerEnter() {
+    setHovering(true)
+    if (peeking) wake()
+  }
+
+  function handlePointerLeave() {
+    setHovering(false)
+  }
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    // 半藏状态下先叫出来，不进入拖拽
+    if (peeking) {
+      wake()
+      return
+    }
+    setDragging(true)
     event.currentTarget.setPointerCapture(event.pointerId)
     dragStart.current = { x: event.clientX, y: event.clientY }
     dragOffset.current = { x: event.clientX - shown.x, y: event.clientY - shown.y }
@@ -99,7 +151,17 @@ export default function FloatingAssistant() {
     }
     dragOffset.current = null
     dragStart.current = null
-    if (dragged.current) localStorage.setItem(POS_KEY, JSON.stringify(shown))
+    setDragging(false)
+    if (dragged.current) {
+      localStorage.setItem(POS_KEY, JSON.stringify(shown))
+      setTick((value) => value + 1)
+    }
+  }
+
+  function handlePointerCancel() {
+    dragOffset.current = null
+    dragStart.current = null
+    setDragging(false)
   }
 
   function handleClick() {
@@ -119,11 +181,17 @@ export default function FloatingAssistant() {
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
         onClick={handleClick}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') setOpen(true)
         }}
-        className="fixed z-30 cursor-grab touch-none select-none active:cursor-grabbing"
+        className={[
+          'fixed z-30 cursor-grab touch-none select-none active:cursor-grabbing',
+          dragging ? '' : 'transition-all duration-300 ease-out motion-reduce:transition-none',
+        ].join(' ')}
         style={{ left: shown.x, top: shown.y, width: size, height: size }}
       >
         <Mascot shape={prefs.shape} color={accent} size={size} className="animate-breathe" />
