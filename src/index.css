@@ -2,23 +2,29 @@
 
 /* 默认主题：深空 */
 @theme {
-  --color-bg: #0a0e1a;
-  --color-surface: #131a2b;
-  --color-surface-2: #1c2438;
-  --color-line: #27304a;
+  --color-bg: #0a0d12;
+  --color-surface: #101520;
+  --color-surface-2: #161b26;
+  --color-line: #1e242f;
   --color-fg: #e8edf7;
   --color-muted: #8f9ab3;
   --color-brand: var(--sb-accent, #6ee7ff);
-  --color-nav: #131a2b;
-  --color-nav-strong: #0a0e1a;
+  --color-nav: #16202c;
+  --color-nav-strong: #0e131c;
+  --color-danger: #e5484d;
+  --color-on-brand: #06121a;
 
   --animate-breathe: mascot-breathe 3.2s ease-in-out infinite;
 }
 
-/* 导航背景由主题色派生（深空：与深色底混合） */
+/* 深空：整条深色阶都由主题色派生，保证与主题色同调 */
 :root {
-  --color-nav: color-mix(in srgb, var(--sb-accent, #6ee7ff) 20%, #131a2b);
-  --color-nav-strong: color-mix(in srgb, var(--sb-accent, #6ee7ff) 14%, #090d17);
+  --color-bg: color-mix(in srgb, var(--sb-accent, #6ee7ff) 8%, #0a0d12);
+  --color-surface: color-mix(in srgb, var(--sb-accent, #6ee7ff) 13%, #0a0d12);
+  --color-surface-2: color-mix(in srgb, var(--sb-accent, #6ee7ff) 18%, #0a0d12);
+  --color-line: color-mix(in srgb, var(--sb-accent, #6ee7ff) 23%, #0a0d12);
+  --color-nav: color-mix(in srgb, var(--sb-accent, #6ee7ff) 21%, #0a0d12);
+  --color-nav-strong: color-mix(in srgb, var(--sb-accent, #6ee7ff) 11%, #0a0d12);
 }
 
 @keyframes mascot-breathe {
@@ -39,15 +45,32 @@
 
 /* 浅色主题：在设置里切换 */
 :root[data-theme='light'] {
-  --color-bg: #f6f7f9;
-  --color-surface: #ffffff;
-  --color-surface-2: #eef1f6;
-  --color-line: #e1e5ec;
+  --color-bg: color-mix(in srgb, var(--sb-accent, #0891b2) 6%, #f5f7fa);
+  --color-surface: color-mix(in srgb, var(--sb-accent, #0891b2) 3%, #ffffff);
+  --color-surface-2: color-mix(in srgb, var(--sb-accent, #0891b2) 9%, #eef1f6);
+  --color-line: color-mix(in srgb, var(--sb-accent, #0891b2) 16%, #e1e5ec);
   --color-fg: #161b24;
   --color-muted: #6b7385;
   --color-brand: color-mix(in srgb, var(--sb-accent, #0891b2) 60%, #0a1220);
   --color-nav: color-mix(in srgb, var(--sb-accent, #0891b2) 20%, #ffffff);
   --color-nav-strong: color-mix(in srgb, var(--sb-accent, #0891b2) 34%, #d9e2ee);
+  --color-danger: #d92d20;
+  --color-on-brand: #ffffff;
+}
+
+/* 笔记本横线格：行线与行高共用同一个变量，改一处即可；行线数量随高度、长度随宽度自动延伸 */
+.ruled {
+  --ruled-lh: 2rem;
+  line-height: var(--ruled-lh);
+  background-image: linear-gradient(
+    to bottom,
+    transparent calc(var(--ruled-lh) - 1px),
+    var(--color-line) calc(var(--ruled-lh) - 1px),
+    var(--color-line) var(--ruled-lh)
+  );
+  background-size: 100% var(--ruled-lh);
+  background-repeat: repeat;
+  background-attachment: local;
 }
 
 html,
