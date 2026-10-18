@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="deep">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>星芒记录者</title>
+    <script>
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem('starburst.theme') === 'light' ? 'light' : 'deep'
+        document.documentElement.style.setProperty(
+          '--sb-accent',
+          localStorage.getItem('starburst.accent') || '#6ee7ff',
+        )
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
