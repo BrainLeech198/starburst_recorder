@@ -7,6 +7,7 @@ import { Mascot } from './Mascot'
 
 const POS_KEY = 'starburst.ball.pos'
 const EDGE = 8
+const DRAG_THRESHOLD = 5
 
 interface Point {
   x: number
@@ -28,57 +29,67 @@ function readPos(): Point | null {
   }
 }
 
+/** 默认停在右下角，手机上留出底部切换栏的高度 */
+function defaultPos(size: number): Point {
+  const bottomGap = window.innerWidth < 768 ? 96 : 28
+  return { x: window.innerWidth - size - 20, y: window.innerHeight - size - bottomGap }
+}
+
+function clampToViewport(point: Point, size: number): Point {
+  return {
+    x: clamp(point.x, EDGE, window.innerWidth - size - EDGE),
+    y: clamp(point.y, EDGE, window.innerHeight - size - EDGE),
+  }
+}
+
 export default function FloatingAssistant() {
   const { prefs } = useBall()
   const { accent } = useTheme()
   const size = MASCOT_SIZE_PX[prefs.size]
-  const [pos, setPos] = useState<Point | null>(readPos)
+
+  const [pos, setPos] = useState<Point>(() => readPos() ?? defaultPos(size))
   const [open, setOpen] = useState(false)
 
+  const dragStart = useRef<Point | null>(null)
   const dragOffset = useRef<Point | null>(null)
   const dragged = useRef(false)
-  const posRef = useRef<Point | null>(null)
-  posRef.current = pos
 
-  // 首次进入：默认停在右下角，手机上留出底部切换栏的高度
-  useEffect(() => {
-    if (pos) return
-    const bottomGap = window.innerWidth < 768 ? 96 : 28
-    setPos({ x: window.innerWidth - size - 20, y: window.innerHeight - size - bottomGap })
-  }, [pos, size])
-
-  // 窗口尺寸或球体大小变化时，把球拉回可视区内
+  // 窗口尺寸变化时把球拉回可视区
   useEffect(() => {
     function onResize() {
-      setPos((prev) =>
-        prev
-          ? {
-              x: clamp(prev.x, EDGE, window.innerWidth - size - EDGE),
-              y: clamp(prev.y, EDGE, window.innerHeight - size - EDGE),
-            }
-          : prev,
-      )
+      setPos((prev) => clampToViewport(prev, size))
     }
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [size])
 
+  // 渲染时统一收敛到可视区，球体大小变化也能兜住
+  const shown = clampToViewport(pos, size)
+
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!pos) return
     event.currentTarget.setPointerCapture(event.pointerId)
-    dragOffset.current = { x: event.clientX - pos.x, y: event.clientY - pos.y }
+    dragStart.current = { x: event.clientX, y: event.clientY }
+    dragOffset.current = { x: event.clientX - shown.x, y: event.clientY - shown.y }
     dragged.current = false
   }
 
   function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
     const offset = dragOffset.current
-    if (!offset) return
-    const next = {
+    const start = dragStart.current
+    if (!offset || !start) return
+
+    if (!dragged.current) {
+      const moved =
+        Math.abs(event.clientX - start.x) > DRAG_THRESHOLD ||
+        Math.abs(event.clientY - start.y) > DRAG_THRESHOLD
+      if (!moved) return
+      dragged.current = true
+    }
+
+    setPos({
       x: clamp(event.clientX - offset.x, EDGE, window.innerWidth - size - EDGE),
       y: clamp(event.clientY - offset.y, EDGE, window.innerHeight - size - EDGE),
-    }
-    dragged.current = true
-    setPos(next)
+    })
   }
 
   function handlePointerUp(event: ReactPointerEvent<HTMLDivElement>) {
@@ -87,9 +98,8 @@ export default function FloatingAssistant() {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
     dragOffset.current = null
-    if (dragged.current && posRef.current) {
-      localStorage.setItem(POS_KEY, JSON.stringify(posRef.current))
-    }
+    dragStart.current = null
+    if (dragged.current) localStorage.setItem(POS_KEY, JSON.stringify(shown))
   }
 
   function handleClick() {
@@ -102,29 +112,22 @@ export default function FloatingAssistant() {
 
   return (
     <>
-      {pos && (
-        <div
-          role="button"
-          tabIndex={0}
-          aria-label="打开 AI 助手"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onClick={handleClick}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') setOpen(true)
-          }}
-          className="fixed z-30 cursor-grab touch-none select-none active:cursor-grabbing"
-          style={{ left: pos.x, top: pos.y, width: size, height: size }}
-        >
-          <Mascot
-            shape={prefs.shape}
-            color={accent}
-            size={size}
-            className="animate-breathe"
-          />
-        </div>
-      )}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label="打开 AI 助手"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onClick={handleClick}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') setOpen(true)
+        }}
+        className="fixed z-30 cursor-grab touch-none select-none active:cursor-grabbing"
+        style={{ left: shown.x, top: shown.y, width: size, height: size }}
+      >
+        <Mascot shape={prefs.shape} color={accent} size={size} className="animate-breathe" />
+      </div>
 
       {open && <AssistantSheet onClose={() => setOpen(false)} />}
     </>

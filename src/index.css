@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* 默认主题：深空 */
 @theme {
@@ -38,7 +38,7 @@
 }
 
 /* 浅色主题：在设置里切换 */
-:root[data-theme="light"] {
+:root[data-theme='light'] {
   --color-bg: #f6f7f9;
   --color-surface: #ffffff;
   --color-surface-2: #eef1f6;
