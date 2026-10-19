@@ -21,3 +21,19 @@ export interface DiaryDay {
   weather: string | null
   updatedAt: number
 }
+
+/** 随记的一笔：某天某个时刻发生的一件小事，一天可以有很多笔 */
+export interface DiaryStamp {
+  /** 内部唯一 id（ULID） */
+  id: string
+  /** 归属日期，'YYYY-MM-DD' */
+  dateKey: string
+  /** 时刻标记，'HH:MM' */
+  time: string
+  /** 这一笔的内容 */
+  content: string
+  createdAt: number
+  updatedAt: number
+  /** 软删除标记 */
+  deletedAt: number | null
+}
