@@ -3,6 +3,9 @@ dist
 dist-ssr
 *.local
 
+# 桌面端打包产物
+release
+
 # 编辑器
 .vscode/*
 !.vscode/extensions.json

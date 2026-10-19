@@ -30,5 +30,17 @@ export default [
     files: ['src/app/providers/*.tsx'],
     rules: { 'react-refresh/only-export-components': 'off' },
   },
+  {
+    // Electron 主进程/预加载脚本跑在 Node 里，用的是 CommonJS
+    files: ['electron/**/*.cjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: globals.node,
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
   prettier,
 ]
