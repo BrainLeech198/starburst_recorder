@@ -4,14 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import type { DiaryStamp } from '../../core/db/schema'
 import { useToast } from '../../app/providers/ToastProvider'
 import ConfirmDialog from '../../shared/ui/ConfirmDialog'
-import {
-  dayInfo,
-  removeStamp,
-  restoreStamp,
-  setWeather,
-  stampsOfDay,
-  updateStamp,
-} from './diaryRepo'
+import { dayInfo, removeStamp, restoreStamp, setWeather, updateStamp } from './diaryRepo'
 import { parseWeather, weatherIcons, weatherLabel } from './weather'
 import { formatClock, todayKey } from '../../core/utils/dateKey'
 import WeatherDialog from './WeatherDialog'
@@ -21,10 +14,17 @@ function StampRow({
   stamp,
   autoFocus,
   onDelete,
+  selectable,
+  selected,
+  onToggle,
 }: {
   stamp: DiaryStamp
   autoFocus: boolean
   onDelete: (stamp: DiaryStamp) => void
+  /** 批量多选：整笔变成可点选的，不再能编辑内容与时间 */
+  selectable: boolean
+  selected: boolean
+  onToggle: () => void
 }) {
   const [time, setTime] = useState(stamp.time)
   const [editingTime, setEditingTime] = useState(false)
@@ -54,54 +54,78 @@ function StampRow({
     <li className="relative pb-5">
       <span aria-hidden="true" className="timeline-dot" />
 
-      <div className="pr-8">
-        {editingTime ? (
-          <input
-            type="time"
-            value={time}
-            autoFocus
-            onChange={(event) => {
-              setTime(event.target.value)
-              void updateStamp(stamp.id, { time: event.target.value })
-            }}
-            onBlur={() => setEditingTime(false)}
-            className="font-hand rounded-lg border border-binding bg-paper-strong px-2 py-0.5 text-lg text-ink outline-none"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setEditingTime(true)}
-            title="点一下改时间"
-            className="font-hand rounded-lg px-1 text-lg text-ink transition-colors hover:text-brand"
-          >
-            {time}
+      <div className={selected ? 'timeline-row-selected pr-8' : 'pr-8'}>
+        {selectable ? (
+          <button type="button" onClick={onToggle} className="block w-full px-1 text-left">
+            <span className="font-hand block text-lg text-ink">{stamp.time}</span>
+            <span className="font-hand mt-0.5 block min-h-6 text-sm leading-6 text-ink">
+              {content.trim() || <span className="text-ink-muted">（没写内容）</span>}
+            </span>
           </button>
-        )}
+        ) : (
+          <>
+            {editingTime ? (
+              <input
+                type="time"
+                value={time}
+                autoFocus
+                onChange={(event) => {
+                  setTime(event.target.value)
+                  void updateStamp(stamp.id, { time: event.target.value })
+                }}
+                onBlur={() => setEditingTime(false)}
+                className="font-hand rounded-lg border border-binding bg-paper-strong px-2 py-0.5 text-lg text-ink outline-none"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setEditingTime(true)}
+                title="点一下改时间"
+                className="font-hand rounded-lg px-1 text-lg text-ink transition-colors hover:text-brand"
+              >
+                {time}
+              </button>
+            )}
 
-        <textarea
-          ref={areaRef}
-          value={content}
-          rows={1}
-          autoFocus={autoFocus}
-          spellCheck={false}
-          placeholder="记一笔…"
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={() => {
-            if (draft !== null) void updateStamp(stamp.id, { content: draft })
-          }}
-          className="font-hand block w-full resize-none bg-transparent text-sm leading-6 text-ink outline-none placeholder:text-ink-muted"
-        />
+            <textarea
+              ref={areaRef}
+              value={content}
+              rows={1}
+              autoFocus={autoFocus}
+              spellCheck={false}
+              placeholder="记一笔…"
+              onChange={(event) => setDraft(event.target.value)}
+              onBlur={() => {
+                if (draft !== null) void updateStamp(stamp.id, { content: draft })
+              }}
+              className="font-hand block w-full resize-none bg-transparent text-sm leading-6 text-ink outline-none placeholder:text-ink-muted"
+            />
+          </>
+        )}
       </div>
 
-      <button
-        type="button"
-        onClick={() => onDelete(stamp)}
-        title="删掉这一笔"
-        className="absolute top-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-ink-muted opacity-70 transition-colors hover:text-danger hover:opacity-100"
-      >
-        <span aria-hidden="true">✕</span>
-        <span className="sr-only">删掉这一笔</span>
-      </button>
+      {selectable ? (
+        <span
+          aria-hidden="true"
+          className={
+            selected
+              ? 'absolute top-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-brand text-xs text-on-brand'
+              : 'absolute top-0 right-0 h-6 w-6 rounded-full border border-ink-muted opacity-60'
+          }
+        >
+          {selected ? '✓' : ''}
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onDelete(stamp)}
+          title="删掉这一笔"
+          className="absolute top-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-ink-muted opacity-70 transition-colors hover:text-danger hover:opacity-100"
+        >
+          <span aria-hidden="true">✕</span>
+          <span className="sr-only">删掉这一笔</span>
+        </button>
+      )}
     </li>
   )
 }
@@ -118,12 +142,26 @@ function NowRow({ clock }: { clock: string }) {
   )
 }
 
-export default function StampTimeline({ dateKey, focusId }: { dateKey: string; focusId: string }) {
+export default function StampTimeline({
+  dateKey,
+  focusId,
+  stamps,
+  selectMode,
+  selected,
+  onToggleSelect,
+}: {
+  dateKey: string
+  focusId: string
+  /** 这一天的随记，由日记页统一查好传进来，批量多选要用同一份 */
+  stamps: DiaryStamp[] | undefined
+  selectMode: boolean
+  selected: string[]
+  onToggleSelect: (id: string) => void
+}) {
   const { showToast } = useToast()
   const [pendingDelete, setPendingDelete] = useState<DiaryStamp | null>(null)
   const [weatherOpen, setWeatherOpen] = useState(false)
 
-  const stamps = useLiveQuery(() => stampsOfDay(dateKey), [dateKey])
   const day = useLiveQuery(() => dayInfo(dateKey), [dateKey])
 
   const states = parseWeather(day?.weather)
@@ -137,9 +175,9 @@ export default function StampTimeline({ dateKey, focusId }: { dateKey: string; f
     return () => clearInterval(timer)
   }, [])
 
-  // “现在”该插在第几笔之前；不是今天就不插
+  // “现在”该插在第几笔之前；不是今天就不插；批量多选时也不插（它没法被选）
   const markerAt =
-    now.clock !== '' && now.dateKey === dateKey && stamps
+    !selectMode && now.clock !== '' && now.dateKey === dateKey && stamps
       ? (() => {
           const index = stamps.findIndex((stamp) => stamp.time > now.clock)
           return index === -1 ? stamps.length : index
@@ -154,8 +192,11 @@ export default function StampTimeline({ dateKey, focusId }: { dateKey: string; f
         <StampRow
           key={stamp.id}
           stamp={stamp}
-          autoFocus={stamp.id === focusId}
+          autoFocus={!selectMode && stamp.id === focusId}
           onDelete={setPendingDelete}
+          selectable={selectMode}
+          selected={selected.includes(stamp.id)}
+          onToggle={() => onToggleSelect(stamp.id)}
         />,
       )
     })

@@ -107,6 +107,23 @@ export function restoreStamp(id: string) {
   return db.diaryStamps.update(id, { deletedAt: null })
 }
 
+/** 批量软删除随记，一次把选中的都打上标记 */
+export async function removeStamps(ids: string[]) {
+  if (ids.length === 0) return 0
+  return db.diaryStamps.where('id').anyOf(ids).modify({ deletedAt: Date.now() })
+}
+
+export async function restoreStamps(ids: string[]) {
+  if (ids.length === 0) return 0
+  return db.diaryStamps.where('id').anyOf(ids).modify({ deletedAt: null })
+}
+
+/** 批量把随记换到另一天：记错日期时用 */
+export async function moveStamps(ids: string[], dateKey: string) {
+  if (ids.length === 0) return 0
+  return db.diaryStamps.where('id').anyOf(ids).modify({ dateKey, updatedAt: Date.now() })
+}
+
 /** 回收站里的日记，最近删的排前面 */
 export async function trashedEntries(): Promise<DiaryEntry[]> {
   const list = await db.diaryEntries.filter((entry) => entry.deletedAt !== null).toArray()
@@ -126,6 +143,17 @@ export function purgeEntry(id: string) {
 
 export function purgeStamp(id: string) {
   return db.diaryStamps.delete(id)
+}
+
+/** 批量彻底删除：连记录本身一起删掉，没有撤销 */
+export async function purgeEntries(ids: string[]) {
+  if (ids.length === 0) return 0
+  return db.diaryEntries.where('id').anyOf(ids).delete()
+}
+
+export async function purgeStamps(ids: string[]) {
+  if (ids.length === 0) return 0
+  return db.diaryStamps.where('id').anyOf(ids).delete()
 }
 
 /** 清空日记的回收站：只清日记，不动随记 */

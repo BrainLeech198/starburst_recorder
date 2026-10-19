@@ -86,6 +86,56 @@ ipcMain.handle('window:get-size', (event) => {
 })
 
 /**
+ * AI 请求从主进程发出去。
+ *
+ * 为什么不让网页自己发：网页直连第三方 API 会被跨域策略拦掉（厂商配不配 CORS 头是碰运气的），
+ * 而且 key 会出现在渲染进程的网络栈里。主进程这边这两个问题都不存在。
+ * 这里用 net.fetch 而不是全局 fetch——它会跟着系统代理设置走，国内直连 OpenAI 时很关键。
+ */
+function chatUrl(baseUrl) {
+  return `${String(baseUrl).trim().replace(/\/+$/, '')}/chat/completions`
+}
+
+ipcMain.handle('ai:chat', async (_event, request) => {
+  const started = Date.now()
+  const baseUrl = String(request?.baseUrl ?? '').trim()
+  const model = String(request?.model ?? '').trim()
+  // 本机模型（Ollama）不校验 key，给个占位字符串免得服务端因为空值报错
+  const apiKey = String(request?.apiKey ?? '').trim() || 'ollama'
+
+  if (!baseUrl || !model) {
+    return { ok: false, status: 0, body: '', ms: 0, error: '服务地址和模型名还没填全' }
+  }
+
+  try {
+    const response = await net.fetch(chatUrl(baseUrl), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        // 小米 MiMo 的文档里用的是 api-key 头，两个都带上，省得对不上
+        'api-key': apiKey,
+      },
+      body: JSON.stringify({ model, messages: request?.messages ?? [], stream: false }),
+    })
+    return {
+      ok: response.ok,
+      status: response.status,
+      body: await response.text(),
+      ms: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      body: '',
+      ms: Date.now() - started,
+      error: String(error?.message ?? error),
+    }
+  }
+})
+
+/**
  * 自检：设 STARBURST_SELFCHECK=1 启动时，会在页面加载完后探测
  * origin、IndexedDB 读写、手写体是否就位，打印结果后自动退出。
  * 这样打包环境是否正确不用靠肉眼确认。

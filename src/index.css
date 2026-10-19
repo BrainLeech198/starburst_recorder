@@ -173,6 +173,14 @@
   background: var(--color-ink-muted);
 }
 
+/* 批量多选时被选中的一笔随记：整行染一点主题色 + 描边，跟纸条用同一套语言 */
+.timeline-row-selected {
+  background: var(--color-slip-selected);
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 .paper-binding {
   position: absolute;
   left: 0.7rem;
