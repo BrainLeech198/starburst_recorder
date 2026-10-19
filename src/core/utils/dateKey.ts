@@ -23,6 +23,12 @@ export function formatDateCn(dateKey: string): string {
   return `${year}年${month}月${day}日`
 }
 
+/** '1月9日'，列表纸条上不需要重复年份 */
+export function formatMonthDayCn(dateKey: string): string {
+  const [, month, day] = dateKey.split('-').map(Number)
+  return `${month}月${day}日`
+}
+
 /** '星期X' */
 export function weekdayLabel(dateKey: string): string {
   return WEEKDAYS[parseDateKey(dateKey).getDay()]
@@ -36,6 +42,14 @@ export function formatStamp(ms: number): string {
   const hour = String(date.getHours()).padStart(2, '0')
   const minute = String(date.getMinutes()).padStart(2, '0')
   return `${date.getFullYear()}/${month}/${day}-${hour}:${minute}`
+}
+
+/** '18:00'，纸条角落只留时刻 */
+export function formatClock(ms: number): string {
+  const date = new Date(ms)
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  return `${hour}:${minute}`
 }
 
 /** 某月第一天的星期偏移（0=周日）与总天数 */

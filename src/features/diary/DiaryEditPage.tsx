@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import type { DiaryEntry } from '../../core/db/schema'
 import { useToast } from '../../app/providers/ToastProvider'
 import ConfirmDialog from '../../shared/ui/ConfirmDialog'
+import { SOLID_BUTTON, SOLID_DANGER } from '../../shared/ui/buttonStyles'
 import {
   dayInfo,
   entryByCode,
@@ -13,18 +14,15 @@ import {
   updateContent,
 } from './diaryRepo'
 import { formatDateCn, weekdayLabel } from '../../core/utils/dateKey'
+import { parseWeather, weatherIcons, weatherLabel } from './weather'
 import WeatherDialog from './WeatherDialog'
-
-/** 顶部两个按钮统一用这套样式 */
-const HEADER_BUTTON = 'rounded-lg border px-3 py-1.5 text-sm transition-colors'
-const HEADER_BUTTON_IDLE = `${HEADER_BUTTON} border-line text-muted hover:text-fg`
 
 /** 自然段开头的两个方格，占两个字宽，同时形成首行缩进两字 */
 function ParagraphMarks() {
   return (
     <span aria-hidden="true" className="inline-flex w-[2em] select-none align-[-0.12em]">
-      <span className="h-[1em] w-[1em] border border-line" />
-      <span className="-ml-px h-[1em] w-[1em] border border-line" />
+      <span className="h-[1em] w-[1em] border-[1.5px] border-ink-muted" />
+      <span className="-ml-[1.5px] h-[1em] w-[1em] border-[1.5px] border-ink-muted" />
     </span>
   )
 }
@@ -78,6 +76,7 @@ export default function DiaryEditPage() {
   }
 
   const weather = day?.weather ?? ''
+  const weatherStates = parseWeather(weather)
   const value = draft ?? entry.content
   const paragraphs = value.split('\n')
 
@@ -103,45 +102,52 @@ export default function DiaryEditPage() {
   return (
     <div className="w-full p-4">
       <div className="flex items-center justify-between gap-2">
-        <Link to="/diary" className={HEADER_BUTTON_IDLE}>
-          回到列表
+        <Link to="/diary" className={SOLID_BUTTON}>
+          ← 返回列表
         </Link>
+
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setConfirmOpen(true)}
-            className={`${HEADER_BUTTON} border-danger text-danger`}
+            className={SOLID_DANGER}
           >
             删除
           </button>
           <button
             type="button"
             onClick={() => setEditing((value) => !value)}
-            className={editing ? `${HEADER_BUTTON} border-brand text-brand` : HEADER_BUTTON_IDLE}
+            title={editing ? '锁定后这条日记变成只读' : '打开编辑'}
+            className={SOLID_BUTTON}
           >
-            {editing ? '编辑开启' : '锁定开启'}
+            {editing ? '锁定' : '编辑'}
           </button>
         </div>
       </div>
 
-      {!editing && (
-        <p className="mt-4 text-xs text-muted">当前只读。点右上角切换成「编辑开启」即可修改。</p>
-      )}
+      <div className={editing ? 'paper mt-4' : 'paper paper-locked mt-4'}>
+        <span aria-hidden="true" className="paper-binding">
+          <span className="paper-hole" />
+          <span className="paper-hole" />
+          <span className="paper-hole" />
+        </span>
 
-      <div className="mt-4 overflow-hidden rounded-lg border border-line">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center border-b border-line px-4 py-2 text-sm">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center font-hand text-sm">
           <span className="whitespace-nowrap">{formatDateCn(entry.dateKey)}</span>
-          <span className="px-2 text-center">{weekdayLabel(entry.dateKey)}</span>
+          <span className="px-2 text-center text-ink-muted">{weekdayLabel(entry.dateKey)}</span>
           <button
             type="button"
             onClick={() => setWeatherOpen(true)}
-            className="justify-self-end whitespace-nowrap text-brand underline decoration-dotted underline-offset-4"
+            title="点一下改天气"
+            className="sticker justify-self-end text-xs"
           >
-            （{weather || '天气待填写'}）
+            {weatherStates.length > 0
+              ? `${weatherIcons(weatherStates)} ${weatherLabel(weatherStates)}`
+              : '天气待填写'}
           </button>
         </div>
 
-        <div className="ruled min-h-[50vh] px-4 text-sm text-fg">
+        <div className="ruled font-hand mt-4 min-h-[50vh] text-sm">
           {editing ? (
             <textarea
               value={value}
@@ -149,10 +155,10 @@ export default function DiaryEditPage() {
               onBlur={flush}
               rows={16}
               spellCheck={false}
-              className="block w-full resize-none bg-transparent text-fg outline-none"
+              className="block w-full resize-none bg-transparent text-ink outline-none"
             />
           ) : value.trim() === '' ? (
-            <p className="m-0 text-muted">（还没有内容）</p>
+            <p className="m-0 text-ink-muted">今天想写点什么？</p>
           ) : (
             paragraphs.map((paragraph, index) =>
               paragraph === '' ? (

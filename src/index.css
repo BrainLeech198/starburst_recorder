@@ -1,7 +1,20 @@
 @import 'tailwindcss';
 
+/* 手写体：霞鹜文楷，已子集化为常用字（GB2312 全字库）。
+   放在 src/assets 里交给 Vite 处理，这样打出来的桌面/手机壳里也能正确加载 */
+@font-face {
+  font-family: 'LXGW WenKai Subset';
+  src: url('./assets/fonts/lxgw-wenkai-subset.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* 默认主题：深空 */
 @theme {
+  --font-hand:
+    'LXGW WenKai Subset', 'Kaiti SC', 'KaiTi', 'STKaiti', 'PingFang SC', system-ui, sans-serif;
+
   --color-bg: #0a0d12;
   --color-surface: #101520;
   --color-surface-2: #161b26;
@@ -13,6 +26,19 @@
   --color-nav-strong: #0e131c;
   --color-danger: #e5484d;
   --color-on-brand: #06121a;
+  --color-on-danger: #ffffff;
+
+  /* 纸：纸色与纸上墨色独立于主题色，换主题色时纸仍是纸 */
+  --color-paper: #f7f2e8;
+  --color-paper-strong: #efe6d4;
+  --color-ink: #2b2723;
+  --color-ink-muted: rgb(43 39 35 / 62%);
+  --color-rule: rgb(43 39 35 / 16%);
+  --color-binding: rgb(43 39 35 / 22%);
+  --shadow-paper: 0 12px 28px rgb(0 0 0 / 42%);
+  --shadow-slip: 0 6px 14px rgb(0 0 0 / 34%);
+  /* 多选选中时纸面的染色：淡淡混一点主题色，还是一张纸 */
+  --color-slip-selected: color-mix(in srgb, var(--color-paper) 86%, var(--color-brand));
 
   --animate-breathe: mascot-breathe 3.2s ease-in-out infinite;
 }
@@ -45,7 +71,8 @@
 
 /* 浅色主题：在设置里切换 */
 :root[data-theme='light'] {
-  --color-bg: color-mix(in srgb, var(--sb-accent, #0891b2) 6%, #f5f7fa);
+  /* 桌面加深一点，纸用纯白 + 投影，两者才分得开 */
+  --color-bg: color-mix(in srgb, var(--sb-accent, #0891b2) 6%, #e7ebf1);
   --color-surface: color-mix(in srgb, var(--sb-accent, #0891b2) 3%, #ffffff);
   --color-surface-2: color-mix(in srgb, var(--sb-accent, #0891b2) 9%, #eef1f6);
   --color-line: color-mix(in srgb, var(--sb-accent, #0891b2) 16%, #e1e5ec);
@@ -56,6 +83,134 @@
   --color-nav-strong: color-mix(in srgb, var(--sb-accent, #0891b2) 34%, #d9e2ee);
   --color-danger: #d92d20;
   --color-on-brand: #ffffff;
+
+  --color-paper: #ffffff;
+  --color-paper-strong: #f0ebdf;
+  --color-ink: #1d1b18;
+  --color-ink-muted: rgb(29 27 24 / 62%);
+  --color-rule: rgb(29 27 24 / 14%);
+  --color-binding: rgb(29 27 24 / 18%);
+  --shadow-paper: 0 10px 22px rgb(20 30 45 / 18%);
+  --shadow-slip: 0 4px 12px rgb(20 30 45 / 14%);
+  /* 浅色模式下纸是纯白，混入比例要低一点，免得变成“染色纸” */
+  --color-slip-selected: color-mix(in srgb, var(--color-paper) 93%, var(--color-brand));
+}
+
+/* 一张纸：直角、投影托起；左侧一条装订线加三个打孔 */
+.paper {
+  position: relative;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-paper);
+  padding: 1.5rem 1.25rem 1.75rem 2.25rem;
+}
+
+/* 锁定态：纸面压暗，配合顶部锁图标点亮，不再用文字解释 */
+.paper-locked {
+  background: color-mix(in srgb, var(--color-paper) 88%, var(--color-bg));
+}
+
+/* 列表里的纸条：一张张分开摆，是纸的缩小版，左侧只留一条装订线 */
+.paper-slip {
+  position: relative;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-slip);
+  padding: 0.75rem 0.75rem 0.75rem 1.5rem;
+}
+
+.paper-slip::before {
+  content: '';
+  position: absolute;
+  left: 0.7rem;
+  top: 0.75rem;
+  bottom: 0.75rem;
+  width: 1px;
+  background: var(--color-binding);
+}
+
+/* 批量多选时被选中的纸条：纸面染一点主题色 + 描边贴边 + 轻微抬起 */
+.paper-slip-selected {
+  background: var(--color-slip-selected);
+  outline: 2px solid var(--color-brand);
+  outline-offset: 0;
+  transform: translateY(-1px);
+}
+
+/* 随记纸：不画装订线，左侧一条贯穿整张纸的时间轴 */
+.paper-timeline {
+  --axis-x: 2.25rem; /* 轴线离纸左边的距离 */
+  --axis-dot: 12px; /* 时间轴节点直径 */
+  position: relative;
+  padding: 2.5rem 1.25rem 3rem calc(var(--axis-x) + 1.5rem);
+  min-height: 50vh;
+}
+
+.paper-timeline::before {
+  content: '';
+  position: absolute;
+  left: var(--axis-x);
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-binding);
+}
+
+/* 时间轴上的节点：空心环，中间透出纸色 */
+.timeline-dot {
+  position: absolute;
+  left: calc(-1.5rem - var(--axis-dot, 12px) / 2);
+  top: 0.5rem;
+  width: var(--axis-dot, 12px);
+  height: var(--axis-dot, 12px);
+  border: 1.5px solid var(--color-ink-muted);
+  border-radius: 50%;
+  background: var(--color-paper);
+}
+
+/* “现在”那个节点是实心的：你在这里 */
+.timeline-dot-now {
+  background: var(--color-ink-muted);
+}
+
+.paper-binding {
+  position: absolute;
+  left: 0.7rem;
+  top: 1.75rem;
+  bottom: 1.75rem;
+  display: flex;
+  width: 14px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.paper-binding::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--color-binding);
+}
+
+.paper-hole {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--color-binding);
+  border-radius: 50%;
+  background: var(--color-paper);
+}
+
+/* 天气小贴纸：斜贴在纸的页眉右侧 */
+.sticker {
+  background: var(--color-paper-strong);
+  border: 1px solid var(--color-binding);
+  box-shadow: 0 2px 5px rgb(0 0 0 / 20%);
+  transform: rotate(-6deg);
+  padding: 0.15rem 0.5rem;
 }
 
 /* 笔记本横线格：行线与行高共用同一个变量，改一处即可；行线数量随高度、长度随宽度自动延伸 */
@@ -65,8 +220,8 @@
   background-image: linear-gradient(
     to bottom,
     transparent calc(var(--ruled-lh) - 1px),
-    var(--color-line) calc(var(--ruled-lh) - 1px),
-    var(--color-line) var(--ruled-lh)
+    var(--color-rule) calc(var(--ruled-lh) - 1px),
+    var(--color-rule) var(--ruled-lh)
   );
   background-size: 100% var(--ruled-lh);
   background-repeat: repeat;

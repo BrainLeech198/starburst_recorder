@@ -1,0 +1,224 @@
+import { useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
+import type { DiaryStamp } from '../../core/db/schema'
+import { useToast } from '../../app/providers/ToastProvider'
+import ConfirmDialog from '../../shared/ui/ConfirmDialog'
+import {
+  dayInfo,
+  removeStamp,
+  restoreStamp,
+  setWeather,
+  stampsOfDay,
+  updateStamp,
+} from './diaryRepo'
+import { parseWeather, weatherIcons, weatherLabel } from './weather'
+import { formatClock, todayKey } from '../../core/utils/dateKey'
+import WeatherDialog from './WeatherDialog'
+
+/** 一笔随记：时间一行（可点改）、内容在下，整笔挂在左侧时间轴上 */
+function StampRow({
+  stamp,
+  autoFocus,
+  onDelete,
+}: {
+  stamp: DiaryStamp
+  autoFocus: boolean
+  onDelete: (stamp: DiaryStamp) => void
+}) {
+  const [time, setTime] = useState(stamp.time)
+  const [editingTime, setEditingTime] = useState(false)
+  const [draft, setDraft] = useState<string | null>(null)
+  const areaRef = useRef<HTMLTextAreaElement>(null)
+
+  const content = draft ?? stamp.content
+
+  // 打字停顿即自动保存
+  useEffect(() => {
+    if (draft === null) return
+    const timer = setTimeout(() => {
+      void updateStamp(stamp.id, { content: draft })
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [draft, stamp.id])
+
+  // 高度跟着文字长，避免纸面上出现内部滚动条
+  useEffect(() => {
+    const area = areaRef.current
+    if (!area) return
+    area.style.height = 'auto'
+    area.style.height = `${area.scrollHeight}px`
+  }, [content])
+
+  return (
+    <li className="relative pb-5">
+      <span aria-hidden="true" className="timeline-dot" />
+
+      <div className="pr-8">
+        {editingTime ? (
+          <input
+            type="time"
+            value={time}
+            autoFocus
+            onChange={(event) => {
+              setTime(event.target.value)
+              void updateStamp(stamp.id, { time: event.target.value })
+            }}
+            onBlur={() => setEditingTime(false)}
+            className="font-hand rounded-lg border border-binding bg-paper-strong px-2 py-0.5 text-lg text-ink outline-none"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditingTime(true)}
+            title="点一下改时间"
+            className="font-hand rounded-lg px-1 text-lg text-ink transition-colors hover:text-brand"
+          >
+            {time}
+          </button>
+        )}
+
+        <textarea
+          ref={areaRef}
+          value={content}
+          rows={1}
+          autoFocus={autoFocus}
+          spellCheck={false}
+          placeholder="记一笔…"
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={() => {
+            if (draft !== null) void updateStamp(stamp.id, { content: draft })
+          }}
+          className="font-hand block w-full resize-none bg-transparent text-sm leading-6 text-ink outline-none placeholder:text-ink-muted"
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onDelete(stamp)}
+        title="删掉这一笔"
+        className="absolute top-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-ink-muted opacity-70 transition-colors hover:text-danger hover:opacity-100"
+      >
+        <span aria-hidden="true">✕</span>
+        <span className="sr-only">删掉这一笔</span>
+      </button>
+    </li>
+  )
+}
+
+/** “现在”那个小标记：只插在今天的时间轴上，箭头指回时间轴 */
+function NowRow({ clock }: { clock: string }) {
+  return (
+    <li className="relative pb-5">
+      <span aria-hidden="true" className="timeline-dot timeline-dot-now" />
+      <span className="font-hand text-lg text-ink-muted">
+        {clock} <span className="text-xs">◀</span>
+      </span>
+    </li>
+  )
+}
+
+export default function StampTimeline({ dateKey, focusId }: { dateKey: string; focusId: string }) {
+  const { showToast } = useToast()
+  const [pendingDelete, setPendingDelete] = useState<DiaryStamp | null>(null)
+  const [weatherOpen, setWeatherOpen] = useState(false)
+
+  const stamps = useLiveQuery(() => stampsOfDay(dateKey), [dateKey])
+  const day = useLiveQuery(() => dayInfo(dateKey), [dateKey])
+
+  const states = parseWeather(day?.weather)
+
+  /** 当前时刻与今天，每分钟自己走一格，这样“现在”标记不会停在打开页面的那一刻 */
+  const [now, setNow] = useState({ clock: '', dateKey: '' })
+  useEffect(() => {
+    const tick = () => setNow({ clock: formatClock(Date.now()), dateKey: todayKey() })
+    tick()
+    const timer = setInterval(tick, 60_000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // “现在”该插在第几笔之前；不是今天就不插
+  const markerAt =
+    now.clock !== '' && now.dateKey === dateKey && stamps
+      ? (() => {
+          const index = stamps.findIndex((stamp) => stamp.time > now.clock)
+          return index === -1 ? stamps.length : index
+        })()
+      : -1
+
+  const items: ReactNode[] = []
+  if (stamps) {
+    stamps.forEach((stamp, index) => {
+      if (index === markerAt) items.push(<NowRow key={`now-${stamp.id}`} clock={now.clock} />)
+      items.push(
+        <StampRow
+          key={stamp.id}
+          stamp={stamp}
+          autoFocus={stamp.id === focusId}
+          onDelete={setPendingDelete}
+        />,
+      )
+    })
+    if (markerAt === stamps.length) items.push(<NowRow key="now-tail" clock={now.clock} />)
+  }
+
+  async function handleDelete() {
+    if (!pendingDelete) return
+    const targetId = pendingDelete.id
+    setPendingDelete(null)
+    await removeStamp(targetId)
+    showToast({
+      message: '已删掉这一笔',
+      actionLabel: '撤销',
+      onAction: () => {
+        void restoreStamp(targetId)
+      },
+    })
+  }
+
+  return (
+    <>
+      <div className="paper paper-timeline mt-4">
+        <div className="mb-4 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setWeatherOpen(true)}
+            title="点一下改天气"
+            className="sticker font-hand text-xs text-ink"
+          >
+            {states.length > 0 ? `${weatherIcons(states)} ${weatherLabel(states)}` : '天气待填写'}
+          </button>
+        </div>
+
+        {stamps === undefined && <p className="m-0 text-sm text-ink-muted">读取中…</p>}
+
+        {stamps !== undefined && stamps.length === 0 && (
+          <p className="m-0 text-sm text-ink-muted">还没有记过，点上面的「＋ 记一笔」开始。</p>
+        )}
+
+        {stamps !== undefined && stamps.length > 0 && <ul>{items}</ul>}
+      </div>
+
+      {weatherOpen && (
+        <WeatherDialog
+          value={day?.weather ?? ''}
+          onConfirm={async (next) => {
+            await setWeather(dateKey, next)
+            setWeatherOpen(false)
+          }}
+          onCancel={() => setWeatherOpen(false)}
+        />
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title="确定删掉这一笔？"
+          description={`${pendingDelete.time} ${pendingDelete.content || '（没写内容）'}`}
+          confirmLabel="删除"
+          onConfirm={handleDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
+    </>
+  )
+}
