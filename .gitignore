@@ -5,6 +5,7 @@ dist-ssr
 
 # 桌面端打包产物
 release
+package/windows/dist
 
 # 编辑器
 .vscode/*

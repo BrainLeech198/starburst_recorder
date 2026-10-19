@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "preview": "vite preview",
     "desktop": "npm run build && electron .",
-    "desktop:pack": "npm run build && electron-builder"
+    "desktop:pack": "npm run build && electron-builder",
+    "desktop:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File package/windows/build.ps1"
   },
   "dependencies": {
     "dexie": "^4.4.6",
@@ -53,7 +54,9 @@
     "electronDownload": {
       "mirror": "https://npmmirror.com/mirrors/electron/"
     },
+    "electronDist": "node_modules/electron/dist",
     "win": {
+      "icon": "package/windows/icon.ico",
       "target": ["nsis"]
     },
     "nsis": {

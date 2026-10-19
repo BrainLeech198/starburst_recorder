@@ -6,6 +6,8 @@
 const { app, BrowserWindow, ipcMain, protocol, net } = require('electron')
 const path = require('node:path')
 const nodeUrl = require('node:url')
+const fs = require('node:fs')
+const os = require('node:os')
 
 /** 窗口不能小于这个尺寸，免得版式被压坏 */
 const MIN_WIDTH = 420
@@ -120,7 +122,11 @@ async function runSelfCheck(win) {
 
   try {
     const result = await win.webContents.executeJavaScript(probe)
+    // 打包后的 exe 用 GUI 子系统启动时看不到 stdout，所以同时写一份到文件
+    const resultFile = path.join(os.tmpdir(), 'starburst-selfcheck.json')
+    fs.writeFileSync(resultFile, result)
     console.log('[selfcheck]', result)
+    console.log('[selfcheck-file]', resultFile)
   } catch (error) {
     console.error('[selfcheck-failed]', error)
   }
