@@ -21,7 +21,7 @@ function Starburst() {
 
 export default function HomePage() {
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-md flex-col items-center justify-center px-6 md:min-h-dvh">
+    <div className="mx-auto flex min-h-full w-full max-w-md flex-col items-center justify-center px-6">
       <Starburst />
       <h1 className="mt-7 text-2xl font-medium tracking-wide">星芒记录者</h1>
       <p className="mt-2 text-sm text-muted">把零散的日子，攒成看得见的自己</p>

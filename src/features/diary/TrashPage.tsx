@@ -1,11 +1,17 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useLiveQuery } from '../../core/db/live'
 import { useToast } from '../../app/providers/ToastProvider'
 import BatchBar from '../../shared/ui/BatchBar'
 import ConfirmDialog from '../../shared/ui/ConfirmDialog'
 import Tab from '../../shared/ui/Tab'
-import { BAR_BUTTON, BAR_DANGER, SOLID_BUTTON, SOLID_DANGER } from '../../shared/ui/buttonStyles'
+import {
+  BACK_BUTTON,
+  BAR_BUTTON,
+  BAR_DANGER,
+  SOLID_BUTTON,
+  SOLID_DANGER,
+} from '../../shared/ui/buttonStyles'
 import {
   purgeEntries,
   purgeEntry,
@@ -50,7 +56,8 @@ export default function TrashPage() {
   const count = mode === 'diary' ? (entries?.length ?? 0) : (stamps?.length ?? 0)
   const isEmpty = !loading && count === 0
   const selectedCount = selected.length
-  const selectableIds = mode === 'diary' ? (entries ?? []).map((e) => e.id) : (stamps ?? []).map((s) => s.id)
+  const selectableIds =
+    mode === 'diary' ? (entries ?? []).map((e) => e.id) : (stamps ?? []).map((s) => s.id)
 
   function exitSelect() {
     setSelectMode(false)
@@ -117,7 +124,7 @@ export default function TrashPage() {
   return (
     <div className="w-full p-4">
       <div className="flex items-center justify-between gap-2">
-        <Link to="/diary" className={SOLID_BUTTON}>
+        <Link to="/diary" className={BACK_BUTTON}>
           ← 返回日记
         </Link>
         <div className="flex items-center gap-2">

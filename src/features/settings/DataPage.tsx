@@ -6,12 +6,12 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { Link } from 'react-router'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useLiveQuery } from '../../core/db/live'
 import { useToast } from '../../app/providers/ToastProvider'
 import ConfirmDialog from '../../shared/ui/ConfirmDialog'
 import SettingCard, { SettingBadge, SettingGroup } from '../../shared/ui/SettingCard'
-import { OUTLINE_BUTTON, SOLID_BUTTON } from '../../shared/ui/buttonStyles'
+import PageShell from '../../shared/ui/PageShell'
+import { OUTLINE_BUTTON } from '../../shared/ui/buttonStyles'
 import { desktopBridge } from '../../core/desktop'
 import type { DesktopBridge } from '../../core/desktop'
 import { buildBackup, readBackup } from '../diary/diaryBackup'
@@ -130,92 +130,82 @@ export default function DataPage() {
   const added = (part: { total: number; overwritten: number }) => part.total - part.overwritten
 
   return (
-    <div className="mx-auto w-full max-w-md p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-lg font-medium">数据与备份</h1>
-        <Link to="/settings" className={SOLID_BUTTON}>
-          ← 返回设置
-        </Link>
-      </div>
+    <PageShell title="数据与备份" description="导出全部数据、从备份恢复、看一眼数据实际落在哪儿。">
+      <SettingCard
+        title="备份"
+        description="把全部内容导成一份 JSON：日记、随记、天气，连回收站里删掉的都在内。"
+        badge={
+          <SettingBadge>
+            日记 {counts?.entries ?? 0} · 随记 {counts?.stamps ?? 0}
+          </SettingBadge>
+        }
+      >
+        <SettingGroup label="导出">
+          <button type="button" onClick={() => void handleExportAll()} className={OUTLINE_BUTTON}>
+            导出全部数据
+          </button>
+          <p className="mt-2 text-xs text-muted">
+            文件会直接下载下来。收好它——这就是你的备份，也是换机器时唯一要带的东西。
+          </p>
+        </SettingGroup>
+      </SettingCard>
 
-      <div className="mt-6 space-y-4">
-        <SettingCard
-          title="备份"
-          description="把全部内容导成一份 JSON：日记、随记、天气，连回收站里删掉的都在内。"
-          badge={
-            <SettingBadge>
-              日记 {counts?.entries ?? 0} · 随记 {counts?.stamps ?? 0}
-            </SettingBadge>
-          }
-        >
-          <SettingGroup label="导出">
-            <button type="button" onClick={() => void handleExportAll()} className={OUTLINE_BUTTON}>
-              导出全部数据
-            </button>
-            <p className="mt-2 text-xs text-muted">
-              文件会直接下载下来。收好它——这就是你的备份，也是换机器时唯一要带的东西。
+      <SettingCard
+        title="从备份恢复"
+        description="选一份之前导出的备份，把里面的内容并进来。"
+        badge={<SettingBadge>合并 · 备份优先</SettingBadge>}
+      >
+        <SettingGroup label="选择备份文件">
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={(event) => void handlePick(event)}
+            className="hidden"
+          />
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => fileRef.current?.click()}
+            className={OUTLINE_BUTTON}
+          >
+            {busy ? '正在导入…' : '选择备份文件…'}
+          </button>
+          <p className="mt-2 text-xs text-muted">
+            选完先给你看一份清单，你确认了才会真写进去。同一条记录以备份为准，其它内容不动。
+          </p>
+
+          {error !== '' && (
+            <p className="mt-2 rounded-lg border border-danger px-3 py-2 text-xs text-danger">
+              {error}
             </p>
-          </SettingGroup>
-        </SettingCard>
+          )}
 
-        <SettingCard
-          title="从备份恢复"
-          description="选一份之前导出的备份，把里面的内容并进来。"
-          badge={<SettingBadge>合并 · 备份优先</SettingBadge>}
-        >
-          <SettingGroup label="选择备份文件">
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".json,application/json"
-              onChange={(event) => void handlePick(event)}
-              className="hidden"
-            />
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => fileRef.current?.click()}
-              className={OUTLINE_BUTTON}
-            >
-              {busy ? '正在导入…' : '选择备份文件…'}
-            </button>
-            <p className="mt-2 text-xs text-muted">
-              选完先给你看一份清单，你确认了才会真写进去。同一条记录以备份为准，其它内容不动。
-            </p>
+          {report && (
+            <div className="mt-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-xs">
+              <div className="text-fg">导入完成</div>
+              <ul className="mt-1 space-y-0.5 text-muted">
+                <li>
+                  日记：新增 {added(report.stats.entries)} 条 · 覆盖{' '}
+                  {report.stats.entries.overwritten} 条
+                </li>
+                <li>
+                  随记：新增 {added(report.stats.stamps)} 笔 · 覆盖{' '}
+                  {report.stats.stamps.overwritten} 笔
+                </li>
+                <li>
+                  天气：新增 {added(report.stats.days)} 天 · 覆盖 {report.stats.days.overwritten} 天
+                </li>
+                {report.skipped > 0 && (
+                  <li className="text-danger">有 {report.skipped} 条格式不对，已经跳过</li>
+                )}
+              </ul>
+            </div>
+          )}
+        </SettingGroup>
+      </SettingCard>
 
-            {error !== '' && (
-              <p className="mt-2 rounded-lg border border-danger px-3 py-2 text-xs text-danger">
-                {error}
-              </p>
-            )}
-
-            {report && (
-              <div className="mt-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-xs">
-                <div className="text-fg">导入完成</div>
-                <ul className="mt-1 space-y-0.5 text-muted">
-                  <li>
-                    日记：新增 {added(report.stats.entries)} 条 · 覆盖{' '}
-                    {report.stats.entries.overwritten} 条
-                  </li>
-                  <li>
-                    随记：新增 {added(report.stats.stamps)} 笔 · 覆盖{' '}
-                    {report.stats.stamps.overwritten} 笔
-                  </li>
-                  <li>
-                    天气：新增 {added(report.stats.days)} 天 · 覆盖 {report.stats.days.overwritten}{' '}
-                    天
-                  </li>
-                  {report.skipped > 0 && (
-                    <li className="text-danger">有 {report.skipped} 条格式不对，已经跳过</li>
-                  )}
-                </ul>
-              </div>
-            )}
-          </SettingGroup>
-        </SettingCard>
-
-        <DataFolderCard />
-      </div>
+      <DataFolderCard />
 
       {pending && (
         <ConfirmDialog
@@ -231,6 +221,6 @@ export default function DataPage() {
           onCancel={() => setPending(null)}
         />
       )}
-    </div>
+    </PageShell>
   )
 }

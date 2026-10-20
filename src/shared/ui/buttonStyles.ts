@@ -1,10 +1,20 @@
-/** 实心主按钮：全站统一，新增 / 记一笔 / 返回 / 恢复入口都用它 */
+/** 实心主按钮：全站统一，新增 / 记一笔 / 保存 / 恢复入口都用它（返回不用它，见 BACK_BUTTON） */
 export const SOLID_BUTTON =
   'rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-on-brand transition-opacity hover:opacity-90'
 
-/** 危险操作按钮：形状尺寸同上，只换成统一的危险色（删除 / 清空） */
+/** 危险操作按钮：形状尺寸同上，只换成统一的危险色（删除 / 清空 / 彻底删除） */
 export const SOLID_DANGER =
   'rounded-lg bg-danger px-3 py-1.5 text-sm font-medium text-on-danger transition-opacity hover:opacity-90'
+
+/**
+ * 「返回上一级」按钮：实心危险色红 + 反色文字。
+ *
+ * 它长得和 SOLID_DANGER 一样，这是 2026-10-20 在预览页里对比四种形态后用户明确选定的效果，
+ * 不是顺手复用；单独留个名字是因为：红在本应用里原本只表示「危险操作」，
+ * 返回是借用了这个颜色，将来要给返回换色（或给危险操作换色）只改这一处。
+ * 副作用要心里有数：和「删除」同框时两个红块会长得一样（例如日记编辑页的头部）。
+ */
+export const BACK_BUTTON = SOLID_DANGER
 
 /** 底部批量工具条上的小按钮 */
 export const BAR_BUTTON =

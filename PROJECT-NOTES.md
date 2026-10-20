@@ -2,7 +2,9 @@
 
 > 这份文档的用途：把"只存在于对话里"的判断落成文字。
 > 换机器、换会话、换工具之后，读这一份就能接手。
-> 最近更新：2026-10-19
+> 最近更新：2026-10-20
+>
+> **项目路径：`D:\File\idea\trae\starburst_recorder`**（2026-10-20 从 `D:\File\claude\` + 零宽字符 + `starburst_recorder` 搬过来，原因见 §9）
 
 ---
 
@@ -39,7 +41,7 @@
 - 不用 Python/pywebview 封装窗口（绕开既定路线、维护成本全在自己身上）
 - 暂不换 SQLite（触发条件见 §10）
 
-## 3. 打包（Windows 已完成，手机未开始）
+## 3. 打包（Windows 与手机 debug APK 都能出）
 
 ### 命令
 
@@ -49,21 +51,59 @@ npm run desktop          # 构建 + 打开桌面窗口
 npm run desktop:installer # 完整安装包流水线
 ```
 
+### Android（Capacitor，出 debug APK）
+
+```bash
+npm run build && npx cap sync android    # 前端产物同步进 android 工程
+```
+
+然后在 `android/` 目录下（**系统默认 java 是 1.8，必须显式指定 21**）：
+
+```powershell
+$env:JAVA_HOME='C:\Program Files\Java\jdk-21'
+.\gradlew.bat assembleDebug --no-daemon
+```
+
+产物 `android/app/build/outputs/apk/debug/app-debug.apk`（约 10.7 MB），装机：
+
+```powershell
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+- `minSdk = 29`（Android 10），`targetSdk = 36`，见 `android/variables.gradle`
+- `android/local.properties` 里写 `sdk.dir=D:\Android\Sdk`
+- gradle wrapper 已锁 **8.14.4-bin**（本机已缓存，构建时不下载）
+- 页面跑在 `https://localhost`（Capacitor 默认 `androidScheme`），IndexedDB 按常规工作
+
 ### Windows 安装包流程
 
 ```
-package/windows/
-├─ starburst-recorder.iss         Inno 脚本（安装界面细节）
-├─ build.ps1                      流水线：构建 → 免安装目录 → 安装程序
-├─ make-icon.ps1                  方图 → 六档尺寸 .ico
-├─ icon.jpg / icon.ico            应用图标（四角星芒）
-└─ languages/ChineseSimplified.isl 简体中文语言包（官方包不带，随仓库走）
+package/
+├─ icons/make-icons.ps1           一套画法出全端（Windows .ico + Android mipmap），透明底
+└─ windows/
+   ├─ starburst-recorder.iss      Inno 脚本（安装界面细节）
+   ├─ build.ps1                   流水线：构建 → 免安装目录 → 安装程序
+   ├─ icon.ico / icon.png         应用图标（透明底）
+   └─ languages/ChineseSimplified.isl 简体中文语言包（官方包不带，随仓库走）
 ```
 
 产物：`package/windows/dist/starburst-recorder-<版本>-setup.exe`（约 112 MB）。
 `release/`（免安装目录）和 `package/windows/dist/`（安装包）都已进 `.gitignore`。
 
 **版本号、应用名、exe 名统一从 `package.json` 读**，由 `build.ps1` 用 `/D` 传给 Inno，避免两处各写一份。
+
+### 应用图标（2026-10-20 定稿）
+
+设计：**星尘轨道 + 黑洞镂空 + 中心星芒**，青色 `#6ee7ff`，**不带方底**——方案 A：Windows 与 Android 都直接给带 alpha 的透明图。
+
+```powershell
+powershell -File package/icons/make-icons.ps1                                   # 出全端图标
+powershell -File package/icons/make-icons.ps1 -PreviewDir .venv/icon-preview     # 另出验收对照图
+```
+
+- 产出：`package/windows/icon.ico`（16/32/48/64/128/256）+ `icon.png`（512 预览）+ Android `mipmap-{m,h,xh,xxh,xxxh}dpi/ic_launcher.png` 与 `ic_launcher_round.png`（48/72/96/144/192）。实测**透明像素 85–87%、四角 alpha 全为 0**
+- **每档单独渲染，不靠缩放**，且按尺寸降级细节：16/32 只画「环 + 核点」（细节在小尺寸必糊，实测过）；40–95 画环 + 星芒 + 轨道线；96 以上才加三颗星尘点与洞的暗填充（`-HoleAlpha 0` 即完全镂空）
+- **Android 刻意不上自适应图标**：自适应图标的**背景层必须不透明**，现代启动器就会显示深色底而非透明剪影；想要"透明 + 不规则"只能走 legacy PNG（参考项目《氢风》，其 APK 的 `res/*.png` 透明像素 52–55%、四角 alpha 全 0）。所以 `mipmap-anydpi-v26/`、`ic_launcher_foreground`、`ic_launcher_background` **已删除——别加回来**。代价：部分国产启动器会给 legacy 图标自动加一层底，且放弃 Android 13 单色主题图标
 
 ### 桌面壳的关键决定
 
@@ -126,14 +166,18 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 - **段首两个方格**不是装饰：它同时就是"首行缩进两字"的载体，缩进和视觉是一体的。
 - **随记时间轴**：轴线**贯穿整张纸**、节点用**空心环**、只记今天时插入「现在」标记（每分钟自动走）。
 - **天气小贴纸**：斜贴、图标链 + 全文。
-- **按钮**：统一实心（主题色）+ 反色文字；**删除类一律用危险色红**，形状尺寸与主按钮一致。
+- **按钮**：统一实心（主题色）+ 反色文字；**删除类一律用危险色红**，形状尺寸与主按钮一致。**「返回上一级」用实心危险色红 + 反色文字**（`buttonStyles.BACK_BUTTON`，2026-10-20 用户在预览页里对比四种形态后选定）：它和「删除」同色，所以两者同框时长得几乎一样（日记编辑页头部就是这样），这是知情的取舍，改口只动 `BACK_BUTTON` 一处。
 - **页内栏目切换**：用 `shared/ui/Tab.tsx`，日记/随记/回收站三处共用。
 - **删除保护**：任何删除都要二次确认，并在底部提示条给「撤销」。
 - **批量多选**：日记列表、随记、回收站三处共用一套。顶部「批量」进入（进入后页面上的动作按钮收起）；选中态 = 描主题色 + 纸面/行染一点主题色 + 勾；操作在**底部悬浮工具条**（日记与随记：全选/反选/取消/删除/移动日期/导出/完成；回收站：全选/反选/取消/恢复/彻底删除/完成）。工具条是 `shared/ui/BatchBar.tsx`，按钮样式在 `shared/ui/buttonStyles.ts`。
-- **设置页的每一块都用同一个外壳**（`shared/ui/SettingCard.tsx`）：卡片 + 标题 + 一句说明 + **右上角「当前值」药丸**（深空 · 色点 / 八角星 · 中 / 1000×760），下面用 `SettingGroup` 分组（细线分隔 + 小标题）。「点一下就选中」的格子统一用 `buttonStyles.choiceTile()`。目的：整页看起来是一叠同构卡片，而不是一堆散装的行；每张卡右上角都能一眼读到当前值。主题色色块**必须留描边**，否则浅色模式下色块跟卡片背景糊在一起。主题色带中文名（青 / 薄荷 / 藕荷 / 曙红 / 麦黄 / 雾蓝，见 `app/theme.ts` 的 `ACCENT_COLORS`），名字写在色块下面——色值没法念，名字才说得清"我用的是哪个"。厂商、悬浮球形象这类「点一下就选中」的格子，宽屏 4 列、窄屏自动收回 2 列（`sm:` 断点 640px）。
-- **AI 配置（设置页）**：按「用户第一次配 AI」来写——厂商点一下就自动填好地址和模型（外加一个「自定义」）；每个字段都配一句人话说明（地址填到哪一层、模型名去哪抄、key 怎么拿）；key 带显示/隐藏；**改动自动保存**，不设保存按钮；「测试连接」给**分步诊断**（① 填写 → ② 连接 → ③ 密钥 → ④ 模型），卡在哪一步就说清「是什么问题、下一步怎么办」，不把 `401 invalid_api_key` 原文丢给用户。
+- **设置页是两级结构（2026-10-20 重整）**：入口在「我的」，按**主题域**分成两张菜单——`/me/settings`（应用级：主题 `/me/settings/theme`、数据与备份 `/me/settings/data`）与 `/me/agent`（助手相关：悬浮球 `/me/agent/ball`、AI 模型 `/me/agent/ai`）。菜单行用 `shared/ui/SettingRow.tsx`（emoji + 名称 + 一行小字 + **右侧「当前值」药丸** + ›）；二级页外壳是 `shared/ui/PageShell.tsx`（原 `SettingSubPage`：菜单页也在用它，"Sub/次级"名不副实，2026-10-20 改名；顶部「← 设置 / 助手」**实心红返回按钮**（`BACK_BUTTON`）+ 页面名 + 当前值药丸 + 一句说明）。**页内返回不能省**：桌面壳没有系统返回键、安卓的实体返回键也还没接（ROADMAP 第 7 项）。二级页"一页只剩一块"时 `SettingCard` 不写 `title`（页面名已经在上面了，避免同一个名字出现两遍），卡片里第一组用 `<SettingGroup first>` 去掉那条多余的分隔线；窗口尺寸并进「主题」页的第二张卡（`WindowCard`），只在桌面程序里出现。「点一下就选中」的格子统一用 `buttonStyles.choiceTile()`。目的：菜单一眼读到当前值，二级进去只改一件事。旧的 `/settings*` 地址留了一条跳转到 `/me/settings`。主题色色块**必须留描边**，否则浅色模式下色块跟卡片背景糊在一起。主题色带中文名（青 / 薄荷 / 藕荷 / 曙红 / 麦黄 / 雾蓝，见 `app/theme.ts` 的 `ACCENT_COLORS`），名字写在色块下面——色值没法念，名字才说得清"我用的是哪个"。厂商、悬浮球形象这类「点一下就选中」的格子，宽屏 4 列、窄屏自动收回 2 列（`sm:` 断点 640px）。
+- **AI 配置（我的 → 助手 → AI 模型）**：按「用户第一次配 AI」来写——厂商点一下就自动填好地址和模型（外加一个「自定义」）；每个字段都配一句人话说明（地址填到哪一层、模型名去哪抄、key 怎么拿）；key 带显示/隐藏；**改动自动保存**，不设保存按钮；「测试连接」给**分步诊断**（① 填写 → ② 连接 → ③ 密钥 → ④ 模型），卡在哪一步就说清「是什么问题、下一步怎么办」，不把 `401 invalid_api_key` 原文丢给用户。
 - **AI 整理成日记**：入口在**随记栏的按钮区**（这天一笔没记就不亮）；原料 = 当天随记 + 当天天气；口气可切（自然口语 / 小学生腔，**草稿没被手改过就自动按新口气重写**，改过就只切不覆盖）；草稿在弹窗里可编辑，点「写入日记」才往当天**新建一条**日记，**随记原文一条不动**。提示词里的规矩：只写记录里真有的东西、不许编造、不要小标题/序号/Markdown/第二人称、**没给的信息（比如没记天气）一个字都别提**。
-- **数据与备份（设置页 → 单独一页 `/settings/data`）**：导出全部（一份 JSON，含日记 / 随记 / **天气** / 回收站里删掉的）；从备份恢复。备份文件带 `app` 标记和版本号，用来对用户说清「这不是星芒记录者导出的」。**导入语义 = 合并、同 id 以备份为准**（bulkPut 天然覆盖），三张表同一个事务。**校验刻意宽容**：坏条目单独剔掉并报数，而不是整份拒绝——不该因为一条脏数据让你丢掉整个备份；未知字段不落库。导入前必须先弹确认框写清「会新增几条、覆盖几条」，导入后给分项统计（新增 / 覆盖 / 跳过），而不是一句「导入成功」。`ConfirmDialog` 加了 `tone`：删除类红、导入这类主题色。
+- **数据与备份（我的 → 设置 → 单独一页 `/me/settings/data`）**：导出全部（一份 JSON，含日记 / 随记 / **天气** / 回收站里删掉的）；从备份恢复。备份文件带 `app` 标记和版本号，用来对用户说清「这不是星芒记录者导出的」。**导入语义 = 合并、同 id 以备份为准**（bulkPut 天然覆盖），三张表同一个事务。**校验刻意宽容**：坏条目单独剔掉并报数，而不是整份拒绝——不该因为一条脏数据让你丢掉整个备份；未知字段不落库。导入前必须先弹确认框写清「会新增几条、覆盖几条」，导入后给分项统计（新增 / 覆盖 / 跳过），而不是一句「导入成功」。`ConfirmDialog` 加了 `tone`：删除类红、导入这类主题色。
+
+- **壳层滚动模型（2026-10-20 重整）**：壳层固定一屏高（`h-dvh` + `overflow-hidden`），**只有内容区 `main.sb-scroll` 自己滚**——原来是整页滚，桌面端侧栏会被内容顶出视口。手机端 `nav` 用 `order-last` 自然落在屏幕底部（不再是 fixed 浮层，所以内容区不用留 pb 去躲它）。弹窗打开时用 `shared/ui/useScrollLock` 锁住内容区，消掉"滚动穿透"。**弹窗外壳统一走 `shared/ui/Modal.tsx`**（遮罩 + 居中面板 + 点遮罩/Esc 关闭 + 自带锁滚动），5 个弹窗共用：ConfirmDialog / WeatherDialog / ExportDialog / DatePickerDialog / AiComposeDialog。滚动位置归内容区管：**换板块复位到顶，同一板块内进出（日记列表 ↔ 某一篇）保留位置**。
+
+- **导航（2026-10-20 重整）**：四格——**首页 / 记录（可展开） / 日历 / 我的**。「记录」这一组里装着日记、健康、经济：**桌面侧栏**缩进挂在「记录」下面一列（带 ▾ 箭头，点一下收起/展开）；**手机底栏没法竖着嵌**，所以那里点「记录」是在**底栏上方**展开一行（三个子项横排）。展开状态是**派生**的——默认跟着路由走（人在记录/健康/经济下就开着），用户手动拨过一次就以手动为准（别用 effect 里 setState 去同步，会被 `react-hooks/set-state-in-effect` 拦住）。底栏在流里（见上一条），所以展开只是把内容区顶上去一点，不会盖住内容。
 
 ## 6. 目录结构
 
@@ -148,7 +192,7 @@ src/
 │   ├─ ai/                      AI 网关：配置、客户端（唯一出口）、整理成日记
 │   ├─ diary/                  日记 + 随记 + 回收站 + 导出（全部在这）
 │   └─ home / health / finance / calendar / me / settings / assistant
-└─ shared/ui/                  ConfirmDialog、Tab、BatchBar、buttonStyles
+└─ shared/ui/                  外壳与共用件：Modal（弹窗外壳）、PageShell（页面外壳）、SettingCard/SettingRow、ConfirmDialog、Tab、BatchBar、buttonStyles、inputStyles（输入框外观）、useScrollLock
 electron/                      main.cjs（主进程）+ preload.cjs
 package/windows/               Inno 打包相关
 ```
@@ -205,6 +249,8 @@ package/windows/               Inno 打包相关
 | React StrictMode | 开发时 `useEffect` 会跑两遍 → 弹窗一打开就发两次 AI 请求，白花 token | 用 `useRef` 挡第二次（`AiComposeDialog` 里就是这么干的） |
 | 提示词把"缺失"当事实 | 随记没记天气时，提示词里写「天气：没记」，模型就真写了一句「今天也没记天气」 | **没给的信息不要出现在提示词里**，而不是给一个"没记"的占位值 |
 | 想单独验一段 TS 逻辑 | 项目里没有测试框架，也不想为一次验证装 esbuild | `node_modules/.bin/jiti <脚本.cjs> <某个.ts 的绝对路径>`——jiti 能直接 require TS 文件并解析无后缀的相对导入，跑完就删脚本（导入的校验逻辑就是这么验的） |
+| **目录名里的不可见字符卡死 Java** | 旧项目目录名第一个字符是 `U+200C`（零宽非连接符，肉眼看不见）。Java 把路径转成 `?` 后报 `Unable to access jarfile`，**Gradle / Android 构建全部失败** | **已治本**：2026-10-20 整个项目搬到 `D:\File\idea\trae\starburst_recorder`，新路径全 ASCII，`assembleDebug` 直接跑通（37 秒）。当初的临时办法是建目录联接 `New-Item -ItemType Junction -Path D:\sb_probe -Target <项目目录>` 再在联接里构建——**别再往带不可见字符的路径上放项目**，长教训 |
+| 目录被占用导致改名失败 | `Rename-Item` 报 `The process cannot access the file because it is being used by another process`，命令行里查不到占用者 | 编辑器/终端把这个目录当工作区开着就会占住。**改名别硬来，直接复制到干净路径**（robocopy `/E /MT:16 /R:1 /W:1`，1.1 GB 约 3 分钟）更省事 |
 
 ## 10. 被否决的方案（别再走一遍）
 
@@ -226,11 +272,13 @@ package/windows/               Inno 打包相关
 
 ## 11. 下一步候选
 
-1. **手机 APK**（Capacitor，环境已全齐；导入已做完，装上去就能把桌面/浏览器里的数据搬过去）
+1. **手机 APK 收尾**（Capacitor，已能构建并装机跑通）：剩 状态栏/刘海安全区、验证「导出全部数据」在 WebView 里是否可用（Android 图标与实体返回键已于 2026-10-20 / 10-21 完成）
 2. **AI 本周回顾（周报）**：拿一周的日记+随记合成一篇「这周发生了什么」，跟「整理成日记」共用同一套网关
 3. 换 SQLite（独立里程碑，范围见 §10）
 4. 天气查询（Open-Meteo）/ 图片导入
 5. **可选的小整改**：给 package.json 加顶层 `productName`，让桌面端的数据目录变成「星芒记录者」——代价是要迁移一次现有桌面数据，所以先不动
+
+> **完整路线清单（19 项，含参考开源项目与许可红线）另见根目录 [ROADMAP.md](ROADMAP.md)。**
 
 ## 12. 协作约定
 
@@ -240,3 +288,90 @@ package/windows/               Inno 打包相关
 - 界面分隔线、行线长度**不写死**，按显示宽度自适应
 - 删除操作：全局危险色 + 二次确认 + 撤销提示条
 - 动手前先把设计讲清楚，等你拍板
+
+## 13. 家庭系统与账户（方向已定，还没动手）
+
+**点子**：把健康模块分享给父母亲友——他们连上我自己搭的服务器注册账户，做一个家庭系统，成员之间互相查看各自「开放」的那部分，好关注家人的饮食作息。
+
+**已定的四条**（2026-10-20）：
+
+1. **架构路线：本地优先 + 可选共享层。** 日常仍然离线可用、数据仍然在各自机器上；「共享」是一个**可选的**同步/聚合层，只上传成员自己勾选的那部分。这样保住「数据全在自己手里」这个身份——参考 SiYuan Sync / Obsidian Sync 的模式。
+2. **家庭定位：互相开放，双向都能看。** 不是「我盯着家人」，是对称的——你也愿意他们看到你的。
+3. **默认权限：全不共享，自己一项一项勾。** 加入家庭后什么都不开放。理由：默认开放最容易被反感，用两天就没人用了。
+4. **顺序：先手机 APK → （以后）健康模块 → 再谈账户与共享。** 账户系统不是当前的前置；**健康模块才是家庭共享的前置**（它现在还是空壳）。
+
+**抄作业清单（别自研）**：
+
+- 同步层的形态抄 **SiYuan 思源笔记**（本地内核 + 可选端到端加密同步 + Docker + 桌面/手机），这是与目标最像的开源项目
+- 健康/饮食的数据模型抄 **wger**（workout + 营养 + 体重，多用户，REST API）；食物库直接用 **Open Food Facts**
+- 共享权限的交互抄 **Apple Health 共享**（自己勾要共享哪些数据类型、最多 5 人、随时可停）+ **Immich Partner Sharing**（整体或选定部分开放给指定用户）
+- 账户后端优先考虑 **PocketBase**（单二进制、自带账号与权限、**备份=拷一个文件**）；Supabase 自托管要 12+ 个容器、Appwrite 约 15 个，家庭规模不值当
+
+**没抄到的**：没有任何开源项目同时做「饮食作息 + 家庭共享」，这一层得自己造——但权限模型的形状照抄上面两家。
+
+**伦理红线（写下来免得以后忘）**：「关注父母饮食」离「监控父母」只有一步。任何「我默认能看到他们什么」的设计都算越线。
+
+## 14. 记忆库交接（2026-10-20 搬迁到 `D:\File\idea\trae\starburst_recorder`）
+
+工具自带的记忆库是按**工作区路径**索引的（文件夹名 = 路径 + 路径哈希），换路径后就读不到旧的那一份。
+原始记忆文件仍留在旧路径的记忆库里（没有删），但**从今往后只认这份文档**——所以把记忆里还没写进本文件的约定摘到下面。
+
+**长期计划与方法论**
+
+- 以后用 **GitHub Pages** 做项目官网
+- **动手做新功能前，先去 GitHub 找同类开源项目**；有成熟实现就抄作业，不自研（清单见 §13）
+- 项目数据存在浏览器/桌面/手机的各自配置目录里，**不在项目文件夹内**；跨机器搬迁只能靠「导出 → 导入」
+
+**界面补充约定（§5 之外的）**
+
+- 导航栏要有分隔线；**品牌标题区与首页入口之间那条分隔线单独处理**；品牌区背景比导航其他区域更深，且跟随主题色
+- 日记列表条目与编辑页内容区是**四边封闭的完全矩形**，不是只用分割线
+- 日记编辑页日期行三栏：**日期靠左、星期居中、天气按钮靠右**
+- 日记模块功能按钮**两端对齐**：左侧「新增 / 图片导入 / 批量」，右侧「回收站」
+- 日记锁定态靠**纸面压暗**区分，不加额外文字说明
+- 日期选择器：选中日要有显眼的矩形底色；点年月可手动输入；底部要有「回到今日」
+- 全局提示条是通用机制，各类操作结果提示都复用它
+
+**原始记忆已落到本机、不进仓库（2026-10-20 追加）**
+
+旧记忆库里的原始文件已**原样搬到 `.venv/ai-memory/`**（与源逐份哈希一致）：`project_memory.md`（硬约束 / 工程约定 / 教训）+ `2026-10-18`、`2026-10-19`、`2026-10-20` 三天的 `topics.md` 与 `session_memory_*.jsonl`。
+
+**定位：AI 记忆属于本机环境资料，不是项目开发内容，所以不提交**（`.gitignore` 已忽略 `.venv/`）。好处是与 Trae 的路径索引解绑——**换路径照样能读**（代价是不随仓库分发，换机器要把这个文件夹一起带走）。习惯上仍以本文件为**人读版**依据，`.venv/ai-memory/` 是**原件存档**。
+
+（另：Trae 的**会话正文**存在 `%APPDATA%\Trae CN\ModularData\ai-agent\database.db`，该库**已加密**，本地读不出也搬不了；会话快照按会话 id 存在 `snapshot\<sessionId>\v2\.git`，不受路径影响。）
+
+## 15. 当前状态快照（2026-10-20 搬迁会话结束时）
+
+**这一节的用途**：旧目录那条会话在搬迁后就被删掉了，所以把「此刻改动到哪、下一步干什么」定格在这里。
+
+**工作区有一批未提交的改动**（上次提交是 `395bbc4` 数据与备份）：
+
+| 改动 | 说明 |
+|---|---|
+| `capacitor.config.ts`（新） | 手机壳配置，`appId` 与桌面端共用 `com.starburst.recorder` |
+| `android/`（新，未进仓库） | Capacitor 生成的 Android 工程；**要不要进仓库、`android/app/build` 与 `.gradle` 怎么忽略，还没定** |
+| `src/core/db/live.ts`（新） | **数据层留口**：页面订阅数据一律从这里拿，以后换存储只改这个文件 + `db.ts` + `diaryRepo.ts` |
+| 7 个页面文件 | import 从 `dexie-react-hooks` 改到 `live.ts`（纯改名，无行为变化） |
+| `package.json` / `package-lock.json` | Capacitor 相关依赖 |
+| `src/shared/ui/` 一批（新） | **壳与共用件的封装（2026-10-21）**：`Modal`（弹窗外壳，5 个弹窗改走它）、`PageShell`（原 `SettingSubPage` 改名）/ `Page` / `PageHeader`（容器与页头拆开）、`inputStyles`（输入框外观）、`overlayStack` + `useOverlayEntry`（覆盖层登记簿，供返回键用） |
+| `src/app/androidBack.ts`（新） | 安卓实体返回键的口径与接线（纯函数 + hook，见下方「手机端」那条） |
+| 各页面的返回入口 | 统一换成实心红 `BACK_BUTTON`（PageShell / 日记编辑页 / 回收站三处），`SOLID_BUTTON` 只留给「新增 / 记一笔 / 保存」这类主操作 |
+
+**手机端（Capacitor）已验证到哪**：
+
+- 已能构建并装机跑通：`assembleDebug` 成功后 `adb install` 到雷电模拟器（`emulator-5554`，Android 14 / API 34），启动正常、界面完整、中文正常
+- **从新路径可以「直接」构建，不再需要 `D:\sb_probe` 那条联接**（37 秒，123 个任务）
+
+**手机端剩余待做**（按优先顺序）：
+
+1. ✅ **应用图标（2026-10-20 完成）**——设计定为「星尘轨道 + 黑洞镂空 + 中心星芒」，脚本换成 `package/icons/make-icons.ps1`（一套画法出全端、透明底、每档单独渲染）。Windows `.ico` 六档 + Android legacy PNG 五档都已生成并实测：从新 APK 里抠出来的图标 **192×192、透明 86.9%、四角 alpha 全 0**。**Android 的自适应图标是刻意不上**（背景层必须不透明，就失去透明剪影），详见 §3「应用图标」
+2. ✅ **实体返回键接到路由（2026-10-21 完成）**——口径：**先关弹窗 → 再回上一级 → 到了首页再按一次退出**（弹窗与助手的抽屉都登记进 `shared/ui/overlayStack.ts` 这份覆盖层登记簿；退出只认 2 秒窗口，提示复用全局提示条）。代码在 `src/app/androidBack.ts`：`createBackHandler` 是不碰 React / Capacitor 的**纯函数**，所以口径能在 dev 控制台里直接跑。**已验**：8 项断言全过（弹窗优先、关不掉的层会挡住返回键、无历史时回首页兜底、两次按退出的窗口与过期重算）。**未验**：真机上的 Capacitor 监听与 `exitApp`——要装新 APK 才知道（`capacitor.plugins.json` 里 `@capacitor/app` 已经注册过，不用重新 sync 插件，但 WebView 里的 web 产物是旧的，得先 `npx cap copy android`）
+3. **状态栏 / 刘海安全区**适配
+4. **验证「导出全部数据」在 Android WebView 里能不能用**——预判风险：`<a download>` 在 WebView 里需要 `DownloadListener`，点了很可能没反应，要接原生下载
+5. 上面做完后重新构建 APK、装机复验
+
+**环境快照**：dev server 当前没在跑（要用就 `npm run dev`）；模拟器还在线上；`JAVA_HOME` 必须显式指到 `C:\Program Files\Java\jdk-21`（系统默认是 1.8）。
+
+**可以清理但先别急**：旧目录 `D:\File\claude\` + 零宽字符 + `starburst_recorder`、以及临时联接 `D:\sb_probe`——等新路径这套全部收尾、你确认没问题之后再删。
+
+
