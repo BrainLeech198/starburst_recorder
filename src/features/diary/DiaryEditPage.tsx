@@ -152,7 +152,10 @@ export default function DiaryEditPage() {
               onBlur={flush}
               rows={16}
               spellCheck={false}
-              className="block w-full resize-none bg-transparent text-ink outline-none"
+              // field-sizing-content：输入框跟着内容长高，整页滚动，而不是框内自己滚。
+              // 框内自己滚有三个毛病：横线格与文字对不上、手机上在框里拖动会"卡住"、
+              // 长日记变成两层滚动。rows={16} 留着给不支持的老引擎兜底。
+              className="field-sizing-content block w-full resize-none bg-transparent text-ink outline-none"
             />
           ) : value.trim() === '' ? (
             <p className="m-0 text-ink-muted">今天想写点什么？</p>
