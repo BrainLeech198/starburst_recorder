@@ -5,6 +5,7 @@ import { useToast } from '../../app/providers/ToastProvider'
 import BatchBar from '../../shared/ui/BatchBar'
 import ConfirmDialog from '../../shared/ui/ConfirmDialog'
 import Tab from '../../shared/ui/Tab'
+import ToolbarRow from '../../shared/ui/ToolbarRow'
 import {
   BACK_BUTTON,
   BAR_BUTTON,
@@ -123,7 +124,8 @@ export default function TrashPage() {
 
   return (
     <div className="w-full p-4">
-      <div className="flex items-center justify-between gap-2">
+      {/* 顶上一整行都是功能按钮，套一层底色跟下面的清单分开 */}
+      <ToolbarRow>
         <Link to="/diary" className={BACK_BUTTON}>
           ← 返回日记
         </Link>
@@ -142,7 +144,7 @@ export default function TrashPage() {
             清空{noun}回收站
           </button>
         </div>
-      </div>
+      </ToolbarRow>
 
       <div className="mt-3 flex items-center">
         <Tab active={mode === 'diary'} onClick={() => switchMode('diary')}>

@@ -4,6 +4,7 @@ import { useLiveQuery } from '../../core/db/live'
 import type { DiaryEntry } from '../../core/db/schema'
 import { useToast } from '../../app/providers/ToastProvider'
 import ConfirmDialog from '../../shared/ui/ConfirmDialog'
+import ToolbarRow from '../../shared/ui/ToolbarRow'
 import { BACK_BUTTON, SOLID_BUTTON, SOLID_DANGER } from '../../shared/ui/buttonStyles'
 import {
   dayInfo,
@@ -101,11 +102,11 @@ export default function DiaryEditPage() {
 
   return (
     <div className="w-full p-4">
-      <div className="flex items-center justify-between gap-2">
+      {/* 顶上一整行都是功能按钮（返回 / 删除 / 编辑），所以套一层底色跟下面的纸分开 */}
+      <ToolbarRow>
         <Link to="/diary" className={BACK_BUTTON}>
           ← 返回列表
         </Link>
-
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => setConfirmOpen(true)} className={SOLID_DANGER}>
             删除
@@ -119,7 +120,7 @@ export default function DiaryEditPage() {
             {editing ? '锁定' : '编辑'}
           </button>
         </div>
-      </div>
+      </ToolbarRow>
 
       <div className={editing ? 'paper mt-4' : 'paper paper-locked mt-4'}>
         <span aria-hidden="true" className="paper-binding">

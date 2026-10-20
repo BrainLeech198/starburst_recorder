@@ -102,22 +102,20 @@ export default function AppShell() {
             首页
           </NavLink>
 
+          {/* 不用 ▾ 箭头：展开与否靠颜色说——开着就是主题色文字 + 一层淡主题色底。
+              展开的子项本身也在旁边/上方，点一下就有反应，认得出来 */}
           <button
             type="button"
             onClick={() => setManualOpen(!recordsOpen)}
             aria-expanded={recordsOpen}
-            className={itemClass(inRecords)}
+            className={[itemClass(inRecords || recordsOpen), recordsOpen ? 'bg-brand/15' : ''].join(
+              ' ',
+            )}
           >
             <span aria-hidden="true" className="text-base leading-none">
               📝
             </span>
             记录
-            <span
-              aria-hidden="true"
-              className={`text-xs leading-none md:ml-auto ${recordsOpen ? 'md:rotate-180' : ''} transition-transform`}
-            >
-              ▾
-            </span>
           </button>
 
           {/* 桌面：展开的子项缩进挂在「记录」下面 */}
