@@ -16,7 +16,7 @@ import { desktopBridge } from '../../core/desktop'
 import type { DesktopBridge } from '../../core/desktop'
 import { buildBackup, readBackup } from '../diary/diaryBackup'
 import type { BackupPayload } from '../diary/diaryBackup'
-import { downloadExport } from '../diary/diaryExport'
+import { describeSave, saveTextFile } from '../../core/saveFile'
 import { everyDay, everyEntry, everyStamp, importBackup, totals } from '../diary/diaryRepo'
 import type { ImportStats } from '../diary/diaryRepo'
 
@@ -95,9 +95,15 @@ export default function DataPage() {
     setError('')
     setReport(null)
     const [entries, stamps, days] = await Promise.all([everyEntry(), everyStamp(), everyDay()])
-    downloadExport(buildBackup({ entries, stamps, days }))
+    const file = buildBackup({ entries, stamps, days })
+    // 安卓上这一步会把文件交给系统分享面板，用户不点保存就什么都没留下，
+    // 所以提示条要按实际结果说话（见 describeSave）
+    const outcome = await saveTextFile(file)
     showToast({
-      message: `已导出全部：${entries.length} 条日记、${stamps.length} 笔随记、${days.length} 天天气（回收站里的也在内）`,
+      message: describeSave(
+        outcome,
+        `全部数据：${entries.length} 条日记、${stamps.length} 笔随记、${days.length} 天天气（回收站里的也在内）`,
+      ),
     })
   }
 
@@ -145,7 +151,8 @@ export default function DataPage() {
             导出全部数据
           </button>
           <p className="mt-2 text-xs text-muted">
-            文件会直接下载下来。收好它——这就是你的备份，也是换机器时唯一要带的东西。
+            手机上会弹系统保存框，你挑个位置存好；电脑上直接下载。
+            收好它——这就是你的备份，也是换机器时唯一要带的东西。
           </p>
         </SettingGroup>
       </SettingCard>

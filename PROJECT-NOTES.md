@@ -276,7 +276,7 @@ package/windows/               Inno 打包相关
 
 ## 11. 下一步候选
 
-1. **手机 APK 收尾**（Capacitor，已能构建并装机跑通）：剩 状态栏/刘海安全区、验证「导出全部数据」在 WebView 里是否可用（Android 图标与实体返回键已于 2026-10-20 / 10-21 完成）
+1. **手机 APK 收尾**（✅ 2026-10-21 全部完成：图标、实体返回键、状态栏/安全区、WebView 导出，四项都端到端验过）
 2. **AI 本周回顾（周报）**：拿一周的日记+随记合成一篇「这周发生了什么」，跟「整理成日记」共用同一套网关
 3. 换 SQLite（独立里程碑，范围见 §10）
 4. 天气查询（Open-Meteo）/ 图片导入
@@ -371,8 +371,12 @@ package/windows/               Inno 打包相关
 1. ✅ **应用图标（2026-10-20 完成）**——设计定为「星尘轨道 + 黑洞镂空 + 中心星芒」，脚本换成 `package/icons/make-icons.ps1`（一套画法出全端、透明底、每档单独渲染）。Windows `.ico` 六档 + Android legacy PNG 五档都已生成并实测：从新 APK 里抠出来的图标 **192×192、透明 86.9%、四角 alpha 全 0**。**Android 的自适应图标是刻意不上**（背景层必须不透明，就失去透明剪影），详见 §3「应用图标」
 2. ✅ **实体返回键接到路由（2026-10-21 完成）**——口径：**先关弹窗 → 再回上一级 → 到了首页再按一次退出**（弹窗与助手的抽屉都登记进 `shared/ui/overlayStack.ts` 这份覆盖层登记簿；退出只认 2 秒窗口，提示复用全局提示条）。代码在 `src/app/androidBack.ts`：`createBackHandler` 是不碰 React / Capacitor 的**纯函数**，所以口径能在 dev 控制台里直接跑。**已验**：8 项断言全过（弹窗优先、关不掉的层会挡住返回键、无历史时回首页兜底、两次按退出的窗口与过期重算）。**未验**：无。真机（雷电模拟器 Android 14 / API 34）已按四条口径全验：首页按一次只提示不退出、子页按一次回上一级、弹窗开着时只关弹窗、首页 2 秒内连按两次退出到桌面（2026-10-21 验完）
 3. ✅ **状态栏 / 刘海安全区（2026-10-21 完成）**——关键发现：**Capacitor 8 自带 `SystemBars` 插件**（logcat 里能看到 `Registering plugin instance: SystemBars`），不需要再装 `@capacitor/status-bar`。它的 `style` 默认是 `DEFAULT`＝跟着**系统**深浅模式走，我们的应用固定深色主题，于是系统浅色时就成了「浅灰条 + 深色图标」——那条突兀的灰条是这么来的，不是我们的 CSS。修法三处：① `capacitor.config.ts` 的 `plugins.SystemBars.style = 'dark'`（深底浅图标）+ `initialViewportFitValueHint: 'cover'`（一上来就按 viewport-fit=cover 处理，省一次重排）；② `styles.xml` 的 `windowBackground` 也给 `#0a0d12`（窗口底色露出来时不是浅灰）；③ 页面侧 `AppShell` 加 `pt/pl/pr-[env(safe-area-inset-*)]`，配合已有的 `viewport-fit=cover`，Android 15 强制边到边时由它把内容让开（底部仍归 nav 的 `pb`）。另加 `windowLayoutInDisplayCutoutMode=shortEdges`，横屏可画进刘海、靠左右 inset 让位。**已知取舍**：状态栏颜色是钉死的深色，应用切到浅色主题时状态栏仍是深的（图标浅色，读得清）；要跟着主题变，就得从 JS 调 `SystemBars.setStyle`。
-4. **验证「导出全部数据」在 Android WebView 里能不能用**——预判风险：`<a download>` 在 WebView 里需要 `DownloadListener`，点了很可能没反应，要接原生下载
-5. 上面做完后重新构建 APK、装机复验
+4. ✅ **导出在 WebView 里可用（2026-10-21 完成）**——**发现真 bug**：原来全站导出都用 `<a download>` + blob，安卓 WebView **根本不处理**（blob 生成了、`a.click()` 也执行了，`/sdcard/Download` 里什么都没有），而提示条照样说"已导出"——等于骗用户。修法：给安卓写了一个小型原生插件 `SaveFilePlugin`（`android/app/src/main/java/com/starburst/recorder/`），走系统自带的 **SAF 保存对话框**（`ACTION_CREATE_DOCUMENT`）：用户在系统里挑位置、我们只负责写字节，**不需要任何存储权限、也不依赖装了哪些 App**。
+   - 为什么不用分享面板（`@capacitor/share`）：实测这台机器上没有任何应用能接收 `application/json`，面板直接提示「没有应用可执行此操作」——备份能不能存下来居然取决于装了啥。已把 share / filesystem 依赖卸掉，只留这个自写插件。
+   - 为什么不用 Filesystem 写公共目录：Android 11 起分区存储，公共 Documents/Downloads 不给写（要么 `MANAGE_EXTERNAL_STORAGE`，Play 会拒）。
+   - **已验（真机/模拟器端到端）**：点「导出全部数据」→ 弹系统保存框（默认目录「下载」、文件名带时间戳）→ 点保存 → 文件真的落到 `/sdcard/Download/星芒记录者-备份-*.json`（内容为合法 UTF-8 JSON）→ 返回应用、路由不丢 → 提示条「**已保存** 全部数据：…」；在保存框里按返回 → 提示条「**没有保存**：你在保存对话框里取消了…」。浏览器 / Windows 桌面壳仍走原来的 `<a download>`。
+   - 文案也跟着改准了：不再说"文件会直接下载下来"，改成"手机上弹系统保存框、电脑上直接下载"。
+5. ✅ **手机端收尾全部做完（2026-10-21）**——图标、实体返回键、状态栏/安全区、导出可用，四项都已在本机模拟器上端到端验过。
 
 - **性能：别凭感觉调，先量（2026-10-21）**。手机壳开了 WebView 远程调试（`webContentsDebuggingEnabled: true`），于是可以直接用 DevTools 协议量真实帧间隔：
   ```

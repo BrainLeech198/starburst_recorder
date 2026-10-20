@@ -35,8 +35,9 @@ import StampTimeline from './StampTimeline'
 import ExportDialog from './ExportDialog'
 import AiComposeDialog from '../ai/AiComposeDialog'
 import { isConfigured, loadAiConfig } from '../ai/aiConfig'
-import { buildExport, downloadExport } from './diaryExport'
+import { buildExport } from './diaryExport'
 import type { ExportFormat } from './diaryExport'
+import { describeSave, saveTextFile } from '../../core/saveFile'
 
 /** 纸条上的正文部分，普通模式和批量模式共用 */
 function SlipBody({ entry }: { entry: DiaryEntry }) {
@@ -178,17 +179,20 @@ export default function DiaryPage() {
     showToast({ message: `已把 ${ids.length} ${unit}${noun}移到 ${formatDateCn(next)}` })
   }
 
-  function handleExport(format: ExportFormat) {
+  async function handleExport(format: ExportFormat) {
     setExportOpen(false)
     const pickedEntries =
       mode === 'diary' ? (entries ?? []).filter((e) => selected.includes(e.id)) : []
     const pickedStamps =
       mode === 'stamp' ? (stamps ?? []).filter((s) => selected.includes(s.id)) : []
     const file = buildExport(pickedEntries, pickedStamps, format)
-    downloadExport(file)
     setSelected([])
+    const outcome = await saveTextFile(file)
     showToast({
-      message: `已导出 ${pickedEntries.length + pickedStamps.length} ${unit}${noun}（${file.label}）`,
+      message: describeSave(
+        outcome,
+        `${pickedEntries.length + pickedStamps.length} ${unit}${noun}（${file.label}）`,
+      ),
     })
   }
 
