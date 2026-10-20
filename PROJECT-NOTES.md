@@ -370,7 +370,7 @@ package/windows/               Inno 打包相关
 
 1. ✅ **应用图标（2026-10-20 完成）**——设计定为「星尘轨道 + 黑洞镂空 + 中心星芒」，脚本换成 `package/icons/make-icons.ps1`（一套画法出全端、透明底、每档单独渲染）。Windows `.ico` 六档 + Android legacy PNG 五档都已生成并实测：从新 APK 里抠出来的图标 **192×192、透明 86.9%、四角 alpha 全 0**。**Android 的自适应图标是刻意不上**（背景层必须不透明，就失去透明剪影），详见 §3「应用图标」
 2. ✅ **实体返回键接到路由（2026-10-21 完成）**——口径：**先关弹窗 → 再回上一级 → 到了首页再按一次退出**（弹窗与助手的抽屉都登记进 `shared/ui/overlayStack.ts` 这份覆盖层登记簿；退出只认 2 秒窗口，提示复用全局提示条）。代码在 `src/app/androidBack.ts`：`createBackHandler` 是不碰 React / Capacitor 的**纯函数**，所以口径能在 dev 控制台里直接跑。**已验**：8 项断言全过（弹窗优先、关不掉的层会挡住返回键、无历史时回首页兜底、两次按退出的窗口与过期重算）。**未验**：无。真机（雷电模拟器 Android 14 / API 34）已按四条口径全验：首页按一次只提示不退出、子页按一次回上一级、弹窗开着时只关弹窗、首页 2 秒内连按两次退出到桌面（2026-10-21 验完）
-3. **状态栏 / 刘海安全区**适配
+3. ✅ **状态栏 / 刘海安全区（2026-10-21 完成）**——关键发现：**Capacitor 8 自带 `SystemBars` 插件**（logcat 里能看到 `Registering plugin instance: SystemBars`），不需要再装 `@capacitor/status-bar`。它的 `style` 默认是 `DEFAULT`＝跟着**系统**深浅模式走，我们的应用固定深色主题，于是系统浅色时就成了「浅灰条 + 深色图标」——那条突兀的灰条是这么来的，不是我们的 CSS。修法三处：① `capacitor.config.ts` 的 `plugins.SystemBars.style = 'dark'`（深底浅图标）+ `initialViewportFitValueHint: 'cover'`（一上来就按 viewport-fit=cover 处理，省一次重排）；② `styles.xml` 的 `windowBackground` 也给 `#0a0d12`（窗口底色露出来时不是浅灰）；③ 页面侧 `AppShell` 加 `pt/pl/pr-[env(safe-area-inset-*)]`，配合已有的 `viewport-fit=cover`，Android 15 强制边到边时由它把内容让开（底部仍归 nav 的 `pb`）。另加 `windowLayoutInDisplayCutoutMode=shortEdges`，横屏可画进刘海、靠左右 inset 让位。**已知取舍**：状态栏颜色是钉死的深色，应用切到浅色主题时状态栏仍是深的（图标浅色，读得清）；要跟着主题变，就得从 JS 调 `SystemBars.setStyle`。
 4. **验证「导出全部数据」在 Android WebView 里能不能用**——预判风险：`<a download>` 在 WebView 里需要 `DownloadListener`，点了很可能没反应，要接原生下载
 5. 上面做完后重新构建 APK、装机复验
 
