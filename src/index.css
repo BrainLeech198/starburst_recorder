@@ -221,7 +221,10 @@
   padding: 0.15rem 0.5rem;
 }
 
-/* 笔记本横线格：行线与行高共用同一个变量，改一处即可；行线数量随高度、长度随宽度自动延伸 */
+/* 笔记本横线格：行线与行高共用同一个变量，改一处即可；行线数量随高度、长度随宽度自动延伸。
+   注意别加 background-attachment: local——它本来是留给"元素自己滚动"的场景，
+   而这里的横线区是随内容长高、由外层 .sb-scroll 滚动，加 local 只会让外层每滚一帧
+   就重绘一次整块横线（实测：滚动时会掉一帧，33ms）。默认的 scroll 视觉完全一样。 */
 .ruled {
   --ruled-lh: 2rem;
   line-height: var(--ruled-lh);
@@ -233,7 +236,6 @@
   );
   background-size: 100% var(--ruled-lh);
   background-repeat: repeat;
-  background-attachment: local;
 }
 
 html,

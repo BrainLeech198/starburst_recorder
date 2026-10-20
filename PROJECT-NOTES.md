@@ -374,7 +374,18 @@ package/windows/               Inno 打包相关
 4. **验证「导出全部数据」在 Android WebView 里能不能用**——预判风险：`<a download>` 在 WebView 里需要 `DownloadListener`，点了很可能没反应，要接原生下载
 5. 上面做完后重新构建 APK、装机复验
 
-**环境快照**：dev server 在 5173 常驻（用户要求别停）；模拟器 `emulator-5554`（横屏 1280×720，可 `settings put system user_rotation 3` 转竖屏验手机布局）；`JAVA_HOME` 必须显式指到 `C:\Program Files\Java\jdk-21`（系统默认是 1.8）；`adb` 在 `D:\Android\Sdk\platform-tools`；**改完 web 代码要 `npm run build` → `npx cap copy android` → `gradlew assembleDebug` → `adb install -r` 才进得去手机**。
+- **性能：别凭感觉调，先量（2026-10-21）**。手机壳开了 WebView 远程调试（`webContentsDebuggingEnabled: true`），于是可以直接用 DevTools 协议量真实帧间隔：
+  ```
+  $p = (adb shell pidof com.starburst.recorder).Trim()
+  adb forward tcp:9222 localabstract:webview_devtools_remote_$p
+  # 然后 node 脚本连 ws://127.0.0.1:9222/json/list 里的 webSocketDebuggerUrl
+  ```
+  批量测出来的事实：静止 / 路由切换 / 30 与 200 张纸条滚动 / 4x CPU 降速，**全部 8.3ms 满帧、零掉帧**；冷启动首绘 108ms、无长任务。**唯一的真问题是两处**，都已修：
+  1. **`.ruled` 的 `background-attachment: local`**：横线区不自己滚动（是外层 `.sb-scroll` 在滚），`local` 只会让外层每滚一帧重绘整块横线 → 实测滚动时掉一帧（33ms）。删掉后 196 帧零掉帧，视觉完全一样。
+  2. **日记编辑器的 `textarea` 自己内部滚动**（`rows={16}`，可视 512px、内容 1856px）：三个后果——横线格与文字对不上、手机上在框内拖动滚的是输入框（"卡住"的感觉）、长日记变两层滚动。加 `field-sizing-content` 让输入框随内容长高、整页滚，`rows={16}` 留给不支持的引擎兜底。修完横线对齐、长文滚动零掉帧。
+  > 结论口径：**体感卡 ≠ 应用掉帧**。雷电把虚拟屏幕报成 120Hz（每帧 8.3ms 预算），而宿主窗口若只有 60Hz，就会看到"隔帧"的顿感；SurfaceFlinger 采样确认应用确实以 8.3ms 稳定出帧。要判断是不是应用的问题，先跑上面这套量法，别看模拟器窗口的感受。
+
+**环境快照**：dev server 在 5173 常驻（用户要求别停）；模拟器 `emulator-5554`（横屏 1280×720，可 `settings put system user_rotation 3` 转竖屏验手机布局）；`JAVA_HOME` 必须显式指到 `C:\Program Files\Java\jdk-21`（系统默认是 1.8）；`adb` 在 `D:\Android\Sdk\platform-tools`；雷电装在 `C:\leidian\LDPlayer14`（启停用 `ldconsole.exe launch/kill --index 0`）；**改完 web 代码要 `npm run build` → `npx cap copy android` → `gradlew assembleDebug` → `adb install -r` 才进得去手机**。
 
 - **悬浮球默认隐藏（2026-10-21 改）**：它现在是**占位**（点开只会说"AI 还没接入"），摆在右下角既是误导、又容易被当成多出来的鼠标指针（它带 `cursor-grab`，悬停时鼠标变抓取手型），所以平时不渲染。想看它：地址加参数 `?ball=1`（如 `http://localhost:5173/?ball=1#/diary`），或控制台 `localStorage.setItem('starburst.debug.ball','1')` 后刷新；关掉就 `removeItem`。开关都在 `src/app/debugFlags.ts`，**默认全关**——以后再加调试开关往这里放，别散在页面里。
 
