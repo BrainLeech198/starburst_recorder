@@ -177,7 +177,11 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 
 - **壳层滚动模型（2026-10-20 重整）**：壳层固定一屏高（`h-dvh` + `overflow-hidden`），**只有内容区 `main.sb-scroll` 自己滚**——原来是整页滚，桌面端侧栏会被内容顶出视口。手机端 `nav` 用 `order-last` 自然落在屏幕底部（不再是 fixed 浮层，所以内容区不用留 pb 去躲它）。弹窗打开时用 `shared/ui/useScrollLock` 锁住内容区，消掉"滚动穿透"。**弹窗外壳统一走 `shared/ui/Modal.tsx`**（遮罩 + 居中面板 + 点遮罩/Esc 关闭 + 自带锁滚动），5 个弹窗共用：ConfirmDialog / WeatherDialog / ExportDialog / DatePickerDialog / AiComposeDialog。滚动位置归内容区管：**换板块复位到顶，同一板块内进出（日记列表 ↔ 某一篇）保留位置**。
 
-- **导航（2026-10-20 重整）**：四格——**首页 / 记录（可展开） / 日历 / 我的**。「记录」这一组里装着日记、健康、经济：**桌面侧栏**缩进挂在「记录」下面一列（带 ▾ 箭头，点一下收起/展开）；**手机底栏没法竖着嵌**，所以那里点「记录」是在**底栏上方**展开一行（三个子项横排）。展开状态是**派生**的——默认跟着路由走（人在记录/健康/经济下就开着），用户手动拨过一次就以手动为准（别用 effect 里 setState 去同步，会被 `react-hooks/set-state-in-effect` 拦住）。底栏在流里（见上一条），所以展开只是把内容区顶上去一点，不会盖住内容。
+- **导航（2026-10-20 重整）**：四格——**首页 / 记录（可展开） / 日历 / 我的**。「记录」这一组里装着日记、健康、经济：**桌面侧栏**缩进挂在「记录」下面一列，**手机底栏没法竖着嵌**，所以那里点「记录」是在**底栏上方**展开一行（三个子项横排）。展开状态是**派生**的——默认跟着路由走（人在记录/健康/经济下就开着），用户手动拨过一次就以手动为准（别用 effect 里 setState 去同步，会被 `react-hooks/set-state-in-effect` 拦住）。底栏在流里（见上一条），所以展开只是把内容区顶上去一点，不会盖住内容。
+
+- **导航展开态不用箭头（2026-10-21 改）**：「记录」那一格原来带 `▾`、展开时转 180°，现在**去掉箭头**，只靠颜色说——开着 = 文字走主题色 + 一层淡主题色底（`bg-brand/15`），收起 = 常态灰。理由：子项就在旁边/上方明摆着，"有下级"不需要再画一个箭头；而展开与选中本来就是同一个状态，用同一种颜色同时表达两件事更省。同一格既是"当前板块"（`inRecords`）又是"展开着"（`recordsOpen`），两者只要有一个成立就用高亮色——省得同格出现两套高亮，互相打架。
+
+- **按钮行套一层底（2026-10-21 加）**：**整行都是按钮**的地方（日记页的「新增/图片导入/批量/回收站」、日记编辑页的「返回/删除/编辑」、回收站的「返回/批量/清空」）统一套 `shared/ui/ToolbarRow.tsx`：`rounded-xl border border-line bg-surface-2 p-2`，即比页面底色亮半档、与卡片同层。这样"这一条是动作区、下面那块是内容"一眼分得开，不然一串按钮浮在页面底色上，按钮与内容糊在同一层，没有结构感也看不出主次。**不要滥用**：页头那种只有返回按钮的行不套（返回按钮本身已够醒目，再套底反而重），日期行、标签页行这类混着文字的行也不套。
 
 ## 6. 目录结构
 
@@ -192,7 +196,7 @@ src/
 │   ├─ ai/                      AI 网关：配置、客户端（唯一出口）、整理成日记
 │   ├─ diary/                  日记 + 随记 + 回收站 + 导出（全部在这）
 │   └─ home / health / finance / calendar / me / settings / assistant
-└─ shared/ui/                  外壳与共用件：Modal（弹窗外壳）、PageShell（页面外壳）、SettingCard/SettingRow、ConfirmDialog、Tab、BatchBar、buttonStyles、inputStyles（输入框外观）、useScrollLock
+└─ shared/ui/                  外壳与共用件：Modal、PageShell / Page / PageHeader、ToolbarRow、SettingCard/SettingRow、ConfirmDialog、Tab、BatchBar、buttonStyles、inputStyles、overlayStack(+useOverlayEntry)、useScrollLock
 electron/                      main.cjs（主进程）+ preload.cjs
 package/windows/               Inno 打包相关
 ```
@@ -365,12 +369,14 @@ package/windows/               Inno 打包相关
 **手机端剩余待做**（按优先顺序）：
 
 1. ✅ **应用图标（2026-10-20 完成）**——设计定为「星尘轨道 + 黑洞镂空 + 中心星芒」，脚本换成 `package/icons/make-icons.ps1`（一套画法出全端、透明底、每档单独渲染）。Windows `.ico` 六档 + Android legacy PNG 五档都已生成并实测：从新 APK 里抠出来的图标 **192×192、透明 86.9%、四角 alpha 全 0**。**Android 的自适应图标是刻意不上**（背景层必须不透明，就失去透明剪影），详见 §3「应用图标」
-2. ✅ **实体返回键接到路由（2026-10-21 完成）**——口径：**先关弹窗 → 再回上一级 → 到了首页再按一次退出**（弹窗与助手的抽屉都登记进 `shared/ui/overlayStack.ts` 这份覆盖层登记簿；退出只认 2 秒窗口，提示复用全局提示条）。代码在 `src/app/androidBack.ts`：`createBackHandler` 是不碰 React / Capacitor 的**纯函数**，所以口径能在 dev 控制台里直接跑。**已验**：8 项断言全过（弹窗优先、关不掉的层会挡住返回键、无历史时回首页兜底、两次按退出的窗口与过期重算）。**未验**：真机上的 Capacitor 监听与 `exitApp`——要装新 APK 才知道（`capacitor.plugins.json` 里 `@capacitor/app` 已经注册过，不用重新 sync 插件，但 WebView 里的 web 产物是旧的，得先 `npx cap copy android`）
+2. ✅ **实体返回键接到路由（2026-10-21 完成）**——口径：**先关弹窗 → 再回上一级 → 到了首页再按一次退出**（弹窗与助手的抽屉都登记进 `shared/ui/overlayStack.ts` 这份覆盖层登记簿；退出只认 2 秒窗口，提示复用全局提示条）。代码在 `src/app/androidBack.ts`：`createBackHandler` 是不碰 React / Capacitor 的**纯函数**，所以口径能在 dev 控制台里直接跑。**已验**：8 项断言全过（弹窗优先、关不掉的层会挡住返回键、无历史时回首页兜底、两次按退出的窗口与过期重算）。**未验**：无。真机（雷电模拟器 Android 14 / API 34）已按四条口径全验：首页按一次只提示不退出、子页按一次回上一级、弹窗开着时只关弹窗、首页 2 秒内连按两次退出到桌面（2026-10-21 验完）
 3. **状态栏 / 刘海安全区**适配
 4. **验证「导出全部数据」在 Android WebView 里能不能用**——预判风险：`<a download>` 在 WebView 里需要 `DownloadListener`，点了很可能没反应，要接原生下载
 5. 上面做完后重新构建 APK、装机复验
 
-**环境快照**：dev server 当前没在跑（要用就 `npm run dev`）；模拟器还在线上；`JAVA_HOME` 必须显式指到 `C:\Program Files\Java\jdk-21`（系统默认是 1.8）。
+**环境快照**：dev server 在 5173 常驻（用户要求别停）；模拟器 `emulator-5554`（横屏 1280×720，可 `settings put system user_rotation 3` 转竖屏验手机布局）；`JAVA_HOME` 必须显式指到 `C:\Program Files\Java\jdk-21`（系统默认是 1.8）；`adb` 在 `D:\Android\Sdk\platform-tools`；**改完 web 代码要 `npm run build` → `npx cap copy android` → `gradlew assembleDebug` → `adb install -r` 才进得去手机**。
+
+- **虚拟鼠标的观感来自悬浮球**：它是 `fixed z-30` 的可拖动圆球（默认「八角星」），落在右下角、又带 `cursor-grab`（悬停时鼠标变成抓取手型），在**桌面浏览器**里看起来就像凭空多出一个鼠标指针。它本来是为手机端准备的助手入口；桌面端要不要收起来还没定。
 
 **可以清理但先别急**：旧目录 `D:\File\claude\` + 零宽字符 + `starburst_recorder`、以及临时联接 `D:\sb_probe`——等新路径这套全部收尾、你确认没问题之后再删。
 

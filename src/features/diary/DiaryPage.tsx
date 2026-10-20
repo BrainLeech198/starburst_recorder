@@ -6,6 +6,7 @@ import { useToast } from '../../app/providers/ToastProvider'
 import BatchBar from '../../shared/ui/BatchBar'
 import ConfirmDialog from '../../shared/ui/ConfirmDialog'
 import Tab from '../../shared/ui/Tab'
+import ToolbarRow from '../../shared/ui/ToolbarRow'
 import { BAR_BUTTON, BAR_DANGER, SOLID_BUTTON } from '../../shared/ui/buttonStyles'
 import {
   addStamp,
@@ -179,8 +180,10 @@ export default function DiaryPage() {
 
   function handleExport(format: ExportFormat) {
     setExportOpen(false)
-    const pickedEntries = mode === 'diary' ? (entries ?? []).filter((e) => selected.includes(e.id)) : []
-    const pickedStamps = mode === 'stamp' ? (stamps ?? []).filter((s) => selected.includes(s.id)) : []
+    const pickedEntries =
+      mode === 'diary' ? (entries ?? []).filter((e) => selected.includes(e.id)) : []
+    const pickedStamps =
+      mode === 'stamp' ? (stamps ?? []).filter((s) => selected.includes(s.id)) : []
     const file = buildExport(pickedEntries, pickedStamps, format)
     downloadExport(file)
     setSelected([])
@@ -215,8 +218,9 @@ export default function DiaryPage() {
         </div>
       </div>
 
-      {/* 左：内容动作；右：回收站（两端对齐）；批量多选时收起动作，只留工具条 */}
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+      {/* 左：内容动作；右：回收站（两端对齐）；批量多选时收起动作，只留工具条。
+          整行都是按钮，套一层底色跟下面的内容分开 */}
+      <ToolbarRow className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           {!selectMode && (
             <>
@@ -266,7 +270,7 @@ export default function DiaryPage() {
         <Link to="/diary/trash" state={{ mode }} className={SOLID_BUTTON}>
           回收站
         </Link>
-      </div>
+      </ToolbarRow>
 
       {hint && <p className="mt-2 text-xs text-muted">{hint}</p>}
 
