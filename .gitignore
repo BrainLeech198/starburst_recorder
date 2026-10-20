@@ -3,9 +3,19 @@ dist
 dist-ssr
 *.local
 
+# 本机环境与本地资料（不属于项目开发内容，不进仓库）
+.venv/
+
 # 桌面端打包产物
 release
 package/windows/dist
+
+# Android 工程：源码进仓库，构建产物不进
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/capacitor-cordova-android-plugins/build/
 
 # 编辑器
 .vscode/*

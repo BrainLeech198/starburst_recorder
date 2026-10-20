@@ -18,6 +18,9 @@
     "desktop:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File package/windows/build.ps1"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.3",
     "dexie": "^4.4.6",
     "dexie-react-hooks": "^4.4.0",
     "react": "^19.3.1",
@@ -26,6 +29,7 @@
     "ulid": "^3.0.2"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19",
@@ -47,7 +51,11 @@
   "build": {
     "appId": "com.starburst.recorder",
     "productName": "星芒记录者",
-    "files": ["dist/**/*", "electron/**/*", "package.json"],
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
     "directories": {
       "output": "release"
     },
@@ -57,7 +65,9 @@
     "electronDist": "node_modules/electron/dist",
     "win": {
       "icon": "package/windows/icon.ico",
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "nsis": {
       "oneClick": false,
