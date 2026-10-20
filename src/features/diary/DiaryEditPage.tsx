@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useLiveQuery } from '../../core/db/live'
 import type { DiaryEntry } from '../../core/db/schema'
 import { useToast } from '../../app/providers/ToastProvider'
 import ConfirmDialog from '../../shared/ui/ConfirmDialog'
-import { SOLID_BUTTON, SOLID_DANGER } from '../../shared/ui/buttonStyles'
+import { BACK_BUTTON, SOLID_BUTTON, SOLID_DANGER } from '../../shared/ui/buttonStyles'
 import {
   dayInfo,
   entryByCode,
@@ -102,16 +102,12 @@ export default function DiaryEditPage() {
   return (
     <div className="w-full p-4">
       <div className="flex items-center justify-between gap-2">
-        <Link to="/diary" className={SOLID_BUTTON}>
+        <Link to="/diary" className={BACK_BUTTON}>
           ← 返回列表
         </Link>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setConfirmOpen(true)}
-            className={SOLID_DANGER}
-          >
+          <button type="button" onClick={() => setConfirmOpen(true)} className={SOLID_DANGER}>
             删除
           </button>
           <button

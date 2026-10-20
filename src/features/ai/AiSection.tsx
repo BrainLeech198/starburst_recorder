@@ -9,19 +9,13 @@
 import { useEffect, useState } from 'react'
 import SettingCard, { SettingBadge } from '../../shared/ui/SettingCard'
 import { choiceTile, OUTLINE_BUTTON } from '../../shared/ui/buttonStyles'
-import {
-  AI_PROVIDERS,
-  canTest,
-  loadAiConfig,
-  missingFields,
-  saveAiConfig,
-} from './aiConfig'
+import { AI_PROVIDERS, canTest, loadAiConfig, missingFields, saveAiConfig } from './aiConfig'
 import type { AiConfig, AiProvider } from './aiConfig'
 import { testConnection } from './aiClient'
 import type { DiagnoseResult } from './aiClient'
+import { INPUT } from '../../shared/ui/inputStyles'
 
-const INPUT =
-  'w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-fg outline-none focus:border-brand'
+/** 带小标题的字段：标题占一行，输入框紧跟着 */
 const LABELED_INPUT = `mt-1 ${INPUT}`
 
 /** 步骤前的小圆标：这一小步做完了就变成主题色的 ✓，没做完显示序号 */

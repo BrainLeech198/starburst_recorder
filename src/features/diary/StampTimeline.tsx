@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useLiveQuery } from '../../core/db/live'
 import type { DiaryStamp } from '../../core/db/schema'
 import { useToast } from '../../app/providers/ToastProvider'
 import ConfirmDialog from '../../shared/ui/ConfirmDialog'

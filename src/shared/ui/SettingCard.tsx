@@ -1,8 +1,8 @@
 /**
- * 设置页每一块的外壳：卡片 + 标题 + 一句说明 + 右上角「当前值」。
+ * 设置项的外壳：卡片 +（可选）标题 + 一句说明 + 右上角「当前值」。
  *
- * 抽出来是为了让设置页里各段长得一样——之前各段是平铺在页面上的，
- * 内容一多就显得散装，也看不出当前到底是什么状态。
+ * 二级页里往往"一页只剩这一块"，那种情况下不传 title——
+ * 页面名与当前值由 PageShell 承担（标题不重复出现两遍）。
  */
 import type { ReactNode } from 'react'
 
@@ -30,10 +30,19 @@ export function SettingBadge({
   )
 }
 
-/** 卡片里的一个分组：上面一条分隔线 + 小标题 */
-export function SettingGroup({ label, children }: { label: string; children: ReactNode }) {
+/** 卡片里的一个分组：上面一条分隔线 + 小标题。卡片里的第一组传 first，省掉那条线 */
+export function SettingGroup({
+  label,
+  children,
+  first = false,
+}: {
+  label: string
+  children: ReactNode
+  /** 第一组不要上面的分隔线：二级页的卡片常常不带标题，那条线会显得突兀 */
+  first?: boolean
+}) {
   return (
-    <div className="mt-4 border-t border-line pt-4">
+    <div className={first ? '' : 'mt-4 border-t border-line pt-4'}>
       <div className="text-xs text-muted">{label}</div>
       <div className="mt-2">{children}</div>
     </div>
@@ -46,21 +55,25 @@ export default function SettingCard({
   badge,
   children,
 }: {
-  title: string
+  /** 二级页里"一页只有这一块"时可以不写：页面名已经在上面了（见 PageShell） */
+  title?: string
   description?: string
   /** 右上角显示当前值，通常传一个 <SettingBadge> */
   badge?: ReactNode
   children: ReactNode
 }) {
+  const hasHeader = Boolean(title || description || badge)
   return (
     <div className="rounded-2xl border border-line bg-surface p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-medium text-fg">{title}</h2>
-          {description && <p className="mt-1 text-xs text-muted">{description}</p>}
+      {hasHeader && (
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            {title && <h2 className="text-sm font-medium text-fg">{title}</h2>}
+            {description && <p className="mt-1 text-xs text-muted">{description}</p>}
+          </div>
+          {badge}
         </div>
-        {badge}
-      </div>
+      )}
       {children}
     </div>
   )

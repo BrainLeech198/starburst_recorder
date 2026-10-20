@@ -3,6 +3,8 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import { Link } from 'react-router'
 import { MASCOT_SIZE_PX, useBall } from '../../app/providers/BallProvider'
 import { useTheme } from '../../app/providers/ThemeProvider'
+import { useScrollLock } from '../../shared/ui/useScrollLock'
+import { useOverlayEntry } from '../../shared/ui/useOverlayEntry'
 import { Mascot } from './Mascot'
 
 const POS_KEY = 'starburst.ball.pos'
@@ -203,6 +205,10 @@ export default function FloatingAssistant() {
 }
 
 function AssistantSheet({ onClose }: { onClose: () => void }) {
+  useScrollLock()
+  // 登记成一层覆盖层：安卓实体返回键先关它，而不是直接退到上一页
+  useOverlayEntry(onClose)
+
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/50" onClick={onClose} />

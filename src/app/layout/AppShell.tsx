@@ -1,46 +1,152 @@
-import { NavLink, Outlet } from 'react-router'
+import { useEffect, useRef, useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router'
 import FloatingAssistant from '../../features/assistant/FloatingAssistant'
+import { useAndroidBackButton } from '../androidBack'
 
-const TABS = [
-  { to: '/', label: '首页', icon: '🏠', end: true },
-  { to: '/diary', label: '日记', icon: '📖', end: false },
-  { to: '/health', label: '健康', icon: '💪', end: false },
-  { to: '/finance', label: '经济', icon: '💰', end: false },
-  { to: '/me', label: '我的', icon: '👤', end: false },
+/** 「记录」这一组：日记 / 健康 / 经济。它们在导航里不再各自占一格，收进「记录」下面 */
+const RECORDS = [
+  { to: '/diary', label: '日记', icon: '📖' },
+  { to: '/health', label: '健康', icon: '💪' },
+  { to: '/finance', label: '经济', icon: '💰' },
 ]
 
-export default function AppShell() {
+/**
+ * 「记录」下面的三项。
+ * variant = 'bar'：手机底栏展开的那一行，横排、图标在上（跟底栏其他项一致）
+ * variant = 'list'：桌面侧栏里缩进的一列
+ */
+function RecordLinks({ variant }: { variant: 'bar' | 'list' }) {
   return (
-    <div className="flex min-h-dvh flex-col bg-bg text-fg md:flex-row">
-      <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-line bg-nav pb-[env(safe-area-inset-bottom)] md:static md:h-dvh md:w-56 md:flex-col md:border-t-0 md:border-r md:pb-0">
+    <>
+      {RECORDS.map((item) => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          className={({ isActive }) =>
+            [
+              variant === 'bar'
+                ? 'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs'
+                : 'flex items-center gap-2 py-2 pl-9 pr-5 text-xs',
+              'transition-colors',
+              isActive ? 'font-medium text-brand' : 'text-muted hover:text-fg',
+            ].join(' ')
+          }
+        >
+          <span aria-hidden="true" className="text-base leading-none">
+            {item.icon}
+          </span>
+          {item.label}
+        </NavLink>
+      ))}
+    </>
+  )
+}
+
+/** 导航项的统一写法（手机上图标在上、桌面端图标在左） */
+function itemClass(active: boolean) {
+  return [
+    'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs transition-colors',
+    'md:flex-none md:flex-row md:justify-start md:gap-2 md:px-5 md:py-3 md:text-sm',
+    active ? 'font-medium text-brand' : 'text-muted hover:text-fg',
+  ].join(' ')
+}
+
+/**
+ * 壳层：固定一屏高，**只有内容区自己滚**（`main` 是唯一的滚动容器）。
+ *
+ * 导航是「首页 / 记录（可展开） / 日历 / 我的」四格。「记录」那一组里装着日记、健康、经济——
+ * 桌面侧栏能真嵌套（缩进挂在「记录」下面），手机底栏没法竖着嵌，
+ * 所以手机上点「记录」是在底栏**上方**展开一行（三个子项横排）。
+ */
+export default function AppShell() {
+  // 安卓实体返回键（浏览器 / 桌面端不生效）：先关弹窗 → 再回上一级 → 首页再按一次退出
+  useAndroidBackButton()
+
+  const contentRef = useRef<HTMLElement>(null)
+  const { pathname } = useLocation()
+  const section = pathname.split('/')[1] ?? ''
+  const lastSection = useRef(section)
+  const inRecords = RECORDS.some((item) => pathname.startsWith(item.to))
+  // 「记录」开着没：默认跟着路由走（人在记录下就开着）；用户手动拨过一下，就以手动为准。
+  // 不用 effect 去"路由一变就 setState"——那是派生状态，算出来就行。
+  const [manualOpen, setManualOpen] = useState<boolean | null>(null)
+  const recordsOpen = manualOpen ?? inRecords
+
+  // 滚动容器不再是文档，浏览器不会替我们复位。规则：
+  // 换板块（设置页 → 日记）回到顶部；同一板块内进出（列表 → 某一篇 → 返回）保留位置。
+  useEffect(() => {
+    if (lastSection.current === section) return
+    lastSection.current = section
+    if (contentRef.current) contentRef.current.scrollTop = 0
+  }, [section])
+
+  return (
+    <div className="sb-shell flex flex-col bg-bg text-fg md:flex-row">
+      <nav className="order-last flex shrink-0 flex-col border-t border-line bg-nav pb-[env(safe-area-inset-bottom)] md:order-first md:w-56 md:border-t-0 md:border-r md:pb-0">
         <div className="hidden border-b-2 border-brand bg-nav-strong px-5 py-6 text-base font-medium tracking-wide md:block">
           星芒记录者
         </div>
 
+        {/* 手机：展开的子菜单占底栏上方的一行 */}
+        {recordsOpen && (
+          <div className="flex border-b border-line md:hidden">
+            <RecordLinks variant="bar" />
+          </div>
+        )}
+
         <div className="flex flex-1 md:flex-none md:flex-col md:divide-y md:divide-line">
-          {TABS.map((tab) => (
-            <NavLink
-              key={tab.to}
-              to={tab.to}
-              end={tab.end}
-              className={({ isActive }) =>
-                [
-                  'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs transition-colors',
-                  'md:flex-none md:flex-row md:justify-start md:gap-2 md:px-5 md:py-3 md:text-sm',
-                  isActive ? 'font-medium text-brand' : 'text-muted hover:text-fg',
-                ].join(' ')
-              }
+          <NavLink to="/" end className={({ isActive }) => itemClass(isActive)}>
+            <span aria-hidden="true" className="text-base leading-none">
+              🏠
+            </span>
+            首页
+          </NavLink>
+
+          <button
+            type="button"
+            onClick={() => setManualOpen(!recordsOpen)}
+            aria-expanded={recordsOpen}
+            className={itemClass(inRecords)}
+          >
+            <span aria-hidden="true" className="text-base leading-none">
+              📝
+            </span>
+            记录
+            <span
+              aria-hidden="true"
+              className={`text-xs leading-none md:ml-auto ${recordsOpen ? 'md:rotate-180' : ''} transition-transform`}
             >
-              <span aria-hidden="true" className="text-base leading-none">
-                {tab.icon}
-              </span>
-              {tab.label}
-            </NavLink>
-          ))}
+              ▾
+            </span>
+          </button>
+
+          {/* 桌面：展开的子项缩进挂在「记录」下面 */}
+          {recordsOpen && (
+            <div className="hidden md:flex md:flex-col md:divide-y md:divide-line">
+              <RecordLinks variant="list" />
+            </div>
+          )}
+
+          <NavLink to="/calendar" className={({ isActive }) => itemClass(isActive)}>
+            <span aria-hidden="true" className="text-base leading-none">
+              📅
+            </span>
+            日历
+          </NavLink>
+          <NavLink to="/me" className={({ isActive }) => itemClass(isActive)}>
+            <span aria-hidden="true" className="text-base leading-none">
+              👤
+            </span>
+            我的
+          </NavLink>
         </div>
       </nav>
 
-      <main className="flex-1 pb-16 md:pb-0">
+      {/* sb-scroll：弹窗打开时锁的就是它（见 useScrollLock）；overscroll-contain 防滚动链 */}
+      <main
+        ref={contentRef}
+        className="sb-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain"
+      >
         <Outlet />
       </main>
       <FloatingAssistant />

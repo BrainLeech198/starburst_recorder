@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useLiveQuery } from '../../core/db/live'
 import type { DiaryEntry } from '../../core/db/schema'
 import { useToast } from '../../app/providers/ToastProvider'
 import BatchBar from '../../shared/ui/BatchBar'

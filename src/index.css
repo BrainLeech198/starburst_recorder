@@ -241,3 +241,19 @@ body {
   background-color: var(--color-bg);
   color: var(--color-fg);
 }
+
+/* 壳层：内容区（.sb-scroll）是唯一滚动容器；弹窗打开时把它锁住，消掉滚动穿透（见 useScrollLock） */
+html.sb-scroll-locked .sb-scroll {
+  overflow: hidden;
+}
+
+/*
+ * 壳层根节点固定一屏高。先给 100vh 兜底，再让 100dvh 覆盖：
+ * Android 的 WebView 版本随系统更新，个别偏旧的认不得 dvh，兜底能保证"仍然是一屏高"，
+ * 而不是退化成 auto（那样整页又会变回滚动）。
+ */
+.sb-shell {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
