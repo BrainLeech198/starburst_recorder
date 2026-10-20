@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import FloatingAssistant from '../../features/assistant/FloatingAssistant'
 import { useAndroidBackButton } from '../androidBack'
+import { ballVisible } from '../debugFlags'
 
 /** 「记录」这一组：日记 / 健康 / 经济。它们在导航里不再各自占一格，收进「记录」下面 */
 const RECORDS = [
@@ -147,7 +148,8 @@ export default function AppShell() {
       >
         <Outlet />
       </main>
-      <FloatingAssistant />
+      {/* 悬浮球平时不显示（它还是个占位，点开只会说 AI 没接），调试开关见 debugFlags.ts */}
+      {ballVisible() && <FloatingAssistant />}
     </div>
   )
 }

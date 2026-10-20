@@ -27,7 +27,7 @@ export default function BallPage() {
           {shapeLabel} · {sizeLabel}
         </SettingBadge>
       }
-      description="球可以拖着挪位；长时间不动，它会自己贴到屏幕边上只露半边。"
+      description="球可以拖着挪位；长时间不动，它会自己贴到屏幕边上只露半边。现在助手还没接通，所以悬浮球默认不显示——这里的设置先存着。"
     >
       <SettingCard>
         <SettingGroup label="形象" first>

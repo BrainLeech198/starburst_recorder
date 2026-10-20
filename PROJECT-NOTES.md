@@ -376,7 +376,7 @@ package/windows/               Inno 打包相关
 
 **环境快照**：dev server 在 5173 常驻（用户要求别停）；模拟器 `emulator-5554`（横屏 1280×720，可 `settings put system user_rotation 3` 转竖屏验手机布局）；`JAVA_HOME` 必须显式指到 `C:\Program Files\Java\jdk-21`（系统默认是 1.8）；`adb` 在 `D:\Android\Sdk\platform-tools`；**改完 web 代码要 `npm run build` → `npx cap copy android` → `gradlew assembleDebug` → `adb install -r` 才进得去手机**。
 
-- **虚拟鼠标的观感来自悬浮球**：它是 `fixed z-30` 的可拖动圆球（默认「八角星」），落在右下角、又带 `cursor-grab`（悬停时鼠标变成抓取手型），在**桌面浏览器**里看起来就像凭空多出一个鼠标指针。它本来是为手机端准备的助手入口；桌面端要不要收起来还没定。
+- **悬浮球默认隐藏（2026-10-21 改）**：它现在是**占位**（点开只会说"AI 还没接入"），摆在右下角既是误导、又容易被当成多出来的鼠标指针（它带 `cursor-grab`，悬停时鼠标变抓取手型），所以平时不渲染。想看它：地址加参数 `?ball=1`（如 `http://localhost:5173/?ball=1#/diary`），或控制台 `localStorage.setItem('starburst.debug.ball','1')` 后刷新；关掉就 `removeItem`。开关都在 `src/app/debugFlags.ts`，**默认全关**——以后再加调试开关往这里放，别散在页面里。
 
 **可以清理但先别急**：旧目录 `D:\File\claude\` + 零宽字符 + `starburst_recorder`、以及临时联接 `D:\sb_probe`——等新路径这套全部收尾、你确认没问题之后再删。
 
