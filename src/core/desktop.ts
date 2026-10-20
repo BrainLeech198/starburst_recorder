@@ -43,6 +43,10 @@ export interface DesktopBridge {
   getSize: () => Promise<{ width: number; height: number } | null>
   /** 从主进程发 AI 请求：绕开 CORS，key 也不经过渲染进程的网络栈 */
   chat: (request: ChatRequest) => Promise<ChatTransportResult>
+  /** 数据实际落盘的位置（桌面程序里才有，浏览器里 null） */
+  dataPath: () => Promise<string | null>
+  /** 用系统文件管理器打开那个目录，返回是否成功 */
+  openDataFolder: () => Promise<boolean>
 }
 
 declare global {

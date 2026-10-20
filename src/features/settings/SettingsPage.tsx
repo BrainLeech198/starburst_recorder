@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useTheme } from '../../app/providers/ThemeProvider'
 import { ACCENT_COLORS, accentLabel } from '../../app/theme'
 import { MASCOT_SHAPES, MASCOT_SIZES, useBall } from '../../app/providers/BallProvider'
@@ -8,6 +10,7 @@ import type { DesktopBridge } from '../../core/desktop'
 import SettingCard, { SettingBadge, SettingGroup } from '../../shared/ui/SettingCard'
 import { choiceTile, OUTLINE_BUTTON } from '../../shared/ui/buttonStyles'
 import AiSection from '../ai/AiSection'
+import { totals } from '../diary/diaryRepo'
 
 /** 桌面端的窗口尺寸预设 */
 const WINDOW_PRESETS = [
@@ -128,6 +131,7 @@ function WindowSizeCard() {
 export default function SettingsPage() {
   const { theme, setTheme, themes, accent, setAccent } = useTheme()
   const { prefs, setPrefs } = useBall()
+  const counts = useLiveQuery(() => totals(), [])
 
   const themeLabel = themes.find((item) => item.id === theme)?.label ?? theme
   const shapeLabel = MASCOT_SHAPES.find((item) => item.id === prefs.shape)?.label ?? prefs.shape
@@ -253,6 +257,22 @@ export default function SettingsPage() {
         </SettingCard>
 
         <AiSection />
+
+        <SettingCard
+          title="数据与备份"
+          description="导出全部数据、从备份恢复、看一眼数据实际落在哪儿。"
+          badge={
+            <SettingBadge>
+              日记 {counts?.entries ?? 0} · 随记 {counts?.stamps ?? 0}
+            </SettingBadge>
+          }
+        >
+          <SettingGroup label="进去看看">
+            <Link to="/settings/data" className={OUTLINE_BUTTON}>
+              打开数据与备份
+            </Link>
+          </SettingGroup>
+        </SettingCard>
 
         <WindowSizeCard />
       </div>

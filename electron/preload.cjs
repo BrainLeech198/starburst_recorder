@@ -1,4 +1,4 @@
-// 预加载脚本：只把「窗口尺寸」和「AI 请求」两件事递给网页，其余一概不开
+// 预加载脚本：只把「窗口尺寸」「AI 请求」「数据目录」三件事递给网页，其余一概不开
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('desktop', {
@@ -7,4 +7,6 @@ contextBridge.exposeInMainWorld('desktop', {
   getSize: () => ipcRenderer.invoke('window:get-size'),
   // 由主进程代发，网页那边不用操心跨域
   chat: (request) => ipcRenderer.invoke('ai:chat', request),
+  dataPath: () => ipcRenderer.invoke('data:path'),
+  openDataFolder: () => ipcRenderer.invoke('data:open-folder'),
 })

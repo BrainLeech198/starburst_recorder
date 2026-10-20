@@ -3,7 +3,7 @@
 // 这里刻意不用 file:// 直接打开 index.html，而是注册一个 app:// 协议：
 // file:// 的 origin 是 opaque 的，ES module、fetch、IndexedDB 都可能被 CORS 或
 // 存储策略拦住；给它一个标准的 origin（app://starburst）这些就都按常规工作。
-const { app, BrowserWindow, ipcMain, protocol, net } = require('electron')
+const { app, BrowserWindow, ipcMain, protocol, net, shell } = require('electron')
 const path = require('node:path')
 const nodeUrl = require('node:url')
 const fs = require('node:fs')
@@ -133,6 +133,18 @@ ipcMain.handle('ai:chat', async (_event, request) => {
       error: String(error?.message ?? error),
     }
   }
+})
+
+/**
+ * 「数据在哪」：userData 就是 Chromium 给这个程序分的 profile 目录，
+ * 网页那边的 IndexedDB 就落在它里面。给用户一个能亲眼看到的路径，
+ * 「数据全在自己机器上」这句话才落到实处。
+ */
+ipcMain.handle('data:path', () => app.getPath('userData'))
+
+ipcMain.handle('data:open-folder', async () => {
+  const failure = await shell.openPath(app.getPath('userData'))
+  return failure === '' // openPath 只有在失败时才返回一段错误说明
 })
 
 /**

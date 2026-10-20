@@ -10,6 +10,7 @@ import AssistantPage from '../features/assistant/AssistantPage'
 import CalendarPage from '../features/calendar/CalendarPage'
 import MePage from '../features/me/MePage'
 import SettingsPage from '../features/settings/SettingsPage'
+import DataPage from '../features/settings/DataPage'
 
 export const router = createHashRouter([
   {
@@ -26,6 +27,7 @@ export const router = createHashRouter([
       { path: 'calendar', element: <CalendarPage /> },
       { path: 'me', element: <MePage /> },
       { path: 'settings', element: <SettingsPage /> },
+      { path: 'settings/data', element: <DataPage /> },
     ],
   },
 ])
