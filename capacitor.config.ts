@@ -17,6 +17,23 @@ const config: CapacitorConfig = {
     // 开发期打开 WebView 的远程调试（chrome://inspect 能看到页面），正式发布前再看要不要关
     webContentsDebuggingEnabled: true,
   },
+  plugins: {
+    /**
+     * Capacitor 8 自带的状态栏/导航栏处理（不需要再装 @capacitor/status-bar）。
+     *
+     * style 默认是 DEFAULT，也就是**跟着系统深浅模式走**：系统是浅色就给深色图标。
+     * 我们的应用默认是深空主题，系统浅色时就成了"浅灰条 + 深图标"，跟应用完全不搭。
+     * 这里钉死 dark（深色背景 + 浅色图标）。
+     *
+     * initialViewportFitValueHint 是提前告诉它 index.html 里已经有 viewport-fit=cover，
+     * 这样它一上来就让 WebView 铺到状态栏下面（省掉一次重新排版的跳动），
+     * 再由页面里的 env(safe-area-inset-*) 把内容让开。
+     */
+    SystemBars: {
+      style: 'dark',
+      initialViewportFitValueHint: 'cover',
+    },
+  },
 }
 
 export default config

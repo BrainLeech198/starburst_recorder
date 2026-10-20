@@ -13,6 +13,20 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+
+        <!-- 窗口底色跟应用一致：状态栏那一块即使由系统留出内边距，露出来的也是深色，
+             而不是 DayNight 浅色主题的浅灰（那就是之前那条突兀灰条的来源）。 -->
+        <item name="android:windowBackground">#0a0d12</item>
+
+        <!-- 状态栏 / 导航栏跟应用底色一致（深空 #0a0d12）。
+             图标颜色由 capacitor.config.ts 里的 SystemBars.style = dark 决定（浅色图标）。 -->
+        <item name="android:statusBarColor">#0a0d12</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">#0a0d12</item>
+        <item name="android:windowLightNavigationBar">false</item>
+
+        <!-- 横屏时允许画进刘海区域；靠页面里的左右 safe-area 内边距把内容让开 -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 
 
