@@ -6,7 +6,8 @@ import tseslint from 'typescript-eslint'
 import prettier from 'eslint-config-prettier'
 
 export default [
-  { ignores: ['dist', 'node_modules', 'android', 'src-tauri'] },
+  // .venv 是本机资料（AI 记忆存档 + 同类项目参考仓库），不进仓库也不参与检查
+  { ignores: ['dist', 'node_modules', 'android', 'src-tauri', '.venv'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
