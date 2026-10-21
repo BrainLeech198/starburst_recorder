@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import { useToast } from '@/app/providers/ToastProvider'
+import { useI18n } from '@/shared/i18n/context'
 import BatchActions from '@/shared/ui/BatchActions'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import Tab from '@/shared/ui/Tab'
@@ -38,6 +39,7 @@ type Pending = { kind: 'entry' | 'stamp' | 'clear' | 'batch'; id?: string }
 
 export default function TrashPage() {
   const { showToast } = useToast()
+  const { t } = useI18n()
   const location = useLocation()
   const [pending, setPending] = useState<Pending | null>(null)
 
@@ -51,8 +53,11 @@ export default function TrashPage() {
   const entries = useLiveQuery(() => trashedEntries(), [])
   const stamps = useLiveQuery(() => trashedStamps(), [])
 
-  const noun = mode === 'diary' ? '日记' : '随记'
-  const unit = mode === 'diary' ? '条' : '笔'
+  const isDiary = mode === 'diary'
+  const unit = isDiary ? t('diary.unitDiary') : t('diary.unitStamp')
+  /** 「3 条日记」「2 笔随记」：数量与量词一起由文案决定，方便以后换语言 */
+  const targetOf = (selected: number) =>
+    t(isDiary ? 'diary.targetDiary' : 'diary.targetStamp', { count: selected })
   const loading = entries === undefined || stamps === undefined
   const count = mode === 'diary' ? (entries?.length ?? 0) : (stamps?.length ?? 0)
   const isEmpty = !loading && count === 0
@@ -69,7 +74,7 @@ export default function TrashPage() {
   async function handleRestore(kind: 'entry' | 'stamp', id: string) {
     if (kind === 'entry') await restoreEntry(id)
     else await restoreStamp(id)
-    showToast({ message: '已恢复，回到它原来的日期去了' })
+    showToast({ message: t('trash.restored') })
   }
 
   /** 批量恢复：一次性送回原来的日期；如果这一栏被清空了就顺手退出批量 */
@@ -79,7 +84,7 @@ export default function TrashPage() {
     else await restoreStamps(ids)
     batch.clear()
     if (ids.length >= count) batch.exit()
-    showToast({ message: `已恢复 ${ids.length} ${unit}${noun}` })
+    showToast({ message: t('trash.restoredCount', { target: targetOf(ids.length) }) })
   }
 
   async function handleConfirm() {
@@ -90,7 +95,7 @@ export default function TrashPage() {
     if (target.kind === 'clear') {
       if (mode === 'diary') await purgeTrashedEntries()
       else await purgeTrashedStamps()
-      showToast({ message: `${noun}回收站已清空` })
+      showToast({ message: isDiary ? t('trash.clearedDiary') : t('trash.clearedStamp') })
       return
     }
     if (target.kind === 'batch') {
@@ -99,17 +104,17 @@ export default function TrashPage() {
       else await purgeStamps(ids)
       batch.clear()
       if (ids.length >= count) batch.exit()
-      showToast({ message: `已彻底删除 ${ids.length} ${unit}${noun}` })
+      showToast({ message: t('trash.purgedCount', { target: targetOf(ids.length) }) })
       return
     }
     if (target.kind === 'entry' && target.id) {
       await purgeEntry(target.id)
-      showToast({ message: '这条日记已彻底删除' })
+      showToast({ message: t('trash.purgedEntry') })
       return
     }
     if (target.kind === 'stamp' && target.id) {
       await purgeStamp(target.id)
-      showToast({ message: '这一笔随记已彻底删除' })
+      showToast({ message: t('trash.purgedStamp') })
     }
   }
 
@@ -118,12 +123,12 @@ export default function TrashPage() {
       {/* 顶上一整行都是功能按钮，套一层底色跟下面的清单分开 */}
       <ToolbarRow>
         <Link to="/diary" className={BACK_BUTTON}>
-          ← 返回日记
+          {t('trash.back')}
         </Link>
         <div className="flex items-center gap-2">
           {!batch.active && !isEmpty && (
             <button type="button" onClick={batch.enter} className={SOLID_BUTTON}>
-              批量
+              {t('trash.batch')}
             </button>
           )}
           <button
@@ -132,29 +137,33 @@ export default function TrashPage() {
             disabled={isEmpty || batch.active}
             className={`${SOLID_DANGER} disabled:opacity-40`}
           >
-            清空{noun}回收站
+            {isDiary ? t('trash.clearDiary') : t('trash.clearStamp')}
           </button>
         </div>
       </ToolbarRow>
 
       <div className="mt-3 flex items-center">
         <Tab active={mode === 'diary'} onClick={() => switchMode('diary')}>
-          日记
+          {t('diary.tabDiary')}
         </Tab>
         <Tab active={mode === 'stamp'} onClick={() => switchMode('stamp')}>
-          随记
+          {t('diary.tabStamp')}
         </Tab>
       </div>
 
       <p className="mt-2 text-xs text-muted">
         {loading
-          ? '读取中…'
+          ? t('common.reading')
           : batch.active
-            ? `点纸条选中它，或者用底部工具条全选。`
-            : `这里放着你删掉的${noun}，共 ${count} ${unit}。恢复会送它们回到原来的日期；彻底删除和清空就真没了。`}
+            ? t('trash.batchHint')
+            : t(isDiary ? 'trash.hintDiary' : 'trash.hintStamp', { count })}
       </p>
 
-      {isEmpty && <p className="mt-6 text-center text-sm text-muted">没有删掉的{noun}</p>}
+      {isEmpty && (
+        <p className="mt-6 text-center text-sm text-muted">
+          {isDiary ? t('trash.emptyDiary') : t('trash.emptyStamp')}
+        </p>
+      )}
 
       {!loading && mode === 'diary' && entries.length > 0 && (
         <ul className="mt-4 space-y-3">
@@ -173,21 +182,28 @@ export default function TrashPage() {
                   >
                     <div className="font-hand text-sm">{formatMonthDayCn(entry.dateKey)}</div>
                     <div className="font-hand mt-1 line-clamp-2 text-sm">
-                      {entry.content.trim() || <span className="text-ink-muted">还没有写内容</span>}
+                      {entry.content.trim() || (
+                        <span className="text-ink-muted">{t('diary.emptyContent')}</span>
+                      )}
                     </div>
                   </button>
                 ) : (
                   <>
                     <div className="font-hand text-sm">{formatMonthDayCn(entry.dateKey)}</div>
                     <div className="font-hand mt-1 line-clamp-2 text-sm">
-                      {entry.content.trim() || <span className="text-ink-muted">还没有写内容</span>}
+                      {entry.content.trim() || (
+                        <span className="text-ink-muted">{t('diary.emptyContent')}</span>
+                      )}
                     </div>
                   </>
                 )}
 
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                   <span className="font-mono text-xs text-ink-muted opacity-70">
-                    {entry.code} · 删除于 {formatStamp(entry.deletedAt ?? 0)}
+                    {t('trash.codeDeletedAt', {
+                      code: entry.code,
+                      at: formatStamp(entry.deletedAt ?? 0),
+                    })}
                   </span>
                   {!batch.active && (
                     <span className="flex items-center gap-1">
@@ -196,14 +212,14 @@ export default function TrashPage() {
                         onClick={() => void handleRestore('entry', entry.id)}
                         className={`${SLIP_BUTTON} text-ink-muted hover:text-ink`}
                       >
-                        恢复
+                        {t('trash.restore')}
                       </button>
                       <button
                         type="button"
                         onClick={() => setPending({ kind: 'entry', id: entry.id })}
                         className={`${SLIP_BUTTON} text-danger`}
                       >
-                        彻底删除
+                        {t('trash.purge')}
                       </button>
                     </span>
                   )}
@@ -246,7 +262,9 @@ export default function TrashPage() {
                       {formatMonthDayCn(stamp.dateKey)} {stamp.time}
                     </div>
                     <div className="font-hand mt-1 line-clamp-2 text-sm">
-                      {stamp.content.trim() || <span className="text-ink-muted">没写内容</span>}
+                      {stamp.content.trim() || (
+                        <span className="text-ink-muted">{t('trash.noContent')}</span>
+                      )}
                     </div>
                   </button>
                 ) : (
@@ -255,14 +273,16 @@ export default function TrashPage() {
                       {formatMonthDayCn(stamp.dateKey)} {stamp.time}
                     </div>
                     <div className="font-hand mt-1 line-clamp-2 text-sm">
-                      {stamp.content.trim() || <span className="text-ink-muted">没写内容</span>}
+                      {stamp.content.trim() || (
+                        <span className="text-ink-muted">{t('trash.noContent')}</span>
+                      )}
                     </div>
                   </>
                 )}
 
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                   <span className="font-mono text-xs text-ink-muted opacity-70">
-                    删除于 {formatStamp(stamp.deletedAt ?? 0)}
+                    {t('trash.deletedAt', { at: formatStamp(stamp.deletedAt ?? 0) })}
                   </span>
                   {!batch.active && (
                     <span className="flex items-center gap-1">
@@ -271,14 +291,14 @@ export default function TrashPage() {
                         onClick={() => void handleRestore('stamp', stamp.id)}
                         className={`${SLIP_BUTTON} text-ink-muted hover:text-ink`}
                       >
-                        恢复
+                        {t('trash.restore')}
                       </button>
                       <button
                         type="button"
                         onClick={() => setPending({ kind: 'stamp', id: stamp.id })}
                         className={`${SLIP_BUTTON} text-danger`}
                       >
-                        彻底删除
+                        {t('trash.purge')}
                       </button>
                     </span>
                   )}
@@ -310,7 +330,7 @@ export default function TrashPage() {
             disabled={selectedCount === 0}
             className={BAR_BUTTON}
           >
-            恢复
+            {t('trash.restore')}
           </button>
           <button
             type="button"
@@ -318,7 +338,7 @@ export default function TrashPage() {
             disabled={selectedCount === 0}
             className={BAR_DANGER}
           >
-            彻底删除
+            {t('trash.purge')}
           </button>
         </BatchActions>
       )}
@@ -327,19 +347,23 @@ export default function TrashPage() {
         <ConfirmDialog
           title={
             pending.kind === 'clear'
-              ? `清空${noun}回收站？`
+              ? isDiary
+                ? t('trash.clearDiaryTitle')
+                : t('trash.clearStampTitle')
               : pending.kind === 'batch'
-                ? `彻底删除选中的 ${selectedCount} ${unit}${noun}？`
-                : '彻底删除？'
+                ? t('trash.purgeSelectedTitle', { target: targetOf(selectedCount) })
+                : t('trash.purgeOneTitle')
           }
           description={
             pending.kind === 'clear'
-              ? `回收站里的${noun}会被永久删除，无法恢复。不影响另一边的回收站。`
+              ? isDiary
+                ? t('trash.clearDiaryBody')
+                : t('trash.clearStampBody')
               : pending.kind === 'batch'
-                ? '这些内容会被永久删除，无法恢复，也没有撤销。'
-                : '这一项会被永久删除，无法恢复。'
+                ? t('trash.purgeSelectedBody')
+                : t('trash.purgeOneBody')
           }
-          confirmLabel={pending.kind === 'clear' ? '清空' : '彻底删除'}
+          confirmLabel={pending.kind === 'clear' ? t('trash.clearConfirm') : t('trash.purge')}
           onConfirm={handleConfirm}
           onCancel={() => setPending(null)}
         />

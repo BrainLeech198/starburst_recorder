@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { useLiveQuery } from '@/core/db/live'
 import type { DiaryStamp } from '@/core/db/schema'
 import { useToast } from '@/app/providers/ToastProvider'
+import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { dayInfo, removeStamp, restoreStamp, setWeather, updateStamp } from './diaryRepo'
 import { parseWeather, weatherIcons, weatherLabel } from './weather'
@@ -30,6 +31,7 @@ function StampRow({
   const [editingTime, setEditingTime] = useState(false)
   const [draft, setDraft] = useState<string | null>(null)
   const areaRef = useRef<HTMLTextAreaElement>(null)
+  const { t } = useI18n()
 
   const content = draft ?? stamp.content
 
@@ -59,7 +61,7 @@ function StampRow({
           <button type="button" onClick={onToggle} className="block w-full px-1 text-left">
             <span className="font-hand block text-lg text-ink">{stamp.time}</span>
             <span className="font-hand mt-0.5 block min-h-6 text-sm leading-6 text-ink">
-              {content.trim() || <span className="text-ink-muted">（没写内容）</span>}
+              {content.trim() || <span className="text-ink-muted">{t('stamp.noContent')}</span>}
             </span>
           </button>
         ) : (
@@ -80,7 +82,7 @@ function StampRow({
               <button
                 type="button"
                 onClick={() => setEditingTime(true)}
-                title="点一下改时间"
+                title={t('stamp.editTimeHint')}
                 className="font-hand rounded-lg px-1 text-lg text-ink transition-colors hover:text-brand"
               >
                 {time}
@@ -93,7 +95,7 @@ function StampRow({
               rows={1}
               autoFocus={autoFocus}
               spellCheck={false}
-              placeholder="记一笔…"
+              placeholder={t('stamp.placeholder')}
               onChange={(event) => setDraft(event.target.value)}
               onBlur={() => {
                 if (draft !== null) void updateStamp(stamp.id, { content: draft })
@@ -119,11 +121,11 @@ function StampRow({
         <button
           type="button"
           onClick={() => onDelete(stamp)}
-          title="删掉这一笔"
+          title={t('stamp.deleteHint')}
           className="absolute top-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-ink-muted opacity-70 transition-colors hover:text-danger hover:opacity-100"
         >
           <span aria-hidden="true">✕</span>
-          <span className="sr-only">删掉这一笔</span>
+          <span className="sr-only">{t('stamp.deleteHint')}</span>
         </button>
       )}
     </li>
@@ -159,6 +161,7 @@ export default function StampTimeline({
   onToggleSelect: (id: string) => void
 }) {
   const { showToast } = useToast()
+  const { t } = useI18n()
   const [pendingDelete, setPendingDelete] = useState<DiaryStamp | null>(null)
   const [weatherOpen, setWeatherOpen] = useState(false)
 
@@ -209,8 +212,8 @@ export default function StampTimeline({
     setPendingDelete(null)
     await removeStamp(targetId)
     showToast({
-      message: '已删掉这一笔',
-      actionLabel: '撤销',
+      message: t('stamp.deleted'),
+      actionLabel: t('diary.undo'),
       onAction: () => {
         void restoreStamp(targetId)
       },
@@ -224,17 +227,21 @@ export default function StampTimeline({
           <button
             type="button"
             onClick={() => setWeatherOpen(true)}
-            title="点一下改天气"
+            title={t('weather.editHint')}
             className="sticker font-hand text-xs text-ink"
           >
-            {states.length > 0 ? `${weatherIcons(states)} ${weatherLabel(states)}` : '天气待填写'}
+            {states.length > 0
+              ? `${weatherIcons(states)} ${weatherLabel(states)}`
+              : t('weather.pending')}
           </button>
         </div>
 
-        {stamps === undefined && <p className="m-0 text-sm text-ink-muted">读取中…</p>}
+        {stamps === undefined && (
+          <p className="m-0 text-sm text-ink-muted">{t('stamp.reading')}</p>
+        )}
 
         {stamps !== undefined && stamps.length === 0 && (
-          <p className="m-0 text-sm text-ink-muted">还没有记过，点上面的「＋ 记一笔」开始。</p>
+          <p className="m-0 text-sm text-ink-muted">{t('stamp.empty')}</p>
         )}
 
         {stamps !== undefined && stamps.length > 0 && <ul>{items}</ul>}
@@ -254,9 +261,9 @@ export default function StampTimeline({
 
       {pendingDelete && (
         <ConfirmDialog
-          title="确定删掉这一笔？"
-          description={`${pendingDelete.time} ${pendingDelete.content || '（没写内容）'}`}
-          confirmLabel="删除"
+          title={t('stamp.deleteTitle')}
+          description={`${pendingDelete.time} ${pendingDelete.content || t('stamp.noContent')}`}
+          confirmLabel={t('diary.delete')}
           onConfirm={handleDelete}
           onCancel={() => setPendingDelete(null)}
         />

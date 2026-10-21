@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import type { DiaryEntry } from '@/core/db/schema'
 import { useToast } from '@/app/providers/ToastProvider'
+import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
 import { BACK_BUTTON, SOLID_BUTTON, SOLID_DANGER } from '@/shared/ui/buttonStyles'
@@ -33,6 +34,7 @@ export default function DiaryEditPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const { showToast } = useToast()
+  const { t } = useI18n()
   const startEditable = (location.state as { editable?: boolean } | null)?.editable === true
 
   const [editing, setEditing] = useState(startEditable)
@@ -62,16 +64,16 @@ export default function DiaryEditPage() {
   }, [draft, entryId])
 
   if (entry === undefined) {
-    return <p className="p-4 text-sm text-muted">读取中…</p>
+    return <p className="p-4 text-sm text-muted">{t('common.reading')}</p>
   }
 
   if (entry === null) {
     return (
       <div className="p-4">
         <Link to="/diary" className="text-sm text-brand">
-          回到列表
+          {t('diaryEdit.backLink')}
         </Link>
-        <p className="mt-4 text-sm text-muted">没有找到这条日记。</p>
+        <p className="mt-4 text-sm text-muted">{t('diaryEdit.notFound')}</p>
       </div>
     )
   }
@@ -91,8 +93,8 @@ export default function DiaryEditPage() {
     const targetId = entry.id
     await removeEntry(targetId)
     showToast({
-      message: '已删除这条日记',
-      actionLabel: '撤销',
+      message: t('diary.deletedOne'),
+      actionLabel: t('diary.undo'),
       onAction: () => {
         void restoreEntry(targetId)
       },
@@ -105,19 +107,19 @@ export default function DiaryEditPage() {
       {/* 顶上一整行都是功能按钮（返回 / 删除 / 编辑），所以套一层底色跟下面的纸分开 */}
       <ToolbarRow>
         <Link to="/diary" className={BACK_BUTTON}>
-          ← 返回列表
+          {t('diaryEdit.back')}
         </Link>
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => setConfirmOpen(true)} className={SOLID_DANGER}>
-            删除
+            {t('diary.delete')}
           </button>
           <button
             type="button"
             onClick={() => setEditing((value) => !value)}
-            title={editing ? '锁定后这条日记变成只读' : '打开编辑'}
+            title={editing ? t('diaryEdit.lockHint') : t('diaryEdit.editHint')}
             className={SOLID_BUTTON}
           >
-            {editing ? '锁定' : '编辑'}
+            {editing ? t('diaryEdit.lock') : t('diaryEdit.edit')}
           </button>
         </div>
       </ToolbarRow>
@@ -135,12 +137,12 @@ export default function DiaryEditPage() {
           <button
             type="button"
             onClick={() => setWeatherOpen(true)}
-            title="点一下改天气"
+            title={t('weather.editHint')}
             className="sticker justify-self-end text-xs"
           >
             {weatherStates.length > 0
               ? `${weatherIcons(weatherStates)} ${weatherLabel(weatherStates)}`
-              : '天气待填写'}
+              : t('weather.pending')}
           </button>
         </div>
 
@@ -158,7 +160,7 @@ export default function DiaryEditPage() {
               className="field-sizing-content block w-full resize-none bg-transparent text-ink outline-none"
             />
           ) : value.trim() === '' ? (
-            <p className="m-0 text-ink-muted">今天想写点什么？</p>
+            <p className="m-0 text-ink-muted">{t('diaryEdit.placeholder')}</p>
           ) : (
             paragraphs.map((paragraph, index) =>
               paragraph === '' ? (
@@ -178,9 +180,9 @@ export default function DiaryEditPage() {
 
       {confirmOpen && (
         <ConfirmDialog
-          title="确定删除这条日记？"
-          description="删除后可以在回收站里找回来。"
-          confirmLabel="删除"
+          title={t('diary.deleteThisTitle')}
+          description={t('diary.deleteThisBody')}
+          confirmLabel={t('diary.delete')}
           onConfirm={handleDelete}
           onCancel={() => setConfirmOpen(false)}
         />

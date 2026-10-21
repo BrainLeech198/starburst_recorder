@@ -1,29 +1,29 @@
 import type { ExportFormat } from './diaryExport'
+import type { MessageKey } from '@/shared/i18n/messages/zh'
+import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 
-const OPTIONS: { id: ExportFormat; label: string; hint: string }[] = [
-  { id: 'markdown', label: 'Markdown', hint: '一天一节，能直接给 AI 读' },
-  { id: 'text', label: '纯文本 .txt', hint: '干净好读，不带任何标记' },
-  { id: 'json', label: 'JSON', hint: '保留全部字段，用来做完整备份' },
+const OPTIONS: { id: ExportFormat; label?: string; labelKey?: MessageKey; hintKey: MessageKey }[] = [
+  { id: 'markdown', label: 'Markdown', hintKey: 'export.markdownHint' },
+  { id: 'text', labelKey: 'export.textLabel', hintKey: 'export.textHint' },
+  { id: 'json', label: 'JSON', hintKey: 'export.jsonHint' },
 ]
 
 export default function ExportDialog({
-  count,
-  unit,
+  target,
   onPick,
   onCancel,
 }: {
-  count: number
-  unit: string
+  /** 「3 条日记」这类已经带好量词的说法 */
+  target: string
   onPick: (format: ExportFormat) => void
   onCancel: () => void
 }) {
+  const { t } = useI18n()
   return (
     <Modal size="xs" onClose={onCancel}>
-      <div className="text-sm font-medium">
-        导出选中的 {count} {unit}
-      </div>
-      <p className="mt-2 text-xs text-muted">选一种格式，文件会直接下载下来。</p>
+      <div className="text-sm font-medium">{t('export.title', { target })}</div>
+      <p className="mt-2 text-xs text-muted">{t('export.hint')}</p>
 
       <div className="mt-3 flex flex-col gap-2">
         {OPTIONS.map((option) => (
@@ -33,8 +33,10 @@ export default function ExportDialog({
             onClick={() => onPick(option.id)}
             className="rounded-lg border border-line px-3 py-2 text-left transition-colors hover:border-brand"
           >
-            <span className="block text-sm text-fg">{option.label}</span>
-            <span className="mt-0.5 block text-xs text-muted">{option.hint}</span>
+            <span className="block text-sm text-fg">
+              {option.labelKey ? t(option.labelKey) : option.label}
+            </span>
+            <span className="mt-0.5 block text-xs text-muted">{t(option.hintKey)}</span>
           </button>
         ))}
       </div>
@@ -45,7 +47,7 @@ export default function ExportDialog({
           onClick={onCancel}
           className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
         >
-          取消
+          {t('common.cancel')}
         </button>
       </div>
     </Modal>
