@@ -13,6 +13,21 @@ export const zh = {
   'home.financeDesc': '每一笔收支',
   'home.calendarDesc': '待设计',
 
+  'health.placeholder': '以后在这里记录睡眠、心情和体重。',
+  'finance.placeholder': '以后在这里记账，记录每笔收支的原因和分类。',
+  'calendar.placeholder': '这里先占个位，还没想好内部怎么做。',
+
+  'assistant.title': 'AI 助手',
+  'assistant.placeholder': '以后在这里问 AI，让它分析你的记录并生成报告。',
+  'assistant.open': '打开 AI 助手',
+  'assistant.sheetTitle': '星芒助手',
+  'assistant.fullPage': '完整页面',
+  'assistant.close': '关闭',
+  'assistant.notConnected': 'AI 还没接入。',
+  'assistant.hint': '接上模型之后，你就可以在这里直接问它「最近体重怎么样」「这周钱花哪了」。',
+  'assistant.inputPlaceholder': '接入模型后可用…',
+  'assistant.send': '发送',
+
   'combo.empty': '没有可选项，直接输入也行',
   'combo.expand': '展开列表',
   'combo.collapse': '收起列表',

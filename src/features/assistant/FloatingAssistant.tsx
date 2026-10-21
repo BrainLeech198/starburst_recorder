@@ -3,6 +3,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import { Link } from 'react-router'
 import { MASCOT_SIZE_PX, useBall } from '@/app/providers/BallProvider'
 import { useTheme } from '@/app/providers/ThemeProvider'
+import { useI18n } from '@/shared/i18n/context'
 import { useScrollLock } from '@/shared/ui/useScrollLock'
 import { useOverlayEntry } from '@/shared/ui/useOverlayEntry'
 import { Mascot } from './Mascot'
@@ -65,6 +66,7 @@ function peekTarget(point: Point, size: number): Point {
 }
 
 export default function FloatingAssistant() {
+  const { t } = useI18n()
   const { prefs } = useBall()
   const { accent } = useTheme()
   const size = MASCOT_SIZE_PX[prefs.size]
@@ -179,7 +181,7 @@ export default function FloatingAssistant() {
       <div
         role="button"
         tabIndex={0}
-        aria-label="打开 AI 助手"
+        aria-label={t('assistant.open')}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -205,6 +207,7 @@ export default function FloatingAssistant() {
 }
 
 function AssistantSheet({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n()
   useScrollLock()
   // 登记成一层覆盖层：安卓实体返回键先关它，而不是直接退到上一页
   useOverlayEntry(onClose)
@@ -214,41 +217,39 @@ function AssistantSheet({ onClose }: { onClose: () => void }) {
       <div className="fixed inset-0 z-40 bg-black/50" onClick={onClose} />
       <div className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[75dvh] w-full max-w-md flex-col rounded-t-2xl border-t border-line bg-surface">
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
-          <span className="text-sm font-medium">星芒助手</span>
+          <span className="text-sm font-medium">{t('assistant.sheetTitle')}</span>
           <div className="flex items-center gap-3">
             <Link
               to="/assistant"
               onClick={onClose}
               className="text-sm text-muted transition-colors hover:text-brand"
             >
-              完整页面
+              {t('assistant.fullPage')}
             </Link>
             <button
               type="button"
               onClick={onClose}
               className="text-sm text-muted transition-colors hover:text-fg"
             >
-              关闭
+              {t('assistant.close')}
             </button>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-6">
-          <p className="text-sm">AI 还没接入。</p>
-          <p className="mt-2 text-xs text-muted">
-            接上模型之后，你就可以在这里直接问它「最近体重怎么样」「这周钱花哪了」。
-          </p>
+          <p className="text-sm">{t('assistant.notConnected')}</p>
+          <p className="mt-2 text-xs text-muted">{t('assistant.hint')}</p>
         </div>
 
         <div className="border-t border-line p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           <div className="flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-3 py-2">
             <input
               disabled
-              placeholder="接入模型后可用…"
+              placeholder={t('assistant.inputPlaceholder')}
               className="flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-muted"
             />
             <button type="button" disabled className="rounded-lg px-3 py-1 text-xs text-muted">
-              发送
+              {t('assistant.send')}
             </button>
           </div>
         </div>
