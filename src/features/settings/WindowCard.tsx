@@ -5,6 +5,7 @@
  * 而且它是一个桌面端专属的小东西，不值得在菜单里单占一行。
  */
 import { useEffect, useState } from 'react'
+import { useI18n } from '@/shared/i18n/context'
 import SettingCard, { SettingBadge, SettingGroup } from '@/shared/ui/SettingCard'
 import { choiceTile, OUTLINE_BUTTON } from '@/shared/ui/buttonStyles'
 import { INPUT_NARROW } from '@/shared/ui/inputStyles'
@@ -13,14 +14,15 @@ import type { DesktopBridge } from '@/platform/desktop'
 
 /** 桌面端的窗口尺寸预设 */
 const WINDOW_PRESETS = [
-  { label: '紧凑', width: 480, height: 820 },
-  { label: '标准', width: 1000, height: 760 },
-  { label: '宽屏', width: 1280, height: 800 },
-]
+  { labelKey: 'window.compact', width: 480, height: 820 },
+  { labelKey: 'window.standard', width: 1000, height: 760 },
+  { labelKey: 'window.wide', width: 1280, height: 800 },
+] as const
 
 const FIELD_CLASS = `ml-2 w-20 ${INPUT_NARROW}`
 
 export function WindowCard() {
+  const { t } = useI18n()
   // 桌面壳的预加载脚本会注入它，浏览器里是 undefined
   const shell: DesktopBridge | undefined = desktopBridge()
   const [current, setCurrent] = useState<{ width: number; height: number } | null>(null)
@@ -51,17 +53,17 @@ export function WindowCard() {
 
   return (
     <SettingCard
-      title="窗口尺寸"
-      description="只在桌面程序里有这一项；也可以直接拖窗口边框改大小。"
+      title={t('window.title')}
+      description={t('window.description')}
       badge={
-        <SettingBadge>{current ? `${current.width}×${current.height}` : '读取中…'}</SettingBadge>
+        <SettingBadge>{current ? `${current.width}×${current.height}` : t('window.loading')}</SettingBadge>
       }
     >
-      <SettingGroup label="预设" first>
+      <SettingGroup label={t('window.presets')} first>
         <div className="grid grid-cols-3 gap-2">
           {WINDOW_PRESETS.map((preset) => (
             <button
-              key={preset.label}
+              key={preset.labelKey}
               type="button"
               onClick={() => {
                 setWidth(String(preset.width))
@@ -73,7 +75,7 @@ export function WindowCard() {
                 'flex flex-col items-center gap-0.5 py-2',
               )}
             >
-              <span>{preset.label}</span>
+              <span>{t(preset.labelKey)}</span>
               <span className="font-mono text-xs text-muted">
                 {preset.width}×{preset.height}
               </span>
@@ -82,10 +84,10 @@ export function WindowCard() {
         </div>
       </SettingGroup>
 
-      <SettingGroup label="自己填">
+      <SettingGroup label={t('window.custom')}>
         <div className="flex flex-wrap items-end gap-2">
           <label className="text-xs text-muted">
-            宽
+            {t('window.width')}
             <input
               value={width}
               onChange={(event) => setWidth(event.target.value)}
@@ -93,7 +95,7 @@ export function WindowCard() {
             />
           </label>
           <label className="text-xs text-muted">
-            高
+            {t('window.height')}
             <input
               value={height}
               onChange={(event) => setHeight(event.target.value)}
@@ -105,10 +107,10 @@ export function WindowCard() {
             onClick={() => void apply(Number(width), Number(height))}
             className={OUTLINE_BUTTON}
           >
-            应用
+            {t('window.apply')}
           </button>
         </div>
-        <p className="mt-2 text-xs text-muted">最小 420×560。</p>
+        <p className="mt-2 text-xs text-muted">{t('window.min')}</p>
       </SettingGroup>
     </SettingCard>
   )

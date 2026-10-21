@@ -6,6 +6,7 @@
 import { MASCOT_SHAPES, MASCOT_SIZES, useBall } from '@/app/providers/BallProvider'
 import { useTheme } from '@/app/providers/ThemeProvider'
 import { Mascot } from '@/features/assistant/Mascot'
+import { useI18n } from '@/shared/i18n/context'
 import SettingCard, { SettingBadge, SettingGroup } from '@/shared/ui/SettingCard'
 import PageShell from '@/shared/ui/PageShell'
 import { choiceTile } from '@/shared/ui/buttonStyles'
@@ -13,24 +14,25 @@ import { choiceTile } from '@/shared/ui/buttonStyles'
 export default function BallPage() {
   const { prefs, setPrefs } = useBall()
   const { accent } = useTheme()
+  const { t } = useI18n()
 
   const shapeLabel = MASCOT_SHAPES.find((item) => item.id === prefs.shape)?.label ?? prefs.shape
   const sizeLabel = MASCOT_SIZES.find((item) => item.id === prefs.size)?.label ?? prefs.size
 
   return (
     <PageShell
-      title="悬浮球"
+      title={t('agent.ball')}
       backTo="/me/agent"
-      backLabel="助手"
+      backLabel={t('me.agent')}
       badge={
         <SettingBadge>
           {shapeLabel} · {sizeLabel}
         </SettingBadge>
       }
-      description="球可以拖着挪位；长时间不动，它会自己贴到屏幕边上只露半边。现在助手还没接通，所以悬浮球默认不显示——这里的设置先存着。"
+      description={t('ball.description')}
     >
       <SettingCard>
-        <SettingGroup label="形象" first>
+        <SettingGroup label={t('ball.shape')} first>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {MASCOT_SHAPES.map((shape) => (
               <button
@@ -49,7 +51,7 @@ export default function BallPage() {
           </div>
         </SettingGroup>
 
-        <SettingGroup label="大小">
+        <SettingGroup label={t('ball.size')}>
           <div className="grid grid-cols-3 gap-2">
             {MASCOT_SIZES.map((item) => (
               <button

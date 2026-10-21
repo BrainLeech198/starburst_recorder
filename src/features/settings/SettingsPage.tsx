@@ -9,6 +9,7 @@
 import { useLiveQuery } from '@/core/db/live'
 import { useTheme } from '@/app/providers/ThemeProvider'
 import { accentLabel } from '@/app/theme'
+import { useI18n } from '@/shared/i18n/context'
 import SettingRow from '@/shared/ui/SettingRow'
 import PageShell from '@/shared/ui/PageShell'
 import { SettingBadge } from '@/shared/ui/SettingCard'
@@ -27,22 +28,23 @@ function AccentDot({ color }: { color: string }) {
 
 export default function SettingsPage() {
   const { theme, themes, accent } = useTheme()
+  const { t } = useI18n()
   const counts = useLiveQuery(() => totals(), [])
   const themeLabel = themes.find((item) => item.id === theme)?.label ?? theme
 
   return (
     <PageShell
-      title="设置"
-      description="应用级的两件事：看着怎么样、数据放哪儿。"
+      title={t('common.settings')}
+      description={t('settings.description')}
       // 菜单也是"里面的一层"，所以同样要有返回：这里回「我的」
       backTo="/me"
-      backLabel="我的"
+      backLabel={t('me.title')}
     >
       <SettingRow
         to="/me/settings/theme"
         emoji="🎨"
-        title="主题"
-        hint="明暗模式与主题色"
+        title={t('settings.theme')}
+        hint={t('settings.themeHint')}
         value={
           <SettingBadge>
             {themeLabel} · {accentLabel(accent)}
@@ -53,11 +55,11 @@ export default function SettingsPage() {
       <SettingRow
         to="/me/settings/data"
         emoji="💾"
-        title="数据与备份"
-        hint="导出、恢复、数据落在哪儿"
+        title={t('settings.data')}
+        hint={t('settings.dataHint')}
         value={
           <SettingBadge>
-            日记 {counts?.entries ?? 0} · 随记 {counts?.stamps ?? 0}
+            {t('settings.dataCount', { entries: counts?.entries ?? 0, stamps: counts?.stamps ?? 0 })}
           </SettingBadge>
         }
       />
