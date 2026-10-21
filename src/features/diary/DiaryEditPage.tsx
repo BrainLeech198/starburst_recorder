@@ -188,6 +188,7 @@ export default function DiaryEditPage() {
 
       {weatherOpen && (
         <WeatherDialog
+          dateKey={entry.dateKey}
           value={weather}
           onConfirm={async (next) => {
             await setWeather(entry.dateKey, next)

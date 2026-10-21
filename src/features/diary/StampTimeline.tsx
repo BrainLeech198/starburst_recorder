@@ -242,6 +242,7 @@ export default function StampTimeline({
 
       {weatherOpen && (
         <WeatherDialog
+          dateKey={dateKey}
           value={day?.weather ?? ''}
           onConfirm={async (next) => {
             await setWeather(dateKey, next)
