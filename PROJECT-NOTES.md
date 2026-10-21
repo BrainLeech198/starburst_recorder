@@ -194,18 +194,26 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 ```
 src/
 ├─ main.tsx / index.css        入口 / 设计令牌 + 纸·时间轴·横线格等 CSS 类
-├─ app/                        路由、主题、外壳、三个 Provider
+├─ app/                        路由（逐页懒加载 + 错误兜底）、主题、外壳、三个 Provider
 ├─ core/
-│   ├─ db/                     db.ts（版本与索引）+ schema.ts（三张表类型）
+│   ├─ db/                     数据库选择点、Dexie / SQLite 两套实现、变更总线
 │   └─ utils/                  id.ts（ULID、短编号）、dateKey.ts（日期与格式化）
-├─ features/
+├─ platform/                   跨端能力：desktop.ts（Electron 桥）、saveFile.ts（导出落盘）
+├─ shared/
+│   ├─ i18n/                   语言上下文 + Provider + messages/zh.ts（先只出中文）
+│   └─ ui/                     外壳与共用件：Modal、PageShell / Page / PageHeader、ToolbarRow、SettingCard/SettingRow、ConfirmDialog、Tab、BatchBar / BatchActions / useBatchSelect、ComboBox、buttonStyles、inputStyles、overlayStack(+useOverlayEntry)、useScrollLock
+├─ features/                   业务模块（不反向依赖 app；core / shared / platform 不反向依赖 features）
 │   ├─ ai/                      AI 网关：配置、客户端（唯一出口）、整理成日记
 │   ├─ diary/                  日记 + 随记 + 回收站 + 导出（全部在这）
 │   └─ home / health / finance / calendar / me / settings / assistant
-└─ shared/ui/                  外壳与共用件：Modal、PageShell / Page / PageHeader、ToolbarRow、SettingCard/SettingRow、ConfirmDialog、Tab、BatchBar / BatchActions / useBatchSelect、ComboBox、buttonStyles、inputStyles、overlayStack(+useOverlayEntry)、useScrollLock
-electron/                      main.cjs（主进程）+ preload.cjs
+electron/                      main.cjs（主进程）+ preload.cjs + database.cjs
 package/windows/               Inno 打包相关
+package/icons/                 全端透明图标生成脚本
+.github/workflows/ci.yml       lint / typecheck / test / build
+vitest.config.ts               单测配置：node 环境，只测纯逻辑
 ```
+
+导入统一用 `@/...` 别名（`tsconfig.json` 的 `paths` + `vite.config.ts` 的 `alias`），不再写 `../../`；分层方向由 `eslint.config.js` 的 `no-restricted-imports` 兜住。
 
 ## 7. 已实现 / 未实现
 
@@ -221,13 +229,16 @@ package/windows/               Inno 打包相关
 - **图片导入（手写日记）**：日记页按钮 → 选一张手写照片 → 压缩到长边 1600 / JPEG 0.82 → 视觉模型转写（只转写、不润色，认不出的字用「□」）→ 新建当天日记并直接进编辑页。**图片不存**，日记仍是纯文本；模型没填 / 明确不支持看图时会在选图前就拦下来并给出去哪改的指引
 - **数据与备份**：导出全部（含天气与回收站）、从备份恢复（合并、同 id 以备份为准、坏条目剔掉并报数）、桌面端可打开数据文件夹
 - **导出**：Markdown / 纯文本 / JSON，浏览器直接下载
+- **按天天气**（2026-10-21）：自由输入地点 → 先让已配置的 AI 联网查 → 未配置 / 超时 / 报错 / 回空时静默改用 Open-Meteo 直查（自动去「市 / 区 / 县」后缀）；结果在弹窗里标明「AI 联网」还是「程序兜底」
+- **多语言框架**（2026-10-21）：扁平 key + `{name}` 插值，先只出中文；导航、「我的」、通用弹窗 / 页头已收口，其余模块逐批迁移
+- **工程化**（2026-10-21）：`@` 路径别名、路由逐页懒加载 + 错误兜底、分层依赖约束、43 个纯逻辑单测、GitHub Actions 跑 lint / typecheck / test / build
 - 主题（深空 / 浅色）+ 主题色色板
 - 悬浮球（桌宠，会自动贴边半藏）
 - **Windows 桌面程序**：能跑、能打包成中文向导的安装程序
 
 **未实现**
-- 天气查询（想接 Open-Meteo，免费无 Key、能查历史）
 - 健康 / 经济 / 日历三个占位模块
+- 英文等其它语言的文案（框架已就位，缺译文）
 
 ## 8. 环境结论（当前这台机器）
 
@@ -258,7 +269,7 @@ package/windows/               Inno 打包相关
 | npm 11 警告 | `Unknown project config "electron_mirror"` | 忽略即可，功能正常；未来 npm 大版本可能不再支持这种写法 |
 | React StrictMode | 开发时 `useEffect` 会跑两遍 → 弹窗一打开就发两次 AI 请求，白花 token | 用 `useRef` 挡第二次（`AiComposeDialog` 里就是这么干的） |
 | 提示词把"缺失"当事实 | 随记没记天气时，提示词里写「天气：没记」，模型就真写了一句「今天也没记天气」 | **没给的信息不要出现在提示词里**，而不是给一个"没记"的占位值 |
-| 想单独验一段 TS 逻辑 | 项目里没有测试框架，也不想为一次验证装 esbuild | `node_modules/.bin/jiti <脚本.cjs> <某个.ts 的绝对路径>`——jiti 能直接 require TS 文件并解析无后缀的相对导入，跑完就删脚本（导入的校验逻辑就是这么验的） |
+| 想单独验一段 TS 逻辑 | 不想为一次验证装 esbuild | 现在有 vitest：纯逻辑写 `*.test.ts`，`npm test` 跑；一次性脚本仍可用 `node_modules/.bin/jiti <脚本.cjs> <某个.ts 的绝对路径>`（jiti 能直接 require TS 文件并解析无后缀的相对导入），跑完就删 |
 | **目录名里的不可见字符卡死 Java** | 旧项目目录名第一个字符是 `U+200C`（零宽非连接符，肉眼看不见）。Java 把路径转成 `?` 后报 `Unable to access jarfile`，**Gradle / Android 构建全部失败** | **已治本**：2026-10-20 整个项目搬到 `D:\File\idea\trae\starburst_recorder`，新路径全 ASCII，`assembleDebug` 直接跑通（37 秒）。当初的临时办法是建目录联接 `New-Item -ItemType Junction -Path D:\sb_probe -Target <项目目录>` 再在联接里构建——**别再往带不可见字符的路径上放项目**，长教训 |
 | 目录被占用导致改名失败 | `Rename-Item` 报 `The process cannot access the file because it is being used by another process`，命令行里查不到占用者 | 编辑器/终端把这个目录当工作区开着就会占住。**改名别硬来，直接复制到干净路径**（robocopy `/E /MT:16 /R:1 /W:1`，1.1 GB 约 3 分钟）更省事 |
 
@@ -284,7 +295,7 @@ package/windows/               Inno 打包相关
 1. **手机 APK 收尾**（✅ 2026-10-21 全部完成：图标、实体返回键、状态栏/安全区、WebView 导出，四项都端到端验过）
 2. **AI 本周回顾（周报）**：拿一周的日记+随记合成一篇「这周发生了什么」，跟「整理成日记」共用同一套网关
 3. **Android 换 SQLite**（`@capacitor-community/sqlite` + 真机验证；桌面的实现可当参照，范围见 §10）
-4. 天气查询（Open-Meteo）/ 图片导入
+4. **继续迁移剩余文案到 i18n**（设置页、日记、AI 模块），之后再补英文
 5. **可选的小整改**：给 package.json 加顶层 `productName`，让桌面端的数据目录变成「星芒记录者」——代价是要迁移一次现有桌面数据，所以先不动
 
 > **完整路线清单（19 项，含参考开源项目与许可红线）另见根目录 [ROADMAP.md](ROADMAP.md)。**
