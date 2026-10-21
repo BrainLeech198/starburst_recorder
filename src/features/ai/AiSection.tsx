@@ -24,6 +24,8 @@ import type { AiConfig } from './aiConfig'
 import { listModels, testConnection } from './aiClient'
 import type { DiagnoseResult } from './aiClient'
 import { INPUT } from '../../shared/ui/inputStyles'
+import ComboBox from '../../shared/ui/ComboBox'
+import type { ComboOption } from '../../shared/ui/ComboBox'
 
 /** 表单的一行：窄屏标签在上，宽屏标签在左 */
 function FormRow({
@@ -221,12 +223,28 @@ export default function AiSection() {
     shownState === 'loading'
       ? '正在向服务商拉模型列表…'
       : shownState === 'ok'
-        ? `已拉到 ${shownModels.length} 个模型，点输入框可以挑`
+        ? `已拉到 ${shownModels.length} 个模型，点开下拉可以直接挑`
         : shownState === 'fail'
           ? '没拉到列表，模型名可以手填'
           : canList
             ? '点「刷新列表」或者直接手填'
             : '地址和 key 填好后会自动拉列表'
+
+  /** 服务商下拉：内置预设在前，自己填过的在后，同名的只留一次 */
+  const providerOptions: ComboOption[] = [
+    ...AI_PROVIDERS.filter((item) => item.id !== 'custom').map((item) => ({
+      value: item.label,
+      hint: '内置',
+    })),
+    ...savedProviders
+      .filter((item) => !AI_PROVIDERS.some((preset) => preset.label === item.name))
+      .map((item) => ({ value: item.name, hint: '用过' })),
+  ]
+
+  /** 模型下拉：拉到什么列什么，外加这个厂商的默认模型兜底 */
+  const modelOptions: ComboOption[] = [
+    ...new Set([...shownModels, provider?.model ?? ''].filter(Boolean)),
+  ].map((name) => ({ value: name }))
 
   return (
     <SettingCard
@@ -240,30 +258,24 @@ export default function AiSection() {
         <div className="mt-0.5 text-xs text-muted">{verdict}</div>
       </div>
 
-      {/* 填写：一张表，四行 */}
-      <div className="mt-4 overflow-hidden rounded-xl border border-line">
+      {/* 填写：一张表，四行。不能加 overflow-hidden，否则下拉列表会被裁掉 */}
+      <div className="mt-4 rounded-xl border border-line">
         <FormRow
           label="服务商"
           note={
             provider?.note ? <p className="mt-1 text-xs text-muted">{provider.note}</p> : null
           }
         >
-          <input
-            list="ai-provider-options"
+          <ComboBox
             value={config.providerName}
-            spellCheck={false}
-            placeholder="选一家，或者直接打名字"
-            onChange={(event) => changeProvider(event.target.value)}
-            className={INPUT}
+            options={providerOptions}
+            onChange={changeProvider}
+            onSelect={(option) => changeProvider(option.value)}
+            placeholder="点开挑一家，或者直接打名字"
+            inputClassName={INPUT}
+            ariaLabel="服务商"
+            emptyHint="没有匹配的服务商，直接输入名字就行"
           />
-          <datalist id="ai-provider-options">
-            {AI_PROVIDERS.map((item) => (
-              <option key={item.id} value={item.label} />
-            ))}
-            {savedProviders.map((item) => (
-              <option key={item.name} value={item.name} />
-            ))}
-          </datalist>
         </FormRow>
 
         <FormRow
@@ -284,9 +296,16 @@ export default function AiSection() {
         <FormRow
           label="模型名"
           note={
-            <div className="mt-1 flex items-center justify-between gap-2 text-xs">
-              <span className="min-w-0 truncate text-muted" title={shownError || undefined}>
-                {modelHint}
+            <div className="mt-1 flex items-start justify-between gap-2 text-xs">
+              <span
+                className={`min-w-0 flex-1 ${
+                  shownState === 'fail' ? 'text-danger' : 'text-muted'
+                }`}
+                title={shownError || undefined}
+              >
+                {shownState === 'fail' && shownError
+                  ? `没拉到列表：${shownError} 模型名可以直接手填。`
+                  : modelHint}
               </span>
               <button
                 type="button"
@@ -299,19 +318,16 @@ export default function AiSection() {
             </div>
           }
         >
-          <input
-            list="ai-model-options"
+          <ComboBox
             value={config.model}
-            spellCheck={false}
-            placeholder="从列表里挑，或者照控制台原样填"
-            onChange={(event) => update({ model: event.target.value })}
-            className={INPUT}
+            options={modelOptions}
+            onChange={(text) => update({ model: text })}
+            onSelect={(option) => update({ model: option.value })}
+            placeholder="点开挑一个，或者照控制台原样填"
+            inputClassName={INPUT}
+            ariaLabel="模型名"
+            emptyHint={shownState === 'fail' ? '列表没拉到时，直接手填模型名' : '没有匹配的模型'}
           />
-          <datalist id="ai-model-options">
-            {[...new Set([...shownModels, provider?.model ?? ''].filter(Boolean))].map((name) => (
-              <option key={name} value={name} />
-            ))}
-          </datalist>
           <p className={`mt-1 text-xs ${visionClass}`}>{visionText}</p>
         </FormRow>
 
