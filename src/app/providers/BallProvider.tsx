@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
+import type { MessageKey } from '@/shared/i18n/messages/zh'
 
 export type MascotShape = 'star4' | 'star8' | 'dot' | 'ring'
 export type MascotSize = 'sm' | 'md' | 'lg'
@@ -9,19 +10,19 @@ export interface BallPrefs {
   size: MascotSize
 }
 
-export const MASCOT_SHAPES: { id: MascotShape; label: string }[] = [
-  { id: 'star4', label: '四角星' },
-  { id: 'star8', label: '八角星' },
-  { id: 'dot', label: '圆点' },
-  { id: 'ring', label: '圆环' },
+export const MASCOT_SHAPES: { id: MascotShape; labelKey: MessageKey }[] = [
+  { id: 'star4', labelKey: 'ball.shape.star4' },
+  { id: 'star8', labelKey: 'ball.shape.star8' },
+  { id: 'dot', labelKey: 'ball.shape.dot' },
+  { id: 'ring', labelKey: 'ball.shape.ring' },
 ]
 
 export const MASCOT_SIZE_PX: Record<MascotSize, number> = { sm: 52, md: 64, lg: 80 }
 
-export const MASCOT_SIZES: { id: MascotSize; label: string }[] = [
-  { id: 'sm', label: '小' },
-  { id: 'md', label: '中' },
-  { id: 'lg', label: '大' },
+export const MASCOT_SIZES: { id: MascotSize; labelKey: MessageKey }[] = [
+  { id: 'sm', labelKey: 'ball.size.sm' },
+  { id: 'md', labelKey: 'ball.size.md' },
+  { id: 'lg', labelKey: 'ball.size.lg' },
 ]
 
 const DEFAULT_PREFS: BallPrefs = { shape: 'star8', size: 'md' }

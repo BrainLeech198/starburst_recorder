@@ -4,7 +4,7 @@
  * 页面名与当前值交给页头（见 PageShell），卡片里只剩两个分组，所以卡片不再自带标题。
  */
 import { useTheme } from '@/app/providers/ThemeProvider'
-import { ACCENT_COLORS, accentLabel } from '@/app/theme'
+import { ACCENT_COLORS, accentLabelKey } from '@/app/theme'
 import { useI18n } from '@/shared/i18n/context'
 import SettingCard, { SettingBadge, SettingGroup } from '@/shared/ui/SettingCard'
 import PageShell from '@/shared/ui/PageShell'
@@ -17,14 +17,17 @@ const THEME_MARK: Record<string, string> = { deep: '🌌', light: '☀️' }
 export default function AppearancePage() {
   const { theme, setTheme, themes, accent, setAccent } = useTheme()
   const { t } = useI18n()
-  const themeLabel = themes.find((item) => item.id === theme)?.label ?? theme
+  const themeOption = themes.find((item) => item.id === theme)
+  const themeLabel = themeOption ? t(themeOption.labelKey) : theme
+  const accentKey = accentLabelKey(accent)
+  const accentName = accentKey ? t(accentKey) : accent
 
   return (
     <PageShell
       title={t('settings.theme')}
       badge={
         <SettingBadge>
-          {themeLabel} · {accentLabel(accent)}
+          {themeLabel} · {accentName}
         </SettingBadge>
       }
       description={t('appearance.description')}
@@ -40,7 +43,7 @@ export default function AppearancePage() {
                 className={choiceTile(theme === item.id, 'flex items-center gap-2 px-3 py-2')}
               >
                 <span aria-hidden="true">{THEME_MARK[item.id] ?? '●'}</span>
-                {item.label}
+                {t(item.labelKey)}
               </button>
             ))}
           </div>
@@ -48,8 +51,9 @@ export default function AppearancePage() {
 
         <SettingGroup label={t('appearance.accent')}>
           <div className="grid grid-cols-6 gap-2">
-            {ACCENT_COLORS.map(({ value, label }) => {
+            {ACCENT_COLORS.map(({ value, labelKey }) => {
               const active = accent === value
+              const label = t(labelKey)
               return (
                 <button
                   key={value}

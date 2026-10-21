@@ -16,8 +16,10 @@ export default function BallPage() {
   const { accent } = useTheme()
   const { t } = useI18n()
 
-  const shapeLabel = MASCOT_SHAPES.find((item) => item.id === prefs.shape)?.label ?? prefs.shape
-  const sizeLabel = MASCOT_SIZES.find((item) => item.id === prefs.size)?.label ?? prefs.size
+  const shapeOption = MASCOT_SHAPES.find((item) => item.id === prefs.shape)
+  const shapeLabel = shapeOption ? t(shapeOption.labelKey) : prefs.shape
+  const sizeOption = MASCOT_SIZES.find((item) => item.id === prefs.size)
+  const sizeLabel = sizeOption ? t(sizeOption.labelKey) : prefs.size
 
   return (
     <PageShell
@@ -45,7 +47,7 @@ export default function BallPage() {
                 )}
               >
                 <Mascot shape={shape.id} color={accent} size={30} />
-                <span className="text-xs">{shape.label}</span>
+                <span className="text-xs">{t(shape.labelKey)}</span>
               </button>
             ))}
           </div>
@@ -60,7 +62,7 @@ export default function BallPage() {
                 onClick={() => setPrefs({ size: item.id })}
                 className={choiceTile(prefs.size === item.id, 'py-2')}
               >
-                {item.label}
+                {t(item.labelKey)}
               </button>
             ))}
           </div>

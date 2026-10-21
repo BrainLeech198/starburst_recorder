@@ -9,9 +9,11 @@
  * 用户不用重新填一遍。
  */
 
+import type { MessageKey } from '@/shared/i18n/messages/zh'
+
 export interface AiProvider {
   id: string
-  label: string
+  labelKey: MessageKey
   /** 点一下它，就把下面这两个填进去，省得你去官网翻文档 */
   baseUrl: string
   model: string
@@ -20,7 +22,7 @@ export interface AiProvider {
   /** 去哪看这家有哪些模型名：模型列表拉不到时，页面会把这个网址亮出来 */
   modelListUrl?: string
   /** 这家需要特别提醒的一句话 */
-  note?: string
+  noteKey?: MessageKey
   /** 本机模型不校验 key，可以不填 */
   keyOptional?: boolean
 }
@@ -29,16 +31,16 @@ export interface AiProvider {
 export const AI_PROVIDERS: AiProvider[] = [
   {
     id: 'mimo',
-    label: '小米 MiMo',
+    labelKey: 'ai.preset.mimo',
     baseUrl: 'https://api.xiaomimimo.com/v1',
     model: 'mimo-v2.5-pro',
     keyUrl: 'https://platform.xiaomimimo.com',
     modelListUrl: 'https://platform.xiaomimimo.com',
-    note: '如果你领过套餐，控制台会给一个「专属 Base URL」，跟这里填的不一样，以控制台为准。',
+    noteKey: 'ai.note.mimo',
   },
   {
     id: 'deepseek',
-    label: 'DeepSeek',
+    labelKey: 'ai.preset.deepseek',
     baseUrl: 'https://api.deepseek.com/v1',
     model: 'deepseek-chat',
     keyUrl: 'https://platform.deepseek.com',
@@ -46,16 +48,16 @@ export const AI_PROVIDERS: AiProvider[] = [
   },
   {
     id: 'siliconflow',
-    label: '硅基流动',
+    labelKey: 'ai.preset.siliconflow',
     baseUrl: 'https://api.siliconflow.cn/v1',
     model: 'Qwen/Qwen3-8B',
     keyUrl: 'https://cloud.siliconflow.cn',
     modelListUrl: 'https://cloud.siliconflow.cn/models',
-    note: '模型名带斜杠（例如 Qwen/Qwen3-8B），照控制台原样复制。',
+    noteKey: 'ai.note.siliconflow',
   },
   {
     id: 'kimi',
-    label: 'Kimi',
+    labelKey: 'ai.preset.kimi',
     baseUrl: 'https://api.moonshot.cn/v1',
     model: 'moonshot-v1-8k',
     keyUrl: 'https://platform.moonshot.cn',
@@ -63,7 +65,7 @@ export const AI_PROVIDERS: AiProvider[] = [
   },
   {
     id: 'qwen',
-    label: '通义千问',
+    labelKey: 'ai.preset.qwen',
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     model: 'qwen-plus',
     keyUrl: 'https://bailian.console.aliyun.com',
@@ -71,30 +73,35 @@ export const AI_PROVIDERS: AiProvider[] = [
   },
   {
     id: 'openai',
-    label: 'OpenAI',
+    labelKey: 'ai.preset.openai',
     baseUrl: 'https://api.openai.com/v1',
     model: 'gpt-4o-mini',
     keyUrl: 'https://platform.openai.com/api-keys',
     modelListUrl: 'https://platform.openai.com/docs/models',
-    note: '国内直连这个地址多半要挂代理，连不上先检查代理。',
+    noteKey: 'ai.note.openai',
   },
   {
     id: 'ollama',
-    label: '本机模型',
+    labelKey: 'ai.preset.ollama',
     baseUrl: 'http://127.0.0.1:11434/v1',
     model: 'qwen3:8b',
     modelListUrl: 'https://ollama.com/library',
-    note: '走本机 Ollama，内容完全不出这台机器。前提是先装好 Ollama 并让它运行，再把模型拉下来（ollama pull qwen3:8b）。',
+    noteKey: 'ai.note.ollama',
     keyOptional: true,
   },
   {
     id: 'custom',
-    label: '自定义',
+    labelKey: 'ai.preset.custom',
     baseUrl: '',
     model: '',
-    note: '地址填到 /v1 这一层为止，别把 /chat/completions 也写进去。',
+    noteKey: 'ai.note.custom',
   },
 ]
+
+/** 预设厂商的显示名 key；用户自己敲的名字没有 key，按原样显示 */
+export function presetNameKey(providerId: string): MessageKey | null {
+  return AI_PROVIDERS.find((item) => item.id === providerId)?.labelKey ?? null
+}
 
 /** 上次测试得出的看图能力；unknown 表示还没测或没测出来 */
 export type VisionState = 'yes' | 'no' | 'unknown'
@@ -102,7 +109,7 @@ export type VisionState = 'yes' | 'no' | 'unknown'
 /** 一条模型配置。AI 请求需要的字段都在这里，页面和请求代码直接拿它用 */
 export interface AiConfig {
   providerId: string
-  /** 厂商在列表里显示的名字：预设的标签，或者用户自己敲的 */
+  /** 用户自己敲的厂商名；预设厂商显示时按 providerId 取文案，不读这里 */
   providerName: string
   baseUrl: string
   model: string
@@ -160,15 +167,12 @@ function normalize(value: unknown): AiModel | null {
   const baseUrl = typeof record.baseUrl === 'string' ? record.baseUrl.trim() : ''
   const model = typeof record.model === 'string' ? record.model.trim() : ''
   if (baseUrl === '' || model === '') return null
-  const preset = AI_PROVIDERS.find((item) => item.id === record.providerId)
   const test = record.lastTest as Record<string, unknown> | undefined
   return {
     id: typeof record.id === 'string' && record.id !== '' ? record.id : newModelId(),
     providerId: typeof record.providerId === 'string' ? record.providerId : '',
     providerName:
-      typeof record.providerName === 'string' && record.providerName.trim() !== ''
-        ? record.providerName.trim()
-        : (preset?.label ?? '自定义'),
+      typeof record.providerName === 'string' ? record.providerName.trim() : '',
     baseUrl,
     model,
     apiKey: typeof record.apiKey === 'string' ? record.apiKey : '',
@@ -199,8 +203,7 @@ function loadLegacy(): AiModel | null {
     return {
       id: newModelId(),
       providerId: preset?.id ?? parsed.providerId ?? '',
-      providerName:
-        String(parsed.providerName ?? '').trim() || preset?.label || '自定义',
+      providerName: String(parsed.providerName ?? '').trim(),
       baseUrl,
       model,
       apiKey: String(parsed.apiKey ?? ''),
@@ -280,12 +283,12 @@ export function isConfigured(config: AiConfig) {
 }
 
 /** 还差哪几样：设置页顶上那条状态要用它说人话 */
-export function missingFields(config: AiConfig) {
+export function missingFields(config: AiConfig): MessageKey[] {
   const provider = AI_PROVIDERS.find((item) => item.id === config.providerId)
-  const missing: string[] = []
-  if (config.baseUrl.trim() === '') missing.push('服务地址')
-  if (config.model.trim() === '') missing.push('模型名')
-  if (config.apiKey.trim() === '' && provider?.keyOptional !== true) missing.push('API Key')
+  const missing: MessageKey[] = []
+  if (config.baseUrl.trim() === '') missing.push('ai.baseUrl')
+  if (config.model.trim() === '') missing.push('ai.modelName')
+  if (config.apiKey.trim() === '' && provider?.keyOptional !== true) missing.push('ai.key')
   return missing
 }
 

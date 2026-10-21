@@ -8,7 +8,7 @@
  */
 import { useLiveQuery } from '@/core/db/live'
 import { useTheme } from '@/app/providers/ThemeProvider'
-import { accentLabel } from '@/app/theme'
+import { accentLabelKey } from '@/app/theme'
 import { useI18n } from '@/shared/i18n/context'
 import SettingRow from '@/shared/ui/SettingRow'
 import PageShell from '@/shared/ui/PageShell'
@@ -30,7 +30,10 @@ export default function SettingsPage() {
   const { theme, themes, accent } = useTheme()
   const { t } = useI18n()
   const counts = useLiveQuery(() => totals(), [])
-  const themeLabel = themes.find((item) => item.id === theme)?.label ?? theme
+  const themeOption = themes.find((item) => item.id === theme)
+  const themeLabel = themeOption ? t(themeOption.labelKey) : theme
+  const accentKey = accentLabelKey(accent)
+  const accentName = accentKey ? t(accentKey) : accent
 
   return (
     <PageShell
@@ -47,7 +50,7 @@ export default function SettingsPage() {
         hint={t('settings.themeHint')}
         value={
           <SettingBadge>
-            {themeLabel} · {accentLabel(accent)}
+            {themeLabel} · {accentName}
             <AccentDot color={accent} />
           </SettingBadge>
         }

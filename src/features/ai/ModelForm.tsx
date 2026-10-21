@@ -107,12 +107,12 @@ export default function ModelForm({
 
   /** 服务商可以直接打名字：命中预设就自动补地址和默认模型，没命中就当自定义 */
   function changeProvider(text: string) {
-    const preset = AI_PROVIDERS.find((item) => item.label === text)
+    const preset = AI_PROVIDERS.find((item) => t(item.labelKey) === text)
     if (preset) {
       setDraft((current) => ({
         ...current,
         providerId: preset.id,
-        providerName: preset.label,
+        providerName: t(preset.labelKey),
         baseUrl: preset.baseUrl,
         model: preset.model,
       }))
@@ -123,7 +123,7 @@ export default function ModelForm({
 
   const providerOptions: ComboOption[] = AI_PROVIDERS.filter(
     (item) => item.id !== 'custom',
-  ).map((item) => ({ value: item.label, hint: t('ai.providerBuiltin') }))
+  ).map((item) => ({ value: t(item.labelKey), hint: t('ai.providerBuiltin') }))
 
   const modelOptions: ComboOption[] = [
     ...new Set([...models, provider?.model ?? ''].filter(Boolean)),
@@ -133,7 +133,7 @@ export default function ModelForm({
   const shownError = canList ? listError : ''
   const lookupUrl = provider?.modelListUrl ?? (baseUrl !== '' ? modelsUrl(baseUrl) : '')
   const lookupLabel = provider?.modelListUrl
-    ? t('ai.lookupProvider', { provider: provider.label })
+    ? t('ai.lookupProvider', { provider: t(provider.labelKey) })
     : t('ai.lookupOpen')
 
   const modelHint =
@@ -152,7 +152,11 @@ export default function ModelForm({
       <div className="rounded-xl border border-line">
         <FormRow
           label={t('ai.provider')}
-          note={provider?.note ? <p className="mt-1 text-xs text-muted">{provider.note}</p> : null}
+          note={
+            provider?.noteKey ? (
+              <p className="mt-1 text-xs text-muted">{t(provider.noteKey)}</p>
+            ) : null
+          }
         >
           <ComboBox
             value={draft.providerName}
@@ -278,7 +282,9 @@ export default function ModelForm({
           onClick={() =>
             onSubmit({
               ...draft,
-              providerName: draft.providerName.trim() || provider?.label || t('ai.custom'),
+              providerName:
+                draft.providerName.trim() ||
+                (provider ? t(provider.labelKey) : t('ai.preset.custom')),
               baseUrl: draft.baseUrl.trim(),
               model: draft.model.trim(),
               apiKey: draft.apiKey.trim(),
