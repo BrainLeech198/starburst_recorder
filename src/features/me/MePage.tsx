@@ -5,28 +5,36 @@
  * 白白多一次跳转。
  */
 import SettingRow from '../../shared/ui/SettingRow'
+import { useI18n } from '../../shared/i18n/context'
 
 export default function MePage() {
+  const { t } = useI18n()
+
   return (
     <div className="mx-auto w-full max-w-md p-4">
-      <h1 className="text-lg font-medium">我的</h1>
+      <h1 className="text-lg font-medium">{t('me.title')}</h1>
 
       <div className="mt-5 flex items-center gap-4 rounded-2xl border border-line bg-surface p-4">
         <div className="flex h-14 w-14 items-center justify-center rounded-full border border-line bg-surface-2 text-xs text-muted">
-          头像
+          {t('me.avatar')}
         </div>
         <div>
-          <div className="text-base font-medium">本地账户</div>
-          <div className="mt-1 text-xs text-muted">数据只存在这台设备，不上传</div>
+          <div className="text-base font-medium">{t('me.localAccount')}</div>
+          <div className="mt-1 text-xs text-muted">{t('me.localAccountHint')}</div>
         </div>
       </div>
 
       <div className="mt-4 space-y-3">
-        <SettingRow to="/me/settings" emoji="⚙️" title="设置" hint="主题、数据与备份" />
-        <SettingRow to="/me/agent" emoji="✨" title="助手" hint="悬浮球、AI 模型" />
+        <SettingRow
+          to="/me/settings"
+          emoji="⚙️"
+          title={t('me.settings')}
+          hint={t('me.settingsHint')}
+        />
+        <SettingRow to="/me/agent" emoji="✨" title={t('me.agent')} hint={t('me.agentHint')} />
       </div>
 
-      <p className="mt-4 text-xs text-muted">以后这里会有账号与同步（现在只做本地）。</p>
+      <p className="mt-4 text-xs text-muted">{t('me.futureNote')}</p>
     </div>
   )
 }

@@ -18,6 +18,7 @@ import { Link } from 'react-router'
 import type { ReactNode } from 'react'
 import { BACK_BUTTON } from './buttonStyles'
 import ToolbarRow from './ToolbarRow'
+import { useI18n } from '../i18n/context'
 
 export default function PageHeader({
   title,
@@ -25,7 +26,7 @@ export default function PageHeader({
   badge,
   actions,
   backTo = '/me/settings',
-  backLabel = '设置',
+  backLabel,
 }: {
   title?: string
   description?: string
@@ -38,11 +39,13 @@ export default function PageHeader({
   /** 返回链接上的名字，跟上一层同名 */
   backLabel?: string
 }) {
+  const { t } = useI18n()
+
   const row = (
     <>
       {/* 这是唯一的"回上一级"入口，要一眼看出"可以点" */}
       <Link to={backTo} className={`inline-flex items-center ${BACK_BUTTON}`}>
-        ← {backLabel}
+        ← {backLabel ?? t('common.settings')}
       </Link>
       {actions && <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>}
     </>

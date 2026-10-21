@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import FloatingAssistant from '../../features/assistant/FloatingAssistant'
+import { useI18n } from '../../shared/i18n/context'
+import type { MessageKey } from '../../shared/i18n/messages/zh'
 import { useAndroidBackButton } from '../androidBack'
 import { ballVisible } from '../debugFlags'
 
 /** 「记录」这一组：日记 / 健康 / 经济。它们在导航里不再各自占一格，收进「记录」下面 */
-const RECORDS = [
-  { to: '/diary', label: '日记', icon: '📖' },
-  { to: '/health', label: '健康', icon: '💪' },
-  { to: '/finance', label: '经济', icon: '💰' },
+const RECORDS: { to: string; labelKey: MessageKey; icon: string }[] = [
+  { to: '/diary', labelKey: 'nav.diary', icon: '📖' },
+  { to: '/health', labelKey: 'nav.health', icon: '💪' },
+  { to: '/finance', labelKey: 'nav.finance', icon: '💰' },
 ]
 
 /**
@@ -17,6 +19,7 @@ const RECORDS = [
  * variant = 'list'：桌面侧栏里缩进的一列
  */
 function RecordLinks({ variant }: { variant: 'bar' | 'list' }) {
+  const { t } = useI18n()
   return (
     <>
       {RECORDS.map((item) => (
@@ -36,7 +39,7 @@ function RecordLinks({ variant }: { variant: 'bar' | 'list' }) {
           <span aria-hidden="true" className="text-base leading-none">
             {item.icon}
           </span>
-          {item.label}
+          {t(item.labelKey)}
         </NavLink>
       ))}
     </>
@@ -62,6 +65,7 @@ function itemClass(active: boolean) {
 export default function AppShell() {
   // 安卓实体返回键（浏览器 / 桌面端不生效）：先关弹窗 → 再回上一级 → 首页再按一次退出
   useAndroidBackButton()
+  const { t } = useI18n()
 
   const contentRef = useRef<HTMLElement>(null)
   const { pathname } = useLocation()
@@ -89,7 +93,7 @@ export default function AppShell() {
           底部留给底栏自己处理（见下面 nav 的 pb），所以这里不重复加。 */}
       <nav className="order-last flex shrink-0 flex-col border-t border-line bg-nav pb-[env(safe-area-inset-bottom)] md:order-first md:w-56 md:border-t-0 md:border-r md:pb-0">
         <div className="hidden border-b-2 border-brand bg-nav-strong px-5 py-6 text-base font-medium tracking-wide md:block">
-          星芒记录者
+          {t('app.name')}
         </div>
 
         {/* 手机：展开的子菜单占底栏上方的一行 */}
@@ -104,7 +108,7 @@ export default function AppShell() {
             <span aria-hidden="true" className="text-base leading-none">
               🏠
             </span>
-            首页
+            {t('nav.home')}
           </NavLink>
 
           {/* 不用 ▾ 箭头：展开与否靠颜色说——开着就是主题色文字 + 一层淡主题色底。
@@ -120,7 +124,7 @@ export default function AppShell() {
             <span aria-hidden="true" className="text-base leading-none">
               📝
             </span>
-            记录
+            {t('nav.records')}
           </button>
 
           {/* 桌面：展开的子项缩进挂在「记录」下面 */}
@@ -134,13 +138,13 @@ export default function AppShell() {
             <span aria-hidden="true" className="text-base leading-none">
               📅
             </span>
-            日历
+            {t('nav.calendar')}
           </NavLink>
           <NavLink to="/me" className={({ isActive }) => itemClass(isActive)}>
             <span aria-hidden="true" className="text-base leading-none">
               👤
             </span>
-            我的
+            {t('nav.me')}
           </NavLink>
         </div>
       </nav>

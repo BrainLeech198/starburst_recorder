@@ -1,9 +1,10 @@
 import Modal from './Modal'
+import { useI18n } from '../i18n/context'
 
 export default function ConfirmDialog({
   title,
   description,
-  confirmLabel = '确定',
+  confirmLabel,
   tone = 'danger',
   onConfirm,
   onCancel,
@@ -16,6 +17,8 @@ export default function ConfirmDialog({
   onConfirm: () => void
   onCancel: () => void
 }) {
+  const { t } = useI18n()
+
   return (
     <Modal size="xs" onClose={onCancel}>
       <div className="text-sm font-medium">{title}</div>
@@ -27,7 +30,7 @@ export default function ConfirmDialog({
           onClick={onCancel}
           className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
         >
-          取消
+          {t('common.cancel')}
         </button>
         <button
           type="button"
@@ -37,7 +40,7 @@ export default function ConfirmDialog({
             tone === 'danger' ? 'border-danger text-danger' : 'border-brand text-brand',
           ].join(' ')}
         >
-          {confirmLabel}
+          {confirmLabel ?? t('common.confirm')}
         </button>
       </div>
     </Modal>
