@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import type { ChangeEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useLiveQuery } from '../../core/db/live'
 import type { DiaryEntry } from '../../core/db/schema'
@@ -35,6 +36,8 @@ import StampTimeline from './StampTimeline'
 import ExportDialog from './ExportDialog'
 import AiComposeDialog from '../ai/AiComposeDialog'
 import { isConfigured, loadAiConfig } from '../ai/aiConfig'
+import type { AiConfig } from '../ai/aiConfig'
+import ImageImportDialog from './ImageImportDialog'
 import { buildExport } from './diaryExport'
 import type { ExportFormat } from './diaryExport'
 import { describeSave, saveTextFile } from '../../core/saveFile'
@@ -70,6 +73,10 @@ export default function DiaryPage() {
   const [exportOpen, setExportOpen] = useState(false)
   /** AI 整理成日记的弹窗 */
   const [composeOpen, setComposeOpen] = useState(false)
+  /** 图片导入：选好的照片和当时读到的配置 */
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importConfig, setImportConfig] = useState<AiConfig | null>(null)
 
   const entries = useLiveQuery(() => entriesOfDay(dateKey), [dateKey])
   const stamps = useLiveQuery(() => stampsOfDay(dateKey), [dateKey])
@@ -127,6 +134,46 @@ export default function DiaryPage() {
       return
     }
     setComposeOpen(true)
+  }
+
+  /**
+   * 点「图片导入」：先把模型这边的话说清楚，再让人选图。
+   * 没填模型、模型不支持看图都当场拦下来，别让人等一场必失败的识别。
+   */
+  function handleImageImport() {
+    setHint('')
+    const config = loadAiConfig()
+    if (config.model.trim() === '') {
+      setHint('还没填模型名，识别不了手写。去「设置 → AI 模型」把模型和 key 填好，再回来点「图片导入」。')
+      return
+    }
+    if (!isConfigured(config)) {
+      setHint('AI 还没配全，识别不了手写。去「设置 → AI 模型」把服务地址、模型名和 key 补齐。')
+      return
+    }
+    if (config.vision === 'no') {
+      setHint(
+        '现在这个模型看不了图片。去「设置 → AI 模型」换一个能看图的模型（比如 qwen-vl-plus、gpt-4o-mini），或者点一次「测试连接」让它帮你判断。',
+      )
+      return
+    }
+    setImportConfig(config)
+    imageInputRef.current?.click()
+  }
+
+  /** 选完照片：先关掉系统选择器留下的状态，再交给识别弹窗 */
+  function handleImagePick(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (file) setImportFile(file)
+  }
+
+  /** 识别成功：新建一条当天的日记，带着正文直接进编辑页，让人自己再改 */
+  async function handleImportDone(content: string) {
+    setImportFile(null)
+    const entry = await createEntry(dateKey)
+    await updateContent(entry.id, content)
+    navigate(`/diary/${entry.code}`, { state: { editable: true } })
   }
 
   /** 草稿确认：新建一条当天的日记，随记原文不动 */
@@ -233,13 +280,16 @@ export default function DiaryPage() {
                   <button type="button" onClick={handleCreate} className={SOLID_BUTTON}>
                     ＋ 新增
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setHint('图片导入还没接入，会等 AI 接通后一起做。')}
-                    className={SOLID_BUTTON}
-                  >
+                  <button type="button" onClick={handleImageImport} className={SOLID_BUTTON}>
                     图片导入
                   </button>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImagePick}
+                    className="hidden"
+                  />
                 </>
               ) : (
                 <>
@@ -427,6 +477,15 @@ export default function DiaryPage() {
           unit={unit}
           onPick={handleExport}
           onCancel={() => setExportOpen(false)}
+        />
+      )}
+
+      {importFile && importConfig && (
+        <ImageImportDialog
+          file={importFile}
+          config={importConfig}
+          onDone={(content) => void handleImportDone(content)}
+          onCancel={() => setImportFile(null)}
         />
       )}
 
