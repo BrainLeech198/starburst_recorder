@@ -1,432 +1,503 @@
 /**
- * 设置页里的「AI 模型」这一段。
+ * 设置页里的「AI 模型」：一个列表 + 每条模型的联通状态。
  *
- * 这一页的用户是第一次配 AI 的人，所以两件事必须一眼看懂：
- *   1. 现在到底配到哪儿了、能不能用 —— 靠顶上那条状态 + 右上角徽章
- *   2. 万一不通，是哪一步不通、下一步怎么办 —— 靠就地提示 + 自动展开的诊断
- * 填写部分收成一张表单：左边标签、右边控件，不用在一堆格子里找位置。
- * 服务商和模型都是「下拉可选、也能自己填」，模型的候选项从服务商实时拉。
+ * 这里管理的是「可以启用哪些模型」——每条都是完整配置（厂商、地址、模型名、key），
+ * 同一时间只启用其中一条，AI 整理、图片导入用的都是它。
+ *
+ * 页面上三件事要一眼看懂：
+ *   1. 现在启用的是哪条、能不能用 —— 顶部摘要 + 卡片徽章 + 条目上的「启用中」
+ *   2. 每条通不通、快不快、能不能看图 —— 条目上的状态，测试结果会存下来并标时间
+ *   3. 拉不到模型列表时去哪儿查 —— 表单里直接给出厂商的模型列表网址
  */
 import { useEffect, useState } from 'react'
-import type { ReactNode } from 'react'
 import SettingCard, { SettingBadge } from '../../shared/ui/SettingCard'
-import { OUTLINE_BUTTON } from '../../shared/ui/buttonStyles'
+import BatchActions from '../../shared/ui/BatchActions'
+import Modal from '../../shared/ui/Modal'
+import ConfirmDialog from '../../shared/ui/ConfirmDialog'
+import { useBatchSelect } from '../../shared/ui/useBatchSelect'
+import { useToast } from '../../app/providers/ToastProvider'
 import {
-  AI_PROVIDERS,
+  BAR_BUTTON,
+  BAR_DANGER,
+  OUTLINE_BUTTON,
+  SOLID_BUTTON,
+  SOLID_DANGER,
+} from '../../shared/ui/buttonStyles'
+import {
   canTest,
-  loadAiConfig,
-  loadSavedProviders,
+  isConfigured,
+  loadActiveId,
+  loadModels,
   missingFields,
-  rememberProvider,
-  saveAiConfig,
+  newModelId,
+  saveActiveId,
+  saveModels,
 } from './aiConfig'
-import type { AiConfig } from './aiConfig'
-import { listModels, testConnection } from './aiClient'
+import type { AiModel } from './aiConfig'
+import { testConnection } from './aiClient'
 import type { DiagnoseResult } from './aiClient'
-import { INPUT } from '../../shared/ui/inputStyles'
-import ComboBox from '../../shared/ui/ComboBox'
-import type { ComboOption } from '../../shared/ui/ComboBox'
+import ModelForm from './ModelForm'
+import type { ModelDraft } from './ModelForm'
 
-/** 表单的一行：窄屏标签在上，宽屏标签在左 */
-function FormRow({
-  label,
-  children,
-  note,
-}: {
-  label: string
-  children: ReactNode
-  note?: ReactNode
-}) {
-  return (
-    <div className="grid gap-1.5 border-b border-line px-3 py-3 last:border-b-0 sm:grid-cols-[5.5rem_1fr] sm:items-start sm:gap-3">
-      <div className="text-xs text-muted sm:pt-2">{label}</div>
-      <div className="min-w-0">
-        {children}
-        {note}
-      </div>
-    </div>
-  )
+/** 条目底部的小文字按钮 */
+const SLIP_BUTTON = 'rounded-lg px-2 py-1 text-xs transition-colors'
+
+/** key 只露头尾：列表里能看出「填了哪一把」，但不会把整把 key 甩在屏幕上 */
+function keyMask(key: string) {
+  const trimmed = key.trim()
+  if (trimmed === '') return '没有 key'
+  if (trimmed.length <= 8) return 'key 已填'
+  return `${trimmed.slice(0, 4)}…${trimmed.slice(-4)}`
 }
 
-/** 模型列表的状态：拉取中 / 拉到了 / 没拉到 */
-type ModelListState = 'idle' | 'loading' | 'ok' | 'fail'
+/** 「今天 14:23」/「10月20日 14:23」 */
+function formatTestAt(ms: number) {
+  const date = new Date(ms)
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  const today = new Date()
+  const sameDay =
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  return sameDay
+    ? `今天 ${hour}:${minute}`
+    : `${date.getMonth() + 1}月${date.getDate()}日 ${hour}:${minute}`
+}
+
+/** 把一次诊断的结果落到条目上：看图能力 + 联通状态 + 时间 */
+function withResult(model: AiModel, result: DiagnoseResult, at: number): AiModel {
+  const failed = result.steps.find((step) => !step.ok)
+  return {
+    ...model,
+    vision: result.vision,
+    lastTest: {
+      ok: result.ok,
+      ms: result.ms,
+      at,
+      vision: result.vision,
+      error: result.ok ? '' : (failed?.title ?? '没通'),
+    },
+  }
+}
 
 export default function AiSection() {
-  const [config, setConfig] = useState<AiConfig>(loadAiConfig)
-  const [showKey, setShowKey] = useState(false)
-  const [testing, setTesting] = useState(false)
-  const [diagnosis, setDiagnosis] = useState<DiagnoseResult | null>(null)
-  /** 诊断详情默认收起来，失败时强制展开 */
-  const [showSteps, setShowSteps] = useState(false)
-  /** 用户自己填过的服务商，跟内置预设一起进下拉 */
-  const [savedProviders, setSavedProviders] = useState(loadSavedProviders)
-  const [models, setModels] = useState<string[]>([])
-  const [modelState, setModelState] = useState<ModelListState>('idle')
-  const [modelError, setModelError] = useState('')
+  const { showToast } = useToast()
+  const [models, setModels] = useState<AiModel[]>(loadModels)
+  const [activeId, setActiveId] = useState(() => loadActiveId(models))
+  /** 新增表单展开在按钮下面；编辑走弹窗 */
+  const [formOpen, setFormOpen] = useState(false)
+  const [editing, setEditing] = useState<AiModel | null>(null)
+  /** 待确认删除：active 表示里面有正在启用的那条 */
+  const [pendingDelete, setPendingDelete] = useState<{ ids: string[]; active: boolean } | null>(
+    null,
+  )
+  const [testingId, setTestingId] = useState('')
+  const [testingAll, setTestingAll] = useState(false)
+  const [progress, setProgress] = useState({ done: 0, total: 0 })
+  const batch = useBatchSelect()
 
-  // 边改边存：第一次配的人最容易忘的就是点保存
+  // 列表和「启用谁」都边改边存：这一页最容易出现的失误就是改完忘了保存
   useEffect(() => {
-    saveAiConfig(config)
-  }, [config])
-
-  const provider = AI_PROVIDERS.find((item) => item.id === config.providerId)
-  const missing = missingFields(config)
-  const filled = missing.length === 0
-  /** 测试时卡住的那一步 */
-  const failedStep = diagnosis?.steps.find((step) => !step.ok)
-
-  const baseUrl = config.baseUrl.trim()
-  const apiKey = config.apiKey.trim()
-  /** 没有 key 也允许拉列表的只有本机模型 */
-  const canList = baseUrl !== '' && (apiKey !== '' || provider?.keyOptional === true)
-
-  /** 填完地址和 key 就自动拉一次；拉不到也无所谓，模型名可以手填 */
+    saveModels(models)
+  }, [models])
   useEffect(() => {
-    if (!canList) return
-    let alive = true
-    const timer = setTimeout(async () => {
-      setModelState('loading')
-      setModelError('')
-      const result = await listModels(baseUrl, apiKey)
-      if (!alive) return
-      setModels(result.models)
-      setModelState(result.ok ? 'ok' : 'fail')
-      setModelError(result.error)
-    }, 700)
-    return () => {
-      alive = false
-      clearTimeout(timer)
+    saveActiveId(activeId)
+  }, [activeId])
+
+  const active = models.find((item) => item.id === activeId)
+  const missing = active ? missingFields(active) : []
+  const ready = active ? isConfigured(active) : false
+
+  const summary = active
+    ? `${active.providerName} · ${active.model}`
+    : models.length === 0
+      ? '还没有模型'
+      : '当前没有启用任何模型'
+  const verdict = !active
+    ? models.length === 0
+      ? '点「新增模型」填一条，填完会自动启用'
+      : 'AI 助手暂时用不了：在列表里点「启用」挑一条'
+    : missing.length > 0
+      ? `还差：${missing.join('、')}`
+      : '可以用了：AI 整理和图片导入都会走这条模型'
+
+  const badge = !active
+    ? { text: models.length === 0 ? '还没配' : '未启用', tone: 'plain' as const }
+    : !ready
+      ? { text: '还差一步', tone: 'plain' as const }
+      : active.lastTest
+        ? active.lastTest.ok
+          ? { text: '✓ 通了', tone: 'ok' as const }
+          : { text: '✗ 没通', tone: 'bad' as const }
+        : { text: '待验证', tone: 'plain' as const }
+
+  const selectableIds = models.map((item) => item.id)
+
+  function handleAdd(draft: ModelDraft) {
+    const model: AiModel = {
+      ...draft,
+      id: newModelId(),
+      vision: 'unknown',
     }
-  }, [baseUrl, apiKey, canList])
-
-  /** 手动刷新：改了 key 或者服务商刚上新时用 */
-  async function refreshModels() {
-    setModelState('loading')
-    setModelError('')
-    const result = await listModels(baseUrl, apiKey)
-    setModels(result.models)
-    setModelState(result.ok ? 'ok' : 'fail')
-    setModelError(result.error)
+    // 新加的放最前面，一眼能看到；列表原本是空的就顺手启用它
+    setModels((current) => [model, ...current])
+    if (activeId === '') setActiveId(model.id)
+    setFormOpen(false)
+    showToast({ message: `已添加模型「${model.model}」` })
   }
 
-  /** 顶上那条：现在是什么状态，扫一眼就知道 */
-  const summary = [
-    config.providerName.trim() || provider?.label || '还没选服务商',
-    config.model.trim() !== '' ? config.model.trim() : '模型名还没填',
-    config.apiKey.trim() !== ''
-      ? 'key 已填'
-      : provider?.keyOptional
-        ? '这家不用 key'
-        : 'key 还没填',
-  ].join(' · ')
-
-  const verdict = !config.providerName.trim() && !provider
-    ? '先挑一家，地址和模型会自动填好；也可以直接写自己的服务商'
-    : filled
-      ? '三样都齐了，点「测试连接」验证一下'
-      : `还差：${missing.join('、')}`
-
-  const badge = diagnosis
-    ? { text: diagnosis.ok ? '✓ 通了' : '✗ 没通', tone: diagnosis.ok ? 'ok' : 'bad' }
-    : !config.providerName.trim() && !provider
-      ? { text: '还没配', tone: 'idle' }
-      : filled
-        ? { text: '待验证', tone: 'idle' }
-        : { text: '还差一步', tone: 'idle' }
-
-  const visionText =
-    config.vision === 'yes'
-      ? '✓ 支持识别图片'
-      : config.vision === 'no'
-        ? '✗ 不支持识别图片'
-        : '识别图片能力未测'
-
-  const visionClass =
-    config.vision === 'yes'
-      ? 'text-brand'
-      : config.vision === 'no'
-        ? 'text-danger'
-        : 'text-muted'
-
-  /** 手改字段：改地址或模型后，之前测出来的看图能力就不算数了 */
-  function update(patch: Partial<AiConfig>) {
-    setDiagnosis(null)
-    setShowSteps(false)
-    setConfig((current) => {
-      const next = { ...current, ...patch }
-      if (patch.baseUrl !== undefined || patch.model !== undefined) next.vision = 'unknown'
-      return next
-    })
-  }
-
-  /** 服务商可以直接打名字：命中预设就自动补地址和默认模型，没命中就当自定义 */
-  function changeProvider(text: string) {
-    const preset = AI_PROVIDERS.find((item) => item.label === text)
-    const saved = savedProviders.find((item) => item.name === text)
-    setDiagnosis(null)
-    setShowSteps(false)
-    setConfig((current) => {
-      if (preset) {
+  function handleEdit(draft: ModelDraft) {
+    const target = editing
+    if (!target) return
+    setEditing(null)
+    setModels((current) =>
+      current.map((item) => {
+        if (item.id !== target.id) return item
+        const changed = item.baseUrl !== draft.baseUrl || item.model !== draft.model
         return {
-          ...current,
-          providerId: preset.id,
-          providerName: preset.label,
-          baseUrl: preset.baseUrl,
-          model: preset.model,
-          vision: 'unknown',
+          ...item,
+          ...draft,
+          // 地址或模型名变了，之前测出来的看图能力和联通状态就不算数了
+          vision: changed ? 'unknown' : item.vision,
+          lastTest: changed ? undefined : item.lastTest,
         }
-      }
-      // 自己填过的服务商：名字、地址、模型都能直接带回来
-      if (saved) {
-        return {
-          ...current,
-          providerId: 'custom',
-          providerName: saved.name,
-          baseUrl: saved.baseUrl,
-          model: saved.model,
-          vision: 'unknown',
-        }
-      }
-      return { ...current, providerId: 'custom', providerName: text, vision: 'unknown' }
-    })
+      }),
+    )
+    showToast({ message: '已保存修改' })
   }
 
-  async function handleTest() {
-    setTesting(true)
-    setDiagnosis(null)
-    setShowSteps(false)
-    // 自己填的服务商，测过一次就记下来，下次下拉里直接能选
-    if (config.providerId === 'custom') {
-      rememberProvider({
-        name: config.providerName,
-        baseUrl: config.baseUrl,
-        model: config.model,
-      })
-      setSavedProviders(loadSavedProviders())
+  function handleActivate(id: string) {
+    setActiveId(id)
+    batch.exit()
+    const model = models.find((item) => item.id === id)
+    showToast({ message: `已启用「${model?.model ?? '模型'}」` })
+  }
+
+  /** 单条测试：结果直接落在条目上 */
+  async function handleTestOne(model: AiModel) {
+    setTestingId(model.id)
+    const result = await testConnection(model)
+    const at = Date.now()
+    setModels((current) =>
+      current.map((item) => (item.id === model.id ? withResult(model, result, at) : item)),
+    )
+    setTestingId('')
+  }
+
+  /** 一键测全部：一条条来，页面上能看到进度，也不会同时把服务商打懵 */
+  async function handleTestAll() {
+    if (models.length === 0) return
+    setTestingAll(true)
+    setProgress({ done: 0, total: models.length })
+    let ok = 0
+    for (const [index, model] of models.entries()) {
+      setTestingId(model.id)
+      const result = await testConnection(model)
+      if (result.ok) ok += 1
+      const at = Date.now()
+      setModels((current) =>
+        current.map((item) => (item.id === model.id ? withResult(model, result, at) : item)),
+      )
+      setProgress({ done: index + 1, total: models.length })
     }
-    const result = await testConnection(config)
-    setTesting(false)
-    setDiagnosis(result)
-    // 把看图能力记下来：日记页点「图片导入」时要靠它提前把话说清楚
-    setConfig((current) => ({ ...current, vision: result.vision }))
+    setTestingId('')
+    setTestingAll(false)
+    showToast({ message: `测试完成：${ok} 条连通，${models.length - ok} 条没通` })
   }
 
-  const badgeTone: 'ok' | 'bad' | 'plain' =
-    badge.tone === 'ok' ? 'ok' : badge.tone === 'bad' ? 'bad' : 'plain'
+  function requestDelete(ids: string[]) {
+    if (ids.length === 0) return
+    setPendingDelete({ ids, active: ids.includes(activeId) })
+  }
 
-  /** 条件不满足时不用 effect 去清空，直接按条件显示，免得同步 setState 触发连锁渲染 */
-  const shownModels = canList ? models : []
-  const shownState = canList ? modelState : 'idle'
-  const shownError = canList ? modelError : ''
+  function confirmDelete() {
+    if (!pendingDelete) return
+    const { ids, active: removesActive } = pendingDelete
+    setPendingDelete(null)
+    setModels((current) => current.filter((item) => !ids.includes(item.id)))
+    batch.clear()
+    if (removesActive) {
+      // 不自动换一条：用户明确知道自己在删启用中的那条，就先留空
+      setActiveId('')
+      showToast({ message: '已删除正在启用的模型，AI 助手暂时没有可用模型' })
+    } else {
+      showToast({ message: `已删除 ${ids.length} 个模型` })
+    }
+  }
 
-  const modelHint =
-    shownState === 'loading'
-      ? '正在向服务商拉模型列表…'
-      : shownState === 'ok'
-        ? `已拉到 ${shownModels.length} 个模型，点开下拉可以直接挑`
-        : shownState === 'fail'
-          ? '没拉到列表，模型名可以手填'
-          : canList
-            ? '点「刷新列表」或者直接手填'
-            : '地址和 key 填好后会自动拉列表'
-
-  /** 服务商下拉：内置预设在前，自己填过的在后，同名的只留一次 */
-  const providerOptions: ComboOption[] = [
-    ...AI_PROVIDERS.filter((item) => item.id !== 'custom').map((item) => ({
-      value: item.label,
-      hint: '内置',
-    })),
-    ...savedProviders
-      .filter((item) => !AI_PROVIDERS.some((preset) => preset.label === item.name))
-      .map((item) => ({ value: item.name, hint: '用过' })),
-  ]
-
-  /** 模型下拉：拉到什么列什么，外加这个厂商的默认模型兜底 */
-  const modelOptions: ComboOption[] = [
-    ...new Set([...shownModels, provider?.model ?? ''].filter(Boolean)),
-  ].map((name) => ({ value: name }))
+  const busy = testingAll || testingId !== ''
 
   return (
     <SettingCard
       title="AI 模型"
-      description="让 AI 把随记整理成日记、把拍下来的手写日记转成文字，走的都是这里配的模型。配置只存在你这台机器上，改完自动保存。"
-      badge={<SettingBadge tone={badgeTone}>{badge.text}</SettingBadge>}
+      description="让 AI 把随记整理成日记、把拍下来的手写日记转成文字，走的都是这里启用的模型。配置只存在你这台机器上，改完自动保存。"
+      badge={<SettingBadge tone={badge.tone}>{badge.text}</SettingBadge>}
     >
-      {/* 常驻状态条：现在用哪家、模型叫什么、key 填没填 */}
+      {/* 常驻状态条：现在用哪条、缺什么、下一步做什么 */}
       <div className="mt-4 rounded-lg border border-line bg-surface-2 px-3 py-2">
-        <div className="font-mono text-xs text-fg">{summary}</div>
+        <div className="font-mono text-xs break-all text-fg">{summary}</div>
         <div className="mt-0.5 text-xs text-muted">{verdict}</div>
       </div>
 
-      {/* 填写：一张表，四行。不能加 overflow-hidden，否则下拉列表会被裁掉 */}
-      <div className="mt-4 rounded-xl border border-line">
-        <FormRow
-          label="服务商"
-          note={
-            provider?.note ? <p className="mt-1 text-xs text-muted">{provider.note}</p> : null
-          }
-        >
-          <ComboBox
-            value={config.providerName}
-            options={providerOptions}
-            onChange={changeProvider}
-            onSelect={(option) => changeProvider(option.value)}
-            placeholder="点开挑一家，或者直接打名字"
-            inputClassName={INPUT}
-            ariaLabel="服务商"
-            emptyHint="没有匹配的服务商，直接输入名字就行"
-          />
-        </FormRow>
-
-        <FormRow
-          label="服务地址"
-          note={
-            <p className="mt-1 text-xs text-muted">填到 /v1 这一层，别把后面的路径也带上。</p>
-          }
-        >
-          <input
-            value={config.baseUrl}
-            spellCheck={false}
-            placeholder="https://api.xiaomimimo.com/v1"
-            onChange={(event) => update({ baseUrl: event.target.value })}
-            className={INPUT}
-          />
-        </FormRow>
-
-        <FormRow
-          label="模型名"
-          note={
-            <div className="mt-1 flex items-start justify-between gap-2 text-xs">
-              <span
-                className={`min-w-0 flex-1 ${
-                  shownState === 'fail' ? 'text-danger' : 'text-muted'
-                }`}
-                title={shownError || undefined}
-              >
-                {shownState === 'fail' && shownError
-                  ? `没拉到列表：${shownError} 模型名可以直接手填。`
-                  : modelHint}
-              </span>
-              <button
-                type="button"
-                disabled={!canList || shownState === 'loading'}
-                onClick={() => void refreshModels()}
-                className="shrink-0 text-brand transition-opacity disabled:opacity-40"
-              >
-                刷新列表
-              </button>
-            </div>
-          }
-        >
-          <ComboBox
-            value={config.model}
-            options={modelOptions}
-            onChange={(text) => update({ model: text })}
-            onSelect={(option) => update({ model: option.value })}
-            placeholder="点开挑一个，或者照控制台原样填"
-            inputClassName={INPUT}
-            ariaLabel="模型名"
-            emptyHint={shownState === 'fail' ? '列表没拉到时，直接手填模型名' : '没有匹配的模型'}
-          />
-          <p className={`mt-1 text-xs ${visionClass}`}>{visionText}</p>
-        </FormRow>
-
-        <FormRow
-          label="API Key"
-          note={
-            provider?.keyUrl ? (
-              <p className="mt-1 text-xs text-muted">
-                key 去哪儿拿：打开 <span className="text-fg">{provider.keyUrl}</span>
-                ，登录后进「API Key / 密钥管理」，新建一个再复制出来。
-              </p>
-            ) : null
-          }
-        >
-          {/* 显示/隐藏做成输入框里的小按钮，不再另起一个大按钮 */}
-          <span className="relative block">
-            <input
-              type={showKey ? 'text' : 'password'}
-              value={config.apiKey}
-              spellCheck={false}
-              autoComplete="off"
-              placeholder={provider?.keyOptional ? '这家不用填' : '粘贴到这里'}
-              onChange={(event) => update({ apiKey: event.target.value })}
-              className={`${INPUT} pr-14`}
-            />
-            <button
-              type="button"
-              onClick={() => setShowKey((value) => !value)}
-              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md px-1.5 py-0.5 text-xs text-muted transition-colors hover:text-fg"
-            >
-              {showKey ? '隐藏' : '显示'}
+      {/* 动作行：底色跟下面的列表分开 */}
+      <div className="mt-4 rounded-xl border border-line bg-surface-2 p-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setFormOpen((open) => !open)
+              setEditing(null)
+            }}
+            className={SOLID_BUTTON}
+          >
+            {formOpen ? '收起新增' : '＋ 新增模型'}
+          </button>
+          <button
+            type="button"
+            disabled={models.length === 0 || busy}
+            onClick={() => void handleTestAll()}
+            className={`${OUTLINE_BUTTON} disabled:opacity-40`}
+          >
+            {testingAll ? `正在测试 ${progress.done}/${progress.total}…` : '测试联通'}
+          </button>
+          {models.length > 0 && !batch.active && (
+            <button type="button" onClick={batch.enter} className={SOLID_BUTTON}>
+              批量管理
             </button>
-          </span>
-        </FormRow>
-      </div>
-
-      {/* 测一下：文字通不通 + 能不能看图 */}
-      <div className="mt-4 border-t border-line pt-4">
-        <div className="text-xs text-fg">点一下，看看通不通、能不能看图</div>
-
-        <div className="mt-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              disabled={testing || !canTest(config)}
-              onClick={() => void handleTest()}
-              className={OUTLINE_BUTTON}
-            >
-              {testing ? '正在连接…' : '测试连接'}
-            </button>
-
-            {/* 结果就在按钮旁边，不用往下找 */}
-            {diagnosis && (
-              <span className={diagnosis.ok ? 'text-xs text-brand' : 'text-xs text-danger'}>
-                {diagnosis.ok
-                  ? `✓ 文字通了 · ${(diagnosis.ms / 1000).toFixed(1)} 秒`
-                  : `✗ ${failedStep?.title ?? '没通'}`}
-              </span>
-            )}
-
-            {!diagnosis && !canTest(config) && (
-              <span className="text-xs text-muted">先把地址和模型名填上</span>
-            )}
-          </div>
-
-          {diagnosis && (
-            <div className="mt-2">
-              <button
-                type="button"
-                onClick={() => setShowSteps((value) => !value)}
-                className="text-xs text-muted transition-colors hover:text-fg"
-              >
-                {showSteps ? '收起诊断详情' : `看诊断详情（${diagnosis.steps.length} 步）`}
-              </button>
-
-              {/* 失败时自动展开：不看原因就没法修 */}
-              {(showSteps || !diagnosis.ok) && (
-                <ul className="mt-2 space-y-1.5 rounded-lg border border-line bg-surface-2 px-3 py-2">
-                  {diagnosis.steps.map((step) => (
-                    <li key={step.title} className="flex gap-2 text-xs">
-                      <span className={step.ok ? 'text-brand' : 'text-danger'}>
-                        {step.ok ? '✓' : '✗'}
-                      </span>
-                      <span className="text-muted">
-                        <span className="text-fg">{step.title}</span> · {step.detail}
-                      </span>
-                    </li>
-                  ))}
-                  {diagnosis.ok && diagnosis.reply && (
-                    <li className="mt-1 border-t border-line pt-2 text-xs text-fg">
-                      模型回话：{diagnosis.reply}
-                    </li>
-                  )}
-                </ul>
-              )}
-            </div>
           )}
         </div>
       </div>
+
+      {/* 新增表单就嵌在「新增模型」按钮下面 */}
+      {formOpen && (
+        <div className="mt-3 rounded-xl border border-line p-3">
+          <div className="mb-2 text-xs text-fg">新增一条模型</div>
+          <ModelForm
+            initial={{ providerId: '', providerName: '', baseUrl: '', model: '', apiKey: '' }}
+            submitLabel="添加并保存"
+            onSubmit={handleAdd}
+            onCancel={() => setFormOpen(false)}
+          />
+        </div>
+      )}
+
+      {models.length === 0 ? (
+        <p className="mt-4 rounded-xl border border-dashed border-line px-3 py-6 text-center text-xs text-muted">
+          还没有模型。点「＋ 新增模型」，挑一家、把 key 粘进去就能用。
+        </p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {models.map((model) => {
+            const isActive = model.id === activeId
+            const selected = batch.isSelected(model.id)
+            const test = model.lastTest
+            const configOk = isConfigured(model)
+            return (
+              <li
+                key={model.id}
+                className={`rounded-xl border ${
+                  selected
+                    ? 'border-brand bg-surface-2'
+                    : isActive
+                      ? 'border-brand'
+                      : 'border-line'
+                }`}
+              >
+                <div className="flex items-start gap-2 p-3">
+                  {batch.active ? (
+                    <button
+                      type="button"
+                      aria-label={selected ? '取消选中' : '选中'}
+                      onClick={() => batch.toggle(model.id)}
+                      className={
+                        selected
+                          ? 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-xs text-on-brand'
+                          : 'mt-0.5 h-5 w-5 shrink-0 rounded-full border border-line'
+                      }
+                    >
+                      {selected ? '✓' : ''}
+                    </button>
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                        isActive ? 'bg-brand' : 'bg-line'
+                      }`}
+                    />
+                  )}
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium break-all text-fg">{model.model}</span>
+                      <span className="text-xs text-muted">{model.providerName}</span>
+                      {isActive && <SettingBadge tone="ok">启用中</SettingBadge>}
+                      {!configOk && <SettingBadge tone="bad">还差 key</SettingBadge>}
+                    </div>
+                    <p className="mt-1 font-mono text-xs break-all text-muted">
+                      {model.baseUrl} · {keyMask(model.apiKey)}
+                    </p>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                      <span
+                        className={
+                          model.vision === 'yes'
+                            ? 'text-brand'
+                            : model.vision === 'no'
+                              ? 'text-danger'
+                              : 'text-muted'
+                        }
+                      >
+                        {model.vision === 'yes'
+                          ? '✓ 能识别图片'
+                          : model.vision === 'no'
+                            ? '✗ 不能识别图片'
+                            : '看图能力未测'}
+                      </span>
+                      <span
+                        className={
+                          test
+                            ? test.ok
+                              ? 'text-brand'
+                              : 'text-danger'
+                            : 'text-muted'
+                        }
+                        title={test?.error || undefined}
+                      >
+                        {test
+                          ? test.ok
+                            ? `✓ 通了 · ${test.ms} 毫秒 · ${formatTestAt(test.at)}`
+                            : `✗ 没通 · ${formatTestAt(test.at)}`
+                          : '还没测过'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {!batch.active && (
+                  <div className="flex flex-wrap items-center justify-end gap-1 border-t border-line px-3 py-1.5">
+                    {!isActive && (
+                      <button
+                        type="button"
+                        onClick={() => handleActivate(model.id)}
+                        className={`${SLIP_BUTTON} text-brand hover:opacity-80`}
+                      >
+                        启用
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      disabled={!canTest(model) || busy}
+                      onClick={() => void handleTestOne(model)}
+                      className={`${SLIP_BUTTON} text-muted hover:text-fg disabled:opacity-40`}
+                    >
+                      {testingId === model.id ? '测试中…' : '测一下'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditing(model)
+                        setFormOpen(false)
+                      }}
+                      className={`${SLIP_BUTTON} text-muted hover:text-fg`}
+                    >
+                      编辑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => requestDelete([model.id])}
+                      className={`${SLIP_BUTTON} text-danger hover:opacity-80`}
+                    >
+                      删除
+                    </button>
+                  </div>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {batch.active && (
+        <BatchActions select={batch} ids={selectableIds} unit="个">
+          <button
+            type="button"
+            disabled={batch.count !== 1}
+            onClick={() => batch.selected[0] && handleActivate(batch.selected[0])}
+            className={BAR_BUTTON}
+          >
+            设为启用
+          </button>
+          <button
+            type="button"
+            disabled={batch.count === 0}
+            onClick={() => requestDelete(batch.selected)}
+            className={BAR_DANGER}
+          >
+            删除
+          </button>
+        </BatchActions>
+      )}
+
+      {/* 编辑走弹窗：列表保持不动，改完关掉就能看到新状态 */}
+      {editing && (
+        <Modal size="lg" onClose={() => setEditing(null)} panelClassName="max-h-[80vh] overflow-y-auto">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="text-sm font-medium text-fg">编辑模型</h3>
+            <span className="font-mono text-xs text-muted">{editing.providerName}</span>
+          </div>
+          <ModelForm
+            initial={{
+              providerId: editing.providerId,
+              providerName: editing.providerName,
+              baseUrl: editing.baseUrl,
+              model: editing.model,
+              apiKey: editing.apiKey,
+            }}
+            submitLabel="保存修改"
+            onSubmit={handleEdit}
+            onCancel={() => setEditing(null)}
+          />
+        </Modal>
+      )}
+
+      {/* 删的是正在启用的那条：先把风险说清楚，再给硬删的出口 */}
+      {pendingDelete && pendingDelete.active && (
+        <Modal size="sm" onClose={() => setPendingDelete(null)}>
+          <h3 className="text-sm font-medium text-fg">这是正在启用的模型</h3>
+          <p className="mt-2 text-xs text-muted">
+            删掉它之后，AI 整理成日记、图片导入都会暂时用不了，直到你在列表里启用另一条。
+          </p>
+          <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+            <button type="button" onClick={() => setPendingDelete(null)} className={OUTLINE_BUTTON}>
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPendingDelete(null)
+                batch.exit()
+                showToast({ message: '点列表里任意一条的「启用」，就能换过去' })
+              }}
+              className={SOLID_BUTTON}
+            >
+              去启用别的
+            </button>
+            <button type="button" onClick={confirmDelete} className={SOLID_DANGER}>
+              仍然删除
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {pendingDelete && !pendingDelete.active && (
+        <ConfirmDialog
+          title={`删除选中的 ${pendingDelete.ids.length} 个模型？`}
+          description="删除后配置会从这台机器上移除；不影响服务商那边的账号和额度。"
+          confirmLabel="删除"
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
     </SettingCard>
   )
 }
