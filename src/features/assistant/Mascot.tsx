@@ -1,4 +1,4 @@
-import type { MascotShape } from '../../app/providers/BallProvider'
+import type { MascotShape } from '@/app/providers/BallProvider'
 
 // 四角星：4 个外顶点 + 4 个内顶点
 const STAR4 = 'M44 5 L52.5 35.5 L83 44 L52.5 52.5 L44 83 L35.5 52.5 L5 44 L35.5 35.5 Z'

@@ -3,11 +3,11 @@
  *
  * 页面名与当前值交给页头（见 PageShell），卡片里只剩两个分组，所以卡片不再自带标题。
  */
-import { useTheme } from '../../app/providers/ThemeProvider'
-import { ACCENT_COLORS, accentLabel } from '../../app/theme'
-import SettingCard, { SettingBadge, SettingGroup } from '../../shared/ui/SettingCard'
-import PageShell from '../../shared/ui/PageShell'
-import { choiceTile } from '../../shared/ui/buttonStyles'
+import { useTheme } from '@/app/providers/ThemeProvider'
+import { ACCENT_COLORS, accentLabel } from '@/app/theme'
+import SettingCard, { SettingBadge, SettingGroup } from '@/shared/ui/SettingCard'
+import PageShell from '@/shared/ui/PageShell'
+import { choiceTile } from '@/shared/ui/buttonStyles'
 import { WindowCard } from './WindowCard'
 
 /** 明暗主题的标记：光看两个字不容易一眼分清 */

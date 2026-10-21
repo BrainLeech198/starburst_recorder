@@ -3,9 +3,9 @@
  *
  * 单独一个文件的原因：提示词是要反复调的东西，调它的时候不该动界面代码。
  */
-import type { DiaryStamp } from '../../core/db/schema'
-import { formatDateCn, weekdayLabel } from '../../core/utils/dateKey'
-import { parseWeather, weatherLabel } from '../diary/weather'
+import type { DiaryStamp } from '@/core/db/schema'
+import { formatDateCn, weekdayLabel } from '@/core/utils/dateKey'
+import { parseWeather, weatherLabel } from '@/features/diary/weather'
 import { chat, explainFailure, pickReply } from './aiClient'
 import type { AiConfig } from './aiConfig'
 

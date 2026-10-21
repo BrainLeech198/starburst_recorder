@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { useLiveQuery } from '../../core/db/live'
-import type { DiaryEntry } from '../../core/db/schema'
-import { useToast } from '../../app/providers/ToastProvider'
-import ConfirmDialog from '../../shared/ui/ConfirmDialog'
-import ToolbarRow from '../../shared/ui/ToolbarRow'
-import { BACK_BUTTON, SOLID_BUTTON, SOLID_DANGER } from '../../shared/ui/buttonStyles'
+import { useLiveQuery } from '@/core/db/live'
+import type { DiaryEntry } from '@/core/db/schema'
+import { useToast } from '@/app/providers/ToastProvider'
+import ConfirmDialog from '@/shared/ui/ConfirmDialog'
+import ToolbarRow from '@/shared/ui/ToolbarRow'
+import { BACK_BUTTON, SOLID_BUTTON, SOLID_DANGER } from '@/shared/ui/buttonStyles'
 import {
   dayInfo,
   entryByCode,
@@ -14,7 +14,7 @@ import {
   setWeather,
   updateContent,
 } from './diaryRepo'
-import { formatDateCn, weekdayLabel } from '../../core/utils/dateKey'
+import { formatDateCn, weekdayLabel } from '@/core/utils/dateKey'
 import { parseWeather, weatherIcons, weatherLabel } from './weather'
 import WeatherDialog from './WeatherDialog'
 

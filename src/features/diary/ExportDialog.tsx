@@ -1,5 +1,5 @@
 import type { ExportFormat } from './diaryExport'
-import Modal from '../../shared/ui/Modal'
+import Modal from '@/shared/ui/Modal'
 
 const OPTIONS: { id: ExportFormat; label: string; hint: string }[] = [
   { id: 'markdown', label: 'Markdown', hint: '一天一节，能直接给 AI 读' },

@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import type { Plugin } from 'vite'
+import { fileURLToPath, URL } from 'node:url'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -80,6 +81,11 @@ export default defineConfig({
   // 桌面壳（Electron/Tauri）用 file:// 或自定义协议打开 index.html，
   // 资源必须走相对路径，否则绝对路径 /assets/... 会 404
   base: './',
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
   build: {
     target: 'es2021',
   },

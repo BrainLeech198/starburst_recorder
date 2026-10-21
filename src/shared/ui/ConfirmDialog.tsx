@@ -1,5 +1,5 @@
 import Modal from './Modal'
-import { useI18n } from '../i18n/context'
+import { useI18n } from '@/shared/i18n/context'
 
 export default function ConfirmDialog({
   title,

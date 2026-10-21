@@ -16,8 +16,8 @@ import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { App } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
-import { useToast } from '../app/providers/ToastProvider'
-import { closeTopOverlay } from '../shared/ui/overlayStack'
+import { useToast } from '@/app/providers/ToastProvider'
+import { closeTopOverlay } from '@/shared/ui/overlayStack'
 
 /** 连按两次退出的时间窗（毫秒） */
 export const EXIT_WINDOW_MS = 2000

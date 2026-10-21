@@ -8,8 +8,8 @@
  * 为什么不自动写库：天气查错、地点有歧义都很常见，最终由用户在弹窗里
  * 点「填上」并确认才落库，避免悄悄改掉已经写好的天气。
  */
-import { chat, pickReply } from '../ai/aiClient'
-import { isConfigured, loadAiConfig } from '../ai/aiConfig'
+import { chat, pickReply } from '@/features/ai/aiClient'
+import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 
 const PLACE_KEY = 'sb_weather_place'
 /** 预报接口能回查最近 92 天；更早的日期走历史存档接口 */

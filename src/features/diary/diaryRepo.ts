@@ -4,7 +4,7 @@
  * 页面只 import 这里的函数；底下是 Dexie 还是 SQLite，由 `core/db/index.ts` 选。
  * 换存储时这里的名字和签名保持不变，调用方一行都不用改。
  */
-import { store } from '../../core/db'
+import { store } from '@/core/db'
 
 export const {
   // 日记
@@ -46,4 +46,4 @@ export const {
   importBackup,
 } = store
 
-export type { ImportStats } from '../../core/db/store'
+export type { ImportStats } from '@/core/db/store'

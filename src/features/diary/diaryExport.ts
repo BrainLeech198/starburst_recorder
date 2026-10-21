@@ -1,5 +1,5 @@
-import type { DiaryEntry, DiaryStamp } from '../../core/db/schema'
-import { formatDateCn, weekdayLabel } from '../../core/utils/dateKey'
+import type { DiaryEntry, DiaryStamp } from '@/core/db/schema'
+import { formatDateCn, weekdayLabel } from '@/core/utils/dateKey'
 
 export type ExportFormat = 'markdown' | 'text' | 'json'
 

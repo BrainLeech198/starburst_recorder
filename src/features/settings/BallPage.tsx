@@ -3,12 +3,12 @@
  *
  * 形象格子里直接画真的 Mascot，用的是当前主题色——所见即所得，不用想象。
  */
-import { MASCOT_SHAPES, MASCOT_SIZES, useBall } from '../../app/providers/BallProvider'
-import { useTheme } from '../../app/providers/ThemeProvider'
-import { Mascot } from '../assistant/Mascot'
-import SettingCard, { SettingBadge, SettingGroup } from '../../shared/ui/SettingCard'
-import PageShell from '../../shared/ui/PageShell'
-import { choiceTile } from '../../shared/ui/buttonStyles'
+import { MASCOT_SHAPES, MASCOT_SIZES, useBall } from '@/app/providers/BallProvider'
+import { useTheme } from '@/app/providers/ThemeProvider'
+import { Mascot } from '@/features/assistant/Mascot'
+import SettingCard, { SettingBadge, SettingGroup } from '@/shared/ui/SettingCard'
+import PageShell from '@/shared/ui/PageShell'
+import { choiceTile } from '@/shared/ui/buttonStyles'
 
 export default function BallPage() {
   const { prefs, setPrefs } = useBall()

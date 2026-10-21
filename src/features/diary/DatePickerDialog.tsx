@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import type { FocusEvent as ReactFocusEvent } from 'react'
-import { monthGrid, toDateKey, todayKey } from '../../core/utils/dateKey'
-import Modal from '../../shared/ui/Modal'
-import { INPUT_NARROW } from '../../shared/ui/inputStyles'
+import { monthGrid, toDateKey, todayKey } from '@/core/utils/dateKey'
+import Modal from '@/shared/ui/Modal'
+import { INPUT_NARROW } from '@/shared/ui/inputStyles'
 
 const WEEK_LABELS = ['日', '一', '二', '三', '四', '五', '六']
 

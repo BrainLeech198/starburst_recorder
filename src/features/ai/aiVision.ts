@@ -7,7 +7,7 @@
  *
  * 原图不存：日记本身是纯文本，这张图只是一次性的输入。
  */
-import type { ChatContentPart } from '../../core/desktop'
+import type { ChatContentPart } from '@/platform/desktop'
 import { chat, explainFailure, pickReply } from './aiClient'
 import type { AiConfig } from './aiConfig'
 

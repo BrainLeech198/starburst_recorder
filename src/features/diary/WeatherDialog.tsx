@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { WEATHER_PRESETS, joinWeather, parseWeather, weatherIcon } from './weather'
 import { askWeather, loadWeatherPlace, saveWeatherPlace } from './weatherQuery'
 import type { DayWeather } from './weatherQuery'
-import Modal from '../../shared/ui/Modal'
+import Modal from '@/shared/ui/Modal'
 
 export default function WeatherDialog({
   dateKey,

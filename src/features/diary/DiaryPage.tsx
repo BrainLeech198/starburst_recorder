@@ -1,15 +1,15 @@
 import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { useLiveQuery } from '../../core/db/live'
-import type { DiaryEntry } from '../../core/db/schema'
-import { useToast } from '../../app/providers/ToastProvider'
-import BatchActions from '../../shared/ui/BatchActions'
-import { useBatchSelect } from '../../shared/ui/useBatchSelect'
-import ConfirmDialog from '../../shared/ui/ConfirmDialog'
-import Tab from '../../shared/ui/Tab'
-import ToolbarRow from '../../shared/ui/ToolbarRow'
-import { BAR_BUTTON, BAR_DANGER, SOLID_BUTTON } from '../../shared/ui/buttonStyles'
+import { useLiveQuery } from '@/core/db/live'
+import type { DiaryEntry } from '@/core/db/schema'
+import { useToast } from '@/app/providers/ToastProvider'
+import BatchActions from '@/shared/ui/BatchActions'
+import { useBatchSelect } from '@/shared/ui/useBatchSelect'
+import ConfirmDialog from '@/shared/ui/ConfirmDialog'
+import Tab from '@/shared/ui/Tab'
+import ToolbarRow from '@/shared/ui/ToolbarRow'
+import { BAR_BUTTON, BAR_DANGER, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import {
   addStamp,
   createEntry,
@@ -31,17 +31,17 @@ import {
   formatMonthDayCn,
   todayKey,
   weekdayLabel,
-} from '../../core/utils/dateKey'
+} from '@/core/utils/dateKey'
 import DatePickerDialog from './DatePickerDialog'
 import StampTimeline from './StampTimeline'
 import ExportDialog from './ExportDialog'
-import AiComposeDialog from '../ai/AiComposeDialog'
-import { isConfigured, loadAiConfig } from '../ai/aiConfig'
-import type { AiConfig } from '../ai/aiConfig'
+import AiComposeDialog from '@/features/ai/AiComposeDialog'
+import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
+import type { AiConfig } from '@/features/ai/aiConfig'
 import ImageImportDialog from './ImageImportDialog'
 import { buildExport } from './diaryExport'
 import type { ExportFormat } from './diaryExport'
-import { describeSave, saveTextFile } from '../../core/saveFile'
+import { describeSave, saveTextFile } from '@/platform/saveFile'
 
 /** 纸条上的正文部分，普通模式和批量模式共用 */
 function SlipBody({ entry }: { entry: DiaryEntry }) {

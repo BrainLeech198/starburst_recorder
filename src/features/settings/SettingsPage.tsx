@@ -6,13 +6,13 @@
  *   - 悬浮球 / AI 模型 → 助手相关的（`/me/agent`，见 AgentMenuPage）
  * 跟「助手」那一页各管一摊，免得一页越堆越长。
  */
-import { useLiveQuery } from '../../core/db/live'
-import { useTheme } from '../../app/providers/ThemeProvider'
-import { accentLabel } from '../../app/theme'
-import SettingRow from '../../shared/ui/SettingRow'
-import PageShell from '../../shared/ui/PageShell'
-import { SettingBadge } from '../../shared/ui/SettingCard'
-import { totals } from '../diary/diaryRepo'
+import { useLiveQuery } from '@/core/db/live'
+import { useTheme } from '@/app/providers/ThemeProvider'
+import { accentLabel } from '@/app/theme'
+import SettingRow from '@/shared/ui/SettingRow'
+import PageShell from '@/shared/ui/PageShell'
+import { SettingBadge } from '@/shared/ui/SettingCard'
+import { totals } from '@/features/diary/diaryRepo'
 
 /** 菜单右侧那个小圆点：一眼看出当前主题色 */
 function AccentDot({ color }: { color: string }) {

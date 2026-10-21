@@ -4,8 +4,8 @@
  * 两个入口的说明写清"里面有什么"，不然"设置 / 助手"这种抽象名字点进去才知道，
  * 白白多一次跳转。
  */
-import SettingRow from '../../shared/ui/SettingRow'
-import { useI18n } from '../../shared/i18n/context'
+import SettingRow from '@/shared/ui/SettingRow'
+import { useI18n } from '@/shared/i18n/context'
 
 export default function MePage() {
   const { t } = useI18n()
