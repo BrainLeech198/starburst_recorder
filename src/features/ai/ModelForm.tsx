@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { AI_PROVIDERS } from './aiConfig'
 import { listModels, modelsUrl } from './aiClient'
+import { useI18n } from '@/shared/i18n/context'
 import { INPUT } from '@/shared/ui/inputStyles'
 import ComboBox from '@/shared/ui/ComboBox'
 import type { ComboOption } from '@/shared/ui/ComboBox'
@@ -58,6 +59,7 @@ export default function ModelForm({
   onSubmit: (draft: ModelDraft) => void
   onCancel: () => void
 }) {
+  const { t } = useI18n()
   const [draft, setDraft] = useState<ModelDraft>(initial)
   const [showKey, setShowKey] = useState(false)
   const [models, setModels] = useState<string[]>([])
@@ -121,7 +123,7 @@ export default function ModelForm({
 
   const providerOptions: ComboOption[] = AI_PROVIDERS.filter(
     (item) => item.id !== 'custom',
-  ).map((item) => ({ value: item.label, hint: '内置' }))
+  ).map((item) => ({ value: item.label, hint: t('ai.providerBuiltin') }))
 
   const modelOptions: ComboOption[] = [
     ...new Set([...models, provider?.model ?? ''].filter(Boolean)),
@@ -130,24 +132,26 @@ export default function ModelForm({
   const shownState = canList ? listState : 'idle'
   const shownError = canList ? listError : ''
   const lookupUrl = provider?.modelListUrl ?? (baseUrl !== '' ? modelsUrl(baseUrl) : '')
-  const lookupLabel = provider?.modelListUrl ? `去 ${provider.label} 看模型名` : '打开模型列表地址'
+  const lookupLabel = provider?.modelListUrl
+    ? t('ai.lookupProvider', { provider: provider.label })
+    : t('ai.lookupOpen')
 
   const modelHint =
     shownState === 'loading'
-      ? '正在向服务商拉模型列表…'
+      ? t('ai.listLoading')
       : shownState === 'ok'
-        ? `已拉到 ${models.length} 个模型，点开可以直接挑`
+        ? t('ai.listOk', { count: models.length })
         : shownState === 'fail'
-          ? '没拉到列表，可以手填，或者照下面给的网址去查'
+          ? t('ai.listFail')
           : canList
-            ? '点「刷新列表」或者直接手填'
-            : '地址和 key 填好后会自动拉列表'
+            ? t('ai.listIdle')
+            : t('ai.listIdleNoKey')
 
   return (
     <div>
       <div className="rounded-xl border border-line">
         <FormRow
-          label="服务商"
+          label={t('ai.provider')}
           note={provider?.note ? <p className="mt-1 text-xs text-muted">{provider.note}</p> : null}
         >
           <ComboBox
@@ -155,16 +159,16 @@ export default function ModelForm({
             options={providerOptions}
             onChange={changeProvider}
             onSelect={(option) => changeProvider(option.value)}
-            placeholder="点开挑一家，或者直接打名字"
+            placeholder={t('ai.providerPlaceholder')}
             inputClassName={INPUT}
-            ariaLabel="服务商"
-            emptyHint="没有匹配的服务商，直接输入名字就行"
+            ariaLabel={t('ai.provider')}
+            emptyHint={t('ai.providerEmpty')}
           />
         </FormRow>
 
         <FormRow
-          label="服务地址"
-          note={<p className="mt-1 text-xs text-muted">填到 /v1 这一层，别把后面的路径也带上。</p>}
+          label={t('ai.baseUrl')}
+          note={<p className="mt-1 text-xs text-muted">{t('ai.baseUrlNote')}</p>}
         >
           <input
             value={draft.baseUrl}
@@ -176,7 +180,7 @@ export default function ModelForm({
         </FormRow>
 
         <FormRow
-          label="模型名"
+          label={t('ai.modelName')}
           note={
             <div className="mt-1 text-xs">
               <div className="flex items-start justify-between gap-2">
@@ -184,7 +188,9 @@ export default function ModelForm({
                   className={`min-w-0 flex-1 ${shownState === 'fail' ? 'text-danger' : 'text-muted'}`}
                   title={shownError || undefined}
                 >
-                  {shownState === 'fail' && shownError ? `没拉到列表：${shownError}` : modelHint}
+                  {shownState === 'fail' && shownError
+                    ? t('ai.listError', { error: shownError })
+                    : modelHint}
                 </span>
                 <button
                   type="button"
@@ -192,7 +198,7 @@ export default function ModelForm({
                   onClick={() => void refreshModels()}
                   className="shrink-0 text-brand transition-opacity disabled:opacity-40"
                 >
-                  刷新列表
+                  {t('ai.refreshList')}
                 </button>
               </div>
               {shownState === 'fail' && lookupUrl !== '' && (
@@ -213,19 +219,19 @@ export default function ModelForm({
             options={modelOptions}
             onChange={(text) => update({ model: text })}
             onSelect={(option) => update({ model: option.value })}
-            placeholder="点开挑一个，或者照控制台原样填"
+            placeholder={t('ai.modelPlaceholder')}
             inputClassName={INPUT}
-            ariaLabel="模型名"
-            emptyHint={shownState === 'fail' ? '列表没拉到时，直接手填模型名' : '没有匹配的模型'}
+            ariaLabel={t('ai.modelName')}
+            emptyHint={shownState === 'fail' ? t('ai.modelEmptyFail') : t('ai.modelEmpty')}
           />
         </FormRow>
 
         <FormRow
-          label="API Key"
+          label={t('ai.key')}
           note={
             provider?.keyUrl ? (
               <p className="mt-1 text-xs text-muted">
-                key 去哪儿拿：打开{' '}
+                {t('ai.keyWherePrefix')}{' '}
                 <a
                   href={provider.keyUrl}
                   target="_blank"
@@ -234,7 +240,7 @@ export default function ModelForm({
                 >
                   {provider.keyUrl}
                 </a>
-                ，登录后进「API Key / 密钥管理」，新建一个再复制出来。
+                {t('ai.keyWhereSuffix')}
               </p>
             ) : null
           }
@@ -245,7 +251,9 @@ export default function ModelForm({
               value={draft.apiKey}
               spellCheck={false}
               autoComplete="off"
-              placeholder={provider?.keyOptional ? '这家不用填' : '粘贴到这里'}
+              placeholder={
+                provider?.keyOptional ? t('ai.keyOptionalPlaceholder') : t('ai.keyPlaceholder')
+              }
               onChange={(event) => update({ apiKey: event.target.value })}
               className={`${INPUT} pr-14`}
             />
@@ -254,11 +262,11 @@ export default function ModelForm({
               onClick={() => setShowKey((value) => !value)}
               className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md px-1.5 py-0.5 text-xs text-muted transition-colors hover:text-fg"
             >
-              {showKey ? '隐藏' : '显示'}
+              {showKey ? t('ai.hideKey') : t('ai.showKey')}
             </button>
           </span>
           {draft.apiKey.trim() === '' && provider?.keyOptional !== true && (
-            <p className="mt-1 text-xs text-muted">先存着也行，但没 key 暂时用不了，列表里会标出来。</p>
+            <p className="mt-1 text-xs text-muted">{t('ai.keyMissingHint')}</p>
           )}
         </FormRow>
       </div>
@@ -270,8 +278,7 @@ export default function ModelForm({
           onClick={() =>
             onSubmit({
               ...draft,
-              providerName:
-                draft.providerName.trim() || provider?.label || '自定义',
+              providerName: draft.providerName.trim() || provider?.label || t('ai.custom'),
               baseUrl: draft.baseUrl.trim(),
               model: draft.model.trim(),
               apiKey: draft.apiKey.trim(),
@@ -282,9 +289,9 @@ export default function ModelForm({
           {submitLabel}
         </button>
         <button type="button" onClick={onCancel} className={OUTLINE_BUTTON}>
-          取消
+          {t('common.cancel')}
         </button>
-        {!canSave && <span className="text-xs text-muted">地址和模型名填上就能保存</span>}
+        {!canSave && <span className="text-xs text-muted">{t('ai.saveHint')}</span>}
       </div>
     </div>
   )
