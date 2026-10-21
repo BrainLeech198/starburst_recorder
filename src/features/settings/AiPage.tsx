@@ -1,16 +1,11 @@
 /**
  * 「AI 模型」二级页。
  *
- * AiSection 本来就自带标题、说明与状态徽章（它是完整的一块），
- * 所以页头这里不再写页面名，免得同一个名字出现两遍。
+ * AiSection 自带标题、说明、状态徽章，以及返回行里的新增 / 测试 / 批量动作，
+ * 所以它自己就是完整的一页；这里只负责把路由页接上。
  */
 import AiSection from '../ai/AiSection'
-import PageShell from '../../shared/ui/PageShell'
 
 export default function AiPage() {
-  return (
-    <PageShell backTo="/me/agent" backLabel="助手">
-      <AiSection />
-    </PageShell>
-  )
+  return <AiSection />
 }
