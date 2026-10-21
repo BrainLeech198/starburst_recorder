@@ -8,6 +8,7 @@
  */
 import { useEffect, useId, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
+import { useI18n } from '@/shared/i18n/context'
 
 export interface ComboOption {
   value: string
@@ -22,7 +23,7 @@ export default function ComboBox({
   onSelect,
   placeholder,
   inputClassName = '',
-  emptyHint = '没有可选项，直接输入也行',
+  emptyHint,
   ariaLabel,
 }: {
   value: string
@@ -37,6 +38,7 @@ export default function ComboBox({
   emptyHint?: string
   ariaLabel?: string
 }) {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   /** 打开后用户是否已经开始打字；null 表示「还没打」，这时显示全部 */
   const [typed, setTyped] = useState<string | null>(null)
@@ -122,7 +124,7 @@ export default function ComboBox({
       <button
         type="button"
         tabIndex={-1}
-        aria-label={open ? '收起列表' : '展开列表'}
+        aria-label={open ? t('combo.collapse') : t('combo.expand')}
         onMouseDown={(event) => event.preventDefault()}
         onClick={() => {
           if (open) setOpen(false)
@@ -156,7 +158,7 @@ export default function ComboBox({
           className="absolute top-full right-0 left-0 z-30 mt-1 max-h-60 overflow-auto rounded-lg border border-line bg-surface py-1 shadow-lg"
         >
           {filtered.length === 0 ? (
-            <p className="px-3 py-2 text-xs text-muted">{emptyHint}</p>
+            <p className="px-3 py-2 text-xs text-muted">{emptyHint ?? t('combo.empty')}</p>
           ) : (
             filtered.map((option, index) => {
               const selected = option.value === value
