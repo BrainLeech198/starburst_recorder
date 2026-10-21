@@ -1,25 +1,34 @@
+import { lazy } from 'react'
 import { createHashRouter, Navigate } from 'react-router'
 import AppShell from './layout/AppShell'
-import HomePage from '@/features/home/HomePage'
-import DiaryPage from '@/features/diary/DiaryPage'
-import DiaryEditPage from '@/features/diary/DiaryEditPage'
-import TrashPage from '@/features/diary/TrashPage'
-import HealthPage from '@/features/health/HealthPage'
-import FinancePage from '@/features/finance/FinancePage'
-import AssistantPage from '@/features/assistant/AssistantPage'
-import CalendarPage from '@/features/calendar/CalendarPage'
-import MePage from '@/features/me/MePage'
-import SettingsPage from '@/features/settings/SettingsPage'
-import AgentMenuPage from '@/features/settings/AgentMenuPage'
-import AppearancePage from '@/features/settings/AppearancePage'
-import BallPage from '@/features/settings/BallPage'
-import AiPage from '@/features/settings/AiPage'
-import DataPage from '@/features/settings/DataPage'
+import RouteError from './RouteError'
+
+/**
+ * 页面全部走懒加载：首屏只拿首页和壳层，其余页面点开时再下。
+ * 配合 AppShell 里的 Suspense，切换页面不会白屏。
+ */
+const HomePage = lazy(() => import('@/features/home/HomePage'))
+const DiaryPage = lazy(() => import('@/features/diary/DiaryPage'))
+const DiaryEditPage = lazy(() => import('@/features/diary/DiaryEditPage'))
+const TrashPage = lazy(() => import('@/features/diary/TrashPage'))
+const HealthPage = lazy(() => import('@/features/health/HealthPage'))
+const FinancePage = lazy(() => import('@/features/finance/FinancePage'))
+const AssistantPage = lazy(() => import('@/features/assistant/AssistantPage'))
+const CalendarPage = lazy(() => import('@/features/calendar/CalendarPage'))
+const MePage = lazy(() => import('@/features/me/MePage'))
+const SettingsPage = lazy(() => import('@/features/settings/SettingsPage'))
+const AgentMenuPage = lazy(() => import('@/features/settings/AgentMenuPage'))
+const AppearancePage = lazy(() => import('@/features/settings/AppearancePage'))
+const BallPage = lazy(() => import('@/features/settings/BallPage'))
+const AiPage = lazy(() => import('@/features/settings/AiPage'))
+const DataPage = lazy(() => import('@/features/settings/DataPage'))
 
 export const router = createHashRouter([
   {
     path: '/',
     element: <AppShell />,
+    // 页面渲染或懒加载分块失败时，至少给一句人话和一个刷新入口
+    errorElement: <RouteError />,
     children: [
       { index: true, element: <HomePage /> },
       { path: 'diary', element: <DiaryPage /> },
