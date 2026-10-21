@@ -461,7 +461,12 @@ export default function AiSection() {
 
       {/* 编辑走弹窗：列表保持不动，改完关掉就能看到新状态 */}
       {editing && (
-        <Modal size="lg" onClose={() => setEditing(null)} panelClassName="max-h-[80vh] overflow-y-auto">
+        <Modal
+          size="lg"
+          label={t('ai.editTitle')}
+          onClose={() => setEditing(null)}
+          panelClassName="max-h-[80vh] overflow-y-auto"
+        >
           <div className="mb-3 flex items-center justify-between gap-2">
             <h3 className="text-sm font-medium text-fg">{t('ai.editTitle')}</h3>
             <span className="font-mono text-xs text-muted">{displayProviderName(editing)}</span>
@@ -483,7 +488,7 @@ export default function AiSection() {
 
       {/* 删的是正在启用的那条：先把风险说清楚，再给硬删的出口 */}
       {pendingDelete && pendingDelete.active && (
-        <Modal size="sm" onClose={() => setPendingDelete(null)}>
+        <Modal size="sm" label={t('ai.deleteActiveTitle')} onClose={() => setPendingDelete(null)}>
           <h3 className="text-sm font-medium text-fg">{t('ai.deleteActiveTitle')}</h3>
           <p className="mt-2 text-xs text-muted">{t('ai.deleteActiveBody')}</p>
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2">

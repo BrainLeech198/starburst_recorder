@@ -358,6 +358,7 @@ export const zh = {
   'weather.pending': '天气待填写',
   'weather.editHint': '点一下改天气',
 
+  'datePicker.title': '选择日期',
   'datePicker.prev': '上个月',
   'datePicker.next': '下个月',
   'datePicker.year': '年',

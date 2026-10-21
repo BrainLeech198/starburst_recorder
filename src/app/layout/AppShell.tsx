@@ -68,6 +68,7 @@ export default function AppShell() {
   const { t } = useI18n()
 
   const contentRef = useRef<HTMLElement>(null)
+  const navRef = useRef<HTMLElement>(null)
   const { pathname } = useLocation()
   const section = pathname.split('/')[1] ?? ''
   const lastSection = useRef(section)
@@ -85,13 +86,39 @@ export default function AppShell() {
     if (contentRef.current) contentRef.current.scrollTop = 0
   }, [section])
 
+  // 手机上底栏高度会随「记录」展开而变化。批量工具条按 --sb-nav-h 把自己抬到底栏上方，
+  // 不必在 BatchBar 里写死一个「大概够高」的 bottom；桌面侧栏不参与，置 0。
+  useEffect(() => {
+    const nav = navRef.current
+    if (!nav) return
+    const update = () => {
+      const mobile = window.matchMedia('(max-width: 767px)').matches
+      document.documentElement.style.setProperty(
+        '--sb-nav-h',
+        mobile ? `${nav.getBoundingClientRect().height}px` : '0px',
+      )
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(nav)
+    window.addEventListener('resize', update)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', update)
+      document.documentElement.style.removeProperty('--sb-nav-h')
+    }
+  }, [])
+
   return (
     <div className="sb-shell flex flex-col bg-bg pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] text-fg md:flex-row">
       {/* 上面三个内边距是给刘海/状态栏让位的：
           现在（API 34 及以下）系统已经把 WebView 摆在状态栏下面，inset 是 0，等于没生效；
           Android 15 起强制边到边，这里就变成真正把内容往下推的那一道。
           底部留给底栏自己处理（见下面 nav 的 pb），所以这里不重复加。 */}
-      <nav className="order-last flex shrink-0 flex-col border-t border-line bg-nav pb-[env(safe-area-inset-bottom)] md:order-first md:w-56 md:border-t-0 md:border-r md:pb-0">
+      <nav
+        ref={navRef}
+        className="order-last flex shrink-0 flex-col border-t border-line bg-nav pb-[env(safe-area-inset-bottom)] md:order-first md:w-56 md:border-t-0 md:border-r md:pb-0"
+      >
         <div className="hidden border-b-2 border-brand bg-nav-strong px-5 py-6 text-base font-medium tracking-wide md:block">
           {t('app.name')}
         </div>

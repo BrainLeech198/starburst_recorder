@@ -1,10 +1,10 @@
 /** 实心主按钮：全站统一，新增 / 记一笔 / 保存 / 恢复入口都用它（返回不用它，见 BACK_BUTTON） */
 export const SOLID_BUTTON =
-  'rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-on-brand transition-opacity hover:opacity-90'
+  'inline-flex min-h-11 items-center justify-center rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-on-brand transition-opacity hover:opacity-90 md:min-h-0'
 
 /** 危险操作按钮：形状尺寸同上，只换成统一的危险色（删除 / 清空 / 彻底删除） */
 export const SOLID_DANGER =
-  'rounded-lg bg-danger px-3 py-1.5 text-sm font-medium text-on-danger transition-opacity hover:opacity-90'
+  'inline-flex min-h-11 items-center justify-center rounded-lg bg-danger px-3 py-1.5 text-sm font-medium text-on-danger transition-opacity hover:opacity-90 md:min-h-0'
 
 /**
  * 「返回上一级」按钮：实心危险色红 + 反色文字。
@@ -16,17 +16,17 @@ export const SOLID_DANGER =
  */
 export const BACK_BUTTON = SOLID_DANGER
 
-/** 底部批量工具条上的小按钮 */
+/** 底部批量工具条上的小按钮：手机上同样按 44px 触控高度，桌面保持紧凑 */
 export const BAR_BUTTON =
-  'rounded-lg px-2.5 py-1 text-xs text-muted transition-colors hover:text-fg disabled:opacity-40'
+  'inline-flex min-h-11 items-center justify-center rounded-lg px-2.5 py-1 text-xs text-muted transition-colors hover:text-fg disabled:opacity-40 md:min-h-0'
 
 /** 工具条上的危险小按钮（批量删除这类） */
 export const BAR_DANGER =
-  'rounded-lg px-2.5 py-1 text-xs text-danger transition-colors hover:opacity-80 disabled:opacity-40'
+  'inline-flex min-h-11 items-center justify-center rounded-lg px-2.5 py-1 text-xs text-danger transition-colors hover:opacity-80 disabled:opacity-40 md:min-h-0'
 
 /** 描边主色按钮：次要但重要的动作（测试连接 / 应用 / 写入日记） */
 export const OUTLINE_BUTTON =
-  'rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2 disabled:opacity-40'
+  'inline-flex min-h-11 items-center justify-center rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2 disabled:opacity-40 md:min-h-0'
 
 /**
  * 「点一下就选中」的格子，全站统一写法：厂商、明暗、悬浮球形象/大小、窗口预设都用它。

@@ -189,6 +189,8 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 
 - **按钮行套一层底（2026-10-21 加）**：**整行都是按钮**的地方（日记页的「新增/图片导入/批量/回收站」、日记编辑页的「返回/删除/编辑」、回收站的「返回/批量/清空」）统一套 `shared/ui/ToolbarRow.tsx`：`rounded-xl border border-line bg-surface-2 p-2`，即比页面底色亮半档、与卡片同层。这样"这一条是动作区、下面那块是内容"一眼分得开，不然一串按钮浮在页面底色上，按钮与内容糊在同一层，没有结构感也看不出主次。**不要滥用**：日期行、标签页行这类混着文字的行不套。**页头一律套**（2026-10-21 改）：原来只有带动作的页头才套，结果设置类的纯返回页与 AI 页视觉不一致；现在 `PageHeader` 不管有没有动作都套 ToolbarRow，返回行本身也算一条按钮行。
 
+- **可访问性基线（2026-10-21 加）**：`Modal` 的 `label` 是必传项，面板带 `role="dialog"` + `aria-modal` + `aria-label`；打开时焦点进面板，Tab / Shift+Tab 只在面板内循环，Esc 或点遮罩关闭后焦点还给触发元素（`ConfirmDialog` 等 8 处调用点都补了 label）。提示条容器常驻 `role="status"` + `aria-live="polite"`，内容后插入才会被读屏念到；`ComboBox` 补了 `aria-expanded` / `aria-controls` / `aria-activedescendant`，选项带 id 与 `role="option"`；随记输入框用 `aria-label` 取占位文案。浅色模式 `--color-muted` 调深到 `#5f6677`、`--color-brand` 混 45% 深色，六个主题色下正文、次级文字与主题色文字都 ≥ 4.5:1。移动端主按钮 / 批量按钮用 `min-h-11`（44px）触控高度，桌面 `md:min-h-0` 保持紧凑；底栏高度由 `AppShell` 的 ResizeObserver 写进 `--sb-nav-h`，`BatchBar` 据此把自己抬到底栏上方。
+
 ## 6. 目录结构
 
 ```

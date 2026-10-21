@@ -49,7 +49,7 @@ export default function WeatherDialog({
   }
 
   return (
-    <Modal size="xs" onClose={onCancel}>
+    <Modal size="xs" label={t('weather.title')} onClose={onCancel}>
       <div className="text-sm font-medium">{t('weather.title')}</div>
 
       {/* 上面是已经排好的链条：点标签上的 ✕ 永远是删掉这一个 */}
