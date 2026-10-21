@@ -88,21 +88,48 @@ export interface ModelListResult {
   ms: number
 }
 
-/** OpenAI 兼容的是 data[].id；Ollama 原生是 models[].name，两种都认 */
+/**
+ * 从 /models 的返回里把模型名抠出来。
+ *
+ * 各家的形状并不统一：OpenAI 是 data[].id，Ollama 是 models[].name，
+ * 还有的会再套一层数组或者把字段叫 model。所以这里不做固定结构的假设，
+ * 只在数组里认 id / name / model 三个字段（以及字符串数组），别的一律忽略。
+ */
 export function parseModelList(body: string): string[] {
+  let data: unknown
   try {
-    const data = JSON.parse(body) as {
-      data?: { id?: string }[]
-      models?: { name?: string; id?: string }[]
-    }
-    const names = [
-      ...(data.data ?? []).map((item) => item.id),
-      ...(data.models ?? []).map((item) => item.name ?? item.id),
-    ].filter((name): name is string => typeof name === 'string' && name.trim() !== '')
-    return [...new Set(names.map((name) => name.trim()))].sort()
+    data = JSON.parse(body)
   } catch {
     return []
   }
+
+  const names = new Set<string>()
+  const add = (value: string) => {
+    const name = value.trim()
+    if (name !== '' && name.length <= 200) names.add(name)
+  }
+
+  const visit = (node: unknown, depth: number) => {
+    if (depth > 5 || node === null || typeof node !== 'object') return
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        if (typeof item === 'string') {
+          add(item)
+          continue
+        }
+        if (item === null || typeof item !== 'object') continue
+        const record = item as Record<string, unknown>
+        for (const key of ['id', 'name', 'model']) {
+          if (typeof record[key] === 'string') add(record[key] as string)
+        }
+      }
+      return
+    }
+    for (const value of Object.values(node as Record<string, unknown>)) visit(value, depth + 1)
+  }
+
+  visit(data, 0)
+  return [...names].sort()
 }
 
 /**
@@ -146,7 +173,7 @@ export async function listModels(
   }
 
   if (!result.ok) {
-    return { ok: false, models: [], error: explainFailure(result, baseUrl), ms: result.ms }
+    return { ok: false, models: [], error: modelsHint(result, baseUrl), ms: result.ms }
   }
   const models = parseModelList(result.body)
   return {
@@ -215,6 +242,23 @@ export function explainFailure(result: ChatTransportResult, baseUrl: string) {
   }
   if (result.status >= 500) return `服务商那边自己出错了（${result.status}），过一会儿再试。`
   return bodyHint(result.body, `请求没成功（${result.status}）。`)
+}
+
+/**
+ * 拉模型列表失败时的人话。
+ * 跟对话失败分开说：404 在这里只代表「这家没开放模型列表」，不是模型名写错了。
+ */
+function modelsHint(result: ChatTransportResult, baseUrl: string) {
+  if (result.status === 0) return networkHint(baseUrl, result.error)
+  if (result.status === 401 || result.status === 403) {
+    return `这家不认这把 key，或者 key 没有查看模型的权限（${result.status}）。不影响手填模型名。`
+  }
+  if (result.status === 404) {
+    return '这家没开放模型列表接口（404），模型名在控制台复制后手填就行。'
+  }
+  if (result.status === 429) return '被限流或者额度不够了（429），等一会儿再刷新。'
+  if (result.status >= 500) return `服务商那边自己出错了（${result.status}），过一会儿再刷新。`
+  return bodyHint(result.body, `没拉到模型列表（${result.status}）。`)
 }
 
 const TEST_PROMPT = '你好，请用一句话简单回应一下。'
