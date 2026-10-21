@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { WEATHER_PRESETS, joinWeather, parseWeather, weatherIcon } from './weather'
 import { askWeather, loadWeatherPlace, saveWeatherPlace } from './weatherQuery'
 import type { DayWeather } from './weatherQuery'
+import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 
 export default function WeatherDialog({
@@ -16,6 +17,7 @@ export default function WeatherDialog({
   onConfirm: (weather: string) => void
   onCancel: () => void
 }) {
+  const { t } = useI18n()
   const [states, setStates] = useState<string[]>(() => parseWeather(value))
   /** 地点是自由文本，记住上次写的，下次打开不用重敲 */
   const [place, setPlace] = useState(loadWeatherPlace)
@@ -48,12 +50,12 @@ export default function WeatherDialog({
 
   return (
     <Modal size="xs" onClose={onCancel}>
-      <div className="text-sm font-medium">天气</div>
+      <div className="text-sm font-medium">{t('weather.title')}</div>
 
       {/* 上面是已经排好的链条：点标签上的 ✕ 永远是删掉这一个 */}
       <div className="mt-3 min-h-11 rounded-lg border border-line bg-surface-2 px-3 py-2">
         {states.length === 0 ? (
-          <span className="text-xs text-muted">还没选，下面点一下加一个</span>
+          <span className="text-xs text-muted">{t('weather.empty')}</span>
         ) : (
           <div className="flex flex-wrap items-center gap-2">
             {states.map((state, index) => (
@@ -66,11 +68,11 @@ export default function WeatherDialog({
                 <button
                   type="button"
                   onClick={() => setStates(states.filter((_, i) => i !== index))}
-                  title="删掉这一个"
+                  title={t('weather.remove')}
                   className="ml-0.5 text-muted transition-colors hover:text-danger"
                 >
                   <span aria-hidden="true">✕</span>
-                  <span className="sr-only">删掉{state}</span>
+                  <span className="sr-only">{t('weather.removeAria', { state })}</span>
                 </button>
               </span>
             ))}
@@ -95,12 +97,12 @@ export default function WeatherDialog({
       {/* 查天气：自由输入地点，AI 联网查，结果要不要留由用户点 */}
       <div className="mt-3 rounded-lg border border-line bg-surface-2 px-3 py-2 text-xs">
         <label className="block">
-          <span className="text-muted">查天气的地点</span>
+          <span className="text-muted">{t('weather.place')}</span>
           <input
             value={place}
             spellCheck={false}
-            placeholder="自由输入，比如 杭州、洛杉矶、京都"
-            aria-label="查天气的地点"
+            placeholder={t('weather.placePlaceholder')}
+            aria-label={t('weather.place')}
             onChange={(event) => setPlace(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
@@ -111,11 +113,9 @@ export default function WeatherDialog({
             className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1.5 text-xs text-fg outline-none focus:border-brand"
           />
         </label>
-        <p className="mt-1 text-[11px] text-muted">
-          先让 AI 联网查，查不到会自动用天气接口兜底。
-        </p>
+        <p className="mt-1 text-[11px] text-muted">{t('weather.policy')}</p>
 
-        {busy && <p className="mt-2 text-muted">正在查这天的天气…</p>}
+        {busy && <p className="mt-2 text-muted">{t('weather.querying')}</p>}
 
         {queryError && <p className="mt-2 text-danger">{queryError}</p>}
 
@@ -123,14 +123,17 @@ export default function WeatherDialog({
           <div className="mt-2 rounded-md border border-brand/40 bg-surface px-2 py-1.5">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="text-fg">
-                查到：{weatherIcon(candidate.state) || '·'} {candidate.state}
+                {t('weather.found', {
+                  icon: weatherIcon(candidate.state) || '·',
+                  state: candidate.state,
+                })}
               </span>
               {candidate.source === 'ai' ? (
-                <span className="text-muted">AI 联网</span>
+                <span className="text-muted">{t('weather.sourceAi')}</span>
               ) : (
                 candidate.place && (
                   <span className="min-w-0 truncate text-muted" title={candidate.place}>
-                    程序兜底 · {candidate.place}
+                    {t('weather.sourceFallback', { place: candidate.place })}
                   </span>
                 )
               )}
@@ -139,18 +142,18 @@ export default function WeatherDialog({
                 onClick={applyCandidate}
                 className="text-brand transition-opacity hover:opacity-80"
               >
-                填上
+                {t('weather.apply')}
               </button>
               <button
                 type="button"
                 onClick={() => setCandidate(null)}
                 className="text-muted transition-colors hover:text-fg"
               >
-                不用
+                {t('weather.dismiss')}
               </button>
             </div>
             {states.length > 0 && (
-              <p className="mt-1 text-muted">「填上」会替换上面已经选好的天气。</p>
+              <p className="mt-1 text-muted">{t('weather.replaceHint')}</p>
             )}
           </div>
         )}
@@ -163,21 +166,21 @@ export default function WeatherDialog({
           onClick={() => void handleQuery()}
           className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg disabled:opacity-40"
         >
-          查天气
+          {t('weather.query')}
         </button>
         <button
           type="button"
           onClick={onCancel}
           className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
         >
-          取消
+          {t('common.cancel')}
         </button>
         <button
           type="button"
           onClick={() => onConfirm(joinWeather(states))}
           className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors"
         >
-          确认
+          {t('common.confirm')}
         </button>
       </div>
     </Modal>

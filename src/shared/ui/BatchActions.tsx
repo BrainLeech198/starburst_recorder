@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useI18n } from '@/shared/i18n/context'
 import BatchBar from './BatchBar'
 import { BAR_BUTTON } from './buttonStyles'
 import type { BatchSelect } from './useBatchSelect'
@@ -23,20 +24,21 @@ export default function BatchActions({
   /** 这个列表自己的批量动作 */
   children?: ReactNode
 }) {
+  const { t } = useI18n()
   return (
     <BatchBar count={select.count} unit={unit}>
       <button type="button" onClick={() => select.setAll(ids)} className={BAR_BUTTON}>
-        全选
+        {t('common.selectAll')}
       </button>
       <button type="button" onClick={() => select.invert(ids)} className={BAR_BUTTON}>
-        反选
+        {t('common.invert')}
       </button>
       <button type="button" onClick={select.clear} className={BAR_BUTTON}>
-        取消
+        {t('common.cancel')}
       </button>
       {children}
       <button type="button" onClick={select.exit} className={`${BAR_BUTTON} text-brand`}>
-        完成
+        {t('common.done')}
       </button>
     </BatchBar>
   )

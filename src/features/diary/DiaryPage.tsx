@@ -46,11 +46,12 @@ import { describeSave, saveTextFile } from '@/platform/saveFile'
 
 /** 纸条上的正文部分，普通模式和批量模式共用 */
 function SlipBody({ entry }: { entry: DiaryEntry }) {
+  const { t } = useI18n()
   return (
     <>
       <div className="font-hand text-sm">{formatMonthDayCn(entry.dateKey)}</div>
       <div className="font-hand mt-1 line-clamp-3 text-sm">
-        {entry.content.trim() || <span className="text-ink-muted">还没有写内容</span>}
+        {entry.content.trim() || <span className="text-ink-muted">{t('diary.emptyContent')}</span>}
       </div>
     </>
   )
@@ -83,8 +84,10 @@ export default function DiaryPage() {
   const entries = useLiveQuery(() => entriesOfDay(dateKey), [dateKey])
   const stamps = useLiveQuery(() => stampsOfDay(dateKey), [dateKey])
 
-  const unit = mode === 'diary' ? '条' : '笔'
-  const noun = mode === 'diary' ? '日记' : '随记'
+  const unit = mode === 'diary' ? t('diary.unitDiary') : t('diary.unitStamp')
+  /** 「3 条日记」「2 笔随记」：数量与量词一起由文案决定，方便以后换语言 */
+  const targetOf = (count: number) =>
+    t(mode === 'diary' ? 'diary.targetDiary' : 'diary.targetStamp', { count })
   const selectedCount = batch.count
   /** 当前栏目里能选中的全部 id：日记看日记，随记看随记 */
   const selectableIds =
@@ -115,7 +118,7 @@ export default function DiaryPage() {
   function handleCompose() {
     setHint('')
     if (!isConfigured(loadAiConfig())) {
-      setHint('还没配 AI 模型：去「设置 → AI 模型」选一家、把 key 填上，回来就能用了。')
+      setHint(t('diary.hintNoModel'))
       return
     }
     setComposeOpen(true)
@@ -129,17 +132,15 @@ export default function DiaryPage() {
     setHint('')
     const config = loadAiConfig()
     if (config.model.trim() === '') {
-      setHint('还没填模型名，识别不了手写。去「设置 → AI 模型」把模型和 key 填好，再回来点「图片导入」。')
+      setHint(t('diary.hintNoModelName'))
       return
     }
     if (!isConfigured(config)) {
-      setHint('AI 还没配全，识别不了手写。去「设置 → AI 模型」把服务地址、模型名和 key 补齐。')
+      setHint(t('diary.hintIncomplete'))
       return
     }
     if (config.vision === 'no') {
-      setHint(
-        '现在这个模型看不了图片。去「设置 → AI 模型」换一个能看图的模型（比如 qwen-vl-plus、gpt-4o-mini），或者点一次「测试连接」让它帮你判断。',
-      )
+      setHint(t('diary.hintNoVision'))
       return
     }
     setImportConfig(config)
@@ -167,8 +168,8 @@ export default function DiaryPage() {
     const entry = await createEntry(dateKey)
     await updateContent(entry.id, content)
     showToast({
-      message: '已写成一条日记放回这天，随记还都在',
-      actionLabel: '打开',
+      message: t('diary.composed'),
+      actionLabel: t('diary.open'),
       onAction: () => navigate(`/diary/${entry.code}`, { state: { editable: true } }),
     })
   }
@@ -179,8 +180,8 @@ export default function DiaryPage() {
     setPendingDelete(null)
     await removeEntry(targetId)
     showToast({
-      message: '已删除这条日记',
-      actionLabel: '撤销',
+      message: t('diary.deletedOne'),
+      actionLabel: t('diary.undo'),
       onAction: () => {
         void restoreEntry(targetId)
       },
@@ -194,8 +195,8 @@ export default function DiaryPage() {
     else await removeStamps(ids)
     batch.clear()
     showToast({
-      message: `已删除 ${ids.length} ${unit}${noun}`,
-      actionLabel: '撤销',
+      message: t('diary.batchDeleted', { target: targetOf(ids.length) }),
+      actionLabel: t('diary.undo'),
       onAction: () => {
         void (mode === 'diary' ? restoreEntries(ids) : restoreStamps(ids))
       },
@@ -208,7 +209,12 @@ export default function DiaryPage() {
     if (mode === 'diary') await moveEntries(ids, next)
     else await moveStamps(ids, next)
     batch.clear()
-    showToast({ message: `已把 ${ids.length} ${unit}${noun}移到 ${formatDateCn(next)}` })
+    showToast({
+      message: t('diary.moved', {
+        target: targetOf(ids.length),
+        date: formatDateCn(next),
+      }),
+    })
   }
 
   async function handleExport(format: ExportFormat) {
@@ -223,7 +229,10 @@ export default function DiaryPage() {
     showToast({
       message: describeSave(
         outcome,
-        `${pickedEntries.length + pickedStamps.length} ${unit}${noun}（${file.label}）`,
+        t('diary.exportDetail', {
+          target: targetOf(pickedEntries.length + pickedStamps.length),
+          label: file.label,
+        }),
         t,
       ),
     })
@@ -247,10 +256,10 @@ export default function DiaryPage() {
 
         <div className="flex items-center">
           <Tab active={mode === 'diary'} onClick={() => switchMode('diary')}>
-            日记
+            {t('diary.tabDiary')}
           </Tab>
           <Tab active={mode === 'stamp'} onClick={() => switchMode('stamp')}>
-            随记
+            {t('diary.tabStamp')}
           </Tab>
         </div>
       </div>
@@ -264,10 +273,10 @@ export default function DiaryPage() {
               {mode === 'diary' ? (
                 <>
                   <button type="button" onClick={handleCreate} className={SOLID_BUTTON}>
-                    ＋ 新增
+                    {t('diary.new')}
                   </button>
                   <button type="button" onClick={handleImageImport} className={SOLID_BUTTON}>
-                    图片导入
+                    {t('diary.imageImport')}
                   </button>
                   <input
                     ref={imageInputRef}
@@ -280,7 +289,7 @@ export default function DiaryPage() {
               ) : (
                 <>
                   <button type="button" onClick={handleAddStamp} className={SOLID_BUTTON}>
-                    ＋ 记一笔
+                    {t('diary.addStamp')}
                   </button>
                   {/* 这天一笔都没记时不亮，免得点了生成一篇空日记 */}
                   <button
@@ -289,7 +298,7 @@ export default function DiaryPage() {
                     disabled={stamps === undefined || stamps.length === 0}
                     className={`${SOLID_BUTTON} disabled:opacity-40`}
                   >
-                    ✨ AI 整理成日记
+                    {t('diary.compose')}
                   </button>
                 </>
               )}
@@ -301,14 +310,14 @@ export default function DiaryPage() {
                 }}
                 className={SOLID_BUTTON}
               >
-                批量
+                {t('diary.batch')}
               </button>
             </>
           )}
         </div>
 
         <Link to="/diary/trash" state={{ mode }} className={SOLID_BUTTON}>
-          回收站
+          {t('diary.trash')}
         </Link>
       </ToolbarRow>
 
@@ -326,11 +335,11 @@ export default function DiaryPage() {
       )}
 
       {mode === 'diary' && entries === undefined && (
-        <p className="mt-6 text-center text-sm text-muted">读取中…</p>
+        <p className="mt-6 text-center text-sm text-muted">{t('diary.reading')}</p>
       )}
 
       {mode === 'diary' && entries !== undefined && entries.length === 0 && (
-        <p className="mt-6 text-center text-sm text-muted">这天还没有日记</p>
+        <p className="mt-6 text-center text-sm text-muted">{t('diary.noEntries')}</p>
       )}
 
       {mode === 'diary' && entries !== undefined && entries.length > 0 && (
@@ -375,11 +384,11 @@ export default function DiaryPage() {
                   <button
                     type="button"
                     onClick={() => setPendingDelete(entry)}
-                    title="删除这条日记"
+                    title={t('diary.deleteHint')}
                     className="absolute top-1.5 right-1.5 inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-ink-muted opacity-70 transition-colors hover:text-danger hover:opacity-100"
                   >
                     <span aria-hidden="true">✕</span>
-                    <span className="sr-only">删除</span>
+                    <span className="sr-only">{t('diary.delete')}</span>
                   </button>
                 )}
               </li>
@@ -396,7 +405,7 @@ export default function DiaryPage() {
             disabled={selectedCount === 0}
             className={BAR_DANGER}
           >
-            删除
+            {t('diary.delete')}
           </button>
           <button
             type="button"
@@ -404,7 +413,7 @@ export default function DiaryPage() {
             disabled={selectedCount === 0}
             className={BAR_BUTTON}
           >
-            移动日期
+            {t('diary.moveDate')}
           </button>
           <button
             type="button"
@@ -412,16 +421,16 @@ export default function DiaryPage() {
             disabled={selectedCount === 0}
             className={BAR_BUTTON}
           >
-            导出
+            {t('diary.export')}
           </button>
         </BatchActions>
       )}
 
       {pendingDelete && (
         <ConfirmDialog
-          title="确定删除这条日记？"
-          description="删除后可以在回收站里找回来。"
-          confirmLabel="删除"
+          title={t('diary.deleteThisTitle')}
+          description={t('diary.deleteThisBody')}
+          confirmLabel={t('diary.delete')}
           onConfirm={handleDelete}
           onCancel={() => setPendingDelete(null)}
         />
@@ -429,9 +438,9 @@ export default function DiaryPage() {
 
       {batchDeleteOpen && (
         <ConfirmDialog
-          title={`删除选中的 ${selectedCount} ${unit}${noun}？`}
-          description="删除后可以在回收站对应的栏目里找回来，也能用底部提示条撤销。"
-          confirmLabel="删除"
+          title={t('diary.batchDeleteTitle', { target: targetOf(selectedCount) })}
+          description={t('diary.batchDeleteBody')}
+          confirmLabel={t('diary.delete')}
           onConfirm={handleBatchDelete}
           onCancel={() => setBatchDeleteOpen(false)}
         />
@@ -447,8 +456,7 @@ export default function DiaryPage() {
 
       {exportOpen && (
         <ExportDialog
-          count={selectedCount}
-          unit={unit}
+          target={targetOf(selectedCount)}
           onPick={handleExport}
           onCancel={() => setExportOpen(false)}
         />

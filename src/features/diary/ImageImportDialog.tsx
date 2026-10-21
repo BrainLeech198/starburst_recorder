@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Modal from '@/shared/ui/Modal'
 import { compressImage, transcribeDiary } from '@/features/ai/aiVision'
 import type { AiConfig } from '@/features/ai/aiConfig'
+import { useI18n } from '@/shared/i18n/context'
 
 type Phase = 'compressing' | 'recognition' | 'error'
 
@@ -26,6 +27,7 @@ export default function ImageImportDialog({
   onDone: (content: string) => void
   onCancel: () => void
 }) {
+  const { t } = useI18n()
   const [phase, setPhase] = useState<Phase>('compressing')
   const [error, setError] = useState('')
   const [seconds, setSeconds] = useState(0)
@@ -85,7 +87,7 @@ export default function ImageImportDialog({
 
   return (
     <Modal size="sm" onClose={onCancel}>
-      <div className="text-sm font-medium">把这张手写日记转成文字</div>
+      <div className="text-sm font-medium">{t('imageImport.title')}</div>
       <p className="mt-1 text-xs break-all text-muted">{file.name}</p>
 
       {phase !== 'error' ? (
@@ -96,10 +98,10 @@ export default function ImageImportDialog({
           />
           <div className="text-xs">
             <div className="text-fg">
-              {phase === 'compressing' ? '正在压缩图片…' : '正在识别手写字…'}
+              {phase === 'compressing' ? t('imageImport.compressing') : t('imageImport.recognizing')}
             </div>
             <div className="mt-0.5 text-muted">
-              已经等了 {seconds} 秒，一般十几秒；照片大、字多会久一点。
+              {t('imageImport.waited', { seconds })}
             </div>
           </div>
         </div>
@@ -108,20 +110,18 @@ export default function ImageImportDialog({
           <p className="mt-4 rounded-lg border border-danger px-3 py-2 text-xs text-danger">
             {error}
           </p>
-          <p className="mt-2 text-xs text-muted">
-            换个角度、让纸占满画面、光线亮一点，再试一次通常就成了。
-          </p>
+          <p className="mt-2 text-xs text-muted">{t('imageImport.hint')}</p>
         </>
       )}
 
       <div className="mt-4 flex items-center justify-end gap-2">
         {phase === 'error' && (
           <button type="button" onClick={retry} className={FOOTER_BUTTON}>
-            再试一次
+            {t('imageImport.retry')}
           </button>
         )}
         <button type="button" onClick={onCancel} className={FOOTER_BUTTON}>
-          取消
+          {t('common.cancel')}
         </button>
       </div>
     </Modal>

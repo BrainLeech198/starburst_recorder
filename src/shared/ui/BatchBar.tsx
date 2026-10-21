@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useI18n } from '@/shared/i18n/context'
 
 /**
  * 批量多选时贴在底部的悬浮工具条：日记、随记、回收站三处共用。
@@ -13,11 +14,12 @@ export default function BatchBar({
   unit: string
   children: ReactNode
 }) {
+  const { t } = useI18n()
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
       <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-1 rounded-xl border border-line bg-surface px-3 py-2">
         <span className="px-2 text-sm text-fg">
-          已选 {count} {unit}
+          {t('common.selectedCount', { count, unit })}
         </span>
         {children}
       </div>

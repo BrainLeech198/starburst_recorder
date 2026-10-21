@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import type { FocusEvent as ReactFocusEvent } from 'react'
 import { monthGrid, toDateKey, todayKey } from '@/core/utils/dateKey'
+import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import { INPUT_NARROW } from '@/shared/ui/inputStyles'
-
-const WEEK_LABELS = ['日', '一', '二', '三', '四', '五', '六']
 
 export default function DatePickerDialog({
   value,
@@ -15,6 +14,7 @@ export default function DatePickerDialog({
   onConfirm: (dateKey: string) => void
   onCancel: () => void
 }) {
+  const { t } = useI18n()
   const [viewYear, setViewYear] = useState(() => Number(value.slice(0, 4)))
   const [viewMonth, setViewMonth] = useState(() => Number(value.slice(5, 7)))
   const [selected, setSelected] = useState(value)
@@ -65,6 +65,7 @@ export default function DatePickerDialog({
   const { firstWeekday, daysInMonth } = monthGrid(viewYear, viewMonth)
   const cells: (number | null)[] = Array.from({ length: firstWeekday }, () => null)
   for (let day = 1; day <= daysInMonth; day += 1) cells.push(day)
+  const weekLabels = t('datePicker.weekdays').split(',')
 
   return (
     <Modal size="xs" onClose={onCancel}>
@@ -72,7 +73,7 @@ export default function DatePickerDialog({
         <button
           type="button"
           onClick={() => shiftMonth(-1)}
-          aria-label="上个月"
+          aria-label={t('datePicker.prev')}
           className="rounded-lg px-2 py-1 text-sm text-muted transition-colors hover:text-fg"
         >
           ‹
@@ -90,7 +91,7 @@ export default function DatePickerDialog({
               }}
               className={`${INPUT_NARROW} w-20 text-center`}
             />
-            <span className="text-sm text-muted">年</span>
+            <span className="text-sm text-muted">{t('datePicker.year')}</span>
             <input
               type="number"
               value={draftMonth}
@@ -100,23 +101,23 @@ export default function DatePickerDialog({
               }}
               className={`${INPUT_NARROW} w-14 text-center`}
             />
-            <span className="text-sm text-muted">月</span>
+            <span className="text-sm text-muted">{t('datePicker.month')}</span>
           </div>
         ) : (
           <button
             type="button"
             onClick={startHeadEdit}
-            title="点击可手动填写年月"
+            title={t('datePicker.headEditHint')}
             className="rounded-lg px-2 py-1 text-sm font-medium transition-colors hover:text-brand"
           >
-            {viewYear} 年 {viewMonth} 月
+            {t('datePicker.head', { year: viewYear, month: viewMonth })}
           </button>
         )}
 
         <button
           type="button"
           onClick={() => shiftMonth(1)}
-          aria-label="下个月"
+          aria-label={t('datePicker.next')}
           className="rounded-lg px-2 py-1 text-sm text-muted transition-colors hover:text-fg"
         >
           ›
@@ -124,7 +125,7 @@ export default function DatePickerDialog({
       </div>
 
       <div className="mt-3 grid grid-cols-7 gap-1 text-center">
-        {WEEK_LABELS.map((label) => (
+        {weekLabels.map((label) => (
           <span key={label} className="py-1 text-xs text-muted">
             {label}
           </span>
@@ -155,7 +156,7 @@ export default function DatePickerDialog({
           onClick={goToday}
           className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
         >
-          回到今日
+          {t('datePicker.today')}
         </button>
         <div className="flex gap-2">
           <button
@@ -163,14 +164,14 @@ export default function DatePickerDialog({
             onClick={onCancel}
             className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
           >
-            取消
+            {t('common.cancel')}
           </button>
           <button
             type="button"
             onClick={() => onConfirm(selected)}
             className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors"
           >
-            确定
+            {t('common.confirm')}
           </button>
         </div>
       </div>
