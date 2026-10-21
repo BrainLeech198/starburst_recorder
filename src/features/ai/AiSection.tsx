@@ -34,6 +34,7 @@ import {
   loadModels,
   missingFields,
   newModelId,
+  presetNameKey,
   saveActiveId,
   saveModels,
 } from './aiConfig'
@@ -117,8 +118,14 @@ export default function AiSection() {
   const missing = active ? missingFields(active) : []
   const ready = active ? isConfigured(active) : false
 
+  /** 预设厂商按 providerId 取文案；用户自己敲的名字按原样显示 */
+  function displayProviderName(model: AiModel) {
+    const key = presetNameKey(model.providerId)
+    return key ? t(key) : model.providerName || t('ai.preset.custom')
+  }
+
   const summary = active
-    ? `${active.providerName} · ${active.model}`
+    ? `${displayProviderName(active)} · ${active.model}`
     : models.length === 0
       ? t('ai.noModels')
       : t('ai.noneActive')
@@ -127,7 +134,9 @@ export default function AiSection() {
       ? t('ai.emptyHint')
       : t('ai.pickOne')
     : missing.length > 0
-      ? t('ai.missingFields', { fields: missing.join('、') })
+      ? t('ai.missingFields', {
+          fields: missing.map((key) => t(key)).join(t('common.listSeparator')),
+        })
       : t('ai.readyHint')
 
   const badge = !active
@@ -342,7 +351,7 @@ export default function AiSection() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-medium break-all text-fg">{model.model}</span>
-                      <span className="text-xs text-muted">{model.providerName}</span>
+                      <span className="text-xs text-muted">{displayProviderName(model)}</span>
                       {isActive && <SettingBadge tone="ok">{t('ai.active')}</SettingBadge>}
                       {!configOk && <SettingBadge tone="bad">{t('ai.needKey')}</SettingBadge>}
                     </div>
@@ -455,12 +464,12 @@ export default function AiSection() {
         <Modal size="lg" onClose={() => setEditing(null)} panelClassName="max-h-[80vh] overflow-y-auto">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h3 className="text-sm font-medium text-fg">{t('ai.editTitle')}</h3>
-            <span className="font-mono text-xs text-muted">{editing.providerName}</span>
+            <span className="font-mono text-xs text-muted">{displayProviderName(editing)}</span>
           </div>
           <ModelForm
             initial={{
               providerId: editing.providerId,
-              providerName: editing.providerName,
+              providerName: displayProviderName(editing),
               baseUrl: editing.baseUrl,
               model: editing.model,
               apiKey: editing.apiKey,

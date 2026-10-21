@@ -13,8 +13,10 @@ import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 export default function AgentMenuPage() {
   const { prefs } = useBall()
   const { t } = useI18n()
-  const shapeLabel = MASCOT_SHAPES.find((item) => item.id === prefs.shape)?.label ?? prefs.shape
-  const sizeLabel = MASCOT_SIZES.find((item) => item.id === prefs.size)?.label ?? prefs.size
+  const shapeOption = MASCOT_SHAPES.find((item) => item.id === prefs.shape)
+  const shapeLabel = shapeOption ? t(shapeOption.labelKey) : prefs.shape
+  const sizeOption = MASCOT_SIZES.find((item) => item.id === prefs.size)
+  const sizeLabel = sizeOption ? t(sizeOption.labelKey) : prefs.size
   const aiReady = isConfigured(loadAiConfig())
 
   return (

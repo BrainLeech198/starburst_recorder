@@ -1,28 +1,30 @@
+import type { MessageKey } from '@/shared/i18n/messages/zh'
+
 export type ThemeId = 'deep' | 'light'
 
-export const THEMES: { id: ThemeId; label: string }[] = [
-  { id: 'deep', label: '深空' },
-  { id: 'light', label: '浅色' },
+export const THEMES: { id: ThemeId; labelKey: MessageKey }[] = [
+  { id: 'deep', labelKey: 'theme.deep' },
+  { id: 'light', labelKey: 'theme.light' },
 ]
 
 export const THEME_KEY = 'starburst.theme'
 export const ACCENT_KEY = 'starburst.accent'
 
 // 主题色色板（同时决定强调色、导航背景和悬浮球颜色）
-// 带中文名是因为色值（#6ee7ff）对使用者没有意义、也不好念——有名字才说得清"我用的是哪个"
-export const ACCENT_COLORS: { value: string; label: string }[] = [
-  { value: '#6ee7ff', label: '青' },
-  { value: '#7dd3a0', label: '薄荷' },
-  { value: '#f0abfc', label: '藕荷' },
-  { value: '#fca5a5', label: '曙红' },
-  { value: '#fcd34d', label: '麦黄' },
-  { value: '#a5b4fc', label: '雾蓝' },
+// 带名字是因为色值（#6ee7ff）对使用者没有意义、也不好念——有名字才说得清"我用的是哪个"
+export const ACCENT_COLORS: { value: string; labelKey: MessageKey }[] = [
+  { value: '#6ee7ff', labelKey: 'accent.cyan' },
+  { value: '#7dd3a0', labelKey: 'accent.mint' },
+  { value: '#f0abfc', labelKey: 'accent.lilac' },
+  { value: '#fca5a5', labelKey: 'accent.rose' },
+  { value: '#fcd34d', labelKey: 'accent.wheat' },
+  { value: '#a5b4fc', labelKey: 'accent.haze' },
 ]
 export const DEFAULT_ACCENT = ACCENT_COLORS[0].value
 
-/** 色值 → 中文名；认不出就把原值返回，不至于显示空白 */
-export function accentLabel(value: string) {
-  return ACCENT_COLORS.find((item) => item.value === value)?.label ?? value
+/** 色值 → 文案 key；认不出就返回 null，调用方回退成原始色值 */
+export function accentLabelKey(value: string): MessageKey | null {
+  return ACCENT_COLORS.find((item) => item.value === value)?.labelKey ?? null
 }
 
 export function readTheme(): ThemeId {
