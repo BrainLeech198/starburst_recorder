@@ -86,7 +86,7 @@ export default function ImageImportDialog({
   }
 
   return (
-    <Modal size="sm" onClose={onCancel}>
+    <Modal size="sm" label={t('imageImport.title')} onClose={onCancel}>
       <div className="text-sm font-medium">{t('imageImport.title')}</div>
       <p className="mt-1 text-xs break-all text-muted">{file.name}</p>
 

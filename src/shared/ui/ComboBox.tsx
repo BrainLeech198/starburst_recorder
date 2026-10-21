@@ -46,6 +46,7 @@ export default function ComboBox({
   const rootRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const listId = useId()
+  const optionId = (index: number) => `${listId}-option-${index}`
 
   const query = typed?.trim().toLowerCase() ?? ''
   const filtered =
@@ -111,6 +112,7 @@ export default function ComboBox({
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
+        aria-activedescendant={open && active >= 0 ? optionId(active) : undefined}
         onChange={(event) => {
           setTyped(event.target.value)
           setActive(-1)
@@ -165,6 +167,7 @@ export default function ComboBox({
               return (
                 <button
                   key={option.value}
+                  id={optionId(index)}
                   type="button"
                   role="option"
                   aria-selected={selected}

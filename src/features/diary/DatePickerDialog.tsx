@@ -68,7 +68,7 @@ export default function DatePickerDialog({
   const weekLabels = t('datePicker.weekdays').split(',')
 
   return (
-    <Modal size="xs" onClose={onCancel}>
+    <Modal size="xs" label={t('datePicker.title')} onClose={onCancel}>
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"

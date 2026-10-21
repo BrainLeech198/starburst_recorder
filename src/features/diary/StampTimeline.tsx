@@ -95,6 +95,7 @@ function StampRow({
               rows={1}
               autoFocus={autoFocus}
               spellCheck={false}
+              aria-label={t('stamp.placeholder')}
               placeholder={t('stamp.placeholder')}
               onChange={(event) => setDraft(event.target.value)}
               onBlur={() => {

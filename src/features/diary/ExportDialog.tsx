@@ -21,7 +21,7 @@ export default function ExportDialog({
 }) {
   const { t } = useI18n()
   return (
-    <Modal size="xs" onClose={onCancel}>
+    <Modal size="xs" label={t('export.title', { target })} onClose={onCancel}>
       <div className="text-sm font-medium">{t('export.title', { target })}</div>
       <p className="mt-2 text-xs text-muted">{t('export.hint')}</p>
 

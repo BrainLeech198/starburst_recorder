@@ -49,8 +49,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {toast && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-20 z-[60] flex justify-center px-4">
+      {/* 常驻的读屏播报区：节点先放好，内容后插入，读屏才会念出来 */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="pointer-events-none fixed inset-x-0 bottom-20 z-[60] flex justify-center px-4"
+      >
+        {toast && (
           <div className="pointer-events-auto flex items-center gap-4 rounded-xl border border-line bg-surface px-4 py-2">
             <span className="text-sm text-fg">{toast.message}</span>
             {toast.actionLabel && (
@@ -67,8 +73,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               </button>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </ToastContext.Provider>
   )
 }

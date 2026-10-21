@@ -20,7 +20,7 @@ export default function ConfirmDialog({
   const { t } = useI18n()
 
   return (
-    <Modal size="xs" onClose={onCancel}>
+    <Modal size="xs" label={title} onClose={onCancel}>
       <div className="text-sm font-medium">{title}</div>
       {description && <p className="mt-2 text-xs text-muted">{description}</p>}
 

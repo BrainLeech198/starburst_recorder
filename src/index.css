@@ -45,6 +45,9 @@
 
 /* 深空：整条深色阶都由主题色派生，保证与主题色同调 */
 :root {
+  /* 手机底栏的实时高度：批量工具条用它把自己抬到底栏上方（见 AppShell / BatchBar） */
+  --sb-nav-h: 0px;
+
   --color-bg: color-mix(in srgb, var(--sb-accent, #6ee7ff) 8%, #0a0d12);
   --color-surface: color-mix(in srgb, var(--sb-accent, #6ee7ff) 13%, #0a0d12);
   --color-surface-2: color-mix(in srgb, var(--sb-accent, #6ee7ff) 18%, #0a0d12);
@@ -77,8 +80,12 @@
   --color-surface-2: color-mix(in srgb, var(--sb-accent, #0891b2) 9%, #eef1f6);
   --color-line: color-mix(in srgb, var(--sb-accent, #0891b2) 16%, #e1e5ec);
   --color-fg: #161b24;
-  --color-muted: #6b7385;
-  --color-brand: color-mix(in srgb, var(--sb-accent, #0891b2) 60%, #0a1220);
+  /* 浅色底比深色底亮得多，muted 要从 #6b7385 压深到 #5f6677，
+     12px 提示文字在页面底/卡片底上才够 4.5:1（2026-10-21 体检） */
+  --color-muted: #5f6677;
+  /* 主题色文字和实心按钮上的白字都要够对比：
+     原 60% 的过亮主题色（雾蓝、麦黄）在浅色导航上只有 4:1 左右，压到 45% 后全部过 4.5:1 */
+  --color-brand: color-mix(in srgb, var(--sb-accent, #0891b2) 45%, #0a1220);
   --color-nav: color-mix(in srgb, var(--sb-accent, #0891b2) 20%, #ffffff);
   --color-nav-strong: color-mix(in srgb, var(--sb-accent, #0891b2) 34%, #d9e2ee);
   --color-danger: #d92d20;
