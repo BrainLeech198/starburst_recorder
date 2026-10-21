@@ -4,8 +4,9 @@
  * 结构照 Material 3 顶部栏：左边放导航（返回），右边放本页的整体性动作（新增、测试、批量…），
  * 页面名在下面一行。返回用全站统一的实心红（BACK_BUTTON）。
  *
- * 只要页面有整体性动作，这条「返回 + 动作」的横条就套一层 ToolbarRow（比页面底色亮半档），
- * 让动作区跟下面的内容分开；纯返回的页头不套，免得返回按钮孤零零地坐在一块底色里。
+ * 这条「返回 + 动作」的横条一律套 ToolbarRow（比页面底色亮半档），让页头跟下面的内容分开。
+ * 2026-10-21 改：原来只有带动作的页头才套，结果设置类的纯返回页跟 AI 页长得不一样；
+ * 现在不管有没有动作都套，返回行本身也是一条按钮行。
  * 动作可以有多个，窄屏时自动折到下一行，底色仍然包住整块。
  *
  * 刻意不吸顶（2026-10-20 定）：设置类二级页都很短，吸顶白占地方；日记编辑页是一整张纸，
@@ -32,7 +33,7 @@ export default function PageHeader({
   description?: string
   /** 标题右侧的当前值，通常传一个 <SettingBadge> */
   badge?: ReactNode
-  /** 本页的整体性动作（保存 / 批量恢复 / 新增 / 测试…）；有动作才套工具条底色 */
+  /** 本页的整体性动作（保存 / 批量恢复 / 新增 / 测试…）；没有动作时工具条里只放返回 */
   actions?: ReactNode
   /** 返回哪儿：子页回自己的菜单，菜单回「我的」 */
   backTo?: string
@@ -53,11 +54,7 @@ export default function PageHeader({
 
   return (
     <>
-      {actions ? (
-        <ToolbarRow className="flex flex-wrap items-center justify-between gap-2">{row}</ToolbarRow>
-      ) : (
-        <div className="flex items-center justify-between gap-2">{row}</div>
-      )}
+      <ToolbarRow className="flex flex-wrap items-center justify-between gap-2">{row}</ToolbarRow>
 
       {(title || badge) && (
         <div className="mt-3 flex items-start justify-between gap-3">
