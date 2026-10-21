@@ -14,6 +14,7 @@ import PageShell from '../../shared/ui/PageShell'
 import { OUTLINE_BUTTON } from '../../shared/ui/buttonStyles'
 import { desktopBridge } from '../../core/desktop'
 import type { DesktopBridge } from '../../core/desktop'
+import { db } from '../../core/db/db'
 import { buildBackup, readBackup } from '../diary/diaryBackup'
 import type { BackupPayload } from '../diary/diaryBackup'
 import { describeSave, saveTextFile } from '../../core/saveFile'
@@ -37,12 +38,14 @@ interface Report {
 function DataFolderCard() {
   // 桌面壳的预加载脚本会注入它，浏览器里是 undefined
   const bridge: DesktopBridge | undefined = desktopBridge()
-  const [path, setPath] = useState('')
+  const [folder, setFolder] = useState('')
+  const [dbFile, setDbFile] = useState('')
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     if (!bridge) return
-    void bridge.dataPath().then((value) => setPath(value ?? ''))
+    void bridge.dataPath().then((value) => setFolder(value ?? ''))
+    void bridge.db.path().then((value) => setDbFile(value ?? ''))
   }, [bridge])
 
   if (!bridge) return null
@@ -52,11 +55,14 @@ function DataFolderCard() {
   return (
     <SettingCard
       title="数据在哪"
-      description="你的日记实际就落在这个目录里。想备份或搬家，用上面的「导出全部数据」更稳；这里只是让你能亲眼看到它在哪。"
+      description="桌面版的数据存在一个 SQLite 文件里，就在下面这个目录。想备份或搬家，用上面的「导出全部数据」更稳；这里只是让你能亲眼看到它在哪。"
       badge={<SettingBadge>桌面程序</SettingBadge>}
     >
       <SettingGroup label="落盘位置">
-        <p className="font-mono text-xs break-all text-fg">{path || '读取中…'}</p>
+        <p className="text-xs text-muted">数据目录</p>
+        <p className="font-mono text-xs break-all text-fg">{folder || '读取中…'}</p>
+        <p className="mt-2 text-xs text-muted">数据库文件</p>
+        <p className="font-mono text-xs break-all text-fg">{dbFile || '读取中…'}</p>
         <button
           type="button"
           onClick={() => {
@@ -79,6 +85,104 @@ function DataFolderCard() {
         </p>
       </SettingGroup>
     </SettingCard>
+  )
+}
+
+/** 旧版 IndexedDB 数据搬过来说过「已搬」的标记：搬完就别再天天提示 */
+const LEGACY_FLAG = 'sb_legacy_migrated'
+
+/**
+ * 「旧版数据」：桌面从 IndexedDB 换到 SQLite 之后，老数据还在 Chromium 的
+ * IndexedDB 里，界面上已经读不到它了。这里给一条手动搬过来的路——
+ * 不自动迁移：用户没点确认就一个字也不写。
+ */
+function LegacyCard() {
+  const bridge = desktopBridge()
+  const { showToast } = useToast()
+  const [legacy, setLegacy] = useState<{ entries: number; stamps: number; days: number } | null>(
+    null,
+  )
+  const [migrated, setMigrated] = useState(() => localStorage.getItem(LEGACY_FLAG) === '1')
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!bridge) return
+    void Promise.all([db.diaryEntries.count(), db.diaryStamps.count(), db.diaryDays.count()])
+      .then(([entries, stamps, days]) => setLegacy({ entries, stamps, days }))
+      .catch(() => setLegacy(null))
+  }, [bridge])
+
+  // 浏览器里没桥、老数据是当前正在用的数据，都不该出现这张卡
+  if (!bridge || !legacy || migrated) return null
+  // 老库本来就是空的：没什么可搬的
+  if (legacy.entries + legacy.stamps + legacy.days === 0) return null
+
+  async function handleMigrate() {
+    setConfirming(false)
+    setBusy(true)
+    setError('')
+    try {
+      const [entries, stamps, days] = await Promise.all([
+        db.diaryEntries.toArray(),
+        db.diaryStamps.toArray(),
+        db.diaryDays.toArray(),
+      ])
+      const stats = await importBackup({ entries, stamps, days })
+      localStorage.setItem(LEGACY_FLAG, '1')
+      setMigrated(true)
+      showToast({
+        message: `旧版数据已搬过来：日记 ${stats.entries.total} 条、随记 ${stats.stamps.total} 笔、天气 ${stats.days.total} 天`,
+      })
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <SettingCard
+        title="旧版数据"
+        description="这台机器上还留着以前存在浏览器数据库（IndexedDB）里的内容。桌面版已经改用 SQLite，界面上看不到它们了，想保留就搬一次。"
+        badge={<SettingBadge tone="bad">待搬</SettingBadge>}
+      >
+        <SettingGroup label="检测到的旧数据">
+          <p className="text-xs text-fg">
+            日记 {legacy.entries} 条 · 随记 {legacy.stamps} 笔 · 天气 {legacy.days} 天
+          </p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setConfirming(true)}
+            className={`${OUTLINE_BUTTON} mt-2`}
+          >
+            {busy ? '正在搬…' : '搬到现在使用的数据库'}
+          </button>
+          <p className="mt-2 text-xs text-muted">
+            搬完旧数据还留在原处，不会被删；同一条记录以旧数据为准。
+          </p>
+          {error !== '' && (
+            <p className="mt-2 rounded-lg border border-danger px-3 py-2 text-xs text-danger">
+              {error}
+            </p>
+          )}
+        </SettingGroup>
+      </SettingCard>
+
+      {confirming && (
+        <ConfirmDialog
+          title="把旧版数据搬过来？"
+          description={`会把旧数据库里的 ${legacy.entries} 条日记、${legacy.stamps} 笔随记、${legacy.days} 天天气并进现在使用的数据库。同一条记录以旧数据为准，其它内容不动。`}
+          confirmLabel="搬过来"
+          tone="brand"
+          onConfirm={() => void handleMigrate()}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
+    </>
   )
 }
 
@@ -213,6 +317,7 @@ export default function DataPage() {
       </SettingCard>
 
       <DataFolderCard />
+      <LegacyCard />
 
       {pending && (
         <ConfirmDialog

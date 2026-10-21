@@ -57,6 +57,15 @@ export interface DesktopBridge {
   dataPath: () => Promise<string | null>
   /** 用系统文件管理器打开那个目录，返回是否成功 */
   openDataFolder: () => Promise<boolean>
+  /**
+   * 本地 SQLite 通道。方法名和参数由主进程白名单校验，
+   * 渲染进程拿到的仍然是可以结构化克隆的普通对象。
+   */
+  db: {
+    call: (method: string, args: unknown[]) => Promise<unknown>
+    /** 数据库文件的实际路径，给「数据在哪」显示用 */
+    path: () => Promise<string | null>
+  }
 }
 
 declare global {

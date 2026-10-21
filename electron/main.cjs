@@ -8,6 +8,7 @@ const path = require('node:path')
 const nodeUrl = require('node:url')
 const fs = require('node:fs')
 const os = require('node:os')
+const { createDatabase } = require('./database.cjs')
 
 /** 窗口不能小于这个尺寸，免得版式被压坏 */
 const MIN_WIDTH = 420
@@ -170,9 +171,24 @@ ipcMain.handle('ai:chat', async (_event, request) => {
 })
 
 /**
- * 「数据在哪」：userData 就是 Chromium 给这个程序分的 profile 目录，
- * 网页那边的 IndexedDB 就落在它里面。给用户一个能亲眼看到的路径，
- * 「数据全在自己机器上」这句话才落到实处。
+ * 本地数据库：桌面版的数据落在 userData 下的 starburst.db（SQLite）。
+ * 懒打开——第一次有请求时才建文件，窗口本身不依赖数据库能不能开。
+ */
+let database = null
+function getDatabase() {
+  if (!database) {
+    database = createDatabase(path.join(app.getPath('userData'), 'starburst.db'))
+  }
+  return database
+}
+
+// 渲染进程只有这一个入口，方法名由 database.cjs 的白名单兜底
+ipcMain.handle('db:call', (_event, method, args) => getDatabase().call(method, args))
+ipcMain.handle('db:path', () => getDatabase().file)
+
+/**
+ * 「数据在哪」：userData 是整个程序的数据目录，数据库文件就在它下面。
+ * 给用户一个能亲眼看到的路径，「数据全在自己机器上」这句话才落到实处。
  */
 ipcMain.handle('data:path', () => app.getPath('userData'))
 
@@ -205,11 +221,21 @@ async function runSelfCheck(win) {
           read.onerror = () => resolve('read-error')
         }
       })
+      const sqlite = await (async () => {
+        if (!window.desktop?.db) return 'no-bridge'
+        try {
+          const totals = await window.desktop.db.call('totals', [])
+          return 'ok:' + totals.entries + '/' + totals.stamps
+        } catch (error) {
+          return 'fail:' + error.message
+        }
+      })()
       return JSON.stringify({
         origin: location.origin,
         href: location.href,
         fontLoaded,
         idb,
+        sqlite,
         title: document.title,
         rendered: Boolean(document.querySelector('#root')?.childElementCount),
       })
@@ -251,4 +277,11 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('will-quit', () => {
+  if (database) {
+    database.close()
+    database = null
+  }
 })

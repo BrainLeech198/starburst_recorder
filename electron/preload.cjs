@@ -1,4 +1,4 @@
-// 预加载脚本：只把「窗口尺寸」「AI 请求」「数据目录」三件事递给网页，其余一概不开
+// 预加载脚本：只把「窗口尺寸」「AI 请求」「数据目录」「本地数据库」递给网页，其余一概不开
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('desktop', {
@@ -10,4 +10,9 @@ contextBridge.exposeInMainWorld('desktop', {
   models: (request) => ipcRenderer.invoke('ai:models', request),
   dataPath: () => ipcRenderer.invoke('data:path'),
   openDataFolder: () => ipcRenderer.invoke('data:open-folder'),
+  // 本地数据库只有这两个动作：按白名单调方法、拿文件路径
+  db: {
+    call: (method, args) => ipcRenderer.invoke('db:call', method, args),
+    path: () => ipcRenderer.invoke('db:path'),
+  },
 })

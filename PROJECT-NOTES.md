@@ -21,7 +21,7 @@
 | 语言 | TypeScript **6.x** | **刻意锁在 6.x**，升到 7 会和 typescript-eslint 不兼容 |
 | 路由 | react-router 8，**hash 路由** | 打包进桌面/手机壳后，hash 路由不需要服务端支持 |
 | 样式 | Tailwind v4（**CSS-first**） | 用 `@theme` 定义令牌，**没有也不该有 tailwind.config.js** |
-| 存储 | Dexie 4 + IndexedDB | 纯本地、零原生依赖、三种容器同一套代码（详见 §4） |
+| 存储 | 桌面 **SQLite（`node:sqlite`）**；浏览器 / 安卓 Dexie 4 + IndexedDB | 桌面数据能自己复制一个文件备份；开发与手机仍是零原生依赖（详见 §4） |
 | 桌面 | **Electron** | 本机不需要装 Rust/MSVC 就能出成品；以后想换 Tauri 也很便宜（包的是同一份 `dist/`） |
 | 手机 | **Capacitor**（尚未开始） | 同一份 web 代码套壳 |
 | 字体子集化 | Python fonttools | 一次性工具，产物已在仓库里 |
@@ -40,7 +40,7 @@
 
 - **不发布 web 端**（但**开发调试仍然在浏览器跑 Vite**，这两件事是分开的）
 - 不用 Python/pywebview 封装窗口（绕开既定路线、维护成本全在自己身上）
-- 暂不换 SQLite（触发条件见 §10）
+- 桌面存储已换 SQLite（2026-10-21）；**Android 暂不换**，等桌面这版跑稳再说（见 §10）
 
 ## 3. 打包（Windows 与手机 debug APK 都能出）
 
@@ -120,14 +120,16 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 # 结果同时写到 %TEMP%\starburst-selfcheck.json
 ```
 
-会探测：`origin`、手写体是否加载、IndexedDB 能否读写、页面是否渲染。
+会探测：`origin`、手写体是否加载、IndexedDB 能否读写、页面是否渲染、**SQLite 通道能否调通（`sqlite: "ok:日记数/随记数"`）**。
 **打包后必须跑一次**——asar 打包最容易出现"开发能跑、打包后白屏"。
 
 ## 4. 数据模型与"数据到底在哪"
 
 **唯一真相源：`src/core/db/schema.ts`**（三张表 + 字段 + 索引见 `src/core/db/db.ts`）。
 
-**存储抽象（2026-10-21）**：页面只 import `features/diary/diaryRepo.ts`，它由 `core/db/index.ts` 选中的 `DiaryStore` 实现提供；契约在 `core/db/store.ts`，当前实现是 `core/db/dexieStore.ts`。实时订阅仍从 `core/db/live.ts` 拿（现在是 Dexie 的 `useLiveQuery`）。换 SQLite / 同步层时只改「实现 + `core/db/index.ts` + `live.ts`」，页面、备份、AI 整理都不动。契约要求：批量写返回受影响行数、导入三张表必须同一事务、任何实现都要能让页面收到变化通知。
+**存储抽象（2026-10-21）**：页面只 import `features/diary/diaryRepo.ts`，它由 `core/db/index.ts` 选中的 `DiaryStore` 实现提供；契约在 `core/db/store.ts`。**选择点按环境自动选**：桌面程序有 `window.desktop.db` → `sqliteStore`（主进程 `electron/database.cjs`，真库是 SQLite）；浏览器 / 安卓 → `dexieStore`。两种实现外面统一套 `withChangeBus`（`core/db/changes.ts`）：写方法成功后广播一次，`core/db/live.ts` 里**自实现的 `useLiveQuery`** 据此重查——不再依赖 dexie-react-hooks（它看不见主进程写的库）。契约要求：批量写返回受影响行数、导入三张表必须同一事务、任何实现都要能让页面收到变化通知。
+
+**桌面 SQLite（2026-10-21 落地）**：用 Electron 44 内置的 `node:sqlite`（Node 24 自带），**不装原生模块、不用为 Electron 重编**；主进程 `electron/database.cjs` 建表 + WAL + 预编译语句，渲染进程只能通过 `db:call` 白名单调方法，拼不了任意 SQL。数据库文件：`%APPDATA%\starburst-recorder\starburst.db`。旧 IndexedDB 数据**不自动迁移**：设置页「数据与备份」里有「旧版数据」卡片（桌面端、检测到老库非空时才出现），用户点确认后把 IndexedDB 里的日记 / 随记 / 天气并进 SQLite，搬完写个 `sb_legacy_migrated` 标记不再提示。
 
 | 表 | 一行是什么 | 主键 / 索引要点 |
 |---|---|---|
@@ -148,13 +150,13 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 
 | 环境 | origin | 数据位置 |
 |---|---|---|
-| 浏览器开发 | `http://localhost:5173` | 浏览器自己的 profile |
-| 桌面程序 | `app://starburst` | `%APPDATA%\starburst-recorder\`（Chromium profile） |
-| 手机 App（将来） | `https://localhost` | App 私有目录 |
+| 浏览器开发 | `http://localhost:5173` | 浏览器自己的 profile（IndexedDB） |
+| 桌面程序 | `app://starburst` | `%APPDATA%\starburst-recorder\starburst.db`（SQLite 文件，同目录还有 Chromium profile） |
+| 手机 App（将来） | `https://localhost` | App 私有目录（IndexedDB） |
 
 > 桌面端这个目录名来自 Electron 的 `app.getPath('userData')`，取的是 **package.json 的 `name`**（`starburst-recorder`），
 > 跟 `build.productName`（星芒记录者）没关系——那个只决定打包出来的 exe 叫什么。
-> 设置页「数据与备份 → 数据在哪」里显示的就是这个路径（由主进程报上来），所以界面上写的是真话。
+> 设置页「数据与备份 → 数据在哪」里同时显示这个目录和 `starburst.db` 的完整路径（由主进程报上来），所以界面上写的是真话。
 
 所以：**浏览器里攒的日记，打出来的桌面程序里一条也看不到**，搬家只能靠「导出 → 导入」。
 导出与导入都已做（都在设置页的「数据与备份」页里），数据闭环现在是通的。
@@ -267,22 +269,21 @@ package/windows/               Inno 打包相关
 | 发布 web 端 | 明确只做 Windows + Android 两种程序 |
 | Python + pywebview 封装 | 产物大小/内存不比 Electron 好，维护成本全落到自己身上 |
 | Inno Setup 直接"把网页做成程序" | 它只是安装包生成器，必须已有 exe 才有意义 |
-| 现在换 SQLite | 见下 |
 | `file://` 加载页面 | origin 是 opaque，存储/模块/网络都会出问题 |
+| 全端一次性换 SQLite | 桌面端已于 2026-10-21 完成；Android 需要原生插件 + 真机验证，等桌面跑稳再单独做 |
 
-### 换 SQLite 的触发条件（三者出现任一即可做）
+### 换 SQLite 的进度
 
-1. 开始担心数据丢，想要"能自己复制一个文件备份"
-2. 数据量上去，需要复杂查询 / 全文检索
-3. AI 要频繁扫大量历史做统计
-
-**如果要做，范围是**：桌面端 `better-sqlite3`（原生模块，需为 Electron 重编）或 `node:sqlite`；手机端 `@capacitor-community/sqlite`；浏览器开发环境需要兜底。✅ **前置的存储抽象已在 2026-10-21 做完**（`core/db/store.ts` + `dexieStore.ts` + `core/db/index.ts`），剩下的是：写一份 SQLite 实现、重写 `live.ts` 的订阅机制（SQLite 没有 Dexie 的自动 live query），老数据靠"导出 JSON → 导入"搬。
+- ✅ **桌面端（2026-10-21）**：`node:sqlite` + 主进程 `electron/database.cjs` + `db:call` 白名单 + 渲染层 `sqliteStore`；`core/db/live.ts` 改为自实现 `useLiveQuery`，由 `withChangeBus` 在写成功后广播。老数据不自动迁移，靠设置页「旧版数据」卡片手动搬一次。
+- ⏳ **Android**：还没做。要用 `@capacitor-community/sqlite`（原生插件 + 改安卓工程），得真机验证；**等桌面这版跑稳再动**。
+- 当初的三个触发条件（担心丢数据 / 数据量大 / AI 扫历史）里，第一条已经成立——一个能自己复制走的 `starburst.db` 就是理由。
+- 浏览器开发环境始终走 Dexie：`node:sqlite` 只存在于 Electron 主进程，页面不该假装自己有文件系统。
 
 ## 11. 下一步候选
 
 1. **手机 APK 收尾**（✅ 2026-10-21 全部完成：图标、实体返回键、状态栏/安全区、WebView 导出，四项都端到端验过）
 2. **AI 本周回顾（周报）**：拿一周的日记+随记合成一篇「这周发生了什么」，跟「整理成日记」共用同一套网关
-3. 换 SQLite（独立里程碑，范围见 §10）
+3. **Android 换 SQLite**（`@capacitor-community/sqlite` + 真机验证；桌面的实现可当参照，范围见 §10）
 4. 天气查询（Open-Meteo）/ 图片导入
 5. **可选的小整改**：给 package.json 加顶层 `productName`，让桌面端的数据目录变成「星芒记录者」——代价是要迁移一次现有桌面数据，所以先不动
 
