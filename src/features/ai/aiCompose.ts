@@ -8,13 +8,14 @@ import { formatDateCn, weekdayLabel } from '@/core/utils/dateKey'
 import { parseWeather, weatherLabel } from '@/features/diary/weather'
 import { chat, explainFailure, pickReply } from './aiClient'
 import type { AiConfig } from './aiConfig'
+import type { MessageKey } from '@/shared/i18n/messages/zh'
 
 /** 给 AI 的两种口气 */
 export type ComposeStyle = 'natural' | 'child'
 
-export const COMPOSE_STYLES: { id: ComposeStyle; label: string }[] = [
-  { id: 'natural', label: '自然口语' },
-  { id: 'child', label: '小学生腔' },
+export const COMPOSE_STYLES: { id: ComposeStyle; labelKey: MessageKey }[] = [
+  { id: 'natural', labelKey: 'ai.styleNatural' },
+  { id: 'child', labelKey: 'ai.styleChild' },
 ]
 
 /** 两种口气都适用的规矩：这里写的是「怎么像一篇日记」，不是文风 */

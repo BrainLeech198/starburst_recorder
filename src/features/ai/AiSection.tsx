@@ -17,6 +17,9 @@ import Modal from '@/shared/ui/Modal'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import { useToast } from '@/app/providers/ToastProvider'
+import { useI18n } from '@/shared/i18n/context'
+import type { MessageParams } from '@/shared/i18n/context'
+import type { MessageKey } from '@/shared/i18n/messages/zh'
 import {
   BAR_BUTTON,
   BAR_DANGER,
@@ -43,16 +46,18 @@ import type { ModelDraft } from './ModelForm'
 /** 条目底部的小文字按钮 */
 const SLIP_BUTTON = 'rounded-lg px-2 py-1 text-xs transition-colors'
 
+type Translate = (key: MessageKey, params?: MessageParams) => string
+
 /** key 只露头尾：列表里能看出「填了哪一把」，但不会把整把 key 甩在屏幕上 */
-function keyMask(key: string) {
+function keyMask(key: string, t: Translate) {
   const trimmed = key.trim()
-  if (trimmed === '') return '没有 key'
-  if (trimmed.length <= 8) return 'key 已填'
+  if (trimmed === '') return t('ai.noKey')
+  if (trimmed.length <= 8) return t('ai.keyFilled')
   return `${trimmed.slice(0, 4)}…${trimmed.slice(-4)}`
 }
 
 /** 「今天 14:23」/「10月20日 14:23」 */
-function formatTestAt(ms: number) {
+function formatTestAt(ms: number, t: Translate) {
   const date = new Date(ms)
   const hour = String(date.getHours()).padStart(2, '0')
   const minute = String(date.getMinutes()).padStart(2, '0')
@@ -61,13 +66,14 @@ function formatTestAt(ms: number) {
     date.getFullYear() === today.getFullYear() &&
     date.getMonth() === today.getMonth() &&
     date.getDate() === today.getDate()
+  const time = `${hour}:${minute}`
   return sameDay
-    ? `今天 ${hour}:${minute}`
-    : `${date.getMonth() + 1}月${date.getDate()}日 ${hour}:${minute}`
+    ? t('ai.todayAt', { time })
+    : t('ai.dateAt', { month: date.getMonth() + 1, day: date.getDate(), time })
 }
 
 /** 把一次诊断的结果落到条目上：看图能力 + 联通状态 + 时间 */
-function withResult(model: AiModel, result: DiagnoseResult, at: number): AiModel {
+function withResult(model: AiModel, result: DiagnoseResult, at: number, t: Translate): AiModel {
   const failed = result.steps.find((step) => !step.ok)
   return {
     ...model,
@@ -77,13 +83,14 @@ function withResult(model: AiModel, result: DiagnoseResult, at: number): AiModel
       ms: result.ms,
       at,
       vision: result.vision,
-      error: result.ok ? '' : (failed?.title ?? '没通'),
+      error: result.ok ? '' : (failed?.title ?? t('ai.notPassed')),
     },
   }
 }
 
 export default function AiSection() {
   const { showToast } = useToast()
+  const { t } = useI18n()
   const [models, setModels] = useState<AiModel[]>(loadModels)
   const [activeId, setActiveId] = useState(() => loadActiveId(models))
   /** 新增表单展开在按钮下面；编辑走弹窗 */
@@ -113,25 +120,25 @@ export default function AiSection() {
   const summary = active
     ? `${active.providerName} · ${active.model}`
     : models.length === 0
-      ? '还没有模型'
-      : '当前没有启用任何模型'
+      ? t('ai.noModels')
+      : t('ai.noneActive')
   const verdict = !active
     ? models.length === 0
-      ? '点「新增模型」填一条，填完会自动启用'
-      : 'AI 助手暂时用不了：在列表里点「启用」挑一条'
+      ? t('ai.emptyHint')
+      : t('ai.pickOne')
     : missing.length > 0
-      ? `还差：${missing.join('、')}`
-      : '可以用了：AI 整理和图片导入都会走这条模型'
+      ? t('ai.missingFields', { fields: missing.join('、') })
+      : t('ai.readyHint')
 
   const badge = !active
-    ? { text: models.length === 0 ? '还没配' : '未启用', tone: 'plain' as const }
+    ? { text: models.length === 0 ? t('ai.notConfigured') : t('ai.notEnabled'), tone: 'plain' as const }
     : !ready
-      ? { text: '还差一步', tone: 'plain' as const }
+      ? { text: t('ai.oneStepMissing'), tone: 'plain' as const }
       : active.lastTest
         ? active.lastTest.ok
-          ? { text: '✓ 通了', tone: 'ok' as const }
-          : { text: '✗ 没通', tone: 'bad' as const }
-        : { text: '待验证', tone: 'plain' as const }
+          ? { text: t('ai.passed'), tone: 'ok' as const }
+          : { text: t('ai.failed'), tone: 'bad' as const }
+        : { text: t('ai.pendingTest'), tone: 'plain' as const }
 
   const selectableIds = models.map((item) => item.id)
 
@@ -145,7 +152,7 @@ export default function AiSection() {
     setModels((current) => [model, ...current])
     if (activeId === '') setActiveId(model.id)
     setFormOpen(false)
-    showToast({ message: `已添加模型「${model.model}」` })
+    showToast({ message: t('ai.added', { model: model.model }) })
   }
 
   function handleEdit(draft: ModelDraft) {
@@ -165,14 +172,14 @@ export default function AiSection() {
         }
       }),
     )
-    showToast({ message: '已保存修改' })
+    showToast({ message: t('ai.saved') })
   }
 
   function handleActivate(id: string) {
     setActiveId(id)
     batch.exit()
     const model = models.find((item) => item.id === id)
-    showToast({ message: `已启用「${model?.model ?? '模型'}」` })
+    showToast({ message: t('ai.activated', { model: model?.model ?? t('ai.fallbackModel') }) })
   }
 
   /** 单条测试：结果直接落在条目上 */
@@ -181,7 +188,7 @@ export default function AiSection() {
     const result = await testConnection(model)
     const at = Date.now()
     setModels((current) =>
-      current.map((item) => (item.id === model.id ? withResult(model, result, at) : item)),
+      current.map((item) => (item.id === model.id ? withResult(model, result, at, t) : item)),
     )
     setTestingId('')
   }
@@ -198,13 +205,13 @@ export default function AiSection() {
       if (result.ok) ok += 1
       const at = Date.now()
       setModels((current) =>
-        current.map((item) => (item.id === model.id ? withResult(model, result, at) : item)),
+        current.map((item) => (item.id === model.id ? withResult(model, result, at, t) : item)),
       )
       setProgress({ done: index + 1, total: models.length })
     }
     setTestingId('')
     setTestingAll(false)
-    showToast({ message: `测试完成：${ok} 条连通，${models.length - ok} 条没通` })
+    showToast({ message: t('ai.testAllDone', { ok, bad: models.length - ok }) })
   }
 
   function requestDelete(ids: string[]) {
@@ -221,9 +228,9 @@ export default function AiSection() {
     if (removesActive) {
       // 不自动换一条：用户明确知道自己在删启用中的那条，就先留空
       setActiveId('')
-      showToast({ message: '已删除正在启用的模型，AI 助手暂时没有可用模型' })
+      showToast({ message: t('ai.deletedActive') })
     } else {
-      showToast({ message: `已删除 ${ids.length} 个模型` })
+      showToast({ message: t('ai.deletedCount', { count: ids.length }) })
     }
   }
 
@@ -232,7 +239,7 @@ export default function AiSection() {
   return (
     <PageShell
       backTo="/me/agent"
-      backLabel="助手"
+      backLabel={t('me.agent')}
       actions={
         <>
           <button
@@ -243,7 +250,7 @@ export default function AiSection() {
             }}
             className={SOLID_BUTTON}
           >
-            {formOpen ? '收起新增' : '＋ 新增模型'}
+            {formOpen ? t('ai.collapseAdd') : t('ai.addModel')}
           </button>
           <button
             type="button"
@@ -251,19 +258,21 @@ export default function AiSection() {
             onClick={() => void handleTestAll()}
             className={`${SOLID_BUTTON} disabled:opacity-40`}
           >
-            {testingAll ? `正在测试 ${progress.done}/${progress.total}…` : '测试联通'}
+            {testingAll
+              ? t('ai.testingProgress', { done: progress.done, total: progress.total })
+              : t('ai.testAll')}
           </button>
           {models.length > 0 && !batch.active && (
             <button type="button" onClick={batch.enter} className={SOLID_BUTTON}>
-              批量管理
+              {t('ai.batchManage')}
             </button>
           )}
         </>
       }
     >
       <SettingCard
-        title="AI 模型"
-        description="让 AI 把随记整理成日记、把拍下来的手写日记转成文字，走的都是这里启用的模型。配置只存在你这台机器上，改完自动保存。"
+        title={t('ai.title')}
+        description={t('ai.description')}
         badge={<SettingBadge tone={badge.tone}>{badge.text}</SettingBadge>}
       >
         {/* 常驻状态条：现在用哪条、缺什么、下一步做什么 */}
@@ -275,10 +284,10 @@ export default function AiSection() {
         {/* 新增表单就嵌在「新增模型」按钮下面 */}
       {formOpen && (
         <div className="mt-3 rounded-xl border border-line p-3">
-          <div className="mb-2 text-xs text-fg">新增一条模型</div>
+          <div className="mb-2 text-xs text-fg">{t('ai.formTitle')}</div>
           <ModelForm
             initial={{ providerId: '', providerName: '', baseUrl: '', model: '', apiKey: '' }}
-            submitLabel="添加并保存"
+            submitLabel={t('ai.formSubmit')}
             onSubmit={handleAdd}
             onCancel={() => setFormOpen(false)}
           />
@@ -287,7 +296,7 @@ export default function AiSection() {
 
       {models.length === 0 ? (
         <p className="mt-4 rounded-xl border border-dashed border-line px-3 py-6 text-center text-xs text-muted">
-          还没有模型。点「＋ 新增模型」，挑一家、把 key 粘进去就能用。
+          {t('ai.emptyList')}
         </p>
       ) : (
         <ul className="mt-3 space-y-2">
@@ -311,7 +320,7 @@ export default function AiSection() {
                   {batch.active ? (
                     <button
                       type="button"
-                      aria-label={selected ? '取消选中' : '选中'}
+                      aria-label={selected ? t('ai.deselect') : t('ai.select')}
                       onClick={() => batch.toggle(model.id)}
                       className={
                         selected
@@ -334,11 +343,11 @@ export default function AiSection() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-medium break-all text-fg">{model.model}</span>
                       <span className="text-xs text-muted">{model.providerName}</span>
-                      {isActive && <SettingBadge tone="ok">启用中</SettingBadge>}
-                      {!configOk && <SettingBadge tone="bad">还差 key</SettingBadge>}
+                      {isActive && <SettingBadge tone="ok">{t('ai.active')}</SettingBadge>}
+                      {!configOk && <SettingBadge tone="bad">{t('ai.needKey')}</SettingBadge>}
                     </div>
                     <p className="mt-1 font-mono text-xs break-all text-muted">
-                      {model.baseUrl} · {keyMask(model.apiKey)}
+                      {model.baseUrl} · {keyMask(model.apiKey, t)}
                     </p>
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                       <span
@@ -351,10 +360,10 @@ export default function AiSection() {
                         }
                       >
                         {model.vision === 'yes'
-                          ? '✓ 能识别图片'
+                          ? t('ai.visionYes')
                           : model.vision === 'no'
-                            ? '✗ 不能识别图片'
-                            : '看图能力未测'}
+                            ? t('ai.visionNo')
+                            : t('ai.visionUnknown')}
                       </span>
                       <span
                         className={
@@ -368,9 +377,9 @@ export default function AiSection() {
                       >
                         {test
                           ? test.ok
-                            ? `✓ 通了 · ${test.ms} 毫秒 · ${formatTestAt(test.at)}`
-                            : `✗ 没通 · ${formatTestAt(test.at)}`
-                          : '还没测过'}
+                            ? t('ai.testOk', { ms: test.ms, at: formatTestAt(test.at, t) })
+                            : t('ai.testBad', { at: formatTestAt(test.at, t) })
+                          : t('ai.untested')}
                       </span>
                     </div>
                   </div>
@@ -384,7 +393,7 @@ export default function AiSection() {
                         onClick={() => handleActivate(model.id)}
                         className={`${SLIP_BUTTON} text-brand hover:opacity-80`}
                       >
-                        启用
+                        {t('ai.enable')}
                       </button>
                     )}
                     <button
@@ -393,7 +402,7 @@ export default function AiSection() {
                       onClick={() => void handleTestOne(model)}
                       className={`${SLIP_BUTTON} text-muted hover:text-fg disabled:opacity-40`}
                     >
-                      {testingId === model.id ? '测试中…' : '测一下'}
+                      {testingId === model.id ? t('ai.testing') : t('ai.test')}
                     </button>
                     <button
                       type="button"
@@ -403,14 +412,14 @@ export default function AiSection() {
                       }}
                       className={`${SLIP_BUTTON} text-muted hover:text-fg`}
                     >
-                      编辑
+                      {t('ai.edit')}
                     </button>
                     <button
                       type="button"
                       onClick={() => requestDelete([model.id])}
                       className={`${SLIP_BUTTON} text-danger hover:opacity-80`}
                     >
-                      删除
+                      {t('ai.delete')}
                     </button>
                   </div>
                 )}
@@ -421,14 +430,14 @@ export default function AiSection() {
       )}
 
       {batch.active && (
-        <BatchActions select={batch} ids={selectableIds} unit="个">
+        <BatchActions select={batch} ids={selectableIds} unit={t('ai.unit')}>
           <button
             type="button"
             disabled={batch.count !== 1}
             onClick={() => batch.selected[0] && handleActivate(batch.selected[0])}
             className={BAR_BUTTON}
           >
-            设为启用
+            {t('ai.setActive')}
           </button>
           <button
             type="button"
@@ -436,7 +445,7 @@ export default function AiSection() {
             onClick={() => requestDelete(batch.selected)}
             className={BAR_DANGER}
           >
-            删除
+            {t('ai.delete')}
           </button>
         </BatchActions>
       )}
@@ -445,7 +454,7 @@ export default function AiSection() {
       {editing && (
         <Modal size="lg" onClose={() => setEditing(null)} panelClassName="max-h-[80vh] overflow-y-auto">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <h3 className="text-sm font-medium text-fg">编辑模型</h3>
+            <h3 className="text-sm font-medium text-fg">{t('ai.editTitle')}</h3>
             <span className="font-mono text-xs text-muted">{editing.providerName}</span>
           </div>
           <ModelForm
@@ -456,7 +465,7 @@ export default function AiSection() {
               model: editing.model,
               apiKey: editing.apiKey,
             }}
-            submitLabel="保存修改"
+            submitLabel={t('ai.editSubmit')}
             onSubmit={handleEdit}
             onCancel={() => setEditing(null)}
           />
@@ -466,27 +475,25 @@ export default function AiSection() {
       {/* 删的是正在启用的那条：先把风险说清楚，再给硬删的出口 */}
       {pendingDelete && pendingDelete.active && (
         <Modal size="sm" onClose={() => setPendingDelete(null)}>
-          <h3 className="text-sm font-medium text-fg">这是正在启用的模型</h3>
-          <p className="mt-2 text-xs text-muted">
-            删掉它之后，AI 整理成日记、图片导入都会暂时用不了，直到你在列表里启用另一条。
-          </p>
+          <h3 className="text-sm font-medium text-fg">{t('ai.deleteActiveTitle')}</h3>
+          <p className="mt-2 text-xs text-muted">{t('ai.deleteActiveBody')}</p>
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
             <button type="button" onClick={() => setPendingDelete(null)} className={OUTLINE_BUTTON}>
-              取消
+              {t('common.cancel')}
             </button>
             <button
               type="button"
               onClick={() => {
                 setPendingDelete(null)
                 batch.exit()
-                showToast({ message: '点列表里任意一条的「启用」，就能换过去' })
+                showToast({ message: t('ai.switchElseHint') })
               }}
               className={SOLID_BUTTON}
             >
-              去启用别的
+              {t('ai.switchElse')}
             </button>
             <button type="button" onClick={confirmDelete} className={SOLID_DANGER}>
-              仍然删除
+              {t('ai.deleteAnyway')}
             </button>
           </div>
         </Modal>
@@ -494,9 +501,9 @@ export default function AiSection() {
 
       {pendingDelete && !pendingDelete.active && (
         <ConfirmDialog
-          title={`删除选中的 ${pendingDelete.ids.length} 个模型？`}
-          description="删除后配置会从这台机器上移除；不影响服务商那边的账号和额度。"
-          confirmLabel="删除"
+          title={t('ai.confirmDeleteTitle', { count: pendingDelete.ids.length })}
+          description={t('ai.confirmDeleteBody')}
+          confirmLabel={t('ai.delete')}
           onConfirm={confirmDelete}
           onCancel={() => setPendingDelete(null)}
         />

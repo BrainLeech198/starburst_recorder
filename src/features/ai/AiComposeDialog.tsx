@@ -14,6 +14,7 @@ import { parseWeather, weatherIcons, weatherLabel } from '@/features/diary/weath
 import { loadAiConfig } from './aiConfig'
 import { COMPOSE_STYLES, composeDiary } from './aiCompose'
 import type { ComposeStyle } from './aiCompose'
+import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import { FIELD } from '@/shared/ui/inputStyles'
 
@@ -38,6 +39,7 @@ export default function AiComposeDialog({
   onConfirm: (content: string) => void
   onCancel: () => void
 }) {
+  const { t } = useI18n()
   const [config] = useState(loadAiConfig)
   const day = useLiveQuery(() => dayInfo(dateKey), [dateKey])
 
@@ -88,16 +90,25 @@ export default function AiComposeDialog({
       // 草稿可能比屏幕高，让面板自己滚，遮罩层始终铺满
       panelClassName="max-h-[85vh] overflow-y-auto"
     >
-      <div className="text-sm font-medium">把今天的随记整理成日记</div>
+      <div className="text-sm font-medium">{t('ai.composeTitle')}</div>
       <p className="mt-1 text-xs text-muted">
-        用 {formatDateCn(dateKey)} {weekdayLabel(dateKey)} 的 {stamps.length} 笔随记
-        {states.length > 0 ? `（天气：${weatherIcons(states)} ${weatherLabel(states)}）` : ''}
-        ，让 AI 写成一篇日记。这只是一份草稿，你点了「写入日记」才会存进去，
-        <span className="text-fg">随记原文一条不动</span>。
+        {t('ai.composeDesc', {
+          date: formatDateCn(dateKey),
+          weekday: weekdayLabel(dateKey),
+          count: stamps.length,
+          weather:
+            states.length > 0
+              ? t('ai.composeWeather', {
+                  icons: weatherIcons(states),
+                  label: weatherLabel(states),
+                })
+              : '',
+        })}
+        <span className="text-fg">{t('ai.composeKeepStamps')}</span>
       </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs text-muted">口气</span>
+        <span className="text-xs text-muted">{t('ai.tone')}</span>
         {COMPOSE_STYLES.map((item) => (
           <button
             key={item.id}
@@ -111,16 +122,16 @@ export default function AiComposeDialog({
             }}
             className={styleClass(style === item.id)}
           >
-            {item.label}
+            {t(item.labelKey)}
           </button>
         ))}
-        {edited && <span className="text-xs text-muted">草稿改过了，换口气要点「重新生成」</span>}
+        {edited && <span className="text-xs text-muted">{t('ai.draftEdited')}</span>}
       </div>
 
       <div className="mt-3">
         {loading && (
           <p className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-xs text-muted">
-            AI 正在写…（一般几秒，随记多会久一点）
+            {t('ai.writing')}
           </p>
         )}
 
@@ -128,7 +139,7 @@ export default function AiComposeDialog({
           <div className="rounded-lg border border-danger px-3 py-2 text-xs text-danger">
             {error}
             <Link to="/me/agent/ai" className="ml-2 underline">
-              去设置检查
+              {t('ai.goCheckSettings')}
             </Link>
           </div>
         )}
@@ -144,14 +155,14 @@ export default function AiComposeDialog({
 
         {!loading && error === '' && text === '' && (
           <p className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-xs text-muted">
-            还没写出东西。
+            {t('ai.nothingYet')}
           </p>
         )}
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs text-muted">
-          {ms > 0 && text !== '' ? `写完用了 ${(ms / 1000).toFixed(1)} 秒` : ''}
+          {ms > 0 && text !== '' ? t('ai.writeTime', { seconds: (ms / 1000).toFixed(1) }) : ''}
         </span>
         <div className="flex items-center gap-2">
           <button
@@ -160,10 +171,10 @@ export default function AiComposeDialog({
             onClick={() => void generate(style)}
             className={`${FOOTER_BUTTON} disabled:opacity-40`}
           >
-            {text === '' ? '再试一次' : '重新生成'}
+            {text === '' ? t('ai.retry') : t('ai.regenerate')}
           </button>
           <button type="button" onClick={onCancel} className={FOOTER_BUTTON}>
-            取消
+            {t('common.cancel')}
           </button>
           <button
             type="button"
@@ -171,7 +182,7 @@ export default function AiComposeDialog({
             onClick={() => onConfirm(text.trim())}
             className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors disabled:opacity-40"
           >
-            写入日记
+            {t('ai.writeDiary')}
           </button>
         </div>
       </div>
