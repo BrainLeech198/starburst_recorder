@@ -6,6 +6,16 @@
  */
 export const zh = {
   'app.name': '星芒记录者',
+  'app.tagline': '把零散的日子，攒成看得见的自己',
+
+  'home.diaryDesc': '随手记下今天',
+  'home.healthDesc': '睡眠 · 心情 · 体重',
+  'home.financeDesc': '每一笔收支',
+  'home.calendarDesc': '待设计',
+
+  'combo.empty': '没有可选项，直接输入也行',
+  'combo.expand': '展开列表',
+  'combo.collapse': '收起列表',
 
   'nav.home': '首页',
   'nav.records': '记录',

@@ -1,10 +1,12 @@
 import { Link } from 'react-router'
+import { useI18n } from '@/shared/i18n/context'
+import type { MessageKey } from '@/shared/i18n/messages/zh'
 
-const ENTRIES = [
-  { to: '/diary', icon: '📖', label: '日记', desc: '随手记下今天' },
-  { to: '/health', icon: '💪', label: '健康', desc: '睡眠 · 心情 · 体重' },
-  { to: '/finance', icon: '💰', label: '经济', desc: '每一笔收支' },
-  { to: '/calendar', icon: '📅', label: '日历', desc: '待设计' },
+const ENTRIES: { to: string; icon: string; labelKey: MessageKey; descKey: MessageKey }[] = [
+  { to: '/diary', icon: '📖', labelKey: 'nav.diary', descKey: 'home.diaryDesc' },
+  { to: '/health', icon: '💪', labelKey: 'nav.health', descKey: 'home.healthDesc' },
+  { to: '/finance', icon: '💰', labelKey: 'nav.finance', descKey: 'home.financeDesc' },
+  { to: '/calendar', icon: '📅', labelKey: 'nav.calendar', descKey: 'home.calendarDesc' },
 ]
 
 function Starburst() {
@@ -20,11 +22,12 @@ function Starburst() {
 }
 
 export default function HomePage() {
+  const { t } = useI18n()
   return (
     <div className="mx-auto flex min-h-full w-full max-w-md flex-col items-center justify-center px-6">
       <Starburst />
-      <h1 className="mt-7 text-2xl font-medium tracking-wide">星芒记录者</h1>
-      <p className="mt-2 text-sm text-muted">把零散的日子，攒成看得见的自己</p>
+      <h1 className="mt-7 text-2xl font-medium tracking-wide">{t('app.name')}</h1>
+      <p className="mt-2 text-sm text-muted">{t('app.tagline')}</p>
 
       <div className="mt-10 grid w-full grid-cols-2 gap-3">
         {ENTRIES.map((entry) => (
@@ -37,8 +40,8 @@ export default function HomePage() {
               {entry.icon}
             </span>
             <div className="min-w-0">
-              <div className="text-base font-medium">{entry.label}</div>
-              <div className="mt-1 text-xs text-muted">{entry.desc}</div>
+              <div className="text-base font-medium">{t(entry.labelKey)}</div>
+              <div className="mt-1 text-xs text-muted">{t(entry.descKey)}</div>
             </div>
           </Link>
         ))}
