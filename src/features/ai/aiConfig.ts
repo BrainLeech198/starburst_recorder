@@ -84,27 +84,45 @@ export const AI_PROVIDERS: AiProvider[] = [
   },
 ]
 
+/** 上次测试得出的看图能力；unknown 表示还没测或没测出来 */
+export type VisionState = 'yes' | 'no' | 'unknown'
+
 export interface AiConfig {
   providerId: string
+  /** 厂商在表单里显示的名字：预设的标签，或者用户自己敲的 */
+  providerName: string
   baseUrl: string
   model: string
   apiKey: string
+  vision: VisionState
 }
 
 const STORAGE_KEY = 'sb_ai_config'
 
-const EMPTY: AiConfig = { providerId: '', baseUrl: '', model: '', apiKey: '' }
+const EMPTY: AiConfig = {
+  providerId: '',
+  providerName: '',
+  baseUrl: '',
+  model: '',
+  apiKey: '',
+  vision: 'unknown',
+}
 
 export function loadAiConfig(): AiConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return EMPTY
     const parsed = JSON.parse(raw) as Partial<AiConfig>
+    // 老版本只存了 providerId，把显示名补回来，免得表单看起来是空的
+    const preset = AI_PROVIDERS.find((item) => item.id === parsed.providerId)
     return {
       providerId: parsed.providerId ?? '',
+      providerName: parsed.providerName ?? preset?.label ?? '',
       baseUrl: parsed.baseUrl ?? '',
       model: parsed.model ?? '',
       apiKey: parsed.apiKey ?? '',
+      vision:
+        parsed.vision === 'yes' || parsed.vision === 'no' ? parsed.vision : 'unknown',
     }
   } catch {
     return EMPTY
@@ -113,6 +131,44 @@ export function loadAiConfig(): AiConfig {
 
 export function saveAiConfig(config: AiConfig) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
+}
+
+/** 用户自己填过的服务商：下次不用再敲一遍地址和模型 */
+export interface SavedProvider {
+  name: string
+  baseUrl: string
+  model: string
+}
+
+const SAVED_KEY = 'sb_ai_providers'
+
+export function loadSavedProviders(): SavedProvider[] {
+  try {
+    const raw = localStorage.getItem(SAVED_KEY)
+    const list = raw ? (JSON.parse(raw) as unknown) : []
+    if (!Array.isArray(list)) return []
+    return list.filter(
+      (item): item is SavedProvider =>
+        typeof item?.name === 'string' &&
+        typeof item?.baseUrl === 'string' &&
+        typeof item?.model === 'string' &&
+        item.name.trim() !== '' &&
+        item.baseUrl.trim() !== '',
+    )
+  } catch {
+    return []
+  }
+}
+
+/** 记下最近用过的 8 个，同名的用新的覆盖 */
+export function rememberProvider(item: SavedProvider) {
+  const name = item.name.trim()
+  if (name === '' || item.baseUrl.trim() === '') return
+  const rest = loadSavedProviders().filter((saved) => saved.name !== name)
+  localStorage.setItem(
+    SAVED_KEY,
+    JSON.stringify([{ ...item, name }, ...rest].slice(0, 8)),
+  )
 }
 
 /** 地址和模型名填了就够发起请求；本机模型的 key 可以空着 */
