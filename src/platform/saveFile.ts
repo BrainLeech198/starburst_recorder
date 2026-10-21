@@ -13,6 +13,10 @@
  * 浏览器 / Windows 桌面壳照旧直接下载（那边 `<a download>` 是正常的）。
  */
 import { Capacitor, registerPlugin } from '@capacitor/core'
+import type { MessageParams } from '@/shared/i18n/context'
+import type { MessageKey } from '@/shared/i18n/messages/zh'
+
+type Translate = (key: MessageKey, params?: MessageParams) => string
 
 export interface TextFile {
   filename: string
@@ -80,8 +84,8 @@ export async function saveTextFile(file: TextFile): Promise<SaveOutcome> {
  * 存完之后该跟用户说什么。别一律说"已导出"——
  * 用户在系统选择器里按了返回，就什么都没留下。
  */
-export function describeSave(outcome: SaveOutcome, detail: string) {
-  if (outcome.kind === 'downloaded') return `已导出 ${detail}`
-  if (outcome.kind === 'saved') return `已保存 ${detail}`
-  return `没有保存：你在保存对话框里取消了。再点一次「导出」可以重来（${detail}）`
+export function describeSave(outcome: SaveOutcome, detail: string, t: Translate) {
+  if (outcome.kind === 'downloaded') return t('data.savedDownloaded', { detail })
+  if (outcome.kind === 'saved') return t('data.savedTo', { detail })
+  return t('data.saveCanceled', { detail })
 }

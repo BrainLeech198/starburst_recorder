@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import type { DiaryEntry } from '@/core/db/schema'
 import { useToast } from '@/app/providers/ToastProvider'
+import { useI18n } from '@/shared/i18n/context'
 import BatchActions from '@/shared/ui/BatchActions'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
@@ -58,6 +59,7 @@ function SlipBody({ entry }: { entry: DiaryEntry }) {
 export default function DiaryPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
+  const { t } = useI18n()
   const [dateKey, setDateKey] = useState(todayKey)
   const [mode, setMode] = useState<'diary' | 'stamp'>('diary')
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -222,6 +224,7 @@ export default function DiaryPage() {
       message: describeSave(
         outcome,
         `${pickedEntries.length + pickedStamps.length} ${unit}${noun}（${file.label}）`,
+        t,
       ),
     })
   }
