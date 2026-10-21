@@ -7,8 +7,8 @@
 import { db } from './db'
 import type { DiaryEntry, DiaryStamp } from './schema'
 import type { DiaryStore, ImportStats } from './store'
-import { newCode, newId } from '../utils/id'
-import { formatClock } from '../utils/dateKey'
+import { newCode, newId } from '@/core/utils/id'
+import { formatClock } from '@/core/utils/dateKey'
 
 export const dexieStore: DiaryStore = {
   entriesOfDay(dateKey) {

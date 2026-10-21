@@ -10,8 +10,8 @@
  * 校验刻意宽容：坏条目单独剔掉并报数，而不是整份拒绝——
  * 不该因为你备份里有一条脏数据，就让你丢掉整个备份。
  */
-import type { DiaryDay, DiaryEntry, DiaryStamp } from '../../core/db/schema'
-import { newCode } from '../../core/utils/id'
+import type { DiaryDay, DiaryEntry, DiaryStamp } from '@/core/db/schema'
+import { newCode } from '@/core/utils/id'
 import type { ExportFile } from './diaryExport'
 
 const BACKUP_APP = 'starburst-recorder'

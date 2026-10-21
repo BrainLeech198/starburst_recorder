@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useLiveQuery } from '../../core/db/live'
-import type { DiaryStamp } from '../../core/db/schema'
-import { useToast } from '../../app/providers/ToastProvider'
-import ConfirmDialog from '../../shared/ui/ConfirmDialog'
+import { useLiveQuery } from '@/core/db/live'
+import type { DiaryStamp } from '@/core/db/schema'
+import { useToast } from '@/app/providers/ToastProvider'
+import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { dayInfo, removeStamp, restoreStamp, setWeather, updateStamp } from './diaryRepo'
 import { parseWeather, weatherIcons, weatherLabel } from './weather'
-import { formatClock, todayKey } from '../../core/utils/dateKey'
+import { formatClock, todayKey } from '@/core/utils/dateKey'
 import WeatherDialog from './WeatherDialog'
 
 /** 一笔随记：时间一行（可点改）、内容在下，整笔挂在左侧时间轴上 */

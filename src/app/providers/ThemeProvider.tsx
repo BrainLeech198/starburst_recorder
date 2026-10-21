@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ACCENT_KEY, readAccent, readTheme, THEME_KEY, THEMES } from '../theme'
-import type { ThemeId } from '../theme'
+import { ACCENT_KEY, readAccent, readTheme, THEME_KEY, THEMES } from '@/app/theme'
+import type { ThemeId } from '@/app/theme'
 
 interface ThemeValue {
   theme: ThemeId

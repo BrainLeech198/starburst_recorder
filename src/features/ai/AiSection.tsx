@@ -10,20 +10,20 @@
  *   3. 拉不到模型列表时去哪儿查 —— 表单里直接给出厂商的模型列表网址
  */
 import { useEffect, useState } from 'react'
-import SettingCard, { SettingBadge } from '../../shared/ui/SettingCard'
-import PageShell from '../../shared/ui/PageShell'
-import BatchActions from '../../shared/ui/BatchActions'
-import Modal from '../../shared/ui/Modal'
-import ConfirmDialog from '../../shared/ui/ConfirmDialog'
-import { useBatchSelect } from '../../shared/ui/useBatchSelect'
-import { useToast } from '../../app/providers/ToastProvider'
+import SettingCard, { SettingBadge } from '@/shared/ui/SettingCard'
+import PageShell from '@/shared/ui/PageShell'
+import BatchActions from '@/shared/ui/BatchActions'
+import Modal from '@/shared/ui/Modal'
+import ConfirmDialog from '@/shared/ui/ConfirmDialog'
+import { useBatchSelect } from '@/shared/ui/useBatchSelect'
+import { useToast } from '@/app/providers/ToastProvider'
 import {
   BAR_BUTTON,
   BAR_DANGER,
   OUTLINE_BUTTON,
   SOLID_BUTTON,
   SOLID_DANGER,
-} from '../../shared/ui/buttonStyles'
+} from '@/shared/ui/buttonStyles'
 import {
   canTest,
   isConfigured,

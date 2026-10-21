@@ -11,10 +11,10 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { AI_PROVIDERS } from './aiConfig'
 import { listModels, modelsUrl } from './aiClient'
-import { INPUT } from '../../shared/ui/inputStyles'
-import ComboBox from '../../shared/ui/ComboBox'
-import type { ComboOption } from '../../shared/ui/ComboBox'
-import { OUTLINE_BUTTON, SOLID_BUTTON } from '../../shared/ui/buttonStyles'
+import { INPUT } from '@/shared/ui/inputStyles'
+import ComboBox from '@/shared/ui/ComboBox'
+import type { ComboOption } from '@/shared/ui/ComboBox'
+import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 
 /** 表单里正在填的内容：没有 id、没有测试结果 */
 export interface ModelDraft {

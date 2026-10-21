@@ -5,11 +5,11 @@
  * 而且它是一个桌面端专属的小东西，不值得在菜单里单占一行。
  */
 import { useEffect, useState } from 'react'
-import SettingCard, { SettingBadge, SettingGroup } from '../../shared/ui/SettingCard'
-import { choiceTile, OUTLINE_BUTTON } from '../../shared/ui/buttonStyles'
-import { INPUT_NARROW } from '../../shared/ui/inputStyles'
-import { desktopBridge } from '../../core/desktop'
-import type { DesktopBridge } from '../../core/desktop'
+import SettingCard, { SettingBadge, SettingGroup } from '@/shared/ui/SettingCard'
+import { choiceTile, OUTLINE_BUTTON } from '@/shared/ui/buttonStyles'
+import { INPUT_NARROW } from '@/shared/ui/inputStyles'
+import { desktopBridge } from '@/platform/desktop'
+import type { DesktopBridge } from '@/platform/desktop'
 
 /** 桌面端的窗口尺寸预设 */
 const WINDOW_PRESETS = [

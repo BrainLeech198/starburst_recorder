@@ -8,8 +8,8 @@
  *
  * 另外这里负责把服务商的原始错误翻译成人话——401、404、429 对新用户来说全是天书。
  */
-import { desktopBridge } from '../../core/desktop'
-import type { ChatContentPart, ChatRequest, ChatTransportResult } from '../../core/desktop'
+import { desktopBridge } from '@/platform/desktop'
+import type { ChatContentPart, ChatRequest, ChatTransportResult } from '@/platform/desktop'
 import type { AiConfig } from './aiConfig'
 
 /** 地址可能带结尾斜杠，统一拼成 chat/completions */

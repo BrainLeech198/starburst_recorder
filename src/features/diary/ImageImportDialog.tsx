@@ -5,9 +5,9 @@
  * 建日记、跳页面都不在这里，跟「AI 整理成日记」保持同一个分工。
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import Modal from '../../shared/ui/Modal'
-import { compressImage, transcribeDiary } from '../ai/aiVision'
-import type { AiConfig } from '../ai/aiConfig'
+import Modal from '@/shared/ui/Modal'
+import { compressImage, transcribeDiary } from '@/features/ai/aiVision'
+import type { AiConfig } from '@/features/ai/aiConfig'
 
 type Phase = 'compressing' | 'recognition' | 'error'
 

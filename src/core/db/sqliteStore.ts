@@ -5,9 +5,9 @@
  * 翻译成一次 IPC 调用。id / 时间戳沿用和 Dexie 实现同一套生成逻辑，
  * 保证两种后端写出来的数据形状完全一致。
  */
-import { desktopBridge } from '../desktop'
-import { formatClock } from '../utils/dateKey'
-import { newCode, newId } from '../utils/id'
+import { desktopBridge } from '@/platform/desktop'
+import { formatClock } from '@/core/utils/dateKey'
+import { newCode, newId } from '@/core/utils/id'
 import type { DiaryEntry, DiaryStamp } from './schema'
 import type { DiaryStore } from './store'
 

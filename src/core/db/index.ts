@@ -11,7 +11,7 @@
  * 页面订阅（`core/db/live.ts`）据此重新查询——这样两种后端的行为一致，
  * 不会出现「换了 SQLite 之后页面不刷新」。
  */
-import { desktopBridge } from '../desktop'
+import { desktopBridge } from '@/platform/desktop'
 import { withChangeBus } from './changes'
 import { dexieStore } from './dexieStore'
 import { sqliteStore } from './sqliteStore'

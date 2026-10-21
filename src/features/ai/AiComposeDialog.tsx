@@ -6,16 +6,16 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import { useLiveQuery } from '../../core/db/live'
-import type { DiaryStamp } from '../../core/db/schema'
-import { formatDateCn, weekdayLabel } from '../../core/utils/dateKey'
-import { dayInfo } from '../diary/diaryRepo'
-import { parseWeather, weatherIcons, weatherLabel } from '../diary/weather'
+import { useLiveQuery } from '@/core/db/live'
+import type { DiaryStamp } from '@/core/db/schema'
+import { formatDateCn, weekdayLabel } from '@/core/utils/dateKey'
+import { dayInfo } from '@/features/diary/diaryRepo'
+import { parseWeather, weatherIcons, weatherLabel } from '@/features/diary/weather'
 import { loadAiConfig } from './aiConfig'
 import { COMPOSE_STYLES, composeDiary } from './aiCompose'
 import type { ComposeStyle } from './aiCompose'
-import Modal from '../../shared/ui/Modal'
-import { FIELD } from '../../shared/ui/inputStyles'
+import Modal from '@/shared/ui/Modal'
+import { FIELD } from '@/shared/ui/inputStyles'
 
 /** 腔调小按钮：选中就是主题色描边，跟其他弹窗里的一致 */
 const styleClass = (active: boolean) =>

@@ -18,7 +18,7 @@ import { Link } from 'react-router'
 import type { ReactNode } from 'react'
 import { BACK_BUTTON } from './buttonStyles'
 import ToolbarRow from './ToolbarRow'
-import { useI18n } from '../i18n/context'
+import { useI18n } from '@/shared/i18n/context'
 
 export default function PageHeader({
   title,

@@ -3,11 +3,11 @@
  *
  * 跟「设置」那一页分开：这两项改的是助手本身，不是应用的通用设置。
  */
-import { MASCOT_SHAPES, MASCOT_SIZES, useBall } from '../../app/providers/BallProvider'
-import SettingRow from '../../shared/ui/SettingRow'
-import PageShell from '../../shared/ui/PageShell'
-import { SettingBadge } from '../../shared/ui/SettingCard'
-import { isConfigured, loadAiConfig } from '../ai/aiConfig'
+import { MASCOT_SHAPES, MASCOT_SIZES, useBall } from '@/app/providers/BallProvider'
+import SettingRow from '@/shared/ui/SettingRow'
+import PageShell from '@/shared/ui/PageShell'
+import { SettingBadge } from '@/shared/ui/SettingCard'
+import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 
 export default function AgentMenuPage() {
   const { prefs } = useBall()

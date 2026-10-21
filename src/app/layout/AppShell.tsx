@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
-import FloatingAssistant from '../../features/assistant/FloatingAssistant'
-import { useI18n } from '../../shared/i18n/context'
-import type { MessageKey } from '../../shared/i18n/messages/zh'
-import { useAndroidBackButton } from '../androidBack'
-import { ballVisible } from '../debugFlags'
+import FloatingAssistant from '@/features/assistant/FloatingAssistant'
+import { useI18n } from '@/shared/i18n/context'
+import type { MessageKey } from '@/shared/i18n/messages/zh'
+import { useAndroidBackButton } from '@/app/androidBack'
+import { ballVisible } from '@/app/debugFlags'
 
 /** 「记录」这一组：日记 / 健康 / 经济。它们在导航里不再各自占一格，收进「记录」下面 */
 const RECORDS: { to: string; labelKey: MessageKey; icon: string }[] = [
