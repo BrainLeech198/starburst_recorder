@@ -147,6 +147,7 @@ async function askAi(place: string, dateKey: string): Promise<string> {
   if (!isConfigured(config)) return ''
 
   const result = await withTimeout(
+    // 桌面端走 IPC，通道断开时会 reject；这里统一收成 null，交给程序兜底
     chat({
       baseUrl: config.baseUrl.trim(),
       apiKey: config.apiKey.trim(),
@@ -159,7 +160,7 @@ async function askAi(place: string, dateKey: string): Promise<string> {
         },
         { role: 'user', content: weatherPrompt(place, dateKey) },
       ],
-    }),
+    }).catch(() => null),
     AI_TIMEOUT_MS,
   )
 
