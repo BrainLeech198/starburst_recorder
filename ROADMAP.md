@@ -40,7 +40,7 @@
 
 9. **自动备份**（定时导出到指定目录；桌面端好做，手机端受限）
 10. 备份格式升级（现在是单个 JSON）— 参考 `memos` 的 `docs/design/memos-export-format.md`（MIT）
-11. **SQLite**：PROJECT-NOTES §10 的三个触发条件尚未满足 → 先挂"观察项"，别急（前置的存储抽象层已于 2026-10-21 做完，换库时不用动页面）
+11. **SQLite 收尾**：✅ 桌面端 2026-10-21 已换（`node:sqlite` + 手动搬旧数据）；剩 **Android**（`@capacitor-community/sqlite` + 真机验证）— 见 PROJECT-NOTES §10
 
 ## 4. 家庭系统（方向已定，顺序：APK → 健康模块 → 账户）
 
@@ -66,3 +66,4 @@
 - 2026-10-20：应用图标定稿（星尘轨道 + 黑洞镂空 + 中心星芒，透明底方案 A）→ 见 PROJECT-NOTES §3
 - 2026-10-20：项目整体搬到 `D:\File\idea\trae\starburst_recorder`，目录名不可见字符问题治本
 - 2026-10-21：存储抽象层落地（`DiaryStore` 契约 + Dexie 实现 + 统一选择点），为将来换 SQLite 铺路
+- 2026-10-21：**桌面端换到 SQLite**（`node:sqlite`、主进程白名单 IPC、自实现 `useLiveQuery` + 变更总线、旧 IndexedDB 手动搬一次），Android 留作下一步
