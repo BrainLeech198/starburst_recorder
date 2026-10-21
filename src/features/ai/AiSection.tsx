@@ -11,6 +11,7 @@
  */
 import { useEffect, useState } from 'react'
 import SettingCard, { SettingBadge } from '../../shared/ui/SettingCard'
+import PageShell from '../../shared/ui/PageShell'
 import BatchActions from '../../shared/ui/BatchActions'
 import Modal from '../../shared/ui/Modal'
 import ConfirmDialog from '../../shared/ui/ConfirmDialog'
@@ -229,20 +230,11 @@ export default function AiSection() {
   const busy = testingAll || testingId !== ''
 
   return (
-    <SettingCard
-      title="AI 模型"
-      description="让 AI 把随记整理成日记、把拍下来的手写日记转成文字，走的都是这里启用的模型。配置只存在你这台机器上，改完自动保存。"
-      badge={<SettingBadge tone={badge.tone}>{badge.text}</SettingBadge>}
-    >
-      {/* 常驻状态条：现在用哪条、缺什么、下一步做什么 */}
-      <div className="mt-4 rounded-lg border border-line bg-surface-2 px-3 py-2">
-        <div className="font-mono text-xs break-all text-fg">{summary}</div>
-        <div className="mt-0.5 text-xs text-muted">{verdict}</div>
-      </div>
-
-      {/* 动作行：底色跟下面的列表分开 */}
-      <div className="mt-4 rounded-xl border border-line bg-surface-2 p-2">
-        <div className="flex flex-wrap items-center gap-2">
+    <PageShell
+      backTo="/me/agent"
+      backLabel="助手"
+      actions={
+        <>
           <button
             type="button"
             onClick={() => {
@@ -257,7 +249,7 @@ export default function AiSection() {
             type="button"
             disabled={models.length === 0 || busy}
             onClick={() => void handleTestAll()}
-            className={`${OUTLINE_BUTTON} disabled:opacity-40`}
+            className={`${SOLID_BUTTON} disabled:opacity-40`}
           >
             {testingAll ? `正在测试 ${progress.done}/${progress.total}…` : '测试联通'}
           </button>
@@ -266,10 +258,21 @@ export default function AiSection() {
               批量管理
             </button>
           )}
+        </>
+      }
+    >
+      <SettingCard
+        title="AI 模型"
+        description="让 AI 把随记整理成日记、把拍下来的手写日记转成文字，走的都是这里启用的模型。配置只存在你这台机器上，改完自动保存。"
+        badge={<SettingBadge tone={badge.tone}>{badge.text}</SettingBadge>}
+      >
+        {/* 常驻状态条：现在用哪条、缺什么、下一步做什么 */}
+        <div className="mt-4 rounded-lg border border-line bg-surface-2 px-3 py-2">
+          <div className="font-mono text-xs break-all text-fg">{summary}</div>
+          <div className="mt-0.5 text-xs text-muted">{verdict}</div>
         </div>
-      </div>
 
-      {/* 新增表单就嵌在「新增模型」按钮下面 */}
+        {/* 新增表单就嵌在「新增模型」按钮下面 */}
       {formOpen && (
         <div className="mt-3 rounded-xl border border-line p-3">
           <div className="mb-2 text-xs text-fg">新增一条模型</div>
@@ -498,6 +501,7 @@ export default function AiSection() {
           onCancel={() => setPendingDelete(null)}
         />
       )}
-    </SettingCard>
+      </SettingCard>
+    </PageShell>
   )
 }

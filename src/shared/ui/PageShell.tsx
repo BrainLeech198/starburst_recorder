@@ -13,7 +13,7 @@ export default function PageShell({
   title,
   description,
   badge,
-  action,
+  actions,
   backTo,
   backLabel,
   children,
@@ -22,8 +22,8 @@ export default function PageShell({
   description?: string
   /** 标题右侧的当前值，通常传一个 <SettingBadge> */
   badge?: ReactNode
-  /** 右侧的动作位，最多一个（保存 / 批量恢复这类） */
-  action?: ReactNode
+  /** 本页的整体性动作（保存 / 批量恢复 / 新增 / 测试…），放在返回按钮同一行的工具条里 */
+  actions?: ReactNode
   /** 返回哪儿：子页回自己的菜单，菜单回「我的」；默认见 PageHeader */
   backTo?: string
   /** 返回链接上的名字，跟上一层同名；默认见 PageHeader */
@@ -36,7 +36,7 @@ export default function PageShell({
         title={title}
         description={description}
         badge={badge}
-        action={action}
+        actions={actions}
         backTo={backTo}
         backLabel={backLabel}
       />
