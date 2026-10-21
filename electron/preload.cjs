@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('desktop', {
   getSize: () => ipcRenderer.invoke('window:get-size'),
   // 由主进程代发，网页那边不用操心跨域
   chat: (request) => ipcRenderer.invoke('ai:chat', request),
+  models: (request) => ipcRenderer.invoke('ai:models', request),
   dataPath: () => ipcRenderer.invoke('data:path'),
   openDataFolder: () => ipcRenderer.invoke('data:open-folder'),
 })

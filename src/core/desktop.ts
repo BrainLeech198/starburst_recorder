@@ -6,10 +6,18 @@
  * TS 会因为「重复属性类型不一致」直接报错。
  */
 
+/**
+ * 一段图文内容。纯文字请求仍用字符串，只有需要让模型看图时才写成这种分段数组。
+ * 形状照抄 OpenAI 的 content parts，识图服务商基本都是这一套。
+ */
+export type ChatContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } }
+
 /** 一条对话消息，形状跟 OpenAI 的 messages 一致 */
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
-  content: string
+  content: string | ChatContentPart[]
 }
 
 export interface ChatRequest {
@@ -43,6 +51,8 @@ export interface DesktopBridge {
   getSize: () => Promise<{ width: number; height: number } | null>
   /** 从主进程发 AI 请求：绕开 CORS，key 也不经过渲染进程的网络栈 */
   chat: (request: ChatRequest) => Promise<ChatTransportResult>
+  /** 从主进程拉服务商的模型列表（GET {baseUrl}/models），同样绕开 CORS */
+  models: (request: { baseUrl: string; apiKey: string }) => Promise<ChatTransportResult>
   /** 数据实际落盘的位置（桌面程序里才有，浏览器里 null） */
   dataPath: () => Promise<string | null>
   /** 用系统文件管理器打开那个目录，返回是否成功 */

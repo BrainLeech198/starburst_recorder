@@ -96,11 +96,50 @@ function chatUrl(baseUrl) {
   return `${String(baseUrl).trim().replace(/\/+$/, '')}/chat/completions`
 }
 
+/** 服务商认的两种密钥头都带上；本机模型不校验 key，给个占位免得服务端报空 */
+function aiHeaders(apiKey) {
+  const key = String(apiKey ?? '').trim() || 'ollama'
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${key}`,
+    // 小米 MiMo 的文档里用的是 api-key 头，两个都带上，省得对不上
+    'api-key': key,
+  }
+}
+
+/** GET {baseUrl}/models：设置页的模型下拉靠它，失败就当没有，不影响手填 */
+ipcMain.handle('ai:models', async (_event, request) => {
+  const started = Date.now()
+  const baseUrl = String(request?.baseUrl ?? '').trim()
+  if (!baseUrl) {
+    return { ok: false, status: 0, body: '', ms: 0, error: '服务地址还没填' }
+  }
+
+  try {
+    const response = await net.fetch(`${baseUrl.replace(/\/+$/, '')}/models`, {
+      headers: aiHeaders(request?.apiKey),
+    })
+    return {
+      ok: response.ok,
+      status: response.status,
+      body: await response.text(),
+      ms: Date.now() - started,
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      body: '',
+      ms: Date.now() - started,
+      error: String(error?.message ?? error),
+    }
+  }
+})
+
 ipcMain.handle('ai:chat', async (_event, request) => {
   const started = Date.now()
   const baseUrl = String(request?.baseUrl ?? '').trim()
   const model = String(request?.model ?? '').trim()
-  // 本机模型（Ollama）不校验 key，给个占位字符串免得服务端因为空值报错
   const apiKey = String(request?.apiKey ?? '').trim() || 'ollama'
 
   if (!baseUrl || !model) {
@@ -110,12 +149,7 @@ ipcMain.handle('ai:chat', async (_event, request) => {
   try {
     const response = await net.fetch(chatUrl(baseUrl), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-        // 小米 MiMo 的文档里用的是 api-key 头，两个都带上，省得对不上
-        'api-key': apiKey,
-      },
+      headers: aiHeaders(apiKey),
       body: JSON.stringify({ model, messages: request?.messages ?? [], stream: false }),
     })
     return {
