@@ -5,6 +5,7 @@
  */
 import { useTheme } from '@/app/providers/ThemeProvider'
 import { ACCENT_COLORS, accentLabel } from '@/app/theme'
+import { useI18n } from '@/shared/i18n/context'
 import SettingCard, { SettingBadge, SettingGroup } from '@/shared/ui/SettingCard'
 import PageShell from '@/shared/ui/PageShell'
 import { choiceTile } from '@/shared/ui/buttonStyles'
@@ -15,20 +16,21 @@ const THEME_MARK: Record<string, string> = { deep: '🌌', light: '☀️' }
 
 export default function AppearancePage() {
   const { theme, setTheme, themes, accent, setAccent } = useTheme()
+  const { t } = useI18n()
   const themeLabel = themes.find((item) => item.id === theme)?.label ?? theme
 
   return (
     <PageShell
-      title="主题"
+      title={t('settings.theme')}
       badge={
         <SettingBadge>
           {themeLabel} · {accentLabel(accent)}
         </SettingBadge>
       }
-      description="换主题色的时候，导航背景、强调元素和悬浮球的颜色会一起变。"
+      description={t('appearance.description')}
     >
       <SettingCard>
-        <SettingGroup label="明暗" first>
+        <SettingGroup label={t('appearance.mode')} first>
           <div className="grid grid-cols-2 gap-2">
             {themes.map((item) => (
               <button
@@ -44,7 +46,7 @@ export default function AppearancePage() {
           </div>
         </SettingGroup>
 
-        <SettingGroup label="主题色">
+        <SettingGroup label={t('appearance.accent')}>
           <div className="grid grid-cols-6 gap-2">
             {ACCENT_COLORS.map(({ value, label }) => {
               const active = accent === value
@@ -53,7 +55,7 @@ export default function AppearancePage() {
                   key={value}
                   type="button"
                   title={`${label} ${value}`}
-                  aria-label={`主题色 ${label}`}
+                  aria-label={t('appearance.accentAria', { label })}
                   onClick={() => setAccent(value)}
                   className="flex flex-col items-center gap-1"
                 >
