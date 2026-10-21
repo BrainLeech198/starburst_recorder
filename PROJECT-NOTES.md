@@ -127,6 +127,8 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 
 **唯一真相源：`src/core/db/schema.ts`**（三张表 + 字段 + 索引见 `src/core/db/db.ts`）。
 
+**存储抽象（2026-10-21）**：页面只 import `features/diary/diaryRepo.ts`，它由 `core/db/index.ts` 选中的 `DiaryStore` 实现提供；契约在 `core/db/store.ts`，当前实现是 `core/db/dexieStore.ts`。实时订阅仍从 `core/db/live.ts` 拿（现在是 Dexie 的 `useLiveQuery`）。换 SQLite / 同步层时只改「实现 + `core/db/index.ts` + `live.ts`」，页面、备份、AI 整理都不动。契约要求：批量写返回受影响行数、导入三张表必须同一事务、任何实现都要能让页面收到变化通知。
+
 | 表 | 一行是什么 | 主键 / 索引要点 |
 |---|---|---|
 | `diaryEntries` | 一条普通日记 | `id` 主键；另有 `code`（7 位短编号，用来拼 URL）、`dateKey`、`createdAt`、`deletedAt` |
@@ -274,7 +276,7 @@ package/windows/               Inno 打包相关
 2. 数据量上去，需要复杂查询 / 全文检索
 3. AI 要频繁扫大量历史做统计
 
-**如果要做，范围是**：桌面端 `better-sqlite3`（原生模块，需为 Electron 重编）或 `node:sqlite`；手机端 `@capacitor-community/sqlite`；浏览器开发环境需要兜底 → 因此**必须先加一层存储抽象**；要重写 `diaryRepo.ts` 全部函数，并自己实现 `useLiveQuery` 那套"表变界面变"的机制（SQLite 没有）。老数据靠"导出 JSON → 导入"搬。
+**如果要做，范围是**：桌面端 `better-sqlite3`（原生模块，需为 Electron 重编）或 `node:sqlite`；手机端 `@capacitor-community/sqlite`；浏览器开发环境需要兜底。✅ **前置的存储抽象已在 2026-10-21 做完**（`core/db/store.ts` + `dexieStore.ts` + `core/db/index.ts`），剩下的是：写一份 SQLite 实现、重写 `live.ts` 的订阅机制（SQLite 没有 Dexie 的自动 live query），老数据靠"导出 JSON → 导入"搬。
 
 ## 11. 下一步候选
 
