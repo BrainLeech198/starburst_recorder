@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { useLiveQuery } from '@/core/db/live'
 import { useToast } from '@/app/providers/ToastProvider'
+import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import SettingCard, { SettingBadge, SettingGroup } from '@/shared/ui/SettingCard'
 import PageShell from '@/shared/ui/PageShell'
@@ -38,6 +39,7 @@ interface Report {
 function DataFolderCard() {
   // 桌面壳的预加载脚本会注入它，浏览器里是 undefined
   const bridge: DesktopBridge | undefined = desktopBridge()
+  const { t } = useI18n()
   const [folder, setFolder] = useState('')
   const [dbFile, setDbFile] = useState('')
   const [failed, setFailed] = useState(false)
@@ -54,15 +56,15 @@ function DataFolderCard() {
 
   return (
     <SettingCard
-      title="数据在哪"
-      description="桌面版的数据存在一个 SQLite 文件里，就在下面这个目录。想备份或搬家，用上面的「导出全部数据」更稳；这里只是让你能亲眼看到它在哪。"
-      badge={<SettingBadge>桌面程序</SettingBadge>}
+      title={t('data.folderTitle')}
+      description={t('data.folderDesc')}
+      badge={<SettingBadge>{t('data.desktop')}</SettingBadge>}
     >
-      <SettingGroup label="落盘位置">
-        <p className="text-xs text-muted">数据目录</p>
-        <p className="font-mono text-xs break-all text-fg">{folder || '读取中…'}</p>
-        <p className="mt-2 text-xs text-muted">数据库文件</p>
-        <p className="font-mono text-xs break-all text-fg">{dbFile || '读取中…'}</p>
+      <SettingGroup label={t('data.folderGroup')}>
+        <p className="text-xs text-muted">{t('data.dataDir')}</p>
+        <p className="font-mono text-xs break-all text-fg">{folder || t('data.reading')}</p>
+        <p className="mt-2 text-xs text-muted">{t('data.dbFile')}</p>
+        <p className="font-mono text-xs break-all text-fg">{dbFile || t('data.reading')}</p>
         <button
           type="button"
           onClick={() => {
@@ -70,19 +72,13 @@ function DataFolderCard() {
           }}
           className={`${OUTLINE_BUTTON} mt-2`}
         >
-          打开数据文件夹
+          {t('data.openFolder')}
         </button>
-        {failed && (
-          <p className="mt-2 text-xs text-danger">
-            没打开成功，可能被系统拦住了。可以照上面的路径自己找过去。
-          </p>
-        )}
+        {failed && <p className="mt-2 text-xs text-danger">{t('data.openFolderFailed')}</p>}
       </SettingGroup>
 
-      <SettingGroup label="换机器怎么办">
-        <p className="text-xs text-muted">
-          这台机器上「导出全部数据」，到新机器上再「从备份恢复」——日记、随记、天气，连回收站里删掉的都会一起搬过去。
-        </p>
+      <SettingGroup label={t('data.moveGroup')}>
+        <p className="text-xs text-muted">{t('data.moveHint')}</p>
       </SettingGroup>
     </SettingCard>
   )
@@ -99,6 +95,7 @@ const LEGACY_FLAG = 'sb_legacy_migrated'
 function LegacyCard() {
   const bridge = desktopBridge()
   const { showToast } = useToast()
+  const { t } = useI18n()
   const [legacy, setLegacy] = useState<{ entries: number; stamps: number; days: number } | null>(
     null,
   )
@@ -133,7 +130,11 @@ function LegacyCard() {
       localStorage.setItem(LEGACY_FLAG, '1')
       setMigrated(true)
       showToast({
-        message: `旧版数据已搬过来：日记 ${stats.entries.total} 条、随记 ${stats.stamps.total} 笔、天气 ${stats.days.total} 天`,
+        message: t('data.migrateDone', {
+          entries: stats.entries.total,
+          stamps: stats.stamps.total,
+          days: stats.days.total,
+        }),
       })
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught))
@@ -145,13 +146,17 @@ function LegacyCard() {
   return (
     <>
       <SettingCard
-        title="旧版数据"
-        description="这台机器上还留着以前存在浏览器数据库（IndexedDB）里的内容。桌面版已经改用 SQLite，界面上看不到它们了，想保留就搬一次。"
-        badge={<SettingBadge tone="bad">待搬</SettingBadge>}
+        title={t('data.legacyTitle')}
+        description={t('data.legacyDesc')}
+        badge={<SettingBadge tone="bad">{t('data.legacyBadge')}</SettingBadge>}
       >
-        <SettingGroup label="检测到的旧数据">
+        <SettingGroup label={t('data.legacyGroup')}>
           <p className="text-xs text-fg">
-            日记 {legacy.entries} 条 · 随记 {legacy.stamps} 笔 · 天气 {legacy.days} 天
+            {t('data.legacyCount', {
+              entries: legacy.entries,
+              stamps: legacy.stamps,
+              days: legacy.days,
+            })}
           </p>
           <button
             type="button"
@@ -159,11 +164,9 @@ function LegacyCard() {
             onClick={() => setConfirming(true)}
             className={`${OUTLINE_BUTTON} mt-2`}
           >
-            {busy ? '正在搬…' : '搬到现在使用的数据库'}
+            {busy ? t('data.migrating') : t('data.migrate')}
           </button>
-          <p className="mt-2 text-xs text-muted">
-            搬完旧数据还留在原处，不会被删；同一条记录以旧数据为准。
-          </p>
+          <p className="mt-2 text-xs text-muted">{t('data.migrateHint')}</p>
           {error !== '' && (
             <p className="mt-2 rounded-lg border border-danger px-3 py-2 text-xs text-danger">
               {error}
@@ -174,9 +177,13 @@ function LegacyCard() {
 
       {confirming && (
         <ConfirmDialog
-          title="把旧版数据搬过来？"
-          description={`会把旧数据库里的 ${legacy.entries} 条日记、${legacy.stamps} 笔随记、${legacy.days} 天天气并进现在使用的数据库。同一条记录以旧数据为准，其它内容不动。`}
-          confirmLabel="搬过来"
+          title={t('data.migrateConfirmTitle')}
+          description={t('data.migrateConfirmBody', {
+            entries: legacy.entries,
+            stamps: legacy.stamps,
+            days: legacy.days,
+          })}
+          confirmLabel={t('data.migrateConfirm')}
           tone="brand"
           onConfirm={() => void handleMigrate()}
           onCancel={() => setConfirming(false)}
@@ -188,6 +195,7 @@ function LegacyCard() {
 
 export default function DataPage() {
   const { showToast } = useToast()
+  const { t } = useI18n()
   const fileRef = useRef<HTMLInputElement>(null)
   const counts = useLiveQuery(() => totals(), [])
   const [pending, setPending] = useState<Pending | null>(null)
@@ -206,7 +214,12 @@ export default function DataPage() {
     showToast({
       message: describeSave(
         outcome,
-        `全部数据：${entries.length} 条日记、${stamps.length} 笔随记、${days.length} 天天气（回收站里的也在内）`,
+        t('data.savedAll', {
+          entries: entries.length,
+          stamps: stamps.length,
+          days: days.length,
+        }),
+        t,
       ),
     })
   }
@@ -240,33 +253,30 @@ export default function DataPage() {
   const added = (part: { total: number; overwritten: number }) => part.total - part.overwritten
 
   return (
-    <PageShell title="数据与备份" description="导出全部数据、从备份恢复、看一眼数据实际落在哪儿。">
+    <PageShell title={t('data.title')} description={t('data.description')}>
       <SettingCard
-        title="备份"
-        description="把全部内容导成一份 JSON：日记、随记、天气，连回收站里删掉的都在内。"
+        title={t('data.backupTitle')}
+        description={t('data.backupDesc')}
         badge={
           <SettingBadge>
-            日记 {counts?.entries ?? 0} · 随记 {counts?.stamps ?? 0}
+            {t('settings.dataCount', { entries: counts?.entries ?? 0, stamps: counts?.stamps ?? 0 })}
           </SettingBadge>
         }
       >
-        <SettingGroup label="导出">
+        <SettingGroup label={t('data.exportGroup')}>
           <button type="button" onClick={() => void handleExportAll()} className={OUTLINE_BUTTON}>
-            导出全部数据
+            {t('data.export')}
           </button>
-          <p className="mt-2 text-xs text-muted">
-            手机上会弹系统保存框，你挑个位置存好；电脑上直接下载。
-            收好它——这就是你的备份，也是换机器时唯一要带的东西。
-          </p>
+          <p className="mt-2 text-xs text-muted">{t('data.exportHint')}</p>
         </SettingGroup>
       </SettingCard>
 
       <SettingCard
-        title="从备份恢复"
-        description="选一份之前导出的备份，把里面的内容并进来。"
-        badge={<SettingBadge>合并 · 备份优先</SettingBadge>}
+        title={t('data.restoreTitle')}
+        description={t('data.restoreDesc')}
+        badge={<SettingBadge>{t('data.mergeBadge')}</SettingBadge>}
       >
-        <SettingGroup label="选择备份文件">
+        <SettingGroup label={t('data.pickGroup')}>
           <input
             ref={fileRef}
             type="file"
@@ -280,11 +290,9 @@ export default function DataPage() {
             onClick={() => fileRef.current?.click()}
             className={OUTLINE_BUTTON}
           >
-            {busy ? '正在导入…' : '选择备份文件…'}
+            {busy ? t('data.importing') : t('data.pickFile')}
           </button>
-          <p className="mt-2 text-xs text-muted">
-            选完先给你看一份清单，你确认了才会真写进去。同一条记录以备份为准，其它内容不动。
-          </p>
+          <p className="mt-2 text-xs text-muted">{t('data.pickHint')}</p>
 
           {error !== '' && (
             <p className="mt-2 rounded-lg border border-danger px-3 py-2 text-xs text-danger">
@@ -294,21 +302,28 @@ export default function DataPage() {
 
           {report && (
             <div className="mt-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-xs">
-              <div className="text-fg">导入完成</div>
+              <div className="text-fg">{t('data.importDone')}</div>
               <ul className="mt-1 space-y-0.5 text-muted">
                 <li>
-                  日记：新增 {added(report.stats.entries)} 条 · 覆盖{' '}
-                  {report.stats.entries.overwritten} 条
+                  {t('data.importEntries', {
+                    added: added(report.stats.entries),
+                    overwritten: report.stats.entries.overwritten,
+                  })}
                 </li>
                 <li>
-                  随记：新增 {added(report.stats.stamps)} 笔 · 覆盖{' '}
-                  {report.stats.stamps.overwritten} 笔
+                  {t('data.importStamps', {
+                    added: added(report.stats.stamps),
+                    overwritten: report.stats.stamps.overwritten,
+                  })}
                 </li>
                 <li>
-                  天气：新增 {added(report.stats.days)} 天 · 覆盖 {report.stats.days.overwritten} 天
+                  {t('data.importDays', {
+                    added: added(report.stats.days),
+                    overwritten: report.stats.days.overwritten,
+                  })}
                 </li>
                 {report.skipped > 0 && (
-                  <li className="text-danger">有 {report.skipped} 条格式不对，已经跳过</li>
+                  <li className="text-danger">{t('data.importSkipped', { count: report.skipped })}</li>
                 )}
               </ul>
             </div>
@@ -321,13 +336,16 @@ export default function DataPage() {
 
       {pending && (
         <ConfirmDialog
-          title="把这份备份并进来？"
-          description={`「${pending.name}」里有 ${pending.payload.entries.length} 条日记、${
-            pending.payload.stamps.length
-          } 笔随记、${pending.payload.days.length} 天天气。同一条记录以备份为准（会被备份盖掉），其它内容不动。${
-            pending.skipped > 0 ? `另有 ${pending.skipped} 条格式不对，会跳过。` : ''
+          title={t('data.confirmImportTitle')}
+          description={`${t('data.confirmImportBody', {
+            name: pending.name,
+            entries: pending.payload.entries.length,
+            stamps: pending.payload.stamps.length,
+            days: pending.payload.days.length,
+          })}${
+            pending.skipped > 0 ? t('data.confirmImportSkip', { count: pending.skipped }) : ''
           }`}
-          confirmLabel="导入"
+          confirmLabel={t('data.import')}
           tone="brand"
           onConfirm={() => void handleConfirmImport()}
           onCancel={() => setPending(null)}
