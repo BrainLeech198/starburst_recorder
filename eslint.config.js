@@ -43,5 +43,44 @@ export default [
       '@typescript-eslint/no-require-imports': 'off',
     },
   },
+  {
+    // 路由配置文件导出的是 router 与 lazy 组件常量，不是可热更新的组件模块
+    files: ['src/app/router.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
+  {
+    // 依赖方向：下层不能反向依赖上层。core / shared / platform 只服务于 app 与 features。
+    files: ['src/{core,shared,platform}/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/features/*', '@/app/*'],
+              message: 'core / shared / platform 不能反向依赖 features 或 app；需要共享的代码请下沉到 shared。',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // features 只负责业务模块本身，不负责路由组装，也不直接依赖壳层布局
+    files: ['src/features/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/app/router', '@/app/layout/*'],
+              message: 'features 不要直接依赖路由或壳层，页面跳转由 app 层组装。',
+            },
+          ],
+        },
+      ],
+    },
+  },
   prettier,
 ]

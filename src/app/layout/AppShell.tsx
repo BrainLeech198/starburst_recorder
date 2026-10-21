@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import FloatingAssistant from '@/features/assistant/FloatingAssistant'
 import { useI18n } from '@/shared/i18n/context'
@@ -154,7 +154,10 @@ export default function AppShell() {
         ref={contentRef}
         className="sb-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain"
       >
-        <Outlet />
+        {/* 页面按路由懒加载，切换时先显示一句「加载中」，避免白屏 */}
+        <Suspense fallback={<div className="p-4 text-sm text-muted">{t('common.loading')}</div>}>
+          <Outlet />
+        </Suspense>
       </main>
       {/* 悬浮球平时不显示（它还是个占位，点开只会说 AI 没接），调试开关见 debugFlags.ts */}
       {ballVisible() && <FloatingAssistant />}

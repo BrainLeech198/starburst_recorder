@@ -28,6 +28,11 @@ export const zh = {
   'common.confirm': '确定',
   'common.cancel': '取消',
   'common.settings': '设置',
+  'common.loading': '加载中…',
+
+  'error.title': '这个页面出问题了',
+  'error.hint': '可以先刷新重试；如果一直这样，记录不会丢，数据还在本机。',
+  'error.reload': '刷新重试',
 } as const
 
 export type MessageKey = keyof typeof zh
