@@ -4,7 +4,8 @@ import { Link, useNavigate } from 'react-router'
 import { useLiveQuery } from '../../core/db/live'
 import type { DiaryEntry } from '../../core/db/schema'
 import { useToast } from '../../app/providers/ToastProvider'
-import BatchBar from '../../shared/ui/BatchBar'
+import BatchActions from '../../shared/ui/BatchActions'
+import { useBatchSelect } from '../../shared/ui/useBatchSelect'
 import ConfirmDialog from '../../shared/ui/ConfirmDialog'
 import Tab from '../../shared/ui/Tab'
 import ToolbarRow from '../../shared/ui/ToolbarRow'
@@ -66,8 +67,7 @@ export default function DiaryPage() {
   const [focusStampId, setFocusStampId] = useState('')
 
   // 批量多选
-  const [selectMode, setSelectMode] = useState(false)
-  const [selected, setSelected] = useState<string[]>([])
+  const batch = useBatchSelect()
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
   const [moveOpen, setMoveOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
@@ -83,35 +83,18 @@ export default function DiaryPage() {
 
   const unit = mode === 'diary' ? '条' : '笔'
   const noun = mode === 'diary' ? '日记' : '随记'
-  const selectedCount = selected.length
+  const selectedCount = batch.count
   /** 当前栏目里能选中的全部 id：日记看日记，随记看随记 */
   const selectableIds =
     mode === 'diary'
       ? (entries ?? []).map((entry) => entry.id)
       : (stamps ?? []).map((stamp) => stamp.id)
 
-  function exitSelect() {
-    setSelectMode(false)
-    setSelected([])
-  }
-
   /** 换栏目时顺手退出批量，免得选中的是上一栏的 id */
   function switchMode(next: 'diary' | 'stamp') {
     if (next === mode) return
-    exitSelect()
+    batch.exit()
     setMode(next)
-  }
-
-  function toggleSelect(id: string) {
-    setSelected((ids) => (ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id]))
-  }
-
-  function selectAll() {
-    setSelected(selectableIds)
-  }
-
-  function invertSelect() {
-    setSelected(selectableIds.filter((id) => !selected.includes(id)))
   }
 
   async function handleCreate() {
@@ -203,11 +186,11 @@ export default function DiaryPage() {
   }
 
   async function handleBatchDelete() {
-    const ids = selected
+    const ids = batch.selected
     setBatchDeleteOpen(false)
     if (mode === 'diary') await removeEntries(ids)
     else await removeStamps(ids)
-    setSelected([])
+    batch.clear()
     showToast({
       message: `已删除 ${ids.length} ${unit}${noun}`,
       actionLabel: '撤销',
@@ -218,22 +201,22 @@ export default function DiaryPage() {
   }
 
   async function handleMove(next: string) {
-    const ids = selected
+    const ids = batch.selected
     setMoveOpen(false)
     if (mode === 'diary') await moveEntries(ids, next)
     else await moveStamps(ids, next)
-    setSelected([])
+    batch.clear()
     showToast({ message: `已把 ${ids.length} ${unit}${noun}移到 ${formatDateCn(next)}` })
   }
 
   async function handleExport(format: ExportFormat) {
     setExportOpen(false)
     const pickedEntries =
-      mode === 'diary' ? (entries ?? []).filter((e) => selected.includes(e.id)) : []
+      mode === 'diary' ? (entries ?? []).filter((e) => batch.isSelected(e.id)) : []
     const pickedStamps =
-      mode === 'stamp' ? (stamps ?? []).filter((s) => selected.includes(s.id)) : []
+      mode === 'stamp' ? (stamps ?? []).filter((s) => batch.isSelected(s.id)) : []
     const file = buildExport(pickedEntries, pickedStamps, format)
-    setSelected([])
+    batch.clear()
     const outcome = await saveTextFile(file)
     showToast({
       message: describeSave(
@@ -273,7 +256,7 @@ export default function DiaryPage() {
           整行都是按钮，套一层底色跟下面的内容分开 */}
       <ToolbarRow className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          {!selectMode && (
+          {!batch.active && (
             <>
               {mode === 'diary' ? (
                 <>
@@ -311,7 +294,7 @@ export default function DiaryPage() {
                 type="button"
                 onClick={() => {
                   setHint('')
-                  setSelectMode(true)
+                  batch.enter()
                 }}
                 className={SOLID_BUTTON}
               >
@@ -333,9 +316,9 @@ export default function DiaryPage() {
           dateKey={dateKey}
           focusId={focusStampId}
           stamps={stamps}
-          selectMode={selectMode}
-          selected={selected}
-          onToggleSelect={toggleSelect}
+          selectMode={batch.active}
+          selected={batch.selected}
+          onToggleSelect={batch.toggle}
         />
       )}
 
@@ -350,16 +333,16 @@ export default function DiaryPage() {
       {mode === 'diary' && entries !== undefined && entries.length > 0 && (
         <ul className="mt-4 space-y-3">
           {entries.map((entry) => {
-            const isSelected = selected.includes(entry.id)
+            const isSelected = batch.isSelected(entry.id)
             return (
               <li
                 key={entry.id}
                 className={isSelected ? 'paper-slip paper-slip-selected' : 'paper-slip'}
               >
-                {selectMode ? (
+                {batch.active ? (
                   <button
                     type="button"
-                    onClick={() => toggleSelect(entry.id)}
+                    onClick={() => batch.toggle(entry.id)}
                     className="block w-full pr-8 text-left"
                   >
                     <SlipBody entry={entry} />
@@ -374,7 +357,7 @@ export default function DiaryPage() {
                   {entry.code} · {formatClock(entry.createdAt)}
                 </div>
 
-                {selectMode ? (
+                {batch.active ? (
                   <span
                     aria-hidden="true"
                     className={
@@ -402,17 +385,8 @@ export default function DiaryPage() {
         </ul>
       )}
 
-      {selectMode && (
-        <BatchBar count={selectedCount} unit={unit}>
-          <button type="button" onClick={selectAll} className={BAR_BUTTON}>
-            全选
-          </button>
-          <button type="button" onClick={invertSelect} className={BAR_BUTTON}>
-            反选
-          </button>
-          <button type="button" onClick={() => setSelected([])} className={BAR_BUTTON}>
-            取消
-          </button>
+      {batch.active && (
+        <BatchActions select={batch} ids={selectableIds} unit={unit}>
           <button
             type="button"
             onClick={() => setBatchDeleteOpen(true)}
@@ -437,10 +411,7 @@ export default function DiaryPage() {
           >
             导出
           </button>
-          <button type="button" onClick={exitSelect} className={`${BAR_BUTTON} text-brand`}>
-            完成
-          </button>
-        </BatchBar>
+        </BatchActions>
       )}
 
       {pendingDelete && (

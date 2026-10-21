@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { useLiveQuery } from '../../core/db/live'
 import { useToast } from '../../app/providers/ToastProvider'
-import BatchBar from '../../shared/ui/BatchBar'
+import BatchActions from '../../shared/ui/BatchActions'
 import ConfirmDialog from '../../shared/ui/ConfirmDialog'
 import Tab from '../../shared/ui/Tab'
 import ToolbarRow from '../../shared/ui/ToolbarRow'
+import { useBatchSelect } from '../../shared/ui/useBatchSelect'
 import {
   BACK_BUTTON,
   BAR_BUTTON,
@@ -41,8 +42,7 @@ export default function TrashPage() {
   const [pending, setPending] = useState<Pending | null>(null)
 
   // 批量多选：日记栏和随记栏共用一份选中集，换栏目时清掉
-  const [selectMode, setSelectMode] = useState(false)
-  const [selected, setSelected] = useState<string[]>([])
+  const batch = useBatchSelect()
 
   // 从日记页哪个栏目进来的，就默认落在哪个回收站
   const cameFrom = (location.state as { mode?: Mode } | null)?.mode
@@ -56,23 +56,14 @@ export default function TrashPage() {
   const loading = entries === undefined || stamps === undefined
   const count = mode === 'diary' ? (entries?.length ?? 0) : (stamps?.length ?? 0)
   const isEmpty = !loading && count === 0
-  const selectedCount = selected.length
+  const selectedCount = batch.count
   const selectableIds =
     mode === 'diary' ? (entries ?? []).map((e) => e.id) : (stamps ?? []).map((s) => s.id)
 
-  function exitSelect() {
-    setSelectMode(false)
-    setSelected([])
-  }
-
   function switchMode(next: Mode) {
     if (next === mode) return
-    exitSelect()
+    batch.exit()
     setMode(next)
-  }
-
-  function toggleSelect(id: string) {
-    setSelected((ids) => (ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id]))
   }
 
   async function handleRestore(kind: 'entry' | 'stamp', id: string) {
@@ -83,11 +74,11 @@ export default function TrashPage() {
 
   /** 批量恢复：一次性送回原来的日期；如果这一栏被清空了就顺手退出批量 */
   async function handleBatchRestore() {
-    const ids = selected
+    const ids = batch.selected
     if (mode === 'diary') await restoreEntries(ids)
     else await restoreStamps(ids)
-    setSelected([])
-    if (ids.length >= count) setSelectMode(false)
+    batch.clear()
+    if (ids.length >= count) batch.exit()
     showToast({ message: `已恢复 ${ids.length} ${unit}${noun}` })
   }
 
@@ -103,11 +94,11 @@ export default function TrashPage() {
       return
     }
     if (target.kind === 'batch') {
-      const ids = selected
+      const ids = batch.selected
       if (mode === 'diary') await purgeEntries(ids)
       else await purgeStamps(ids)
-      setSelected([])
-      if (ids.length >= count) setSelectMode(false)
+      batch.clear()
+      if (ids.length >= count) batch.exit()
       showToast({ message: `已彻底删除 ${ids.length} ${unit}${noun}` })
       return
     }
@@ -130,15 +121,15 @@ export default function TrashPage() {
           ← 返回日记
         </Link>
         <div className="flex items-center gap-2">
-          {!selectMode && !isEmpty && (
-            <button type="button" onClick={() => setSelectMode(true)} className={SOLID_BUTTON}>
+          {!batch.active && !isEmpty && (
+            <button type="button" onClick={batch.enter} className={SOLID_BUTTON}>
               批量
             </button>
           )}
           <button
             type="button"
             onClick={() => setPending({ kind: 'clear' })}
-            disabled={isEmpty || selectMode}
+            disabled={isEmpty || batch.active}
             className={`${SOLID_DANGER} disabled:opacity-40`}
           >
             清空{noun}回收站
@@ -158,7 +149,7 @@ export default function TrashPage() {
       <p className="mt-2 text-xs text-muted">
         {loading
           ? '读取中…'
-          : selectMode
+          : batch.active
             ? `点纸条选中它，或者用底部工具条全选。`
             : `这里放着你删掉的${noun}，共 ${count} ${unit}。恢复会送它们回到原来的日期；彻底删除和清空就真没了。`}
       </p>
@@ -168,16 +159,16 @@ export default function TrashPage() {
       {!loading && mode === 'diary' && entries.length > 0 && (
         <ul className="mt-4 space-y-3">
           {entries.map((entry) => {
-            const isSelected = selected.includes(entry.id)
+            const isSelected = batch.isSelected(entry.id)
             return (
               <li
                 key={entry.id}
                 className={isSelected ? 'paper-slip paper-slip-selected' : 'paper-slip'}
               >
-                {selectMode ? (
+                {batch.active ? (
                   <button
                     type="button"
-                    onClick={() => toggleSelect(entry.id)}
+                    onClick={() => batch.toggle(entry.id)}
                     className="block w-full pr-8 text-left"
                   >
                     <div className="font-hand text-sm">{formatMonthDayCn(entry.dateKey)}</div>
@@ -198,7 +189,7 @@ export default function TrashPage() {
                   <span className="font-mono text-xs text-ink-muted opacity-70">
                     {entry.code} · 删除于 {formatStamp(entry.deletedAt ?? 0)}
                   </span>
-                  {!selectMode && (
+                  {!batch.active && (
                     <span className="flex items-center gap-1">
                       <button
                         type="button"
@@ -218,7 +209,7 @@ export default function TrashPage() {
                   )}
                 </div>
 
-                {selectMode && (
+                {batch.active && (
                   <span
                     aria-hidden="true"
                     className={
@@ -239,16 +230,16 @@ export default function TrashPage() {
       {!loading && mode === 'stamp' && stamps.length > 0 && (
         <ul className="mt-4 space-y-3">
           {stamps.map((stamp) => {
-            const isSelected = selected.includes(stamp.id)
+            const isSelected = batch.isSelected(stamp.id)
             return (
               <li
                 key={stamp.id}
                 className={isSelected ? 'paper-slip paper-slip-selected' : 'paper-slip'}
               >
-                {selectMode ? (
+                {batch.active ? (
                   <button
                     type="button"
-                    onClick={() => toggleSelect(stamp.id)}
+                    onClick={() => batch.toggle(stamp.id)}
                     className="block w-full pr-8 text-left"
                   >
                     <div className="font-hand text-sm">
@@ -273,7 +264,7 @@ export default function TrashPage() {
                   <span className="font-mono text-xs text-ink-muted opacity-70">
                     删除于 {formatStamp(stamp.deletedAt ?? 0)}
                   </span>
-                  {!selectMode && (
+                  {!batch.active && (
                     <span className="flex items-center gap-1">
                       <button
                         type="button"
@@ -293,7 +284,7 @@ export default function TrashPage() {
                   )}
                 </div>
 
-                {selectMode && (
+                {batch.active && (
                   <span
                     aria-hidden="true"
                     className={
@@ -311,21 +302,8 @@ export default function TrashPage() {
         </ul>
       )}
 
-      {selectMode && (
-        <BatchBar count={selectedCount} unit={unit}>
-          <button type="button" onClick={() => setSelected(selectableIds)} className={BAR_BUTTON}>
-            全选
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelected(selectableIds.filter((id) => !selected.includes(id)))}
-            className={BAR_BUTTON}
-          >
-            反选
-          </button>
-          <button type="button" onClick={() => setSelected([])} className={BAR_BUTTON}>
-            取消
-          </button>
+      {batch.active && (
+        <BatchActions select={batch} ids={selectableIds} unit={unit}>
           <button
             type="button"
             onClick={() => void handleBatchRestore()}
@@ -342,10 +320,7 @@ export default function TrashPage() {
           >
             彻底删除
           </button>
-          <button type="button" onClick={exitSelect} className={`${BAR_BUTTON} text-brand`}>
-            完成
-          </button>
-        </BatchBar>
+        </BatchActions>
       )}
 
       {pending && (
