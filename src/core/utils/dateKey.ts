@@ -12,6 +12,16 @@ export function todayKey(): string {
   return toDateKey(new Date())
 }
 
+/** 是不是一个真实存在的 'YYYY-MM-DD'：URL 里的 ?date= 与草稿日期都先过这一道 */
+export function isDateKey(value: string | null | undefined): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  return (
+    date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+  )
+}
+
 function parseDateKey(dateKey: string): Date {
   const [year, month, day] = dateKey.split('-').map(Number)
   return new Date(year, month - 1, day)
@@ -32,6 +42,37 @@ export function formatMonthDayCn(dateKey: string): string {
 /** '星期X' */
 export function weekdayLabel(dateKey: string): string {
   return WEEKDAYS[parseDateKey(dateKey).getDay()]
+}
+
+/**
+ * 列表左上角的相对日期，只给一个粗粒度方向，不替代具体日期：
+ * 是今天 / 昨天 / 明天 / 前几天 / 后几天 / 前几月 / 后几月 / 去年 / 明年 / 前几年 / 后几年。
+ * 今天以外、又同月但超过一周的，落在「这个月」。
+ */
+export function relativeDayLabel(dateKey: string, today = todayKey()): string {
+  const target = parseDateKey(dateKey)
+  const base = parseDateKey(today)
+  const dayDiff = Math.round((target.getTime() - base.getTime()) / 86400000)
+
+  if (dayDiff === 0) return '是今天'
+  if (dayDiff === -1) return '昨天'
+  if (dayDiff === 1) return '明天'
+
+  const yearDiff = target.getFullYear() - base.getFullYear()
+
+  if (dayDiff < 0) {
+    if (dayDiff >= -7) return '前几天'
+    if (yearDiff <= -2) return '前几年'
+    if (yearDiff === -1) return '去年'
+    if (target.getMonth() < base.getMonth()) return '前几月'
+    return '这个月'
+  }
+
+  if (dayDiff <= 7) return '后几天'
+  if (yearDiff >= 2) return '后几年'
+  if (yearDiff === 1) return '明年'
+  if (target.getMonth() > base.getMonth()) return '后几月'
+  return '这个月'
 }
 
 /** '2026/10/18-18:00' */

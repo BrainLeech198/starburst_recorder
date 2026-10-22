@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import type { DiaryEntry } from '@/core/db/schema'
 import { useToast } from '@/app/providers/ToastProvider'
@@ -13,7 +13,6 @@ import ToolbarRow from '@/shared/ui/ToolbarRow'
 import { BAR_BUTTON, BAR_DANGER, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import {
   addStamp,
-  createEntry,
   entriesOfDay,
   moveEntries,
   moveStamps,
@@ -24,12 +23,13 @@ import {
   restoreEntry,
   restoreStamps,
   stampsOfDay,
-  updateContent,
 } from './diaryRepo'
 import {
   formatClock,
   formatDateCn,
   formatMonthDayCn,
+  isDateKey,
+  relativeDayLabel,
   todayKey,
   weekdayLabel,
 } from '@/core/utils/dateKey'
@@ -39,6 +39,7 @@ import ExportDialog from './ExportDialog'
 import AiComposeDialog from '@/features/ai/AiComposeDialog'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import type { AiConfig } from '@/features/ai/aiConfig'
+import type { Transcript } from '@/features/ai/aiVision'
 import ImageImportDialog from './ImageImportDialog'
 import { buildExport } from './diaryExport'
 import type { ExportFormat } from './diaryExport'
@@ -61,7 +62,14 @@ export default function DiaryPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const { t } = useI18n()
-  const [dateKey, setDateKey] = useState(todayKey)
+  // 列表停在哪天写进 URL：从编辑页返回、换天、图片导入都能带着这一天回来
+  const [searchParams, setSearchParams] = useSearchParams()
+  const dateParam = searchParams.get('date')
+  const dateKey = isDateKey(dateParam) ? dateParam : todayKey()
+  /** 换天：改 ?date=，不要另开一条历史 */
+  function setDateKey(next: string) {
+    setSearchParams({ date: next }, { replace: true })
+  }
   const [mode, setMode] = useState<'diary' | 'stamp'>('diary')
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<DiaryEntry | null>(null)
@@ -83,6 +91,7 @@ export default function DiaryPage() {
 
   const entries = useLiveQuery(() => entriesOfDay(dateKey), [dateKey])
   const stamps = useLiveQuery(() => stampsOfDay(dateKey), [dateKey])
+  const isToday = dateKey === todayKey()
 
   const unit = mode === 'diary' ? t('diary.unitDiary') : t('diary.unitStamp')
   /** 「3 条日记」「2 笔随记」：数量与量词一起由文案决定，方便以后换语言 */
@@ -102,10 +111,10 @@ export default function DiaryPage() {
     setMode(next)
   }
 
-  async function handleCreate() {
+  /** 新增：只开一份内存草稿，进编辑页点了保存才落盘 */
+  function handleCreate() {
     setHint('')
-    const entry = await createEntry(dateKey)
-    navigate(`/diary/${entry.code}`, { state: { editable: true } })
+    navigate('/diary/new', { state: { dateKey } })
   }
 
   async function handleAddStamp() {
@@ -154,24 +163,29 @@ export default function DiaryPage() {
     if (file) setImportFile(file)
   }
 
-  /** 识别成功：新建一条当天的日记，带着正文直接进编辑页，让人自己再改 */
-  async function handleImportDone(content: string) {
+  /**
+   * 识别成功：先开一份内存草稿，不写库。
+   * 照片上的日期若不是列表当前停的那天，把列表 URL 也换到那天——返回时直接停在那一天，
+   * 不会出现「导入了 15 号，回来还停在 22 号，以为没存上」。
+   */
+  async function handleImportDone(transcript: Transcript) {
     setImportFile(null)
-    const entry = await createEntry(dateKey)
-    await updateContent(entry.id, content)
-    navigate(`/diary/${entry.code}`, { state: { editable: true } })
+    const targetDate = isDateKey(transcript.dateKey) ? transcript.dateKey : dateKey
+    // 先把列表那一天改掉，再进编辑页：等这次 replace 落地，浏览器返回才会回到正确的日期
+    if (targetDate !== dateKey) await navigate(`/diary?date=${targetDate}`, { replace: true })
+    navigate('/diary/new', {
+      state: {
+        dateKey: targetDate,
+        content: transcript.content,
+        weather: transcript.weather || undefined,
+      },
+    })
   }
 
-  /** 草稿确认：新建一条当天的日记，随记原文不动 */
-  async function handleComposeConfirm(content: string) {
+  /** AI 整理：整理出来的正文也先进草稿，等用户自己决定存到哪一天 */
+  function handleComposeConfirm(content: string) {
     setComposeOpen(false)
-    const entry = await createEntry(dateKey)
-    await updateContent(entry.id, content)
-    showToast({
-      message: t('diary.composed'),
-      actionLabel: t('diary.open'),
-      onAction: () => navigate(`/diary/${entry.code}`, { state: { editable: true } }),
-    })
+    navigate('/diary/new', { state: { dateKey, content } })
   }
 
   async function handleDelete() {
@@ -248,8 +262,17 @@ export default function DiaryPage() {
             setHint('')
             setPickerOpen(true)
           }}
-          className="font-hand flex items-baseline gap-2 rounded-lg px-2 py-1 transition-colors hover:text-brand"
+          className="font-hand flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:text-brand"
         >
+          {/* 今天绿、其他日期黄：一眼知道列表停在哪一段 */}
+          <span
+            className={[
+              'rounded px-1.5 py-0.5 text-[11px] font-medium leading-none',
+              isToday ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning',
+            ].join(' ')}
+          >
+            {relativeDayLabel(dateKey)}
+          </span>
           <span className="text-sm">{formatDateCn(dateKey)}</span>
           <span className="text-xs text-muted">{weekdayLabel(dateKey)}</span>
         </button>
