@@ -10,14 +10,15 @@
  */
 import { chat, pickReply } from '@/features/ai/aiClient'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
+import { normalizeWeather } from './weather'
 
 const PLACE_KEY = 'sb_weather_place'
 /** 预报接口能回查最近 92 天；更早的日期走历史存档接口 */
 const FORECAST_WINDOW_DAYS = 90
+/** 预报接口最多往后看 16 天；再远会直接返回 400 */
+const FORECAST_MAX_FUTURE_DAYS = 16
 /** AI 最多等这么久，超时直接走程序兜底，别让用户干等 */
 const AI_TIMEOUT_MS = 12_000
-/** 天气词全集，跟 weather.ts 的 WEATHER_PRESETS 一致 */
-const WEATHER_WORDS = ['晴', '多云', '阴', '雨', '雪', '雷']
 /** 行政区划后缀，从长到短，去掉后才能被 geocoding 认出来 */
 const PLACE_SUFFIXES = [
   '特别行政区',
@@ -98,19 +99,6 @@ function weatherPrompt(place: string, dateKey: string) {
     'weather 只能从「晴、多云、阴、雨、雪、雷」里选一个最接近的词。',
     '如果实在查不到，返回 {"weather":""}。',
   ].join('\n')
-}
-
-/** AI 可能回「晴天」「小雨」这类词，收敛到我们天气链上的六个词 */
-function normalizeWeather(raw: string): string {
-  const text = raw.trim()
-  if (WEATHER_WORDS.includes(text)) return text
-  if (text.includes('雷')) return '雷'
-  if (text.includes('雪')) return '雪'
-  if (text.includes('雨')) return '雨'
-  if (text.includes('多云')) return '多云'
-  if (text.includes('阴')) return '阴'
-  if (text.includes('晴')) return '晴'
-  return ''
 }
 
 /** 从模型回复里抠天气词：优先按 JSON 读，读不出再按整段文字兜底 */
@@ -280,6 +268,13 @@ async function readWeatherCode(url: string): Promise<number | null> {
 /** 程序兜底：查某一天的主天气。近期走预报接口，更早的走历史存档接口 */
 async function fetchProgramWeather(dateKey: string, place: WeatherPlace): Promise<string> {
   const offset = daysFromToday(dateKey)
+  // 预报接口只往后看 16 天，超了会直接 400；与其让用户等一次必失败的请求，不如先说清楚
+  if (offset > FORECAST_MAX_FUTURE_DAYS) {
+    throw new Error(
+      `预报最多只能看到今天起 ${FORECAST_MAX_FUTURE_DAYS} 天，这一天太远了，先手动选一下天气。`,
+    )
+  }
+
   const query =
     `latitude=${place.lat}&longitude=${place.lon}` +
     `&daily=weather_code&timezone=auto&start_date=${dateKey}&end_date=${dateKey}`
@@ -287,9 +282,10 @@ async function fetchProgramWeather(dateKey: string, place: WeatherPlace): Promis
   const forecast = `https://api.open-meteo.com/v1/forecast?${query}`
   const archive = `https://archive-api.open-meteo.com/v1/archive?${query}`
 
-  let code = offset >= -FORECAST_WINDOW_DAYS ? await readWeatherCode(forecast) : null
-  // 预报接口回查不到时（日期太靠前或太靠后），再试历史接口
-  if (code === null && offset < 0) code = await readWeatherCode(archive)
+  let code =
+    offset >= -FORECAST_WINDOW_DAYS ? await readWeatherCode(forecast).catch(() => null) : null
+  // 预报接口回查不到时（日期太靠前、太久远，或这一刻接口抽风），再试历史接口
+  if (code === null && offset <= 0) code = await readWeatherCode(archive)
   if (code === null) {
     throw new Error('没查到这一天的天气，可能日期太早或太新。可以手动点天气，或者换个地点再试。')
   }

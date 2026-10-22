@@ -1,6 +1,23 @@
 /** 可选天气：连续点选就是"一天里变化过的天气"，比如 晴→雨→阴 */
 export const WEATHER_PRESETS = ['晴', '雨', '阴', '多云', '雪', '风']
 
+/**
+ * 把模型回的「晴天」「小雨」「大风」收敛成我们的天气词。
+ * 顺序有讲究：先判复合词，再判单字，免得「雷阵雨」被当成「雨」。
+ */
+export function normalizeWeather(raw: string): string {
+  const text = raw.trim()
+  if (text === '') return ''
+  if (text.includes('雷')) return '雷'
+  if (text.includes('雪')) return '雪'
+  if (text.includes('雨')) return '雨'
+  if (text.includes('多云')) return '多云'
+  if (text.includes('阴')) return '阴'
+  if (text.includes('风')) return '风'
+  if (text.includes('晴')) return '晴'
+  return ''
+}
+
 /** 天气状态对应的图标 */
 const WEATHER_ICONS: [string, string][] = [
   ['雪', '❄️'],

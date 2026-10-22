@@ -107,7 +107,8 @@ export default function WeatherDialog({
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 event.preventDefault()
-                void handleQuery()
+                // 正在查的时候再按回车不重复发请求
+                if (!busy) void handleQuery()
               }
             }}
             className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1.5 text-xs text-fg outline-none focus:border-brand"
