@@ -19,9 +19,13 @@ import {
   updateContent,
 } from './diaryRepo'
 import { formatDateCn, isDateKey, todayKey, weekdayLabel } from '@/core/utils/dateKey'
+import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
+import type { AiConfig } from '@/features/ai/aiConfig'
 import { parseWeather, weatherIcons, weatherLabel } from './weather'
 import WeatherDialog from './WeatherDialog'
 import DatePickerDialog from './DatePickerDialog'
+import ImageImportDialog from './ImageImportDialog'
+import type { ImportSummary } from './importPages'
 
 /** 弹窗底部的取消按钮：全站弹窗统一的样子 */
 const DIALOG_BUTTON =
@@ -74,6 +78,9 @@ export default function DiaryEditPage() {
   const [weatherOpen, setWeatherOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  /** 编辑页里继续补图：先开弹窗选图识别，识别出来的正文接在现有内容末尾 */
+  const [appendOpen, setAppendOpen] = useState(false)
+  const [appendConfig, setAppendConfig] = useState<AiConfig | null>(null)
 
   const entry = useLiveQuery(async (): Promise<DiaryEntry | null> => {
     if (!code) return null
@@ -213,6 +220,42 @@ export default function DiaryEditPage() {
     }
   }
 
+  /** 继续导入：先确认模型能看图，再选图；识别完接在正文末尾 */
+  function handleAppendPick() {
+    const config = loadAiConfig()
+    if (config.model.trim() === '') {
+      showToast({ message: t('diary.hintNoModelName') })
+      return
+    }
+    if (!isConfigured(config)) {
+      showToast({ message: t('diary.hintIncomplete') })
+      return
+    }
+    if (config.vision === 'no') {
+      showToast({ message: t('diary.hintNoVision') })
+      return
+    }
+    setAppendConfig(config)
+    setAppendOpen(true)
+  }
+
+  /** 追加的正文一律接在末尾；失败页的占位也照原样带进来，让用户自己看着删 */
+  function handleAppendDone(summary: ImportSummary) {
+    setAppendOpen(false)
+    const base = value.replace(/\n+$/, '')
+    setContentDraft(base === '' ? summary.content : `${base}\n\n${summary.content}`)
+    if (weatherValue === '' && summary.weather !== '') setWeatherDraft(summary.weather)
+    setEditing(true)
+    const others = summary.dateKeys.filter((key) => key !== shownDate)
+    if (others.length > 0) {
+      showToast({
+        message: t('diaryEdit.appendOtherDate', {
+          dates: others.map((key) => formatDateCn(key)).join('、'),
+        }),
+      })
+    }
+  }
+
   function handleDeleteOrDiscard() {
     setConfirmOpen(false)
     if (hasDiskEntry && entry) {
@@ -231,7 +274,29 @@ export default function DiaryEditPage() {
       })()
       return
     }
-    go(`/diary?date=${shownDate}`)
+    const content = value
+    const weather = weatherValue
+    const dateKey = shownDate
+    // 空草稿没有可留的东西，直接走
+    if (content.trim() === '' && weather === '') {
+      go(`/diary?date=${dateKey}`)
+      return
+    }
+    // 草稿没落过盘，删除时要先写一条再标删，回收站里才找得到
+    void (async () => {
+      const created = await createEntry(dateKey)
+      await updateContent(created.id, content)
+      if (weather !== '') await setWeather(dateKey, weather)
+      await removeEntry(created.id)
+      showToast({
+        message: t('diaryEdit.draftTrashed'),
+        actionLabel: t('diary.undo'),
+        onAction: () => {
+          void restoreEntry(created.id)
+        },
+      })
+      go(`/diary?date=${dateKey}`)
+    })()
   }
 
   async function handleSave() {
@@ -282,6 +347,9 @@ export default function DiaryEditPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={handleAppendPick} className={OUTLINE_BUTTON}>
+            {t('diaryEdit.appendImage')}
+          </button>
           <button type="button" onClick={() => setSaveOpen(true)} className={SOLID_BUTTON}>
             {t('diaryEdit.save')}
           </button>
@@ -464,7 +532,7 @@ export default function DiaryEditPage() {
         <ConfirmDialog
           title={hasDiskEntry ? t('diary.deleteThisTitle') : t('diaryEdit.discardDraftTitle')}
           description={hasDiskEntry ? t('diary.deleteThisBody') : t('diaryEdit.discardDraftBody')}
-          confirmLabel={hasDiskEntry ? t('diary.delete') : t('diaryEdit.discard')}
+          confirmLabel={hasDiskEntry ? t('diary.delete') : t('diaryEdit.deleteDraft')}
           onConfirm={handleDeleteOrDiscard}
           onCancel={() => setConfirmOpen(false)}
         />
@@ -479,6 +547,14 @@ export default function DiaryEditPage() {
             setWeatherOpen(false)
           }}
           onCancel={() => setWeatherOpen(false)}
+        />
+      )}
+
+      {appendOpen && appendConfig && (
+        <ImageImportDialog
+          config={appendConfig}
+          onDone={handleAppendDone}
+          onCancel={() => setAppendOpen(false)}
         />
       )}
     </div>
