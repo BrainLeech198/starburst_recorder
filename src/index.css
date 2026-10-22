@@ -25,6 +25,8 @@
   --color-nav: #16202c;
   --color-nav-strong: #0e131c;
   --color-danger: #e5484d;
+  --color-success: #3dd68c;
+  --color-warning: #eab308;
   --color-on-brand: #06121a;
   --color-on-danger: #ffffff;
 
@@ -89,6 +91,8 @@
   --color-nav: color-mix(in srgb, var(--sb-accent, #0891b2) 20%, #ffffff);
   --color-nav-strong: color-mix(in srgb, var(--sb-accent, #0891b2) 34%, #d9e2ee);
   --color-danger: #d92d20;
+  --color-success: #0f7a4a;
+  --color-warning: #a16207;
   --color-on-brand: #ffffff;
 
   --color-paper: #ffffff;
