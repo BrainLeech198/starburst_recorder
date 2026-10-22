@@ -1,5 +1,4 @@
-import { useRef, useState } from 'react'
-import type { ChangeEvent } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import type { DiaryEntry } from '@/core/db/schema'
@@ -8,6 +7,7 @@ import { useI18n } from '@/shared/i18n/context'
 import BatchActions from '@/shared/ui/BatchActions'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
+import Modal from '@/shared/ui/Modal'
 import Tab from '@/shared/ui/Tab'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
 import { BAR_BUTTON, BAR_DANGER, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
@@ -39,8 +39,8 @@ import ExportDialog from './ExportDialog'
 import AiComposeDialog from '@/features/ai/AiComposeDialog'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import type { AiConfig } from '@/features/ai/aiConfig'
-import type { Transcript } from '@/features/ai/aiVision'
 import ImageImportDialog from './ImageImportDialog'
+import type { ImportSummary } from './importPages'
 import { buildExport } from './diaryExport'
 import type { ExportFormat } from './diaryExport'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
@@ -84,10 +84,11 @@ export default function DiaryPage() {
   const [exportOpen, setExportOpen] = useState(false)
   /** AI 整理成日记的弹窗 */
   const [composeOpen, setComposeOpen] = useState(false)
-  /** 图片导入：选好的照片和当时读到的配置 */
-  const imageInputRef = useRef<HTMLInputElement>(null)
-  const [importFile, setImportFile] = useState<File | null>(null)
+  /** 图片导入：先开空弹窗，选图、排页序、开始识别都在弹窗里进行 */
+  const [importOpen, setImportOpen] = useState(false)
   const [importConfig, setImportConfig] = useState<AiConfig | null>(null)
+  /** 一批图里认出多个日期时，先停下来让用户挑一天 */
+  const [dateChoice, setDateChoice] = useState<ImportSummary | null>(null)
 
   const entries = useLiveQuery(() => entriesOfDay(dateKey), [dateKey])
   const stamps = useLiveQuery(() => stampsOfDay(dateKey), [dateKey])
@@ -134,8 +135,9 @@ export default function DiaryPage() {
   }
 
   /**
-   * 点「图片导入」：先把模型这边的话说清楚，再让人选图。
-   * 没填模型、模型不支持看图都当场拦下来，别让人等一场必失败的识别。
+   * 点「图片导入」：先把模型这边的话说清楚，再开导入弹窗。
+   * 不直接拉系统文件选择器——很多人下意识只选一张，选完页面就换了；
+   * 真正的选图交给弹窗里的「继续添加」，可以一张一张补。
    */
   function handleImageImport() {
     setHint('')
@@ -153,33 +155,34 @@ export default function DiaryPage() {
       return
     }
     setImportConfig(config)
-    imageInputRef.current?.click()
+    setImportOpen(true)
   }
 
-  /** 选完照片：先关掉系统选择器留下的状态，再交给识别弹窗 */
-  function handleImagePick(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (file) setImportFile(file)
-  }
-
-  /**
-   * 识别成功：先开一份内存草稿，不写库。
-   * 照片上的日期若不是列表当前停的那天，把列表 URL 也换到那天——返回时直接停在那一天，
-   * 不会出现「导入了 15 号，回来还停在 22 号，以为没存上」。
-   */
-  async function handleImportDone(transcript: Transcript) {
-    setImportFile(null)
-    const targetDate = isDateKey(transcript.dateKey) ? transcript.dateKey : dateKey
-    // 先把列表那一天改掉，再进编辑页：等这次 replace 落地，浏览器返回才会回到正确的日期
+  /** 选好日期后统一进草稿：列表的 ?date= 先跟着换，返回时才停在正确那天 */
+  async function finishImport(summary: ImportSummary, targetDate: string) {
+    setDateChoice(null)
     if (targetDate !== dateKey) await navigate(`/diary?date=${targetDate}`, { replace: true })
     navigate('/diary/new', {
       state: {
         dateKey: targetDate,
-        content: transcript.content,
-        weather: transcript.weather || undefined,
+        content: summary.content,
+        weather: summary.weather || undefined,
       },
     })
+  }
+
+  /**
+   * 识别完成：只开一份内存草稿，不写库。
+   * 整批只认出一个日期（或续页没写日期）就直接用那天；
+   * 认出多个日期时不替用户猜，弹出来让他挑一天。
+   */
+  async function handleImportDone(summary: ImportSummary) {
+    setImportOpen(false)
+    if (summary.dateKeys.length > 1) {
+      setDateChoice(summary)
+      return
+    }
+    await finishImport(summary, summary.dateKeys[0] ?? dateKey)
   }
 
   /** AI 整理：整理出来的正文也先进草稿，等用户自己决定存到哪一天 */
@@ -301,13 +304,6 @@ export default function DiaryPage() {
                   <button type="button" onClick={handleImageImport} className={SOLID_BUTTON}>
                     {t('diary.imageImport')}
                   </button>
-                  <input
-                    ref={imageInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImagePick}
-                    className="hidden"
-                  />
                 </>
               ) : (
                 <>
@@ -485,13 +481,40 @@ export default function DiaryPage() {
         />
       )}
 
-      {importFile && importConfig && (
+      {importOpen && importConfig && (
         <ImageImportDialog
-          file={importFile}
           config={importConfig}
-          onDone={(content) => void handleImportDone(content)}
-          onCancel={() => setImportFile(null)}
+          onDone={(summary) => void handleImportDone(summary)}
+          onCancel={() => setImportOpen(false)}
         />
+      )}
+
+      {dateChoice && (
+        <Modal size="xs" label={t('importDate.title')} onClose={() => setDateChoice(null)}>
+          <div className="text-sm font-medium">{t('importDate.title')}</div>
+          <p className="mt-2 text-xs text-muted">
+            {t('importDate.body', { count: dateChoice.dateKeys.length })}
+          </p>
+          <div className="mt-4 flex flex-col gap-2">
+            {dateChoice.dateKeys.map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => void finishImport(dateChoice, key)}
+                className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2"
+              >
+                {formatDateCn(key)}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setDateChoice(null)}
+              className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
+            >
+              {t('common.cancel')}
+            </button>
+          </div>
+        </Modal>
       )}
 
       {composeOpen && (
