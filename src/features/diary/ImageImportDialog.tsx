@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Modal from '@/shared/ui/Modal'
 import { compressImage, transcribeDiary } from '@/features/ai/aiVision'
+import type { Transcript } from '@/features/ai/aiVision'
 import type { AiConfig } from '@/features/ai/aiConfig'
 import { useI18n } from '@/shared/i18n/context'
 
@@ -23,8 +24,8 @@ export default function ImageImportDialog({
 }: {
   file: File
   config: AiConfig
-  /** 识别成功：正文已经拿到，接下来由日记页建条目、跳编辑页 */
-  onDone: (content: string) => void
+  /** 识别成功：正文、日期、天气都已经拿到，接下来由日记页建条目、跳编辑页 */
+  onDone: (transcript: Transcript) => void
   onCancel: () => void
 }) {
   const { t } = useI18n()
@@ -54,12 +55,12 @@ export default function ImageImportDialog({
       setPhase('recognition')
       const result = await transcribeDiary(config, image)
       if (cancelled.current) return
-      if (!result.ok) {
+      if (!result.ok || !result.transcript) {
         setError(result.error)
         setPhase('error')
         return
       }
-      onDone(result.content)
+      onDone(result.transcript)
     } catch (failure) {
       setError((failure as Error).message)
       setPhase('error')

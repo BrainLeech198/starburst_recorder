@@ -1,5 +1,28 @@
 import { describe, expect, it } from 'vitest'
-import { joinWeather, parseWeather, weatherIcon, weatherIcons, weatherLabel } from './weather'
+import {
+  joinWeather,
+  normalizeWeather,
+  parseWeather,
+  weatherIcon,
+  weatherIcons,
+  weatherLabel,
+} from './weather'
+
+describe('normalizeWeather', () => {
+  it('把「晴天」「小雨」这类说法收敛成天气词', () => {
+    expect(normalizeWeather('晴天')).toBe('晴')
+    expect(normalizeWeather('小雨')).toBe('雨')
+    expect(normalizeWeather('阴天')).toBe('阴')
+    expect(normalizeWeather('雷阵雨')).toBe('雷')
+    expect(normalizeWeather('大风')).toBe('风')
+    expect(normalizeWeather('多云转晴')).toBe('多云')
+  })
+
+  it('认不出的说法与空值返回空串', () => {
+    expect(normalizeWeather('')).toBe('')
+    expect(normalizeWeather('不知道')).toBe('')
+  })
+})
 
 describe('parseWeather', () => {
   it('把一天里的天气链拆开', () => {

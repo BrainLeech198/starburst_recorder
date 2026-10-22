@@ -6,8 +6,11 @@
  *   2. transcribeDiary：把压缩后的图交给模型，要求它只转写、不润色
  *
  * 原图不存：日记本身是纯文本，这张图只是一次性的输入。
+ * 照片抬头通常自带日期和天气，一并让模型读出来，导入时就能直接复用。
  */
 import type { ChatContentPart } from '@/platform/desktop'
+import { toDateKey } from '@/core/utils/dateKey'
+import { normalizeWeather } from '@/features/diary/weather'
 import { chat, explainFailure, pickReply } from './aiClient'
 import type { AiConfig } from './aiConfig'
 
@@ -53,28 +56,105 @@ export async function compressImage(file: File): Promise<string> {
   return canvas.toDataURL('image/jpeg', JPEG_QUALITY)
 }
 
-const SYSTEM_PROMPT = `你负责把一张手写日记的照片，原样转成文字。
+const SYSTEM_PROMPT = `你负责把一张手写日记的照片转成结构化文字。
+
+任务：
+1. 逐字转写正文，保留原来的自然段。
+2. 从页面顶部读取日期和天气；照片上没有就留空。
 
 规矩：
-- 只转写照片上真实存在的字，不要润色、不要改写、不要补写，也不要合并或拆分句子
-- 保留原来的自然段和换行；每段直接开始，段首不要加任何符号
+- 只写照片上真实存在的字，不要润色、不要改写、不要补写，也不要合并或拆分句子
+- 日期、星期、天气、页码这些抬头信息不要写进正文
+- 正文保留自然段，段与段之间用 \\n\\n 分隔；每段直接开始，段首不要加任何符号
 - 看不清的字用「□」代替，不要猜；一整句都看不清就写「（这一句看不清）」
-- 照片最上方的日期、星期、天气、页码，不要写进正文
-- 不要标题、不要 Markdown 符号、不要序号、不要任何解释或开场白
-- 只输出日记正文本身
+- date 写成 YYYY-MM-DD；照片上只有月日时，年份按今年算
+- weather 只能从「晴、多云、阴、雨、雪、风、雷」里选一个最接近的词，没有就留空
+- 不要标题、不要 Markdown、不要序号、不要任何解释或开场白
+- 只输出一个 JSON 对象，不要用代码块包起来
+
+格式：
+{"date":"2026-10-15","weather":"晴","content":"第一段\\n\\n第二段"}
 
 如果照片里根本没有可读的手写内容，只输出：EMPTY`
 
-export interface TranscribeResult {
-  ok: boolean
+/** 从照片里读出来的结构化结果 */
+export interface Transcript {
+  /** 照片抬头的日期；没认出来是空串 */
+  dateKey: string
+  /** 收敛到天气链上的词；没认出来是空串 */
+  weather: string
   /** 转写出来的日记正文 */
   content: string
+}
+
+export interface TranscribeResult {
+  ok: boolean
+  /** 识别成功时的结构化结果 */
+  transcript: Transcript | null
   /** 失败时的人话解释 */
   error: string
   ms: number
 }
 
-/** 把一张压缩好的图片交给模型，拿回手写正文 */
+/** 模型偶尔还是会把 JSON 包进代码块，先剥掉 */
+function stripFence(text: string): string {
+  return text
+    .trim()
+    .replace(/^```[a-z]*\s*\n?/i, '')
+    .replace(/\n?```$/, '')
+    .trim()
+}
+
+/**
+ * 日期归一化：兼容「2026年10月15日」「2026/10/15」「10月15日」，
+ * 并且校验是不是真实存在的一天（2 月 30 日这种直接丢掉）。
+ */
+export function parseDateKey(raw: unknown): string {
+  if (typeof raw !== 'string') return ''
+  const text = raw.trim()
+  if (text === '') return ''
+  const full = text.match(/(\d{4})\s*[年\-/.]\s*(\d{1,2})\s*[月\-/.]\s*(\d{1,2})/)
+  const short = full ?? text.match(/(\d{1,2})\s*月\s*(\d{1,2})/)
+  if (!short) return ''
+  const year = full ? Number(short[1]) : new Date().getFullYear()
+  const month = Number(full ? short[2] : short[1])
+  const day = Number(full ? short[3] : short[2])
+  const date = new Date(year, month - 1, day)
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return ''
+  }
+  return toDateKey(date)
+}
+
+/**
+ * 把模型回复解析成结构化结果。
+ * 万一模型没按 JSON 回，就把整段当正文——宁可少日期和天气，也不能把日记弄丢。
+ */
+export function parseTranscript(reply: string): Transcript | null {
+  const text = stripFence(reply)
+  if (text === '' || /^EMPTY$/i.test(text)) return null
+
+  const json = text.match(/\{[\s\S]*\}/)?.[0]
+  if (json) {
+    try {
+      const data = JSON.parse(json) as { date?: unknown; weather?: unknown; content?: unknown }
+      const content = typeof data.content === 'string' ? data.content.trim() : ''
+      if (content !== '') {
+        return {
+          dateKey: parseDateKey(data.date),
+          weather: normalizeWeather(typeof data.weather === 'string' ? data.weather : ''),
+          content,
+        }
+      }
+    } catch {
+      // 不是合法 JSON，走下面的整段兜底
+    }
+  }
+
+  return { dateKey: '', weather: '', content: text }
+}
+
+/** 把一张压缩好的图片交给模型，拿回正文、日期与天气 */
 export async function transcribeDiary(
   config: AiConfig,
   imageDataUrl: string,
@@ -96,22 +176,23 @@ export async function transcribeDiary(
     ],
   })
 
-  const content = pickReply(result.body)
-    // 有的模型会自作主张包一层代码块，剥掉
-    .replace(/^```[a-z]*\n/i, '')
-    .replace(/\n```$/, '')
-    .trim()
-
-  if (!result.ok || content === '') {
-    return { ok: false, content: '', error: explainFailure(result, config.baseUrl), ms: result.ms }
-  }
-  if (content === 'EMPTY') {
+  if (!result.ok) {
     return {
       ok: false,
-      content: '',
+      transcript: null,
+      error: explainFailure(result, config.baseUrl),
+      ms: result.ms,
+    }
+  }
+
+  const transcript = parseTranscript(pickReply(result.body))
+  if (!transcript) {
+    return {
+      ok: false,
+      transcript: null,
       error: '这张照片里没认出字。拍清楚一点、让纸占满画面，再试一次。',
       ms: result.ms,
     }
   }
-  return { ok: true, content, error: '', ms: result.ms }
+  return { ok: true, transcript, error: '', ms: result.ms }
 }

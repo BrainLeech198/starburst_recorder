@@ -98,6 +98,16 @@ describe('askWeather', () => {
     await expect(askWeather('  ', today)).rejects.toThrow('先填一个地点')
     expect(aiClient.chat).not.toHaveBeenCalled()
   })
+
+  it('超出 16 天的未来日期直接说清楚，不再打天气接口', async () => {
+    aiConfig.isConfigured.mockReturnValue(false)
+    const farFuture = toDateKey(new Date(Date.now() + 40 * 86_400_000))
+    fetchMock.mockResolvedValueOnce(okJson({ results: [hangzhou] }))
+
+    await expect(askWeather('杭州', farFuture)).rejects.toThrow('最多只能看到今天起 16 天')
+    // 只请求了地点解析，天气接口没碰
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('findWeatherPlace', () => {
