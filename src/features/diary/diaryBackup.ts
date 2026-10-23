@@ -27,15 +27,15 @@ function pad(value: number) {
   return String(value).padStart(2, '0')
 }
 
-/** 打成一份可以下载的备份文件 */
-export function buildBackup(payload: BackupPayload): ExportFile {
+/** 打成一份可以下载的备份文件。导入前自动存的那份用 kind 区分文件名，免得和手动导出的混在一起 */
+export function buildBackup(payload: BackupPayload, kind = '备份'): ExportFile {
   const now = new Date()
   const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(
     now.getHours(),
   )}${pad(now.getMinutes())}`
   return {
     label: '备份 JSON',
-    filename: `星芒记录者-备份-${stamp}.json`,
+    filename: `星芒记录者-${kind}-${stamp}.json`,
     mime: 'application/json',
     content: JSON.stringify(
       {

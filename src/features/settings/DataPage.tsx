@@ -21,12 +21,20 @@ import type { BackupPayload } from '@/features/diary/diaryBackup'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
 import { everyDay, everyEntry, everyStamp, importBackup, totals } from '@/features/diary/diaryRepo'
 import type { ImportStats } from '@/features/diary/diaryRepo'
+import ConflictDialog from '@/features/diary/ConflictDialog'
+import { findConflicts, pickIncoming } from '@/features/diary/diaryMerge'
+import type { MergeConflict } from '@/features/diary/diaryMerge'
 
 /** 选好但还没确认的一份备份 */
 interface Pending {
   name: string
   payload: BackupPayload
   skipped: number
+  /** 和本地对不上的条目，非空时先让用户逐条抉择 */
+  conflicts: MergeConflict[]
+  /** 用户选了「保留本地」的冲突项，导入时从备份里剔掉 */
+  keepLocal: Set<string>
+  stage: 'conflict' | 'confirm'
 }
 
 /** 导入之后要给用户看的账 */
@@ -237,7 +245,20 @@ export default function DataPage() {
       setError(result.error)
       return
     }
-    setPending({ name: file.name, payload: result.payload, skipped: result.skipped })
+
+    // 得先跟库里现有的数据比一遍，才知道哪些条目会被覆盖——
+    // 覆盖是破坏性的，不能等写完再说
+    const [entries, stamps, days] = await Promise.all([everyEntry(), everyStamp(), everyDay()])
+    const conflicts = findConflicts(result.payload, { entries, stamps, days })
+
+    setPending({
+      name: file.name,
+      payload: result.payload,
+      skipped: result.skipped,
+      conflicts,
+      keepLocal: new Set(),
+      stage: conflicts.length > 0 ? 'conflict' : 'confirm',
+    })
   }
 
   async function handleConfirmImport() {
@@ -245,9 +266,29 @@ export default function DataPage() {
     const target = pending
     setPending(null)
     setBusy(true)
-    const stats = await importBackup(target.payload)
-    setBusy(false)
-    setReport({ stats, skipped: target.skipped })
+    setError('')
+    try {
+      const incoming = pickIncoming(target.payload, target.keepLocal)
+
+      // 导入会覆盖一部分内容，先把当前库原样存一份快照，出事还能滚回来。
+      // 空库没什么可保护的，跳过。
+      const [entries, stamps, days] = await Promise.all([everyEntry(), everyStamp(), everyDay()])
+      if (entries.length + stamps.length + days.length > 0) {
+        const outcome = await saveTextFile(buildBackup({ entries, stamps, days }, '导入前快照'))
+        // 快照没存下来就别导了：用户选了「要备份」，这个前提没满足
+        if (outcome.kind === 'canceled') {
+          setError(t('data.snapshotCanceled'))
+          return
+        }
+      }
+
+      const stats = await importBackup(incoming)
+      setReport({ stats, skipped: target.skipped })
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught))
+    } finally {
+      setBusy(false)
+    }
   }
 
   const added = (part: { total: number; overwritten: number }) => part.total - part.overwritten
@@ -334,7 +375,15 @@ export default function DataPage() {
       <DataFolderCard />
       <LegacyCard />
 
-      {pending && (
+      {pending && pending.stage === 'conflict' && (
+        <ConflictDialog
+          conflicts={pending.conflicts}
+          onCancel={() => setPending(null)}
+          onDone={(keepLocal) => setPending({ ...pending, keepLocal, stage: 'confirm' })}
+        />
+      )}
+
+      {pending && pending.stage === 'confirm' && (
         <ConfirmDialog
           title={t('data.confirmImportTitle')}
           description={`${t('data.confirmImportBody', {
@@ -342,8 +391,10 @@ export default function DataPage() {
             entries: pending.payload.entries.length,
             stamps: pending.payload.stamps.length,
             days: pending.payload.days.length,
-          })}${
-            pending.skipped > 0 ? t('data.confirmImportSkip', { count: pending.skipped }) : ''
+          })}${pending.skipped > 0 ? t('data.confirmImportSkip', { count: pending.skipped }) : ''}${
+            pending.keepLocal.size > 0
+              ? t('data.confirmKeepLocal', { count: pending.keepLocal.size })
+              : ''
           }`}
           confirmLabel={t('data.import')}
           tone="brand"
