@@ -85,13 +85,30 @@ package/
    ├─ starburst-recorder.iss      Inno 脚本（安装界面细节）
    ├─ build.ps1                   流水线：构建 → 免安装目录 → 安装程序
    ├─ icon.ico / icon.png         应用图标（透明底）
-   └─ languages/ChineseSimplified.isl 简体中文语言包（官方包不带，随仓库走）
+   ├─ languages/ChineseSimplified.isl 简体中文语言包（官方包不带，随仓库走）
+   └─ dist/                       安装包输出（不进仓库）
 ```
 
 产物：`package/windows/dist/starburst-recorder-<版本>-setup.exe`（约 112 MB）。
 `release/`（免安装目录）和 `package/windows/dist/`（安装包）都已进 `.gitignore`。
 
 **版本号、应用名、exe 名统一从 `package.json` 读**，由 `build.ps1` 用 `/D` 传给 Inno，避免两处各写一份。
+
+#### 安装包规范（硬性，2026-10-23 定）
+
+1. **Windows 安装包只出 Inno Setup 那一种。** 唯一入口是 `npm run desktop:installer`。
+2. **禁止用 electron-builder 的 `nsis` target 出安装包。** `build.win.target` 和 `build.nsis` 已经从
+   `package.json` 里删掉，就是为了让 `npx electron-builder` 再也产不出第二个安装器。别加回来。
+3. **`desktop:pack` 只产免安装目录**（`electron-builder --win --dir` → `release/win-unpacked`），
+   它是 Inno 的输入，不是交付物。
+4. **交付物只有两个**：`package/windows/dist/*-setup.exe`（安装版）、`release/win-unpacked/`（免安装版，
+   必须整个目录一起拷，Electron 依赖同级 `resources/`、`locales/`、dll，单拎 exe 启动不了）。
+5. **打包完顺手清产物**：`release/` 下应该只有 `win-unpacked/`（外加 electron-builder 自己写的
+   `builder-debug.yml`，无害）。如果冒出 `星芒记录者 Setup x.y.z.exe` 或 `*.exe.blockmap`，
+   说明有人又跑了裸的 `npx electron-builder`，删掉并查一下。
+6. **主进程要读的静态文件必须在 `build.files` 白名单里**。`files` 是白名单不是黑名单，
+   不在列表里的东西打包后直接消失（托盘图标 `package/windows/icon.ico` 就靠显式加进去才活下来）。
+
 
 ### 应用图标（2026-10-20 定稿）
 
@@ -178,8 +195,8 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 - **批量多选**：日记列表、随记、回收站、AI 模型列表四处共用一套。顶部「批量」进入（进入后页面上的动作按钮收起）；选中态 = 描主题色 + 纸面/行染一点主题色 + 勾；操作在**底部悬浮工具条**（日记与随记：全选/反选/取消/删除/移动日期/导出/完成；回收站：全选/反选/取消/恢复/彻底删除/完成；AI 模型：全选/反选/取消/设为启用/删除/完成）。**状态与工具条已封装**：`shared/ui/useBatchSelect.ts` 管进入/退出/选中/全选/反选/清空，`shared/ui/BatchActions.tsx` 渲染固定的「全选/反选/取消 + 页面动作 + 完成」，页面只传 ids、量词和中间几个动作；底条外壳是 `shared/ui/BatchBar.tsx`，按钮样式在 `shared/ui/buttonStyles.ts`。
 - **设置页是两级结构（2026-10-20 重整）**：入口在「我的」，按**主题域**分成两张菜单——`/me/settings`（应用级：主题 `/me/settings/theme`、数据与备份 `/me/settings/data`）与 `/me/agent`（助手相关：悬浮球 `/me/agent/ball`、AI 模型 `/me/agent/ai`）。菜单行用 `shared/ui/SettingRow.tsx`（emoji + 名称 + 一行小字 + **右侧「当前值」药丸** + ›）；二级页外壳是 `shared/ui/PageShell.tsx`（原 `SettingSubPage`：菜单页也在用它，"Sub/次级"名不副实，2026-10-20 改名；顶部「← 设置 / 助手」**实心红返回按钮**（`BACK_BUTTON`）+ 页面名 + 当前值药丸 + 一句说明）。**页内返回不能省**：桌面壳没有系统返回键、安卓的实体返回键也还没接（ROADMAP 第 7 项）。二级页"一页只剩一块"时 `SettingCard` 不写 `title`（页面名已经在上面了，避免同一个名字出现两遍），卡片里第一组用 `<SettingGroup first>` 去掉那条多余的分隔线；窗口尺寸并进「主题」页的第二张卡（`WindowCard`），只在桌面程序里出现。「点一下就选中」的格子统一用 `buttonStyles.choiceTile()`。目的：菜单一眼读到当前值，二级进去只改一件事。旧的 `/settings*` 地址留了一条跳转到 `/me/settings`。主题色色块**必须留描边**，否则浅色模式下色块跟卡片背景糊在一起。主题色带中文名（青 / 薄荷 / 藕荷 / 曙红 / 麦黄 / 雾蓝，见 `app/theme.ts` 的 `ACCENT_COLORS`），名字写在色块下面——色值没法念，名字才说得清"我用的是哪个"。厂商、悬浮球形象这类「点一下就选中」的格子，宽屏 4 列、窄屏自动收回 2 列（`sm:` 断点 640px）。
 - **AI 配置（我的 → 助手 → AI 模型，2026-10-21 改为模型列表）**：存的是**模型列表 + 同时启用其中一条**，每条都是完整配置（厂商、地址、模型名、key），所以可以整条切换、各用各的 key；存 `localStorage` 的 `sb_ai_models`（列表）与 `sb_ai_active`（启用 id），老版本的单套 `sb_ai_config` 第一次读时自动搬成第一条并启用、搬完删掉老键。**列表空串与「没存过」是两回事**：删掉启用中的那条会存空串，表示「明确没有启用」，不要自动退回第一条。新增表单嵌在「＋ 新增模型」按钮下方，编辑走弹窗，同一个 `features/ai/ModelForm.tsx` 两处复用。每条显示厂商、模型名、地址 + 打码 key、看图能力、上次测试结果（通了 / 没通 + 毫秒 + 时间，存在条目 `lastTest` 里，换地址或模型名就作废）。顶部「测试联通」**一键顺序测全部**并写回结果。批量管理复用日记那套。**删的是正在启用的那条时先挡一道**：弹窗说清「AI 助手会用不了」，给「去启用别的」和「仍然删除」两个出口，硬删后留空不自动顶替。**模型名拉不到时不是死路**：表单里直接给出该厂商的模型列表/控制台网址（`AI_PROVIDERS[].modelListUrl`），自定义厂商回退到 `{baseUrl}/models`，并说明可以手填；模型名下拉用自绘 `shared/ui/ComboBox.tsx`（不用 `datalist`，它会按当前值过滤成只剩一条，看起来像「只拉到一个」）。厂商和模型两个下拉都支持「点开挑 + 直接手填」。每个字段都配一句人话说明（地址填到哪一层、模型名去哪抄、key 怎么拿）；key 带显示/隐藏；**改动自动保存**，不设保存按钮；「测一下」给**分步诊断**（① 填写 → ② 连接 → ③ 密钥 → ④ 模型 → ⑤ 看图），卡在哪一步就说清「是什么问题、下一步怎么办」，不把 `401 invalid_api_key` 原文丢给用户。
-- **AI 整理成日记**：入口在**随记栏的按钮区**（这天一笔没记就不亮）；原料 = 当天随记 + 当天天气；口气可切（自然口语 / 小学生腔，**草稿没被手改过就自动按新口气重写**，改过就只切不覆盖）；草稿在弹窗里可编辑，点「写入日记」才往当天**新建一条**日记，**随记原文一条不动**。提示词里的规矩：只写记录里真有的东西、不许编造、不要小标题/序号/Markdown/第二人称、**没给的信息（比如没记天气）一个字都别提**。
-- **数据与备份（我的 → 设置 → 单独一页 `/me/settings/data`）**：导出全部（一份 JSON，含日记 / 随记 / **天气** / 回收站里删掉的）；从备份恢复。备份文件带 `app` 标记和版本号，用来对用户说清「这不是星芒记录者导出的」。**导入语义 = 合并、同 id 以备份为准**（bulkPut 天然覆盖），三张表同一个事务。**校验刻意宽容**：坏条目单独剔掉并报数，而不是整份拒绝——不该因为一条脏数据让你丢掉整个备份；未知字段不落库。导入前必须先弹确认框写清「会新增几条、覆盖几条」，导入后给分项统计（新增 / 覆盖 / 跳过），而不是一句「导入成功」。`ConfirmDialog` 加了 `tone`：删除类红、导入这类主题色。
+- **AI 整理成日记**：入口在**随记栏的按钮区**，文案「✨ AI 整理」（这天一笔没记、或没启用任何模型时不亮）；原料 = 当天随记 + 当天天气；**口气从一排胶囊按钮改成下拉栏**，三档——自然口语 / 小学生腔 / **书面文笔**（2026-10-23 加：段落要衔接成一条线、不流水账、不虚构、有看点、用词稍讲究）；**草稿没被手改过就自动按新口气重写**，改过就只切不覆盖。提示词里写明**给模型留发挥空间**：风格只定调子，不规定句式模板，免得每篇长得一样。草稿在弹窗里可编辑，点「写入日记」才往当天**新建一条**日记，**随记原文一条不动**。提示词里的规矩：只写记录里真有的东西、不许编造、不要小标题/序号/Markdown/第二人称、**没给的信息（比如没记天气）一个字都别提**。模型列表里每条都可「停用」，停用后 `sb_ai_active` 存空串、AI 入口全灰，配置一条不删。
+- **数据与备份（我的 → 设置 → 单独一页 `/me/settings/data`）**：导出全部（一份 JSON，含日记 / 随记 / **天气** / 回收站里删掉的）；从备份恢复。备份文件带 `app` 标记和版本号，用来对用户说清「这不是星芒记录者导出的」。**导入语义 = 合并，冲突由用户逐条抉择**（2026-10-23 改，原来是「同 id 以备份为准」悄悄覆盖）：选完文件先跟当前库比对，**内容 / 日期 / 时刻 / 删除状态**任一不同才算冲突，完全一样的不算；有冲突先弹 `ConflictDialog` 逐条列「本地 vs 备份」并给「保留本地 / 用备份」，**默认全部保留本地**（导入是加分操作），顶部有「全部用本地 / 全部用备份」；用户选完再把剔除过的备份喂给 `importBackup`，三张表同一个事务。冲突判定与剔除是纯函数（`features/diary/diaryMerge.ts` 的 `findConflicts` / `pickIncoming`），底层 importBackup 一行没动，所以浏览器（Dexie）与桌面（SQLite）行为完全一致。**导入前自动存一份快照**（`星芒记录者-导入前快照-*.json`），快照没存成就中止导入、数据不动。**校验刻意宽容**：坏条目单独剔掉并报数，而不是整份拒绝——不该因为一条脏数据让你丢掉整个备份；未知字段不落库。导入后给分项统计（新增 / 覆盖 / 跳过），而不是一句「导入成功」。`ConfirmDialog` 加了 `tone`：删除类红、导入这类主题色。
 
 - **壳层滚动模型（2026-10-20 重整）**：壳层固定一屏高（`h-dvh` + `overflow-hidden`），**只有内容区 `main.sb-scroll` 自己滚**——原来是整页滚，桌面端侧栏会被内容顶出视口。手机端 `nav` 用 `order-last` 自然落在屏幕底部（不再是 fixed 浮层，所以内容区不用留 pb 去躲它）。弹窗打开时用 `shared/ui/useScrollLock` 锁住内容区，消掉"滚动穿透"。**弹窗外壳统一走 `shared/ui/Modal.tsx`**（遮罩 + 居中面板 + 点遮罩/Esc 关闭 + 自带锁滚动），5 个弹窗共用：ConfirmDialog / WeatherDialog / ExportDialog / DatePickerDialog / AiComposeDialog。滚动位置归内容区管：**换板块复位到顶，同一板块内进出（日记列表 ↔ 某一篇）保留位置**。
 
@@ -196,6 +213,18 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 - **按钮行套一层底（2026-10-21 加）**：**整行都是按钮**的地方（日记页的「新增/图片导入/批量/回收站」、日记编辑页的「返回/编号状态/保存/迁移/删除/编辑」、回收站的「返回/批量/清空」）统一套 `shared/ui/ToolbarRow.tsx`：`rounded-xl border border-line bg-surface-2 p-2`，即比页面底色亮半档、与卡片同层。这样"这一条是动作区、下面那块是内容"一眼分得开，不然一串按钮浮在页面底色上，按钮与内容糊在同一层，没有结构感也看不出主次。**不要滥用**：日期行、标签页行这类混着文字的行不套。**页头一律套**（2026-10-21 改）：原来只有带动作的页头才套，结果设置类的纯返回页与 AI 页视觉不一致；现在 `PageHeader` 不管有没有动作都套 ToolbarRow，返回行本身也算一条按钮行。
 
 - **可访问性基线（2026-10-21 加）**：`Modal` 的 `label` 是必传项，面板带 `role="dialog"` + `aria-modal` + `aria-label`；打开时焦点进面板，Tab / Shift+Tab 只在面板内循环，Esc 或点遮罩关闭后焦点还给触发元素（`ConfirmDialog` 等 8 处调用点都补了 label）。提示条容器常驻 `role="status"` + `aria-live="polite"`，内容后插入才会被读屏念到；`ComboBox` 补了 `aria-expanded` / `aria-controls` / `aria-activedescendant`，选项带 id 与 `role="option"`；随记输入框用 `aria-label` 取占位文案。浅色模式 `--color-muted` 调深到 `#5f6677`、`--color-brand` 混 45% 深色，六个主题色下正文、次级文字与主题色文字都 ≥ 4.5:1。移动端主按钮 / 批量按钮用 `min-h-11`（44px）触控高度，桌面 `md:min-h-0` 保持紧凑；底栏高度由 `AppShell` 的 ResizeObserver 写进 `--sb-nav-h`，`BatchBar` 据此把自己抬到底栏上方。
+
+- **i18n 规范（2026-10-23 立）**：中英双语，`shared/i18n/messages/{zh,en}.ts` 两份**类型必须对齐**（`MessageKey` 由 zh 推出，en 少一条就编译报错），`SUPPORTED_LOCALES = ['zh','en']`。三条硬规矩：
+  1. **界面上任何一句用户能看到的文字都走 `t()`**，包括日期、星期、天气这类看起来"不是文案"的东西——它们是字符串，就必须可控。中文写死在组件里就是 bug（这一轮「是今天」「星期五」「晴/雨/阴」全是这么漏的）。
+  2. **数据里存的是值，不是文案**：天气依旧存中文 `晴` / `晴→雨`，库里那串不因语言变，`normalizeWeather` 也靠中文匹配。所以是「key 函数 + 显示时翻译」：`weatherKey()` / `weatherText(states, t)`、`weekdayKey()` / `relativeDayKey()`，认不出的原样显示而不是丢字。
+  3. **导出文件与 AI 提示词不跟界面语言变**，固定中文，用 `weatherLabel()` / `weekdayLabel()` / `relativeDayLabel()` 这些兜底函数（内部读 zh 文案）。照片识别、整理成日记的提示词同理。
+  另外：`required` / `aria-label` / `title` 也属于用户可见文字，一并翻译。
+
+- **桌面托盘常驻（2026-10-23 加）**：Windows 端点关闭 = **退到托盘**，进程不退；真实退出只走托盘右键「退出应用」或系统关机（`before-quit` 放行）。托盘左键唤回窗口（窗口藏了以后必须留这个入口）。右键菜单：显示窗口 / 快速记一笔 / 退出应用。首次收进托盘弹一次系统气泡，之后不再打扰。**单实例锁**：重复启动只聚焦已有窗口，不新开第二个进程。**明确不要全局快捷键**（用户要求：不能影响其它软件），所以「快速记一笔」只从托盘进；小窗内的 `Ctrl+Enter` / `Esc` 只在窗口有焦点时生效，不算系统热键。快速记一笔是独立小窗（`/quick`，460×320 无边框置顶、不进任务栏、顶部标题条拖动），写完写库再通过 `db:notify` 让主窗口重查，写完即销毁窗口。托盘图标必须打进 asar（`build.files` 白名单里有 `package/windows/icon.ico`），否则打包后托盘直接塌。
+
+- **日记页日期导航（2026-10-23 加）**：顶部日期行两端是 `‹` / `›`（`shiftDay(dateKey, ±1)`，月末日、年首日靠 Date 原生溢出），选到非今天时中间多一个「今天」按钮一键回到今天；点日期本身仍然打开日期选择器。**日期选择器要能看出哪天有东西**：有日记或随记的格子染 `bg-brand/15`（悬停加深），今天加 `ring-1 ring-brand` 内描边，选中仍是品牌实底（优先级最高，不再叠描边），底部配一行图例「■ 有记录 / ▢ 今天」。数据是弹窗打开时一次性拉 `everyEntry()` + `everyStamp()` 聚合成 Set，**回收站里的不算**，不做实时订阅。
+
+- **随记条目交互（2026-10-23 改，用户拍板"点卡片进入编辑"）**：默认是**只读文本**（空内容显示灰色占位符），不再是一渲染就能打字的 textarea；**点内容区**进入编辑态，出现「保存 / 取消」，保存给 toast「已保存」，取消恢复进入编辑前的原文。**自动保存（600ms debounce）取消**，改由「保存」显式触发——否则点了取消但已经偷偷写库了。时间戳仍保留"点一下变输入框、改即存"。删除按钮 `stopPropagation`，不会误触发进入编辑。新建的随记直接进编辑态（带 autoFocus）。批量模式下编辑与删除都隐藏。
 
 ## 6. 目录结构
 
@@ -281,6 +310,10 @@ vitest.config.ts               单测配置：node 环境，只测纯逻辑
 | **目录名里的不可见字符卡死 Java** | 旧项目目录名第一个字符是 `U+200C`（零宽非连接符，肉眼看不见）。Java 把路径转成 `?` 后报 `Unable to access jarfile`，**Gradle / Android 构建全部失败** | **已治本**：2026-10-20 整个项目搬到 `D:\File\idea\trae\starburst_recorder`，新路径全 ASCII，`assembleDebug` 直接跑通（37 秒）。当初的临时办法是建目录联接 `New-Item -ItemType Junction -Path D:\sb_probe -Target <项目目录>` 再在联接里构建——**别再往带不可见字符的路径上放项目**，长教训 |
 | Inno Setup 压缩超长路径 | 打包到最后一步报「系统找不到指定的路径」 | `electron-builder` 把 `@capacitor/*` 自带的 Android 构建产物也装进去了，路径超过 Windows 260 字符上限。`package.json` 的 `build.files` 里排除 `node_modules/@capacitor/**`（Windows 端运行时用不到，前端已打进 `dist`） |
 | 目录被占用导致改名失败 | `Rename-Item` 报 `The process cannot access the file because it is being used by another process`，命令行里查不到占用者 | 编辑器/终端把这个目录当工作区开着就会占住。**改名别硬来，直接复制到干净路径**（robocopy `/E /MT:16 /R:1 /W:1`，1.1 GB 约 3 分钟）更省事 |
+| **两条打包线并存，出成两个安装器**（2026-10-23） | 项目里同时存在 `desktop:pack`（electron-builder 的 `nsis` target）和 `desktop:installer`（Inno Setup），随手跑前者就冒出一个 NSIS 的 `星芒记录者 Setup 0.1.0.exe`，和 Inno 的产物长得几乎一样，用户分不清 | 已治本：删掉 `build.win.target` / `build.nsis`，`desktop:pack` 改成 `--dir` 只产免安装目录。**一个交付物只能有一个生产入口** |
+| 版本号双源漂移 | `package.json` 是 `0.1.0`，`android/app/build.gradle` 还写着 `versionCode 1` / `versionName "1.0"`——安装版和 APK 报出来的版本号对不上 | 改版本时必须同时改 `package.json` 和 `android/app/build.gradle`。**打包前先比一遍这两处** |
+| Android 打包靠记忆三步 | 只 `npm run build` 没跑 `cap sync`，APK 装上去还是旧代码（这个坑犯过一次） | 固定顺序 `npm run build` → `npx cap sync android` → `gradlew.bat assembleDebug`，一步不能省 |
+| Electron 主进程读的静态文件被打包丢掉 | 托盘图标打包后消失、`app.getAppPath()` 下找不到文件 | `build.files` 是白名单，新增任何主进程要读的资源都得显式加进去 |
 
 ## 10. 被否决的方案（别再走一遍）
 
