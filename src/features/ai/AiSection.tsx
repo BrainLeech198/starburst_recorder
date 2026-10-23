@@ -254,12 +254,12 @@ export default function AiSection() {
           <button
             type="button"
             onClick={() => {
-              setFormOpen((open) => !open)
+              setFormOpen(true)
               setEditing(null)
             }}
             className={SOLID_BUTTON}
           >
-            {formOpen ? t('ai.collapseAdd') : t('ai.addModel')}
+            {t('ai.addModel')}
           </button>
           <button
             type="button"
@@ -289,19 +289,6 @@ export default function AiSection() {
           <div className="font-mono text-xs break-all text-fg">{summary}</div>
           <div className="mt-0.5 text-xs text-muted">{verdict}</div>
         </div>
-
-        {/* 新增表单就嵌在「新增模型」按钮下面 */}
-      {formOpen && (
-        <div className="mt-3 rounded-xl border border-line p-3">
-          <div className="mb-2 text-xs text-fg">{t('ai.formTitle')}</div>
-          <ModelForm
-            initial={{ providerId: '', providerName: '', baseUrl: '', model: '', apiKey: '' }}
-            submitLabel={t('ai.formSubmit')}
-            onSubmit={handleAdd}
-            onCancel={() => setFormOpen(false)}
-          />
-        </div>
-      )}
 
       {models.length === 0 ? (
         <p className="mt-4 rounded-xl border border-dashed border-line px-3 py-6 text-center text-xs text-muted">
@@ -457,6 +444,24 @@ export default function AiSection() {
             {t('ai.delete')}
           </button>
         </BatchActions>
+      )}
+
+      {/* 新增和编辑一样走弹窗：列表不被顶开，手机上也不用长滚 */}
+      {formOpen && (
+        <Modal
+          size="lg"
+          label={t('ai.formTitle')}
+          onClose={() => setFormOpen(false)}
+          panelClassName="max-h-[80vh] overflow-y-auto"
+        >
+          <div className="mb-3 text-xs text-fg">{t('ai.formTitle')}</div>
+          <ModelForm
+            initial={{ providerId: '', providerName: '', baseUrl: '', model: '', apiKey: '' }}
+            submitLabel={t('ai.formSubmit')}
+            onSubmit={handleAdd}
+            onCancel={() => setFormOpen(false)}
+          />
+        </Modal>
       )}
 
       {/* 编辑走弹窗：列表保持不动，改完关掉就能看到新状态 */}

@@ -49,7 +49,11 @@ export async function chat(request: ChatRequest): Promise<ChatTransportResult> {
   if (bridge) return bridge.chat(request)
 
   const headers = authHeaders(request.apiKey)
-  const body = JSON.stringify({ model: request.model, messages: request.messages, stream: false })
+  const bodyObj: Record<string, unknown> = { model: request.model, messages: request.messages, stream: false }
+  // 有就带上，没有留空让服务商走默认；每次换 seed 能跳出模板重复
+  if (request.temperature !== undefined) bodyObj.temperature = request.temperature
+  if (request.seed !== undefined) bodyObj.seed = request.seed
+  const body = JSON.stringify(bodyObj)
   const started = Date.now()
 
   try {

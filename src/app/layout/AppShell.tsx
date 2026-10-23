@@ -73,9 +73,16 @@ export default function AppShell() {
   const section = pathname.split('/')[1] ?? ''
   const lastSection = useRef(section)
   const inRecords = RECORDS.some((item) => pathname.startsWith(item.to))
-  // 「记录」开着没：默认跟着路由走（人在记录下就开着）；用户手动拨过一下，就以手动为准。
-  // 不用 effect 去"路由一变就 setState"——那是派生状态，算出来就行。
+  // 「记录」开着没：默认跟着路由走（人在记录下就开着）；用户手动拨过一下，就以手动为准——
+  // 但只在本板块内作数。点了记录以外的栏目（板块变了），手动状态清零，展开跟着收起来。
+  // 板块切换在渲染期间复位（React 官方的 adjust-state-during-render），不进 effect，
+  // 免得被 react-hooks/set-state-in-effect 拦。
   const [manualOpen, setManualOpen] = useState<boolean | null>(null)
+  const [prevSection, setPrevSection] = useState(section)
+  if (prevSection !== section) {
+    setPrevSection(section)
+    setManualOpen(null)
+  }
   const recordsOpen = manualOpen ?? inRecords
 
   // 滚动容器不再是文档，浏览器不会替我们复位。规则：

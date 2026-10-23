@@ -19,6 +19,7 @@ const MePage = lazy(() => import('@/features/me/MePage'))
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage'))
 const AgentMenuPage = lazy(() => import('@/features/settings/AgentMenuPage'))
 const AppearancePage = lazy(() => import('@/features/settings/AppearancePage'))
+const LanguagePage = lazy(() => import('@/features/settings/LanguagePage'))
 const BallPage = lazy(() => import('@/features/settings/BallPage'))
 const AiPage = lazy(() => import('@/features/settings/AiPage'))
 const DataPage = lazy(() => import('@/features/settings/DataPage'))
@@ -42,6 +43,7 @@ export const router = createHashRouter([
       { path: 'calendar', element: <CalendarPage /> },
       { path: 'me', element: <MePage /> },
       { path: 'me/settings', element: <SettingsPage /> },
+      { path: 'me/settings/language', element: <LanguagePage /> },
       { path: 'me/settings/theme', element: <AppearancePage /> },
       { path: 'me/settings/data', element: <DataPage /> },
       { path: 'me/agent', element: <AgentMenuPage /> },

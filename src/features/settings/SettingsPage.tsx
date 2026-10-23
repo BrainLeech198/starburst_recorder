@@ -28,7 +28,7 @@ function AccentDot({ color }: { color: string }) {
 
 export default function SettingsPage() {
   const { theme, themes, accent } = useTheme()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const counts = useLiveQuery(() => totals(), [])
   const themeOption = themes.find((item) => item.id === theme)
   const themeLabel = themeOption ? t(themeOption.labelKey) : theme
@@ -43,6 +43,13 @@ export default function SettingsPage() {
       backTo="/me"
       backLabel={t('me.title')}
     >
+      <SettingRow
+        to="/me/settings/language"
+        emoji="🌐"
+        title={t('settings.language')}
+        hint={t('settings.languageHint')}
+        value={<SettingBadge>{t(locale === 'zh' ? 'language.zh' : 'language.en')}</SettingBadge>}
+      />
       <SettingRow
         to="/me/settings/theme"
         emoji="🎨"

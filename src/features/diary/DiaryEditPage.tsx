@@ -5,9 +5,10 @@ import type { DiaryEntry } from '@/core/db/schema'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
+import Dropdown from '@/shared/ui/Dropdown'
 import Modal from '@/shared/ui/Modal'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
-import { BACK_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON, SOLID_DANGER } from '@/shared/ui/buttonStyles'
+import { BACK_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import {
   createEntry,
   dayInfo,
@@ -347,24 +348,30 @@ export default function DiaryEditPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={handleAppendPick} className={OUTLINE_BUTTON}>
-            {t('diaryEdit.appendImage')}
-          </button>
-          <button type="button" onClick={() => setSaveOpen(true)} className={SOLID_BUTTON}>
-            {t('diaryEdit.save')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMigrateOpen(true)}
-            disabled={!hasDiskEntry}
-            title={hasDiskEntry ? t('diaryEdit.migrateHint') : t('diaryEdit.migrateDisabled')}
-            className={`${OUTLINE_BUTTON} disabled:opacity-40`}
-          >
-            {t('diaryEdit.migrate')}
-          </button>
-          <button type="button" onClick={() => setConfirmOpen(true)} className={SOLID_DANGER}>
-            {t('diary.delete')}
-          </button>
+          {/* 文件级操作收进「文件」：保存/迁移/删除；插入类收进「插入」 */}
+          <Dropdown
+            label={t('diaryEdit.menuInsert')}
+            buttonClassName={OUTLINE_BUTTON}
+            items={[{ label: t('diaryEdit.appendImage'), onSelect: handleAppendPick }]}
+          />
+          <Dropdown
+            label={t('diaryEdit.menuFile')}
+            buttonClassName={OUTLINE_BUTTON}
+            items={[
+              { label: t('diaryEdit.save'), onSelect: () => setSaveOpen(true) },
+              {
+                label: t('diaryEdit.migrate'),
+                onSelect: () => setMigrateOpen(true),
+                disabled: !hasDiskEntry,
+                title: hasDiskEntry ? t('diaryEdit.migrateHint') : t('diaryEdit.migrateDisabled'),
+              },
+              {
+                label: t('diary.delete'),
+                onSelect: () => setConfirmOpen(true),
+                danger: true,
+              },
+            ]}
+          />
           <button
             type="button"
             onClick={() => setEditing((value) => !value)}
@@ -386,11 +393,13 @@ export default function DiaryEditPage() {
         <div className="grid grid-cols-[1fr_auto_1fr] items-center font-hand text-sm">
           <span className="whitespace-nowrap">{formatDateCn(shownDate)}</span>
           <span className="px-2 text-center text-ink-muted">{weekdayLabel(shownDate)}</span>
+          {/* 天气跟正文一样是内容：锁定态只读，不给点 */}
           <button
             type="button"
             onClick={() => setWeatherOpen(true)}
-            title={t('weather.editHint')}
-            className="sticker justify-self-end text-xs"
+            disabled={!editing}
+            title={editing ? t('weather.editHint') : undefined}
+            className="sticker justify-self-end text-xs disabled:cursor-default disabled:opacity-60"
           >
             {weatherStates.length > 0
               ? `${weatherIcons(weatherStates)} ${weatherLabel(weatherStates)}`

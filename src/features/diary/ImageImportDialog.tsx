@@ -13,6 +13,7 @@ import { compressImage, transcribeDiary } from '@/features/ai/aiVision'
 import type { Transcript } from '@/features/ai/aiVision'
 import type { AiConfig } from '@/features/ai/aiConfig'
 import { useI18n } from '@/shared/i18n/context'
+import { canUseCamera } from '@/platform/camera'
 import { MAX_IMPORT_IMAGES, mergePages } from './importPages'
 import type { ImportSummary } from './importPages'
 import ImageViewer from './ImageViewer'
@@ -57,12 +58,44 @@ export default function ImageImportDialog({
   const [hasRun, setHasRun] = useState(false)
 
   const inputRef = useRef<HTMLInputElement>(null)
+  /** 拍照走另一个 input：带 capture 属性，安卓 WebView 会直接唤起相机 */
+  const cameraRef = useRef<HTMLInputElement>(null)
   const seq = useRef(0)
   /** 文件对象在弹窗生命周期里不变，重试时不用翻 state */
   const filesById = useRef(new Map<string, File>())
   const previewUrls = useRef<string[]>([])
   /** 用户点了退出或弹窗卸载：请求可能还会回来，但不能再改状态 */
   const cancelled = useRef(false)
+
+  /** 把一批新照片接进队列末尾，选图和拍照共用这一套 */
+  const addFiles = useCallback(
+    (picked: File[]) => {
+      if (picked.length === 0) return
+      const room = MAX_IMPORT_IMAGES - pages.length
+      if (room <= 0) {
+        setHint(t('imageImport.limit', { max: MAX_IMPORT_IMAGES }))
+        return
+      }
+      const accepted = picked.slice(0, room)
+      setHint(picked.length > room ? t('imageImport.limit', { max: MAX_IMPORT_IMAGES }) : '')
+      const added = accepted.map((file) => {
+        const id = `page-${(seq.current += 1)}`
+        filesById.current.set(id, file)
+        const preview = URL.createObjectURL(file)
+        previewUrls.current.push(preview)
+        return {
+          id,
+          file,
+          preview,
+          status: 'pending' as PageStatus,
+          transcript: null,
+          error: '',
+        }
+      })
+      setPages((current) => [...current, ...added])
+    },
+    [pages.length, t],
+  )
 
   useEffect(() => {
     cancelled.current = false
@@ -115,36 +148,11 @@ export default function ImageImportDialog({
     [config, updatePage],
   )
 
-  /** 「继续添加」：把新选的照片接在列表末尾，不覆盖已有的识别结果 */
+  /** 「继续添加」/「拍照」共用的落点：新照片接在列表末尾，不覆盖已有的识别结果 */
   function handlePick(event: ChangeEvent<HTMLInputElement>) {
     const picked = Array.from(event.target.files ?? [])
     event.target.value = ''
-    if (picked.length === 0) return
-
-    const room = MAX_IMPORT_IMAGES - pages.length
-    if (room <= 0) {
-      setHint(t('imageImport.limit', { max: MAX_IMPORT_IMAGES }))
-      return
-    }
-    const accepted = picked.slice(0, room)
-    if (picked.length > room) setHint(t('imageImport.limit', { max: MAX_IMPORT_IMAGES }))
-    else setHint('')
-
-    const added = accepted.map((file) => {
-      const id = `page-${(seq.current += 1)}`
-      filesById.current.set(id, file)
-      const preview = URL.createObjectURL(file)
-      previewUrls.current.push(preview)
-      return {
-        id,
-        file,
-        preview,
-        status: 'pending' as PageStatus,
-        transcript: null,
-        error: '',
-      }
-    })
-    setPages((current) => [...current, ...added])
+    addFiles(picked)
   }
 
   /** 识别还没成功的页（新加的、失败的），已经成功的不重跑，省时间也省钱 */
@@ -372,6 +380,16 @@ export default function ImageImportDialog({
         >
           {t('imageImport.add')}
         </button>
+        {canUseCamera() && (
+          <button
+            type="button"
+            onClick={() => cameraRef.current?.click()}
+            disabled={running || pages.length >= MAX_IMPORT_IMAGES}
+            className={OUTLINE_BUTTON}
+          >
+            {t('imageImport.capture')}
+          </button>
+        )}
         <button
           type="button"
           onClick={startRecognize}
@@ -394,6 +412,15 @@ export default function ImageImportDialog({
         type="file"
         accept="image/*"
         multiple
+        onChange={handlePick}
+        className="hidden"
+      />
+      {/* capture=environment：安卓 WebView 唤起后置相机，拍完一张就回来；桌面/浏览器没这个按钮 */}
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         onChange={handlePick}
         className="hidden"
       />

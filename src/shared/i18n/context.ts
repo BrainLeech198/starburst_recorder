@@ -5,14 +5,15 @@
 import { createContext, useContext } from 'react'
 import { zh } from './messages/zh'
 import type { MessageKey } from './messages/zh'
+import { en } from './messages/en'
 
 const LOCALE_KEY = 'sb_locale'
-const SUPPORTED_LOCALES = ['zh'] as const
+const SUPPORTED_LOCALES = ['zh', 'en'] as const
 
 export type Locale = (typeof SUPPORTED_LOCALES)[number]
 export type MessageParams = Record<string, string | number>
 
-export const MESSAGES: Record<Locale, Record<MessageKey, string>> = { zh }
+export const MESSAGES: Record<Locale, Record<MessageKey, string>> = { zh, en }
 
 export interface I18nValue {
   locale: Locale
