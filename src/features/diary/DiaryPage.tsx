@@ -29,9 +29,10 @@ import {
   formatDateCn,
   formatMonthDayCn,
   isDateKey,
-  relativeDayLabel,
+  relativeDayKey,
+  shiftDay,
   todayKey,
-  weekdayLabel,
+  weekdayKey,
 } from '@/core/utils/dateKey'
 import DatePickerDialog from './DatePickerDialog'
 import StampTimeline from './StampTimeline'
@@ -62,6 +63,7 @@ export default function DiaryPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const { t } = useI18n()
+  const aiReady = isConfigured(loadAiConfig())
   // 列表停在哪天写进 URL：从编辑页返回、换天、图片导入都能带着这一天回来
   const [searchParams, setSearchParams] = useSearchParams()
   const dateParam = searchParams.get('date')
@@ -270,27 +272,57 @@ export default function DiaryPage() {
   return (
     <div className="w-full p-4">
       <div className="flex items-center justify-between gap-2">
-        {/* 日期本身就是日期选择入口 */}
-        <button
-          type="button"
-          onClick={() => {
-            setHint('')
-            setPickerOpen(true)
-          }}
-          className="font-hand flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:text-brand"
-        >
-          {/* 今天绿、其他日期黄：一眼知道列表停在哪一段 */}
-          <span
-            className={[
-              'rounded px-1.5 py-0.5 text-[11px] font-medium leading-none',
-              isToday ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning',
-            ].join(' ')}
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setDateKey(shiftDay(dateKey, -1))}
+            aria-label={t('diary.prevDay')}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
           >
-            {relativeDayLabel(dateKey)}
-          </span>
-          <span className="text-sm">{formatDateCn(dateKey)}</span>
-          <span className="text-xs text-muted">{weekdayLabel(dateKey)}</span>
-        </button>
+            ‹
+          </button>
+
+          {/* 日期本身就是日期选择入口 */}
+          <button
+            type="button"
+            onClick={() => {
+              setHint('')
+              setPickerOpen(true)
+            }}
+            className="font-hand flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:text-brand"
+          >
+            {/* 今天绿、其他日期黄：一眼知道列表停在哪一段 */}
+            <span
+              className={[
+                'rounded px-1.5 py-0.5 text-[11px] font-medium leading-none',
+                isToday ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning',
+              ].join(' ')}
+            >
+              {t(relativeDayKey(dateKey))}
+            </span>
+            <span className="text-sm">{formatDateCn(dateKey)}</span>
+            <span className="text-xs text-muted">{t(weekdayKey(dateKey))}</span>
+          </button>
+
+          {!isToday && (
+            <button
+              type="button"
+              onClick={() => setDateKey(todayKey())}
+              className="ml-1 rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-brand"
+            >
+              {t('diary.today')}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setDateKey(shiftDay(dateKey, 1))}
+            aria-label={t('diary.nextDay')}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
+          >
+            ›
+          </button>
+        </div>
 
         <div className="flex items-center">
           <Tab active={mode === 'diary'} onClick={() => switchMode('diary')}>
@@ -313,7 +345,13 @@ export default function DiaryPage() {
                   <button type="button" onClick={handleCreate} className={SOLID_BUTTON}>
                     {t('diary.new')}
                   </button>
-                  <button type="button" onClick={handleImageImport} className={SOLID_BUTTON}>
+                  <button
+                    type="button"
+                    onClick={handleImageImport}
+                    disabled={!aiReady}
+                    title={!aiReady ? t('diary.hintNoModel') : undefined}
+                    className={`${SOLID_BUTTON} disabled:opacity-40`}
+                  >
                     {t('diary.imageImport')}
                   </button>
                 </>
@@ -322,11 +360,12 @@ export default function DiaryPage() {
                   <button type="button" onClick={handleAddStamp} className={SOLID_BUTTON}>
                     {t('diary.addStamp')}
                   </button>
-                  {/* 这天一笔都没记时不亮，免得点了生成一篇空日记 */}
+                  {/* 这天一笔都没记，或 AI 模型没配时不亮 */}
                   <button
                     type="button"
                     onClick={handleCompose}
-                    disabled={stamps === undefined || stamps.length === 0}
+                    disabled={!aiReady || stamps === undefined || stamps.length === 0}
+                    title={!aiReady ? t('diary.hintNoModel') : undefined}
                     className={`${SOLID_BUTTON} disabled:opacity-40`}
                   >
                     {t('diary.compose')}

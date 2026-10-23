@@ -6,11 +6,11 @@ import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { dayInfo, removeStamp, restoreStamp, setWeather, updateStamp } from './diaryRepo'
-import { parseWeather, weatherIcons, weatherLabel } from './weather'
+import { parseWeather, weatherIcons, weatherText } from './weather'
 import { formatClock, todayKey } from '@/core/utils/dateKey'
 import WeatherDialog from './WeatherDialog'
 
-/** 一笔随记：时间一行（可点改）、内容在下，整笔挂在左侧时间轴上 */
+/** 一笔随记：时间一行（可点改）、内容默认只读，点一下进入编辑态；整笔挂在左侧时间轴上 */
 function StampRow({
   stamp,
   autoFocus,
@@ -29,20 +29,38 @@ function StampRow({
 }) {
   const [time, setTime] = useState(stamp.time)
   const [editingTime, setEditingTime] = useState(false)
-  const [draft, setDraft] = useState<string | null>(null)
+  const [editingContent, setEditingContent] = useState(autoFocus)
+  const [draft, setDraft] = useState(stamp.content)
   const areaRef = useRef<HTMLTextAreaElement>(null)
+  const originalContentRef = useRef(stamp.content)
+  const { showToast } = useToast()
   const { t } = useI18n()
 
-  const content = draft ?? stamp.content
+  // 进编辑态时把当前内容存一份原始值，给取消用
+  function enterEdit() {
+    originalContentRef.current = stamp.content
+    setDraft(stamp.content)
+    setEditingContent(true)
+    // 下一帧聚焦 textarea，避免点击事件还没冒泡完
+    requestAnimationFrame(() => areaRef.current?.focus())
+  }
 
-  // 打字停顿即自动保存
-  useEffect(() => {
-    if (draft === null) return
-    const timer = setTimeout(() => {
-      void updateStamp(stamp.id, { content: draft })
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [draft, stamp.id])
+  async function handleSave() {
+    if (draft === originalContentRef.current) {
+      // 没改内容，直接退出，别存一次无效写入
+      setEditingContent(false)
+      return
+    }
+    await updateStamp(stamp.id, { content: draft })
+    originalContentRef.current = draft
+    setEditingContent(false)
+    showToast({ message: t('stamp.saved') })
+  }
+
+  function handleCancel() {
+    setDraft(originalContentRef.current)
+    setEditingContent(false)
+  }
 
   // 高度跟着文字长，避免纸面上出现内部滚动条
   useEffect(() => {
@@ -50,7 +68,7 @@ function StampRow({
     if (!area) return
     area.style.height = 'auto'
     area.style.height = `${area.scrollHeight}px`
-  }, [content])
+  }, [draft, editingContent])
 
   return (
     <li className="relative pb-5">
@@ -61,7 +79,7 @@ function StampRow({
           <button type="button" onClick={onToggle} className="block w-full px-1 text-left">
             <span className="font-hand block text-lg text-ink">{stamp.time}</span>
             <span className="font-hand mt-0.5 block min-h-6 text-sm leading-6 text-ink">
-              {content.trim() || <span className="text-ink-muted">{t('stamp.noContent')}</span>}
+              {stamp.content.trim() || <span className="text-ink-muted">{t('stamp.noContent')}</span>}
             </span>
           </button>
         ) : (
@@ -89,20 +107,45 @@ function StampRow({
               </button>
             )}
 
-            <textarea
-              ref={areaRef}
-              value={content}
-              rows={1}
-              autoFocus={autoFocus}
-              spellCheck={false}
-              aria-label={t('stamp.placeholder')}
-              placeholder={t('stamp.placeholder')}
-              onChange={(event) => setDraft(event.target.value)}
-              onBlur={() => {
-                if (draft !== null) void updateStamp(stamp.id, { content: draft })
-              }}
-              className="font-hand block w-full resize-none bg-transparent text-sm leading-6 text-ink outline-none placeholder:text-ink-muted"
-            />
+            {editingContent ? (
+              <>
+                <textarea
+                  ref={areaRef}
+                  value={draft}
+                  rows={1}
+                  spellCheck={false}
+                  aria-label={t('stamp.placeholder')}
+                  placeholder={t('stamp.placeholder')}
+                  onChange={(event) => setDraft(event.target.value)}
+                  className="font-hand block w-full resize-none bg-transparent text-sm leading-6 text-ink outline-none placeholder:text-ink-muted"
+                />
+                <div className="mt-1 flex items-center gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => void handleSave()}
+                    className="rounded border border-brand bg-brand/10 px-2 py-0.5 text-brand transition-colors hover:bg-brand/20"
+                  >
+                    {t('stamp.save')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="rounded border border-line px-2 py-0.5 text-muted transition-colors hover:text-fg"
+                  >
+                    {t('stamp.cancel')}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={enterEdit}
+                title={t('stamp.tapToEdit')}
+                className="font-hand mt-0.5 block w-full min-h-6 text-left text-sm leading-6 text-ink transition-colors hover:text-brand"
+              >
+                {stamp.content.trim() || <span className="text-ink-muted">{t('stamp.noContent')}</span>}
+              </button>
+            )}
           </>
         )}
       </div>
@@ -121,7 +164,10 @@ function StampRow({
       ) : (
         <button
           type="button"
-          onClick={() => onDelete(stamp)}
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete(stamp)
+          }}
           title={t('stamp.deleteHint')}
           className="absolute top-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-ink-muted opacity-70 transition-colors hover:text-danger hover:opacity-100"
         >
@@ -232,7 +278,7 @@ export default function StampTimeline({
             className="sticker font-hand text-xs text-ink"
           >
             {states.length > 0
-              ? `${weatherIcons(states)} ${weatherLabel(states)}`
+              ? `${weatherIcons(states)} ${weatherText(states, t)}`
               : t('weather.pending')}
           </button>
         </div>

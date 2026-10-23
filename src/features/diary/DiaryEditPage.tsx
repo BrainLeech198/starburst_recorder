@@ -19,10 +19,10 @@ import {
   setWeather,
   updateContent,
 } from './diaryRepo'
-import { formatDateCn, isDateKey, todayKey, weekdayLabel } from '@/core/utils/dateKey'
+import { formatDateCn, isDateKey, todayKey, weekdayKey } from '@/core/utils/dateKey'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import type { AiConfig } from '@/features/ai/aiConfig'
-import { parseWeather, weatherIcons, weatherLabel } from './weather'
+import { parseWeather, weatherIcons, weatherText } from './weather'
 import WeatherDialog from './WeatherDialog'
 import DatePickerDialog from './DatePickerDialog'
 import ImageImportDialog from './ImageImportDialog'
@@ -392,7 +392,7 @@ export default function DiaryEditPage() {
 
         <div className="grid grid-cols-[1fr_auto_1fr] items-center font-hand text-sm">
           <span className="whitespace-nowrap">{formatDateCn(shownDate)}</span>
-          <span className="px-2 text-center text-ink-muted">{weekdayLabel(shownDate)}</span>
+          <span className="px-2 text-center text-ink-muted">{t(weekdayKey(shownDate))}</span>
           {/* 天气跟正文一样是内容：锁定态只读，不给点 */}
           <button
             type="button"
@@ -402,7 +402,7 @@ export default function DiaryEditPage() {
             className="sticker justify-self-end text-xs disabled:cursor-default disabled:opacity-60"
           >
             {weatherStates.length > 0
-              ? `${weatherIcons(weatherStates)} ${weatherLabel(weatherStates)}`
+              ? `${weatherIcons(weatherStates)} ${weatherText(weatherStates, t)}`
               : t('weather.pending')}
           </button>
         </div>

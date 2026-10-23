@@ -8,9 +8,9 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import type { DiaryStamp } from '@/core/db/schema'
-import { formatDateCn, weekdayLabel } from '@/core/utils/dateKey'
+import { formatDateCn, weekdayKey } from '@/core/utils/dateKey'
 import { dayInfo } from '@/features/diary/diaryRepo'
-import { parseWeather, weatherIcons, weatherLabel } from '@/features/diary/weather'
+import { parseWeather, weatherIcons, weatherText } from '@/features/diary/weather'
 import { loadAiConfig } from './aiConfig'
 import { COMPOSE_STYLES, composeDiary } from './aiCompose'
 import type { ComposeStyle } from './aiCompose'
@@ -83,13 +83,13 @@ export default function AiComposeDialog({
       <p className="mt-1 text-xs text-muted">
         {t('ai.composeDesc', {
           date: formatDateCn(dateKey),
-          weekday: weekdayLabel(dateKey),
+          weekday: t(weekdayKey(dateKey)),
           count: stamps.length,
           weather:
             states.length > 0
               ? t('ai.composeWeather', {
                   icons: weatherIcons(states),
-                  label: weatherLabel(states),
+                  label: weatherText(states, t),
                 })
               : '',
         })}
