@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { WEATHER_PRESETS, joinWeather, parseWeather, weatherIcon } from './weather'
+import { WEATHER_PRESETS, joinWeather, parseWeather, weatherIcon, weatherText } from './weather'
 import { askWeather, loadWeatherPlace, saveWeatherPlace } from './weatherQuery'
 import type { DayWeather } from './weatherQuery'
 import { useI18n } from '@/shared/i18n/context'
@@ -64,7 +64,7 @@ export default function WeatherDialog({
                 className="inline-flex items-center gap-1 rounded-full border border-brand px-2 py-0.5 text-xs text-brand"
               >
                 <span aria-hidden="true">{weatherIcon(state) || '·'}</span>
-                {state}
+                {weatherText([state], t)}
                 <button
                   type="button"
                   onClick={() => setStates(states.filter((_, i) => i !== index))}
@@ -89,7 +89,7 @@ export default function WeatherDialog({
             onClick={() => setStates([...states, preset])}
             className="rounded-full border border-line px-3 py-1 text-xs text-muted transition-colors hover:border-brand hover:text-brand"
           >
-            <span aria-hidden="true">{weatherIcon(preset)}</span> {preset}
+            <span aria-hidden="true">{weatherIcon(preset)}</span> {weatherText([preset], t)}
           </button>
         ))}
       </div>
@@ -126,7 +126,7 @@ export default function WeatherDialog({
               <span className="text-fg">
                 {t('weather.found', {
                   icon: weatherIcon(candidate.state) || '·',
-                  state: candidate.state,
+                  state: weatherText([candidate.state], t),
                 })}
               </span>
               {candidate.source === 'ai' ? (

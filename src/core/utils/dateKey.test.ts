@@ -6,8 +6,10 @@ import {
   formatStamp,
   isDateKey,
   monthGrid,
+  relativeDayKey,
   relativeDayLabel,
   toDateKey,
+  weekdayKey,
   weekdayLabel,
 } from './dateKey'
 
@@ -27,6 +29,11 @@ describe('中文日期格式', () => {
   it('星期按本地日历算', () => {
     expect(weekdayLabel('2026-01-09')).toBe('星期五')
     expect(weekdayLabel('2026-10-21')).toBe('星期三')
+  })
+
+  it('界面拿的是文案 key，中文只是兜底文本', () => {
+    expect(weekdayKey('2026-01-09')).toBe('date.weekday5')
+    expect(weekdayKey('2026-10-21')).toBe('date.weekday3')
   })
 })
 
@@ -64,6 +71,12 @@ describe('relativeDayLabel', () => {
     expect(relativeDayLabel('2026-10-22', today)).toBe('是今天')
     expect(relativeDayLabel('2026-10-21', today)).toBe('昨天')
     expect(relativeDayLabel('2026-10-23', today)).toBe('明天')
+  })
+
+  it('同一套判断也能给出文案 key', () => {
+    expect(relativeDayKey('2026-10-22', today)).toBe('date.today')
+    expect(relativeDayKey('2026-10-21', today)).toBe('date.yesterday')
+    expect(relativeDayKey('2026-09-30', today)).toBe('date.fewMonthsAgo')
   })
 
   it('一周内说前几天/后几天', () => {

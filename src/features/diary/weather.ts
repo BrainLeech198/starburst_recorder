@@ -1,3 +1,5 @@
+import type { MessageKey } from '@/shared/i18n/messages/zh'
+
 /** 可选天气：连续点选就是"一天里变化过的天气"，比如 晴→雨→阴 */
 export const WEATHER_PRESETS = ['晴', '雨', '阴', '多云', '雪', '风']
 
@@ -57,4 +59,37 @@ export function weatherIcons(states: string[]): string {
 /** '晴转雨转阴' */
 export function weatherLabel(states: string[]): string {
   return states.join('转')
+}
+
+/**
+ * 天气状态 → 文案 key。库里存的永远是中文（'晴'、'晴→雨'），
+ * 只在显示时翻译，不动存储格式，AI 识别那边的中文匹配也不受影响。
+ * 顺序跟 WEATHER_ICONS 一致：先判复合词，再判单字。
+ */
+const WEATHER_KEYWORDS: [string, MessageKey][] = [
+  ['雪', 'weather.snow'],
+  ['雨', 'weather.rain'],
+  ['阴', 'weather.overcast'],
+  ['云', 'weather.cloudy'],
+  ['风', 'weather.wind'],
+  ['雷', 'weather.thunder'],
+  ['晴', 'weather.sunny'],
+]
+
+/** 认不出的状态返回 null，调用方原样显示 */
+export function weatherKey(state: string): MessageKey | null {
+  return WEATHER_KEYWORDS.find(([keyword]) => state.includes(keyword))?.[1] ?? null
+}
+
+/** '晴转雨' → 'Sunny → Rain'（按当前语言）；'晴转雨' 里的「转」也走文案 */
+export function weatherText(
+  states: string[],
+  t: (key: MessageKey) => string,
+): string {
+  return states
+    .map((state) => {
+      const key = weatherKey(state)
+      return key ? t(key) : state
+    })
+    .join(t('weather.join'))
 }

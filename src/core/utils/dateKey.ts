@@ -1,4 +1,15 @@
-const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+import type { MessageKey } from '@/shared/i18n/messages/zh'
+import { zh } from '@/shared/i18n/messages/zh'
+
+const WEEKDAY_KEYS: MessageKey[] = [
+  'date.weekday0',
+  'date.weekday1',
+  'date.weekday2',
+  'date.weekday3',
+  'date.weekday4',
+  'date.weekday5',
+  'date.weekday6',
+]
 
 /** 按设备本地时区把 Date 转成 'YYYY-MM-DD' */
 export function toDateKey(date: Date): string {
@@ -6,6 +17,13 @@ export function toDateKey(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+/** 给一个 dateKey，返回前一天 / 后一天；月末日、年首日自动溢出 */
+export function shiftDay(dateKey: string, delta: number): string {
+  const d = parseDateKey(dateKey)
+  d.setDate(d.getDate() + delta)
+  return toDateKey(d)
 }
 
 export function todayKey(): string {
@@ -39,9 +57,14 @@ export function formatMonthDayCn(dateKey: string): string {
   return `${month}月${day}日`
 }
 
-/** '星期X' */
+/** 星期几的文案 key：界面用 t(weekdayKey(...))，导出这类固定中文的文本用 weekdayLabel */
+export function weekdayKey(dateKey: string): MessageKey {
+  return WEEKDAY_KEYS[parseDateKey(dateKey).getDay()]
+}
+
+/** '星期X'：只给导出、AI 提示词这类固定中文的文本用 */
 export function weekdayLabel(dateKey: string): string {
-  return WEEKDAYS[parseDateKey(dateKey).getDay()]
+  return zh[weekdayKey(dateKey)]
 }
 
 /**
@@ -49,30 +72,35 @@ export function weekdayLabel(dateKey: string): string {
  * 是今天 / 昨天 / 明天 / 前几天 / 后几天 / 前几月 / 后几月 / 去年 / 明年 / 前几年 / 后几年。
  * 今天以外、又同月但超过一周的，落在「这个月」。
  */
-export function relativeDayLabel(dateKey: string, today = todayKey()): string {
+export function relativeDayKey(dateKey: string, today = todayKey()): MessageKey {
   const target = parseDateKey(dateKey)
   const base = parseDateKey(today)
   const dayDiff = Math.round((target.getTime() - base.getTime()) / 86400000)
 
-  if (dayDiff === 0) return '是今天'
-  if (dayDiff === -1) return '昨天'
-  if (dayDiff === 1) return '明天'
+  if (dayDiff === 0) return 'date.today'
+  if (dayDiff === -1) return 'date.yesterday'
+  if (dayDiff === 1) return 'date.tomorrow'
 
   const yearDiff = target.getFullYear() - base.getFullYear()
 
   if (dayDiff < 0) {
-    if (dayDiff >= -7) return '前几天'
-    if (yearDiff <= -2) return '前几年'
-    if (yearDiff === -1) return '去年'
-    if (target.getMonth() < base.getMonth()) return '前几月'
-    return '这个月'
+    if (dayDiff >= -7) return 'date.fewDaysAgo'
+    if (yearDiff <= -2) return 'date.fewYearsAgo'
+    if (yearDiff === -1) return 'date.lastYear'
+    if (target.getMonth() < base.getMonth()) return 'date.fewMonthsAgo'
+    return 'date.thisMonth'
   }
 
-  if (dayDiff <= 7) return '后几天'
-  if (yearDiff >= 2) return '后几年'
-  if (yearDiff === 1) return '明年'
-  if (target.getMonth() > base.getMonth()) return '后几月'
-  return '这个月'
+  if (dayDiff <= 7) return 'date.fewDaysLater'
+  if (yearDiff >= 2) return 'date.fewYearsLater'
+  if (yearDiff === 1) return 'date.nextYear'
+  if (target.getMonth() > base.getMonth()) return 'date.fewMonthsLater'
+  return 'date.thisMonth'
+}
+
+/** 相对日期的中文文本：只给导出、AI 提示词这类固定中文的文本用 */
+export function relativeDayLabel(dateKey: string, today = todayKey()): string {
+  return zh[relativeDayKey(dateKey, today)]
 }
 
 /** '2026/10/18-18:00' */

@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FocusEvent as ReactFocusEvent } from 'react'
 import { monthGrid, toDateKey, todayKey } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import { INPUT_NARROW } from '@/shared/ui/inputStyles'
+import { everyEntry, everyStamp } from './diaryRepo'
 
 export default function DatePickerDialog({
   value,
@@ -21,6 +22,24 @@ export default function DatePickerDialog({
   const [headEditing, setHeadEditing] = useState(false)
   const [draftYear, setDraftYear] = useState('')
   const [draftMonth, setDraftMonth] = useState('')
+  /** 写过东西的日期（日记或随记）；回收站里的不算 */
+  const [writtenDays, setWrittenDays] = useState<Set<string>>(new Set())
+
+  // 一次性把「哪些天有内容」捞出来：日历只是个小面板，不需要实时订阅
+  useEffect(() => {
+    let alive = true
+    void Promise.all([everyEntry(), everyStamp()]).then(([entries, stamps]) => {
+      if (!alive) return
+      const days = new Set<string>()
+      for (const item of [...entries, ...stamps]) {
+        if (!item.deletedAt) days.add(item.dateKey)
+      }
+      setWrittenDays(days)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
 
   function shiftMonth(delta: number) {
     const next = viewMonth + delta
@@ -134,20 +153,40 @@ export default function DatePickerDialog({
           if (day === null) return <span key={`blank-${index}`} />
           const dateKey = toDateKey(new Date(viewYear, viewMonth - 1, day))
           const isSelected = dateKey === selected
+          const hasContent = writtenDays.has(dateKey)
+          const isToday = dateKey === todayKey()
           return (
             <button
               key={dateKey}
               type="button"
               onClick={() => setSelected(dateKey)}
+              title={hasContent ? t('datePicker.hasContent') : undefined}
               className={[
                 'rounded-lg py-1 text-sm transition-colors',
-                isSelected ? 'bg-brand font-medium text-on-brand' : 'text-fg hover:bg-surface-2',
+                isSelected
+                  ? 'bg-brand font-medium text-on-brand'
+                  : hasContent
+                    ? 'bg-brand/15 text-fg hover:bg-brand/25'
+                    : 'text-fg hover:bg-surface-2',
+                // 今天加描边；已经选中时品牌色底够醒目，不再叠框
+                isToday && !isSelected ? 'ring-1 ring-brand ring-inset' : '',
               ].join(' ')}
             >
               {day}
             </button>
           )
         })}
+      </div>
+
+      <div className="mt-2 flex items-center gap-3 text-[11px] text-muted">
+        <span className="flex items-center gap-1">
+          <i aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-brand/25" />
+          {t('datePicker.hasContent')}
+        </span>
+        <span className="flex items-center gap-1">
+          <i aria-hidden="true" className="h-2.5 w-2.5 rounded-sm ring-1 ring-brand ring-inset" />
+          {t('datePicker.todayMark')}
+        </span>
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-2">
