@@ -168,8 +168,13 @@ export default function DatePickerDialog({
                   : hasContent
                     ? 'bg-brand/15 text-fg hover:bg-brand/25'
                     : 'text-fg hover:bg-surface-2',
-                // 今天加描边；已经选中时品牌色底够醒目，不再叠框
-                isToday && !isSelected ? 'ring-1 ring-brand ring-inset' : '',
+                // 今天加 2px 描边；已经选中时品牌色底够醒目，不再叠框
+                // 有内容的日子底色已经是 brand/15，描边换深一级的 brand/70 拉开对比
+                isToday && !isSelected
+                  ? hasContent
+                    ? 'border-2 border-brand/70'
+                    : 'border-2 border-brand'
+                  : '',
               ].join(' ')}
             >
               {day}
@@ -184,7 +189,7 @@ export default function DatePickerDialog({
           {t('datePicker.hasContent')}
         </span>
         <span className="flex items-center gap-1">
-          <i aria-hidden="true" className="h-2.5 w-2.5 rounded-sm ring-1 ring-brand ring-inset" />
+          <i aria-hidden="true" className="h-2.5 w-2.5 rounded-sm border-2 border-brand" />
           {t('datePicker.todayMark')}
         </span>
       </div>
