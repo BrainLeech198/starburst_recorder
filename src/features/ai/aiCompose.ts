@@ -27,6 +27,20 @@ const BASE_RULES = `你负责把一个人随手记下的零散记录，整理成
 - 但**表达**完全可以重组：换词、换顺序、合并几条、拆成几段、加过渡句、调整描述角度——这些都是允许的，而且是应该做的
 - 正确的做法：把几条零碎记录揉成一段连贯的叙述；错误的做法：一条一条原样抄下来，中间加换行就完事
 
+好的加工长这样（示例）：
+  原始记录：
+    08:30 起床，躺床上刷了会儿手机
+    12:00 去楼下吃了牛肉面
+    13:00 回去上班
+
+  差的输出（复制粘贴）：
+    08:30 起床，躺床上刷了会儿手机
+    12:00 去楼下吃了牛肉面
+    13:00 回去上班
+
+  好的输出（重组加工）：
+    今天起得早，躺床上刷了会儿手机才起来。中午去楼下吃了碗牛肉面，下午回去上班。
+
 写法要求：
 - 第一人称，像写给自己看的话，不要出现「你」，不要称呼读者
 - 按事情的前因后果串成一条线，段落之间要有衔接，不要一条一条生硬罗列
@@ -88,8 +102,8 @@ export async function composeDiary(
     baseUrl: config.baseUrl.trim(),
     apiKey: config.apiKey.trim(),
     model: config.model.trim(),
-    // temperature 0.8 比默认稍微松一点，避免每次都一样；seed 每次换一个，跳出模板重复
-    temperature: 0.8,
+    // temperature 0.6 是"重组但不编事实"的甜点：比 0.7+ 稳（不会改数字地点），比 0.4 松（不套模板）；seed 每次换一个换切入点
+    temperature: 0.6,
     seed: Math.floor(Math.random() * 2 ** 31),
     messages: [
       { role: 'system', content: `${BASE_RULES}\n\n${STYLE_RULES[input.style]}` },
@@ -109,7 +123,8 @@ function stripMetaLine(text: string): string {
   const lines = text.split('\n')
   if (lines.length === 0) return text
   const first = lines[0].trim()
-  const meta = /^(以下是|这是一篇|今天的日记|以下是今天|今天我|现在我|好的|好的，|好的,).{0,30}[：:。.\s]*$/
+  const meta =
+    /^(以下是|这是一篇|今天的日记|以下是今天|今天我|现在我|好的|好的，|好的,|好的、|我来帮|我来写|按.*风格|用.*口气).{0,40}[：:。.\s]*$/
   if (meta.test(first)) return lines.slice(1).join('\n').trim()
   return text
 }
