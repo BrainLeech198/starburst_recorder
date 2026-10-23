@@ -87,6 +87,8 @@ export default function DiaryPage() {
   /** 图片导入：先开空弹窗，选图、排页序、开始识别都在弹窗里进行 */
   const [importOpen, setImportOpen] = useState(false)
   const [importConfig, setImportConfig] = useState<AiConfig | null>(null)
+  /** 模型没配好时拦住点按的原因；非 null 就弹出「去配置」窗口 */
+  const [configHint, setConfigHint] = useState<string | null>(null)
   /** 一批图里认出多个日期时，先停下来让用户挑一天 */
   const [dateChoice, setDateChoice] = useState<ImportSummary | null>(null)
 
@@ -135,25 +137,35 @@ export default function DiaryPage() {
   }
 
   /**
+   * 模型没配好时拦住点按：只显示一行小字几乎注意不到（模拟器里就像「点不开」），
+   * 所以原因收进 configHint，弹出带「去配置」的窗口。没过就返回 null。
+   */
+  function checkVisionConfig(): AiConfig | null {
+    const config = loadAiConfig()
+    if (config.model.trim() === '') {
+      setConfigHint(t('diary.hintNoModelName'))
+      return null
+    }
+    if (!isConfigured(config)) {
+      setConfigHint(t('diary.hintIncomplete'))
+      return null
+    }
+    if (config.vision === 'no') {
+      setConfigHint(t('diary.hintNoVision'))
+      return null
+    }
+    return config
+  }
+
+  /**
    * 点「图片导入」：先把模型这边的话说清楚，再开导入弹窗。
    * 不直接拉系统文件选择器——很多人下意识只选一张，选完页面就换了；
    * 真正的选图交给弹窗里的「继续添加」，可以一张一张补。
    */
   function handleImageImport() {
     setHint('')
-    const config = loadAiConfig()
-    if (config.model.trim() === '') {
-      setHint(t('diary.hintNoModelName'))
-      return
-    }
-    if (!isConfigured(config)) {
-      setHint(t('diary.hintIncomplete'))
-      return
-    }
-    if (config.vision === 'no') {
-      setHint(t('diary.hintNoVision'))
-      return
-    }
+    const config = checkVisionConfig()
+    if (!config) return
     setImportConfig(config)
     setImportOpen(true)
   }
@@ -486,6 +498,20 @@ export default function DiaryPage() {
           config={importConfig}
           onDone={(summary) => void handleImportDone(summary)}
           onCancel={() => setImportOpen(false)}
+        />
+      )}
+
+      {configHint !== null && (
+        <ConfirmDialog
+          title={t('diary.configNeededTitle')}
+          description={configHint}
+          confirmLabel={t('diary.goConfig')}
+          tone="brand"
+          onConfirm={() => {
+            setConfigHint(null)
+            void navigate('/me/agent/ai')
+          }}
+          onCancel={() => setConfigHint(null)}
         />
       )}
 

@@ -25,6 +25,9 @@ export interface ChatRequest {
   apiKey: string
   model: string
   messages: ChatMessage[]
+  /** 可选采样参数：不传就走模型默认；每次请求换 seed 能避免重复模板 */
+  temperature?: number
+  seed?: number
 }
 
 /**
