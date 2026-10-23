@@ -15,4 +15,15 @@ contextBridge.exposeInMainWorld('desktop', {
     call: (method, args) => ipcRenderer.invoke('db:call', method, args),
     path: () => ipcRenderer.invoke('db:path'),
   },
+  // 快速记一笔的小窗：记完自己关掉，并顺手通知其他窗口刷新
+  quick: {
+    close: () => ipcRenderer.invoke('quick:close'),
+    notifyChange: () => ipcRenderer.send('db:notify'),
+  },
+  /** 别的窗口写了数据时触发，返回退订函数 */
+  onDbChanged: (listener) => {
+    const handler = () => listener()
+    ipcRenderer.on('db:changed', handler)
+    return () => ipcRenderer.removeListener('db:changed', handler)
+  },
 })

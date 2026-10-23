@@ -23,8 +23,11 @@ const LanguagePage = lazy(() => import('@/features/settings/LanguagePage'))
 const BallPage = lazy(() => import('@/features/settings/BallPage'))
 const AiPage = lazy(() => import('@/features/settings/AiPage'))
 const DataPage = lazy(() => import('@/features/settings/DataPage'))
+const QuickCapturePage = lazy(() => import('@/features/diary/QuickCapturePage'))
 
 export const router = createHashRouter([
+  // 桌面版「快速记一笔」的独立小窗：不套 AppShell，没有导航栏
+  { path: '/quick', element: <QuickCapturePage /> },
   {
     path: '/',
     element: <AppShell />,
