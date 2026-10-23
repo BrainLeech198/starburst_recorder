@@ -10,6 +10,19 @@ dist-ssr
 release
 package/windows/dist
 
+# 二进制产物一律不进仓库：GitHub 单文件 100MB、Gitee 仓库容量都很紧
+*.exe
+*.apk
+*.aab
+*.msi
+*.blockmap
+*.zip
+*.7z
+package/share/
+
+# TRAE 生成 HTML 时留下的中转目录
+.trae-html-share-packages/
+
 # Android 工程：源码进仓库，构建产物不进
 android/app/build/
 android/build/

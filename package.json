@@ -16,7 +16,7 @@
     "format": "prettier --write .",
     "preview": "vite preview",
     "desktop": "npm run build && electron .",
-    "desktop:pack": "npm run build && electron-builder",
+    "desktop:pack": "npm run build && electron-builder --win --dir",
     "desktop:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File package/windows/build.ps1"
   },
   "dependencies": {
@@ -58,7 +58,8 @@
       "dist/**/*",
       "electron/**/*",
       "package.json",
-      "!node_modules/@capacitor/**/*"
+      "!node_modules/@capacitor/**/*",
+      "package/windows/icon.ico"
     ],
     "directories": {
       "output": "release"
@@ -68,17 +69,7 @@
     },
     "electronDist": "node_modules/electron/dist",
     "win": {
-      "icon": "package/windows/icon.ico",
-      "target": [
-        "nsis"
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "shortcutName": "星芒记录者"
+      "icon": "package/windows/icon.ico"
     }
   }
 }
