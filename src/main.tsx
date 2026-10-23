@@ -6,7 +6,12 @@ import { BallProvider } from './app/providers/BallProvider'
 import { ToastProvider } from './app/providers/ToastProvider'
 import { I18nProvider } from './shared/i18n/I18nProvider'
 import { router } from './app/router'
+import { desktopBridge } from './platform/desktop'
+import { notifyChange } from './core/db/changes'
 import './index.css'
+
+// 桌面版可能开着「快速记一笔」小窗，那边写库本窗口看不见，靠主进程转发过来
+desktopBridge()?.onDbChanged?.(notifyChange)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

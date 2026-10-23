@@ -3,7 +3,16 @@
 // 这里刻意不用 file:// 直接打开 index.html，而是注册一个 app:// 协议：
 // file:// 的 origin 是 opaque 的，ES module、fetch、IndexedDB 都可能被 CORS 或
 // 存储策略拦住；给它一个标准的 origin（app://starburst）这些就都按常规工作。
-const { app, BrowserWindow, ipcMain, protocol, net, shell } = require('electron')
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  protocol,
+  net,
+  shell,
+  Tray,
+  Menu,
+} = require('electron')
 const path = require('node:path')
 const nodeUrl = require('node:url')
 const fs = require('node:fs')
@@ -16,6 +25,28 @@ const MIN_HEIGHT = 560
 
 const DIST = path.join(__dirname, '..', 'dist')
 const APP_URL = 'app://starburst/index.html'
+
+/** 托盘常驻：真正退出前一直是 true，用来放行窗口的 close 事件 */
+let isQuitting = false
+/** 托盘和主窗口都放模块级，单实例回切和菜单都要用 */
+let tray = null
+let mainWindow = null
+/** 快速记一笔的小窗，记录完就销毁，不常驻 */
+let quickWindow = null
+/** 首次收进托盘时提示一次，之后不再打扰 */
+let trayHintShown = false
+
+// 只允许开一个实例：托盘常驻之后，第二个实例会把窗口和托盘搞重，用户也分不清点的是哪个
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (!mainWindow) return
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.focus()
+  })
+}
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -56,6 +87,27 @@ function createWindow() {
     },
   })
 
+  mainWindow = win
+
+  // 点关闭不退出，收进托盘；只有真的走「退出应用」时才放行
+  win.on('close', (event) => {
+    if (isQuitting) return
+    event.preventDefault()
+    win.hide()
+    // 托盘图标可能被 Windows 折进「^」里，第一次收起时说一句，免得以为程序已经关了
+    if (!trayHintShown && tray && process.platform === 'win32') {
+      trayHintShown = true
+      tray.displayBalloon({
+        title: '星芒记录者还在后台',
+        content: '窗口已收进托盘，点托盘图标可以叫回来；右键托盘可以退出。',
+      })
+    }
+  })
+
+  win.on('closed', () => {
+    if (mainWindow === win) mainWindow = null
+  })
+
   // 渲染进程的报错直接打到终端，方便排查
   win.webContents.on('console-message', (event) => {
     console.log(`[renderer:${event.level}] ${event.message}`)
@@ -66,6 +118,99 @@ function createWindow() {
 
   win.loadURL(APP_URL)
   return win
+}
+
+/**
+ * 托盘图标：开发时和打包后都从 app 根目录找同一份 ico，
+ * 打包配置里已经把 package/windows/icon.ico 带进去了。
+ */
+function trayIconPath() {
+  return path.join(app.getAppPath(), 'package', 'windows', 'icon.ico')
+}
+
+/** 点托盘图标把窗口叫回来；右键是菜单 */
+function showWindow() {
+  if (!mainWindow) {
+    createWindow()
+    return
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+/**
+ * 快速记一笔：不打开主窗口的独立小窗。
+ * 记完由页面自己调 quick:close 关掉，这里只负责开。
+ */
+function showQuickCapture() {
+  if (quickWindow && !quickWindow.isDestroyed()) {
+    quickWindow.show()
+    quickWindow.focus()
+    return
+  }
+
+  quickWindow = new BrowserWindow({
+    width: 460,
+    height: 320,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    frame: false,
+    title: '快速记一笔',
+    backgroundColor: '#0b1017',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+
+  quickWindow.on('closed', () => {
+    quickWindow = null
+  })
+  // 失去焦点不自动关：正在打字时切窗口不该把内容丢掉
+  quickWindow.loadURL(`${APP_URL}#/quick`)
+  quickWindow.once('ready-to-show', () => quickWindow.show())
+}
+
+/** 页面上按 Esc 或点保存之后，把窗口关掉 */
+ipcMain.handle('quick:close', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (win && win === quickWindow) win.close()
+})
+
+/**
+ * 一个窗口写了数据，通知其他窗口重新查询。
+ * 快速记一笔在独立窗口里写库，主窗口的订阅总线看不到，需要这一条转发。
+ */
+ipcMain.on('db:notify', (event) => {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.webContents !== event.sender) win.webContents.send('db:changed')
+  }
+})
+
+/** 全局快捷键留给别的软件：本应用不注册任何系统级热键，入口只有托盘菜单 */
+
+function createTray() {
+  if (tray) return
+  tray = new Tray(trayIconPath())
+  tray.setToolTip('星芒记录者')
+  tray.on('click', showWindow)
+
+  // 以后要加的东西（开机自启、今日进度、AI 整理今天）都往这个数组里塞，
+  // 菜单结构不用再动
+  const items = [
+    { label: '显示窗口', click: showWindow },
+    { label: '快速记一笔', click: showQuickCapture },
+    { type: 'separator' },
+    { label: '退出应用', click: () => app.quit() },
+  ]
+
+  tray.setContextMenu(Menu.buildFromTemplate(items))
 }
 
 // 设置页里的「窗口尺寸」通过这两个通道生效
@@ -148,10 +293,15 @@ ipcMain.handle('ai:chat', async (_event, request) => {
   }
 
   try {
+    const requestBody = { model, messages: request?.messages ?? [], stream: false }
+    // 采样参数有就透传：换 seed 是「每次写法不一样」的关键，别在主进程这里被吞掉
+    if (request?.temperature !== undefined) requestBody.temperature = request.temperature
+    if (request?.seed !== undefined) requestBody.seed = request.seed
+
     const response = await net.fetch(chatUrl(baseUrl), {
       method: 'POST',
       headers: aiHeaders(apiKey),
-      body: JSON.stringify({ model, messages: request?.messages ?? [], stream: false }),
+      body: JSON.stringify(requestBody),
     })
     return {
       ok: response.ok,
@@ -263,6 +413,7 @@ app.whenReady().then(() => {
   })
 
   const win = createWindow()
+  createTray()
 
   if (process.env.STARBURST_SELFCHECK === '1') {
     win.webContents.once('did-finish-load', () => {
@@ -275,11 +426,21 @@ app.whenReady().then(() => {
   })
 })
 
+// 托盘常驻：窗口全关也不退出。真正结束只有「退出应用」这一条路
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
+  // 故意留空
+})
+
+// 放行窗口的 close：包括托盘菜单退出、系统注销、任务管理器之外的正常退出
+app.on('before-quit', () => {
+  isQuitting = true
 })
 
 app.on('will-quit', () => {
+  if (tray) {
+    tray.destroy()
+    tray = null
+  }
   if (database) {
     database.close()
     database = null

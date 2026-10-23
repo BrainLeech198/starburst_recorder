@@ -69,6 +69,13 @@ export interface DesktopBridge {
     /** 数据库文件的实际路径，给「数据在哪」显示用 */
     path: () => Promise<string | null>
   }
+  /** 「快速记一笔」小窗专用：关掉窗口、并让其他窗口刷新 */
+  quick: {
+    close: () => Promise<void>
+    notifyChange: () => void
+  }
+  /** 其他窗口写了数据时触发；返回退订函数 */
+  onDbChanged: (listener: () => void) => () => void
 }
 
 declare global {
