@@ -191,6 +191,13 @@ export default function AiSection() {
     showToast({ message: t('ai.activated', { model: model?.model ?? t('ai.fallbackModel') }) })
   }
 
+  /** 停用：一条都不启用，AI 相关入口随之关掉；模型配置本身保留，随时能再启用 */
+  function handleDeactivate() {
+    setActiveId('')
+    batch.exit()
+    showToast({ message: t('ai.disabledToast') })
+  }
+
   /** 单条测试：结果直接落在条目上 */
   async function handleTestOne(model: AiModel) {
     setTestingId(model.id)
@@ -390,6 +397,15 @@ export default function AiSection() {
                         className={`${SLIP_BUTTON} text-brand hover:opacity-80`}
                       >
                         {t('ai.enable')}
+                      </button>
+                    )}
+                    {isActive && (
+                      <button
+                        type="button"
+                        onClick={handleDeactivate}
+                        className={`${SLIP_BUTTON} text-muted hover:text-fg`}
+                      >
+                        {t('ai.disable')}
                       </button>
                     )}
                     <button
