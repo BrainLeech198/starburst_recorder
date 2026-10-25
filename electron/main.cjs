@@ -479,6 +479,30 @@ async function fetchReleaseJson(url) {
   }
 }
 
+async function fetchReleaseText(url) {
+  try {
+    const response = await net.fetch(url)
+    if (!response.ok) return null
+    const text = (await response.text()).trim()
+    return text === '' ? null : text
+  } catch {
+    return null
+  }
+}
+
+/** 中文说明：官网静态文件最稳（不限流），Gitee 反过来会被限流到回 HTML 报错页 */
+async function fetchChineseNotes(version) {
+  const fromSite = await fetchReleaseText(
+    'https://brainleech198.github.io/starburst_recorder/notes.zh.md',
+  )
+  if (fromSite) return fromSite
+
+  const gitee = await fetchReleaseJson(UPDATE_SOURCES.gitee)
+  const body = String(gitee?.body ?? '').trim()
+  const tag = String(gitee?.tag_name ?? '').replace(/^v/i, '')
+  return body && tag === version ? body : null
+}
+
 const UPDATE_SOURCES = {
   github: 'https://api.github.com/repos/BrainLeech198/starburst_recorder/releases/latest',
   gitee: 'https://gitee.com/api/v5/repos/Mr_brainleech/starburst_recorder/releases/latest',
@@ -504,12 +528,10 @@ ipcMain.handle('update:check', async (_event, locale) => {
     if (!info) return null
   }
 
-  // 中文界面换成 Gitee 那份中文说明
+  // 中文界面换成中文说明
   if (locale === 'zh') {
-    const gitee = await fetchReleaseJson(UPDATE_SOURCES.gitee)
-    const body = String(gitee?.body ?? '').trim()
-    const tag = String(gitee?.tag_name ?? '').replace(/^v/i, '')
-    if (body && tag === info.version) info.notes = body
+    const notes = await fetchChineseNotes(info.version)
+    if (notes) info.notes = notes
   }
 
   return info

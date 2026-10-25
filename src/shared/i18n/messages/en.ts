@@ -939,6 +939,7 @@ export const en: Record<MessageKey, string> = {
   'stamp.cancel': 'Cancel',
   'stamp.saved': 'Saved',
   'stamp.saveHint': 'Ctrl/⌘+Enter to save · Esc to cancel',
+  'stamp.insertPreset': 'Insert preset',
   'stamp.unsavedTitle': 'This stamp is not saved',
   'stamp.unsavedSwitch': 'Switching will discard your edits.',
   'stamp.discardAndEdit': 'Discard and edit',
@@ -1101,7 +1102,7 @@ export const en: Record<MessageKey, string> = {
   'presetPick.manage': 'Manage preset library',
 
   'presets.title': 'Preset library',
-  'presets.back': '← Back to diary',
+  'presets.back': 'Back to diary',
   'presets.person': 'People',
   'presets.place': 'Places',
   'presets.hintPerson': 'Keep the people who show up in your diary here for one-tap insertion.',
@@ -1147,7 +1148,7 @@ export const en: Record<MessageKey, string> = {
   'presets.purgeSelectedBody': 'These presets will be permanently deleted and cannot be restored.',
   'presets.unit': 'presets',
   'presets.codeDeletedAt': '{code} · deleted {at}',
-  'presets.backList': '← Back to presets',
+  'presets.backList': 'Back to presets',
 
   'common.confirm': 'OK',
   'common.cancel': 'Cancel',

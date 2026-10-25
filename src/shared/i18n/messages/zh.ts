@@ -898,6 +898,7 @@ export const zh = {
   'stamp.cancel': '取消',
   'stamp.saved': '已保存',
   'stamp.saveHint': 'Ctrl/⌘+Enter 保存 · Esc 取消',
+  'stamp.insertPreset': '插入预设',
   'stamp.unsavedTitle': '这一条还没保存',
   'stamp.unsavedSwitch': '切过去会丢掉刚才的修改。',
   'stamp.discardAndEdit': '丢掉并编辑那条',
@@ -1055,7 +1056,7 @@ export const zh = {
   'presetPick.manage': '管理预设库',
 
   'presets.title': '预设库',
-  'presets.back': '← 返回日记',
+  'presets.back': '返回日记',
   'presets.person': '预设人物',
   'presets.place': '预设地名',
   'presets.hintPerson': '把日记里常出现的人物收在这里，编辑时可以一键插入。',
@@ -1100,7 +1101,7 @@ export const zh = {
   'presets.purgeSelectedBody': '这些预设会被永久删除，无法恢复。',
   'presets.unit': '项',
   'presets.codeDeletedAt': '{code} · 删除于 {at}',
-  'presets.backList': '← 返回预设库',
+  'presets.backList': '返回预设库',
 
   'common.confirm': '确定',
   'common.cancel': '取消',

@@ -9,6 +9,7 @@ import { dayInfo, removeStamp, restoreStamp, setWeather, updateStamp } from './d
 import { parseWeather, weatherIcons, weatherText } from './weather'
 import { formatClock, todayKey } from '@/core/utils/dateKey'
 import WeatherDialog from './WeatherDialog'
+import CommonPresetDialog from './CommonPresetDialog'
 
 /** 一笔随记：时间一行（可点改）、内容默认只读，双击进入编辑态；整笔挂在左侧时间轴上 */
 function StampRow({
@@ -41,7 +42,26 @@ function StampRow({
   const [time, setTime] = useState(stamp.time)
   const [editingTime, setEditingTime] = useState(false)
   const areaRef = useRef<HTMLTextAreaElement>(null)
+  const [presetOpen, setPresetOpen] = useState(false)
   const { t } = useI18n()
+
+  /** 把预设名插到光标处；没有焦点时追加到末尾 */
+  function insertPreset(name: string) {
+    const area = areaRef.current
+    if (!area) {
+      onDraftChange(`${draft}${name}`)
+      return
+    }
+    const start = area.selectionStart ?? draft.length
+    const end = area.selectionEnd ?? start
+    const next = `${draft.slice(0, start)}${name}${draft.slice(end)}`
+    onDraftChange(next)
+    requestAnimationFrame(() => {
+      area.focus()
+      const position = start + name.length
+      area.setSelectionRange(position, position)
+    })
+  }
 
   // 进入编辑态时把光标放进正文，避免手还要再点一次
   useEffect(() => {
@@ -138,6 +158,13 @@ function StampRow({
                   >
                     {t('stamp.cancel')}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setPresetOpen(true)}
+                    className="rounded border border-line px-2 py-0.5 text-muted transition-colors hover:text-fg"
+                  >
+                    {t('stamp.insertPreset')}
+                  </button>
                   {/* 手机上没键盘，这行提示只在能看见键盘的宽度显示 */}
                   <span className="ml-auto hidden text-ink-muted sm:inline">{t('stamp.saveHint')}</span>
                 </div>
@@ -162,6 +189,13 @@ function StampRow({
           </>
         )}
       </div>
+
+      {presetOpen && (
+        <CommonPresetDialog
+          onInsert={(name) => insertPreset(name)}
+          onClose={() => setPresetOpen(false)}
+        />
+      )}
 
       {selectable ? (
         <span

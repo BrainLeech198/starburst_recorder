@@ -101,6 +101,35 @@ async function fetchJson(url: string): Promise<RawRelease | null> {
   }
 }
 
+async function fetchText(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) })
+    if (!response.ok) return null
+    const text = (await response.text()).trim()
+    return text === '' ? null : text
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 中文界面的更新说明。
+ *
+ * 官网那条静态文件最可靠（不带 CORS、不限流），Gitee 反过来会被限流到
+ * 直接回 HTML 报错页；两边都拿不到就退回 GitHub 的英文说明。
+ */
+async function fetchChineseNotes(version: string): Promise<string | null> {
+  const fromSite = await fetchText(
+    'https://brainleech198.github.io/starburst_recorder/notes.zh.md',
+  )
+  if (fromSite) return fromSite
+
+  const gitee = await fetchJson(`https://gitee.com/api/v5/repos/${GITEE_REPO}/releases/latest`)
+  const body = String(gitee?.body ?? '').trim()
+  const tag = String(gitee?.tag_name ?? '').replace(/^v/i, '')
+  return body && tag === version ? body : null
+}
+
 /**
  * 检查一次；没有新版、两个源都失败、或当前平台没有对应安装包时返回 null。
  *
@@ -128,12 +157,10 @@ export async function checkForUpdate(locale: 'zh' | 'en' = 'zh'): Promise<Update
     if (!info) return null
   }
 
-  // 中文界面用 Gitee 那份中文说明
+  // 中文界面换成中文说明
   if (locale === 'zh') {
-    const gitee = await fetchJson(`https://gitee.com/api/v5/repos/${GITEE_REPO}/releases/latest`)
-    const body = String(gitee?.body ?? '').trim()
-    const tag = String(gitee?.tag_name ?? '').replace(/^v/i, '')
-    if (body && tag === info.version) info.notes = body
+    const notes = await fetchChineseNotes(info.version)
+    if (notes) info.notes = notes
   }
 
   return info

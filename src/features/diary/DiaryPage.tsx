@@ -324,13 +324,21 @@ export default function DiaryPage() {
           </button>
         </div>
 
-        <div className="flex shrink-0 items-center">
+        <div className="flex shrink-0 items-center gap-1">
           <Tab active={mode === 'diary'} onClick={() => switchMode('diary')}>
             {t('diary.tabDiary')}
           </Tab>
           <Tab active={mode === 'stamp'} onClick={() => switchMode('stamp')}>
             {t('diary.tabStamp')}
           </Tab>
+
+          {/* 预设库是资料页，不常点，放在右上角做一个小入口 */}
+          <Link
+            to="/diary/presets"
+            className="ml-1 inline-flex h-8 items-center rounded-lg border border-line px-2 text-xs text-muted transition-colors hover:text-fg"
+          >
+            {t('diary.presets')}
+          </Link>
         </div>
       </div>
 
@@ -386,14 +394,9 @@ export default function DiaryPage() {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link to="/diary/presets" className={SOLID_BUTTON}>
-            {t('diary.presets')}
-          </Link>
-          <Link to="/diary/trash" state={{ mode }} className={SOLID_BUTTON}>
-            {t('diary.trash')}
-          </Link>
-        </div>
+        <Link to="/diary/trash" state={{ mode }} className={SOLID_BUTTON}>
+          {t('diary.trash')}
+        </Link>
       </ToolbarRow>
 
       {hint && <p className="mt-2 text-xs text-muted">{hint}</p>}
