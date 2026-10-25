@@ -26,7 +26,8 @@ DefaultDirName={autopf}\StarburstRecorder
 DisableProgramGroupPage=yes
 OutputDir=dist
 OutputBaseFilename=starburst-recorder-{#MyAppVersion}-setup
-Compression=lzma2/max
+; ultra64 用 64 MB 字典换更高压缩率，安装时内存占用高一点，安装包能再小几 MB
+Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 SetupIconFile=icon.ico
