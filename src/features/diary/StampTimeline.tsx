@@ -9,6 +9,7 @@ import { dayInfo, removeStamp, restoreStamp, setWeather, updateStamp } from './d
 import { parseWeather, weatherIcons, weatherText } from './weather'
 import { formatClock, todayKey } from '@/core/utils/dateKey'
 import WeatherDialog from './WeatherDialog'
+import TimeMeta from '@/shared/ui/TimeMeta'
 import CommonPresetDialog from './CommonPresetDialog'
 
 /** 一笔随记：时间一行（可点改）、内容默认只读，双击进入编辑态；整笔挂在左侧时间轴上 */
@@ -185,6 +186,9 @@ function StampRow({
               >
                 {stamp.content.trim() || <span className="text-ink-muted">{t('stamp.noContent')}</span>}
               </button>
+            )}
+            {!editing && (
+              <TimeMeta createdAt={stamp.createdAt} updatedAt={stamp.updatedAt} tone="paper" />
             )}
           </>
         )}

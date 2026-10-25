@@ -1167,6 +1167,8 @@ export const en: Record<MessageKey, string> = {
   'common.settings': 'Settings',
   'common.loading': 'Loading…',
   'common.more': 'More actions',
+  'timemeta.created': 'Created {at}',
+  'timemeta.edited': 'Edited {at}',
 
   // ─────────── 检查更新 ───────────
   'update.title': 'Version {version} is available',

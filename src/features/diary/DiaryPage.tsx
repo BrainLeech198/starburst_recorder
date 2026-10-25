@@ -46,6 +46,7 @@ import type { ImportSummary } from './importPages'
 import { buildExport } from './diaryExport'
 import type { ExportFormat } from './diaryExport'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
+import TimeMeta from '@/shared/ui/TimeMeta'
 
 /** 纸条上的正文部分，普通模式和批量模式共用 */
 function SlipBody({ entry }: { entry: DiaryEntry }) {
@@ -56,6 +57,7 @@ function SlipBody({ entry }: { entry: DiaryEntry }) {
       <div className="font-hand mt-1 line-clamp-3 text-sm">
         {entry.content.trim() || <span className="text-ink-muted">{t('diary.emptyContent')}</span>}
       </div>
+      <TimeMeta createdAt={entry.createdAt} updatedAt={entry.updatedAt} tone="paper" />
     </>
   )
 }

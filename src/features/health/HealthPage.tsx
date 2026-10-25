@@ -17,6 +17,7 @@ import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import BatchActions from '@/shared/ui/BatchActions'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import { BAR_BUTTON, BAR_DANGER, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import TimeMeta from '@/shared/ui/TimeMeta'
 import IntakeBar, { ProteinBar } from './IntakeBar'
 import IntakeDialog from './IntakeDialog'
 import IntakeDetailDialog from './IntakeDetailDialog'
@@ -305,6 +306,10 @@ export default function HealthPage() {
                             {t('health.legendProtein')} {intake.protein} g
                           </p>
                         </button>
+                        <TimeMeta
+                          createdAt={intake.createdAt}
+                          updatedAt={intake.updatedAt}
+                        />
                         {/* 套餐是这一行的一条合计，点开才看成分快照 */}
                         {intake.components && intake.components.length > 0 && (
                           <MealParts

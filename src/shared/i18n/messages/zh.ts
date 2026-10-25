@@ -1120,6 +1120,8 @@ export const zh = {
   'common.settings': '设置',
   'common.loading': '加载中…',
   'common.more': '更多操作',
+  'timemeta.created': '建于 {at}',
+  'timemeta.edited': '改于 {at}',
 
   // ─────────── 检查更新 ───────────
   'update.title': '发现新版本 {version}',

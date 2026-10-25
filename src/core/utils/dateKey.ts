@@ -125,6 +125,19 @@ export function formatStamp(ms: number): string {
   return `${date.getFullYear()}/${month}/${day}-${hour}:${minute}`
 }
 
+/**
+ * '10/25 09:30'，纸条角落给创建 / 编辑时间用：
+ * 年份太占地方，日志式的完整时间戳又太重。
+ */
+export function formatShortStamp(ms: number): string {
+  const date = new Date(ms)
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  return `${month}/${day} ${hour}:${minute}`
+}
+
 /** '18:00'，纸条角落只留时刻 */
 export function formatClock(ms: number): string {
   const date = new Date(ms)
