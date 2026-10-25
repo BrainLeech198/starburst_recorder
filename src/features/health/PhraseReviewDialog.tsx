@@ -6,6 +6,7 @@
  *
  * 新建只在这里收集草稿，点「完成」才真正写入：中途关掉窗口不会留下半个食物。
  */
+import ErrorNote from '@/shared/ui/ErrorNote'
 import { useMemo, useState } from 'react'
 import type { HealthFood } from '@/core/db/schema'
 import { useI18n } from '@/shared/i18n/context'
@@ -237,7 +238,7 @@ function Detail({
         </p>
       )}
 
-      {error !== '' && <p className="mt-2 text-xs text-danger">{error}</p>}
+      {error !== '' && <ErrorNote>{error}</ErrorNote>}
 
       <div className="mt-4">
         <FoodForm

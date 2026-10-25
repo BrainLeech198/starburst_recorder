@@ -8,6 +8,7 @@
  *   - 还在问：{ "question": "..." }
  *   - 问完了：{ "activity": "sedentary|light|moderate|high", "reason": "..." }
  */
+import ErrorNote from '@/shared/ui/ErrorNote'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import type { HealthActivity } from '@/core/db/schema'
@@ -243,7 +244,7 @@ export default function ActivityAiDialog({
               </div>
             )}
             {error && (
-              <div className="rounded-xl border border-danger px-3 py-2 text-xs text-danger">{error}</div>
+              <ErrorNote>{error}</ErrorNote>
             )}
           </div>
 

@@ -11,6 +11,7 @@
  *
  * 不真的叠三层弹窗：Modal 的焦点陷阱和 Esc 会互相打架，换内容层还多一个「返回」。
  */
+import ErrorNote from '@/shared/ui/ErrorNote'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import type {
@@ -1216,7 +1217,7 @@ export default function IntakeDialog({
                   className={`${INPUT} resize-y`}
                   disabled={phraseBusy}
                 />
-                {phraseError !== '' && <p className="m-0 text-xs text-danger">{phraseError}</p>}
+                {phraseError !== '' && <ErrorNote>{phraseError}</ErrorNote>}
                 <button
                   type="button"
                   onClick={() => void parsePhrase()}
@@ -1529,7 +1530,7 @@ export default function IntakeDialog({
                 >
                   {busy ? t('intake.analyzing') : t('intake.choosePhoto')}
                 </button>
-                {imageError !== '' && <p className="m-0 text-xs text-danger">{imageError}</p>}
+                {imageError !== '' && <ErrorNote>{imageError}</ErrorNote>}
               </>
             )}
           </div>

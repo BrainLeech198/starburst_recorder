@@ -1,3 +1,4 @@
+import ErrorNote from '@/shared/ui/ErrorNote'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useBlocker, useLocation, useNavigate, useParams } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
@@ -649,7 +650,7 @@ export default function DiaryEditPage() {
           {polishBusy ? (
             <p className="mt-4 text-sm text-muted">{t('diaryEdit.polishBusy')}</p>
           ) : polishError !== '' ? (
-            <p className="mt-4 text-xs text-danger">{polishError}</p>
+            <ErrorNote>{polishError}</ErrorNote>
           ) : (
             <textarea
               value={polishResult}

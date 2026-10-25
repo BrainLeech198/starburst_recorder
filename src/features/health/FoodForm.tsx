@@ -1,3 +1,4 @@
+import ErrorNote from '@/shared/ui/ErrorNote'
 import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { INPUT } from '@/shared/ui/inputStyles'
@@ -249,7 +250,7 @@ export default function FoodForm({
                   </button>
                 ))}
               </div>
-              {photoError !== '' && <p className="m-0 text-xs text-danger">{photoError}</p>}
+              {photoError !== '' && <ErrorNote>{photoError}</ErrorNote>}
               {photoNote !== '' && <p className="m-0 text-xs text-brand">{photoNote}</p>}
             </>
           )}
@@ -302,7 +303,7 @@ export default function FoodForm({
         </label>
       </div>
 
-      {error !== '' && <p className="m-0 text-xs text-danger">{error}</p>}
+      {error !== '' && <ErrorNote>{error}</ErrorNote>}
 
       <button type="button" onClick={submit} className={`${SOLID_BUTTON} w-full`}>
         {submitLabel}

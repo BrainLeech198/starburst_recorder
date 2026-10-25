@@ -4,6 +4,7 @@
  * 不存营养值，保存时只写引用；合计在这里实时算，用的是食物库当前的数据。
  * 被删掉的食物会显示成「已删除的食物」，先删掉这一项才能保存。
  */
+import ErrorNote from '@/shared/ui/ErrorNote'
 import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import type { HealthFood, HealthMeal, HealthMealItem } from '@/core/db/schema'
@@ -348,7 +349,7 @@ export default function MealForm({
               >
                 {photoBusy ? t('foods.photoReading') : t('foods.mealPhotoPick')}
               </button>
-              {photoError !== '' && <p className="m-0 text-xs text-danger">{photoError}</p>}
+              {photoError !== '' && <ErrorNote>{photoError}</ErrorNote>}
               {photoNote !== '' && <p className="m-0 text-xs text-brand">{photoNote}</p>}
             </>
           )}
@@ -463,7 +464,7 @@ export default function MealForm({
         )}
       </p>
 
-      {error !== '' && <p className="m-0 text-xs text-danger">{error}</p>}
+      {error !== '' && <ErrorNote>{error}</ErrorNote>}
 
       <div className="flex justify-end gap-2 pt-1">
         <button type="button" onClick={onCancel} className={OUTLINE_BUTTON}>

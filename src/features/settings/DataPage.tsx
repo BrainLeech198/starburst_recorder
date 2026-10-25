@@ -7,6 +7,7 @@
  * 备份从 v2 起分块：导出时先勾选要带走的块（日记 / 健康 / 经济），
  * 导入时也先问要合并哪些块——只写勾选的块，没勾的一个字都不动。
  */
+import ErrorNote from '@/shared/ui/ErrorNote'
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { useLiveQuery } from '@/core/db/live'
@@ -125,7 +126,7 @@ function DataFolderCard() {
         >
           {t('data.openFolder')}
         </button>
-        {failed && <p className="mt-2 text-xs text-danger">{t('data.openFolderFailed')}</p>}
+        {failed && <ErrorNote>{t('data.openFolderFailed')}</ErrorNote>}
       </SettingGroup>
 
       <SettingGroup label={t('data.moveGroup')}>

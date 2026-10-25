@@ -1,3 +1,4 @@
+import ErrorNote from '@/shared/ui/ErrorNote'
 import { useState } from 'react'
 import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 import { WEATHER_PRESETS, joinWeather, parseWeather, weatherIcon, weatherText } from './weather'
@@ -119,7 +120,7 @@ export default function WeatherDialog({
 
         {busy && <p className="mt-2 text-muted">{t('weather.querying')}</p>}
 
-        {queryError && <p className="mt-2 text-danger">{queryError}</p>}
+        {queryError && <ErrorNote>{queryError}</ErrorNote>}
 
         {candidate && (
           <div className="mt-2 rounded-md border border-brand/40 bg-surface px-2 py-1.5">
