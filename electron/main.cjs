@@ -538,6 +538,13 @@ ipcMain.handle('update:download', async (_event, url, fileName) => {
   }
 })
 
+/** 用系统浏览器打开链接：只放行 https，避免被当成随便开程序的通道 */
+ipcMain.handle('app:open-external', async (_event, url) => {
+  if (!/^https:\/\//i.test(String(url))) return false
+  await shell.openExternal(String(url))
+  return true
+})
+
 ipcMain.handle('update:open', async (_event, filePath) => {
   const failure = await shell.openPath(String(filePath))
   return failure === ''

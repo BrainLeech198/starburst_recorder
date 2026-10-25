@@ -7,6 +7,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { APP_VERSION } from '@/core/version'
+import { SITE_URL } from '@/core/links'
+import { openExternal } from '@/platform/openExternal'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
@@ -127,24 +129,33 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
               </div>
             </>
           )}
-          <div className="mt-5 flex justify-end gap-2">
+          <div className="mt-5 flex items-center justify-between gap-2">
             <button
               type="button"
-              onClick={close}
-              className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
+              onClick={() => void openExternal(SITE_URL)}
+              className="text-xs text-muted underline-offset-4 transition-colors hover:text-brand hover:underline"
             >
-              {t('update.later')}
+              {t('update.site')}
             </button>
-            <button
-              type="button"
-              onClick={() => void startDownload()}
-              disabled={downloading}
-              className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2 disabled:opacity-50"
-            >
-              {downloading
-                ? t('update.downloading', { name: info.fileName })
-                : t('update.download')}
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={close}
+                className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
+              >
+                {t('update.later')}
+              </button>
+              <button
+                type="button"
+                onClick={() => void startDownload()}
+                disabled={downloading}
+                className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2 disabled:opacity-50"
+              >
+                {downloading
+                  ? t('update.downloading', { name: info.fileName })
+                  : t('update.download')}
+              </button>
+            </div>
           </div>
         </Modal>
       )}

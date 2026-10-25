@@ -64,6 +64,20 @@ public class UpdatePlugin extends Plugin {
         }).start();
     }
 
+    /** 用系统浏览器打开官网这类链接 */
+    @PluginMethod
+    public void openUrl(PluginCall call) {
+        String url = call.getString("url");
+        if (url == null || url.isEmpty()) {
+            call.reject("url 是必需的");
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(intent);
+        call.resolve();
+    }
+
     private InputStream open(String url) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setConnectTimeout(15000);

@@ -22,6 +22,7 @@ const FinancePage = lazy(() => import('@/features/finance/FinancePage'))
 const AssistantPage = lazy(() => import('@/features/assistant/AssistantPage'))
 const CalendarPage = lazy(() => import('@/features/calendar/CalendarPage'))
 const MePage = lazy(() => import('@/features/me/MePage'))
+const VersionPage = lazy(() => import('@/features/me/VersionPage'))
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage'))
 const AgentMenuPage = lazy(() => import('@/features/settings/AgentMenuPage'))
 const AppearancePage = lazy(() => import('@/features/settings/AppearancePage'))
@@ -57,6 +58,7 @@ export const router = createHashRouter([
       { path: 'assistant', element: <AssistantPage /> },
       { path: 'calendar', element: <CalendarPage /> },
       { path: 'me', element: <MePage /> },
+      { path: 'me/version', element: <VersionPage /> },
       { path: 'me/settings', element: <SettingsPage /> },
       { path: 'me/settings/language', element: <LanguagePage /> },
       { path: 'me/settings/theme', element: <AppearancePage /> },

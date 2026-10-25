@@ -76,6 +76,8 @@ export interface DesktopBridge {
   }
   /** 其他窗口写了数据时触发；返回退订函数 */
   onDbChanged: (listener: () => void) => () => void
+  /** 用系统浏览器打开 https 链接 */
+  openExternal: (url: string) => Promise<boolean>
   /** 检查更新与下载安装包：走主进程，避开 CORS 和渲染进程的网络栈 */
   update: {
     check: (locale: 'zh' | 'en') => Promise<DesktopUpdateInfo | null>

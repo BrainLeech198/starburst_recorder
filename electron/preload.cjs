@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('desktop', {
     close: () => ipcRenderer.invoke('quick:close'),
     notifyChange: () => ipcRenderer.send('db:notify'),
   },
+  // 用系统浏览器打开链接（官网、Release 页）
+  openExternal: (url) => ipcRenderer.invoke('app:open-external', url),
   // 检查更新与下载安装包：由主进程代劳，网页只拿到结果
   update: {
     check: (locale) => ipcRenderer.invoke('update:check', locale),

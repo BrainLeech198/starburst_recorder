@@ -1157,6 +1157,13 @@ export const en: Record<MessageKey, string> = {
   'update.checking': 'Checking…',
   'update.latest': 'You are up to date ({version})',
   'update.found': 'Version {version} is available',
+  'update.site': 'Visit website',
+  'update.siteHint': 'Release notes and downloads',
+
+  'version.title': 'Version',
+  'version.description': 'Check for a newer build, or open the website for release notes and downloads.',
+  'version.footnote':
+    'The installer lands in your Downloads folder; after installing, this page shows the new version.',
 
   'error.title': 'Something went wrong on this page',
   'error.hint': 'Try refreshing first; if it persists, your records are safe on this device.',

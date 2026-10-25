@@ -1112,6 +1112,12 @@ export const zh = {
   'update.checking': '正在检查…',
   'update.latest': '已经是最新版本 {version}',
   'update.found': '发现新版本 {version}',
+  'update.site': '进入官网',
+  'update.siteHint': '更新日志与下载页',
+
+  'version.title': '版本',
+  'version.description': '检查有没有新版本，或者去官网看更新日志与下载。',
+  'version.footnote': '更新包会下载到系统的「下载」目录，装完这一页会显示新版本号。',
 
   'error.title': '这个页面出问题了',
   'error.hint': '可以先刷新重试；如果一直这样，记录不会丢，数据还在本机。',
