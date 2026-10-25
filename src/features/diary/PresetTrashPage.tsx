@@ -1,4 +1,5 @@
 /** 预设库回收站：和食物库回收站一样，能单条恢复/彻底删除，也能批量。 */
+import RowCheckbox from '@/shared/ui/RowCheckbox'
 import { useState } from 'react'
 import type { DiaryPreset, PresetKind } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
@@ -144,19 +145,11 @@ export default function PresetTrashPage() {
                 }`}
               >
                 {batch.active && (
-                  <button
-                    type="button"
-                    onClick={() => batch.toggle(preset.id)}
-                    aria-pressed={selected}
-                    aria-label={preset.name}
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
-                      selected
-                        ? 'border-brand bg-brand text-on-brand'
-                        : 'border-line text-transparent'
-                    }`}
-                  >
-                    <span aria-hidden="true">✓</span>
-                  </button>
+                  <RowCheckbox
+                    checked={selected}
+                    label={preset.name}
+                    onToggle={() => batch.toggle(preset.id)}
+                  />
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="m-0 truncate text-sm text-fg">{preset.name}</p>

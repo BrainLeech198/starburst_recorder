@@ -1,3 +1,4 @@
+import RowCheckbox from '@/shared/ui/RowCheckbox'
 import EmptyState from '@/shared/ui/EmptyState'
 import { useState } from 'react'
 import { Link } from 'react-router'
@@ -327,19 +328,11 @@ export default function FoodLibraryPage() {
                   }`}
                 >
                   {batch.active && (
-                    <button
-                      type="button"
-                      onClick={() => batch.toggle(food.id)}
-                      aria-pressed={selected}
-                      aria-label={food.name}
-                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
-                        selected
-                          ? 'border-brand bg-brand text-on-brand'
-                          : 'border-line text-transparent'
-                      }`}
-                    >
-                      <span aria-hidden="true">✓</span>
-                    </button>
+                    <RowCheckbox
+                      checked={selected}
+                      label={food.name}
+                      onToggle={() => batch.toggle(food.id)}
+                    />
                   )}
                   <button
                     type="button"
@@ -399,19 +392,11 @@ export default function FoodLibraryPage() {
                   }`}
                 >
                   {batch.active && (
-                    <button
-                      type="button"
-                      onClick={() => batch.toggle(meal.id)}
-                      aria-pressed={selected}
-                      aria-label={meal.name}
-                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
-                        selected
-                          ? 'border-brand bg-brand text-on-brand'
-                          : 'border-line text-transparent'
-                      }`}
-                    >
-                      <span aria-hidden="true">✓</span>
-                    </button>
+                    <RowCheckbox
+                      checked={selected}
+                      label={meal.name}
+                      onToggle={() => batch.toggle(meal.id)}
+                    />
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="m-0 text-sm text-fg">{meal.name}</p>

@@ -1,3 +1,4 @@
+import RowCheckbox from '@/shared/ui/RowCheckbox'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { HealthIntake } from '@/core/db/schema'
@@ -277,19 +278,11 @@ export default function HealthPage() {
                       }`}
                     >
                       {batch.active && (
-                        <button
-                          type="button"
-                          onClick={() => batch.toggle(intake.id)}
-                          aria-pressed={selected}
-                          aria-label={intake.name}
-                          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
-                            selected
-                              ? 'border-brand bg-brand text-on-brand'
-                              : 'border-line text-transparent'
-                          }`}
-                        >
-                          <span aria-hidden="true">✓</span>
-                        </button>
+                        <RowCheckbox
+                          checked={selected}
+                          label={intake.name}
+                          onToggle={() => batch.toggle(intake.id)}
+                        />
                       )}
                       <span className="shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] tabular-nums text-muted">
                         {intake.time}

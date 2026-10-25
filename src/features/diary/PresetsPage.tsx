@@ -4,6 +4,7 @@
  * 和食物库一样带 hex 短编号、批量删除和回收站：备份里靠编号区分同名的两条，
  * 导入时也能一眼看出哪条是哪条。这里只存名字和分类，正文里的用法交给「常用」弹窗。
  */
+import RowCheckbox from '@/shared/ui/RowCheckbox'
 import EmptyState from '@/shared/ui/EmptyState'
 import { useState } from 'react'
 import { Link } from 'react-router'
@@ -187,19 +188,11 @@ export default function PresetsPage() {
                 }`}
               >
                 {batch.active && (
-                  <button
-                    type="button"
-                    onClick={() => batch.toggle(preset.id)}
-                    aria-pressed={selected}
-                    aria-label={preset.name}
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
-                      selected
-                        ? 'border-brand bg-brand text-on-brand'
-                        : 'border-line text-transparent'
-                    }`}
-                  >
-                    <span aria-hidden="true">✓</span>
-                  </button>
+                  <RowCheckbox
+                    checked={selected}
+                    label={preset.name}
+                    onToggle={() => batch.toggle(preset.id)}
+                  />
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="m-0 flex items-baseline gap-2 text-sm text-fg">
