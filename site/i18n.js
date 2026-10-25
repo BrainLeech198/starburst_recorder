@@ -23,7 +23,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.2.4',
+    'hero.cta': '下载 0.2.5',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -94,11 +94,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.2.4',
+    'open.version': '版本 0.2.5',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.2.4 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.2.5 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -109,17 +109,18 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '六套主题模式：深空 / 暮色 / 深夜 / 晴日 / 纸白 / 薄雾，配六种主题色自由组合',
+      '备份更扛折腾：写坏的日期不再混进库、悄悄污染按天统计，老备份和以后的新字段都能读',
     'whatsnew.item2':
-      '整理日记守住时刻：随记的时间与事件强绑定，AI 不再拆条、并条、打乱顺序',
-    'whatsnew.item3': '下载带进度条：应用内升级能看见下了多少',
-    'whatsnew.item4': '修掉安卓导出 JSON 备份闪退的问题，并加固了几处同类崩溃点',
+      '数据格式有了明确口径：备份带两个版本号，以后升级不用再担心旧记录读不出来',
+    'whatsnew.item3':
+      '每条记录带时间戳：标着「建于 …」，真被编辑过才多半句「改于 …」，不抢正文',
+    'whatsnew.item4': '修掉安卓导出备份闪退，加固了几处崩溃点；另有六套主题、下载进度条',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'notes.zh.md',
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.2.4',
+    'footer.version': '版本 0.2.5',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -142,7 +143,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.2.4',
+    'hero.cta': 'Download 0.2.5',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -217,12 +218,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.2.4',
+    'open.version': 'Version 0.2.5',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.2.4 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.2.5 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -233,20 +234,21 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.2.4",
+    'whatsnew.title': "What's new in 0.2.5",
     'whatsnew.item1':
-      'Six theme modes — Deep space / Dusk / Midnight / Daylight / Paper / Mist — each pairing with any of six accent colours',
+      'Backups are harder to break: a malformed date can no longer sneak in and quietly corrupt your per-day totals, and old or future fields still read',
     'whatsnew.item2':
-      "Composing respects each moment: a quick note's time is bound to its event, so the AI no longer splits, merges or reorders them",
-    'whatsnew.item3': 'Download progress: see how far the in-app upgrade has got',
+      'The data format now has an explicit policy: two version numbers per backup, so old records keep opening as the app grows',
+    'whatsnew.item3':
+      'Every record carries its timestamps — "Created …", and an "Edited …" half-line only when actually edited',
     'whatsnew.item4':
-      'Fixed an Android crash when exporting a JSON backup, and hardened several similar crash points',
+      'Fixed the Android backup-export crash and hardened several crash points; plus six themes and download progress',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'notes.en.md',
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.2.4',
+    'footer.version': 'Version 0.2.5',
     'footer.tagline': 'Data stays on your device',
   },
 };
