@@ -56,14 +56,14 @@
     "appId": "com.starburst.recorder",
     "productName": "星芒记录者",
     "files": [
-      "dist/**/*",
+      ".local/dist/**/*",
       "electron/**/*",
       "package.json",
       "!node_modules/@capacitor/**/*",
       "package/windows/icon.ico"
     ],
     "directories": {
-      "output": "release"
+      "output": ".local/release"
     },
     "electronDownload": {
       "mirror": "https://npmmirror.com/mirrors/electron/"

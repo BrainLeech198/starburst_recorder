@@ -6,10 +6,10 @@ import tseslint from 'typescript-eslint'
 import prettier from 'eslint-config-prettier'
 
 export default [
-  // .venv 是本机资料（AI 记忆存档 + 同类项目参考仓库），不进仓库也不参与检查
+  // .local 是本机产物与资料（构建结果、安装包、参考仓库、密钥），不进仓库也不参与检查；
+  // site/ 是独立静态官网（普通浏览器脚本，不走 App 构建），同样不在 lint 范围里
   {
-    // site/ 是独立静态官网（普通浏览器脚本，不走 App 构建），.release/.screenshots 是本机产物
-    ignores: ['dist', 'node_modules', 'android', 'src-tauri', '.venv', 'site', '.release', '.screenshots'],
+    ignores: ['node_modules', 'android', 'src-tauri', '.local', 'site'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

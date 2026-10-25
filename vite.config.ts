@@ -97,5 +97,8 @@ export default defineConfig({
   },
   build: {
     target: 'es2021',
+    // 产物跟安装包、截图一起放 .local/，仓库根目录只留源码和配置
+    outDir: '.local/dist',
+    emptyOutDir: true,
   },
 })

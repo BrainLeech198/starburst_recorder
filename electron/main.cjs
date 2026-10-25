@@ -91,7 +91,7 @@ function saveWindowState(win) {
   }
 }
 
-const DIST = path.join(__dirname, '..', 'dist')
+const DIST = path.join(__dirname, '..', '.local', 'dist')
 const APP_URL = 'app://starburst/index.html'
 
 /** 托盘常驻：真正退出前一直是 true，用来放行窗口的 close 事件 */

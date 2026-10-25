@@ -23,12 +23,13 @@ android {
     }
     // 正式包用仓库外的密钥签名：keystore.properties 不进 git（见 .gitignore）。
     // 文件不在就跳过 release 签名，assembleRelease 会产出未签名包，避免 CI 直接炸掉。
+    def keyProperties = rootProject.file('../.local/keys/keystore.properties')
     signingConfigs {
         release {
-            if (rootProject.file('keystore.properties').exists()) {
+            if (keyProperties.exists()) {
                 def signing = new Properties()
-                rootProject.file('keystore.properties').withInputStream { signing.load(it) }
-                storeFile file(signing['storeFile'])
+                keyProperties.withInputStream { signing.load(it) }
+                storeFile rootProject.file('../' + signing['storeFile'])
                 storePassword signing['storePassword']
                 keyAlias signing['keyAlias']
                 keyPassword signing['keyPassword']
@@ -40,7 +41,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            if (rootProject.file('keystore.properties').exists()) {
+            if (keyProperties.exists()) {
                 signingConfig signingConfigs.release
             }
         }

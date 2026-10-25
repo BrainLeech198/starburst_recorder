@@ -89,8 +89,8 @@ package/
    └─ dist/                       安装包输出（不进仓库）
 ```
 
-产物：`package/windows/dist/starburst-recorder-<版本>-setup.exe`（约 112 MB）。
-`release/`（免安装目录）和 `package/windows/dist/`（安装包）都已进 `.gitignore`。
+产物：`.local/artifacts/starburst-recorder-<版本>-setup.exe`（约 112 MB）。
+`.local/release/`（免安装目录）和 `.local/artifacts/`（安装包）都已进 `.gitignore`。
 
 **版本号、应用名、exe 名统一从 `package.json` 读**，由 `build.ps1` 用 `/D` 传给 Inno，避免两处各写一份。
 
@@ -99,11 +99,11 @@ package/
 1. **Windows 安装包只出 Inno Setup 那一种。** 唯一入口是 `npm run desktop:installer`。
 2. **禁止用 electron-builder 的 `nsis` target 出安装包。** `build.win.target` 和 `build.nsis` 已经从
    `package.json` 里删掉，就是为了让 `npx electron-builder` 再也产不出第二个安装器。别加回来。
-3. **`desktop:pack` 只产免安装目录**（`electron-builder --win --dir` → `release/win-unpacked`），
+3. **`desktop:pack` 只产免安装目录**（`electron-builder --win --dir` → `.local/release/win-unpacked`），
    它是 Inno 的输入，不是交付物。
-4. **交付物只有两个**：`package/windows/dist/*-setup.exe`（安装版）、`release/win-unpacked/`（免安装版，
+4. **交付物只有两个**：`.local/artifacts/*-setup.exe`（安装版）、`.local/release/win-unpacked/`（免安装版，
    必须整个目录一起拷，Electron 依赖同级 `resources/`、`locales/`、dll，单拎 exe 启动不了）。
-5. **打包完顺手清产物**：`release/` 下应该只有 `win-unpacked/`（外加 electron-builder 自己写的
+5. **打包完顺手清产物**：`.local/release/` 下应该只有 `win-unpacked/`（外加 electron-builder 自己写的
    `builder-debug.yml`，无害）。如果冒出 `星芒记录者 Setup x.y.z.exe` 或 `*.exe.blockmap`，
    说明有人又跑了裸的 `npx electron-builder`，删掉并查一下。
 6. **主进程要读的静态文件必须在 `build.files` 白名单里**。`files` 是白名单不是黑名单，
@@ -116,7 +116,7 @@ package/
 
 ```powershell
 powershell -File package/icons/make-icons.ps1                                   # 出全端图标
-powershell -File package/icons/make-icons.ps1 -PreviewDir .venv/icon-preview     # 另出验收对照图
+powershell -File package/icons/make-icons.ps1 -PreviewDir .local/icon-preview     # 另出验收对照图
 ```
 
 - 产出：`package/windows/icon.ico`（16/32/48/64/128/256）+ `icon.png`（512 预览）+ Android `mipmap-{m,h,xh,xxh,xxxh}dpi/ic_launcher.png` 与 `ic_launcher_round.png`（48/72/96/144/192）。实测**透明像素 85–87%、四角 alpha 全为 0**
@@ -340,7 +340,7 @@ vitest.config.ts               单测配置：node 环境，只测纯逻辑
 4. **补英文**：新建 `en.ts`、在 `context.ts` 登记语言并在设置页加切换入口
 5. **可选的小整改**：给 package.json 加顶层 `productName`，让桌面端的数据目录变成「星芒记录者」——代价是要迁移一次现有桌面数据，所以先不动
 
-> **完整路线清单（19 项，含参考开源项目与许可红线）另见根目录 [ROADMAP.md](ROADMAP.md)。**
+> **完整路线清单（19 项，含参考开源项目与许可红线）另见根目录 [docs/ROADMAP.md](docs/ROADMAP.md)。**
 
 ## 12. 协作约定
 
@@ -396,9 +396,9 @@ vitest.config.ts               单测配置：node 环境，只测纯逻辑
 
 **原始记忆已落到本机、不进仓库（2026-10-20 追加）**
 
-旧记忆库里的原始文件已**原样搬到 `.venv/ai-memory/`**（与源逐份哈希一致）：`project_memory.md`（硬约束 / 工程约定 / 教训）+ `2026-10-18`、`2026-10-19`、`2026-10-20` 三天的 `topics.md` 与 `session_memory_*.jsonl`。
+旧记忆库里的原始文件已**原样搬到 `.local/ai-memory/`**（与源逐份哈希一致）：`project_memory.md`（硬约束 / 工程约定 / 教训）+ `2026-10-18`、`2026-10-19`、`2026-10-20` 三天的 `topics.md` 与 `session_memory_*.jsonl`。
 
-**定位：AI 记忆属于本机环境资料，不是项目开发内容，所以不提交**（`.gitignore` 已忽略 `.venv/`）。好处是与 Trae 的路径索引解绑——**换路径照样能读**（代价是不随仓库分发，换机器要把这个文件夹一起带走）。习惯上仍以本文件为**人读版**依据，`.venv/ai-memory/` 是**原件存档**。
+**定位：AI 记忆属于本机环境资料，不是项目开发内容，所以不提交**（`.gitignore` 已忽略 `.local/`）。好处是与 Trae 的路径索引解绑——**换路径照样能读**（代价是不随仓库分发，换机器要把这个文件夹一起带走）。习惯上仍以本文件为**人读版**依据，`.local/ai-memory/` 是**原件存档**。
 
 （另：Trae 的**会话正文**存在 `%APPDATA%\Trae CN\ModularData\ai-agent\database.db`，该库**已加密**，本地读不出也搬不了；会话快照按会话 id 存在 `snapshot\<sessionId>\v2\.git`，不受路径影响。）
 

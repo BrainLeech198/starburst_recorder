@@ -1,7 +1,8 @@
 ; 星芒记录者 —— Windows 安装脚本（Inno Setup 6）
 ;
 ; 由 package/windows/build.ps1 调起，不要直接双击运行。
-; 前置：electron-builder 已经把应用打成 release/win-unpacked。
+; 前置：electron-builder 已经把应用打成 .local/release/win-unpacked。
+; 产物统一落在仓库根目录的 .local/ 下（本机产物，不进 git）。
 ;
 ; 版本号、应用名、可执行文件名都由构建脚本从 package.json 传进来，
 ; 这里只留兜底默认值，避免两处各写一份导致对不上。
@@ -24,7 +25,7 @@ AppPublisher=starburst
 ; 安装目录用英文；升级时 Inno 会沿用旧安装路径，AppId 不变所以不会变成两份安装
 DefaultDirName={autopf}\StarburstRecorder
 DisableProgramGroupPage=yes
-OutputDir=dist
+OutputDir=../../.local/artifacts
 OutputBaseFilename=starburst-recorder-{#MyAppVersion}-setup
 ; ultra64 用 64 MB 字典换更高压缩率，安装时内存占用高一点，安装包能再小几 MB
 Compression=lzma2/ultra64
@@ -45,7 +46,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "快捷方式："
 
 [Files]
-Source: "..\..\release\win-unpacked\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\.local\release\win-unpacked\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; 旧版本用的是中文可执行文件名，升级时把残留的那个删掉
 [InstallDelete]

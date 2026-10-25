@@ -12,7 +12,7 @@ import type { CapacitorConfig } from '@capacitor/cli'
 const config: CapacitorConfig = {
   appId: 'com.starburst.recorder',
   appName: '星芒记录者',
-  webDir: 'dist',
+  webDir: '.local/dist',
   android: {
     // 开发期打开 WebView 的远程调试（chrome://inspect 能看到页面），正式发布前再看要不要关
     webContentsDebuggingEnabled: true,

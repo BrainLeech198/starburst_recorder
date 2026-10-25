@@ -1,53 +1,28 @@
-node_modules
-dist
-dist-ssr
-*.local
+# ─────────── 依赖 ───────────
+node_modules/
 
-# 本机环境与本地资料（不属于项目开发内容，不进仓库）
-.venv/
+# ─────────── 本机产物，统一收在 .local/ ───────────
+# Vite 产物（.local/dist）、Electron 免安装目录（.local/release）、
+# 安装包与发版说明（.local/artifacts）、截图（.local/screenshots）、
+# 参考资料与 AI 记忆（.local/refs、.local/ai-memory）、
+# 签名密钥（.local/keys）、临时文件（.local/tmp）
+.local/
 
-# 桌面端打包产物
-release
-package/windows/dist
-
-# 二进制产物一律不进仓库：GitHub 单文件 100MB、Gitee 仓库容量都很紧
-*.exe
-*.apk
-*.aab
-*.msi
-*.blockmap
-*.zip
-*.7z
-package/share/
-
-# TRAE 生成 HTML 时留下的中转目录
-.trae-html-share-packages/
-
-# Android 工程：源码进仓库，构建产物不进
+# ─────────── Android ───────────
 android/app/build/
 android/build/
 android/.gradle/
 android/local.properties
 android/capacitor-cordova-android-plugins/build/
 
-# 编辑器
+# ─────────── 编辑器与系统 ───────────
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
+Thumbs.db
 
-# 本地截图（官网素材压缩后才进 site/assets/shots）
-.screenshots/
-
-# 发版用的临时产物与说明草稿
-.release/
-
-# 安卓签名：密钥和密码都不进仓库，丢了就再也发不了升级包
-android/keystore.properties
-*.jks
-*.keystore
-
-# 日志
-logs
+# ─────────── 日志 ───────────
+logs/
 *.log
 npm-debug.log*
