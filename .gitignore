@@ -39,6 +39,9 @@ android/capacitor-cordova-android-plugins/build/
 # 本地截图（官网素材压缩后才进 site/assets/shots）
 .screenshots/
 
+# 发版用的临时产物与说明草稿
+.release/
+
 # 日志
 logs
 *.log

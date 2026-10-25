@@ -847,6 +847,11 @@ html[lang='en'] .download h3 {
   padding-top: 6px;
 }
 
+.download__hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .dark-section--download .note {
   color: var(--muted);
 }

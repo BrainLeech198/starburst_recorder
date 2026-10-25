@@ -91,9 +91,10 @@ window.SITE_I18N = {
     'download.windowsMeta': 'Windows 10/11 · 约 112 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
     'download.android': 'Android APK',
-    'download.androidMeta': 'Android 10 以上 · 约 15 MB',
+    'download.androidMeta': 'Android 10 以上 · 约 21 MB',
     'download.androidDesc': '侧载安装，需要允许「安装未知来源应用」。手机上是同一套界面，数据留在本机。',
-    'download.note': '两个仓库放的是同一份安装包，哪个快就用哪个。',
+    'download.windowsGiteeNote': 'Gitee 单个附件上限 100 MB，Windows 包只在 GitHub 放。',
+    'download.note': 'Android 版两个仓库都有，哪个快就用哪个。',
 
     'footer.version': '版本 0.1.0',
     'footer.tagline': '数据只存在你的设备上',
@@ -193,10 +194,12 @@ window.SITE_I18N = {
     'download.windowsDesc':
       'Double-click to install, then find it in the Start menu. Desktop data is a SQLite file you can copy anywhere.',
     'download.android': 'Android APK',
-    'download.androidMeta': 'Android 10+ · about 15 MB',
+    'download.androidMeta': 'Android 10+ · about 21 MB',
     'download.androidDesc':
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
-    'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
+    'download.windowsGiteeNote':
+      'Gitee caps an attachment at 100 MB, so the Windows build is on GitHub only.',
+    'download.note': 'The Android build is on both hosts — use whichever is faster for you.',
 
     'footer.version': 'Version 0.1.0',
     'footer.tagline': 'Data stays on your device',
