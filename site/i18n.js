@@ -22,7 +22,7 @@ window.SITE_I18N = {
 
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
-      '随手记下今天，AI 帮你整理成完整的日记。数据只留在这台设备上，Windows 和 Android 用的是同一份代码。',
+      '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
     'hero.cta': '下载 0.1.0',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
@@ -57,7 +57,13 @@ window.SITE_I18N = {
     'ai.after': 'AI 写的',
     'ai.polished':
       '今天去医院拿体检报告。医生翻了两页，说各项都正常，让我别老熬夜。出来的时候天阴着，风有点凉，在路口买了个烤红薯，捧在手里一路暖到家。',
-    'ai.note': '三种口气可选。模型可以是本机跑的，也可以是你在设置里填的任意 OpenAI 兼容接口。',
+    'ai.stepsTitle': '用之前先准备一个模型',
+    'ai.step1':
+      '在「设置 → 助手 → AI」里填服务地址和 Key：OpenAI、DeepSeek、通义，或者本机跑的 Ollama 都行，只要兼容 OpenAI 接口',
+    'ai.step2': '回到日记，选一条记录点「AI 整理」，挑一种口气',
+    'ai.step3': '看一眼结果，确认之后才写进正文',
+    'ai.keyNote':
+      '应用不附带 AI 额度和 Key：模型与费用都在你自己的账号下，Key 只存在本机设置里。',
 
     'shots.kicker': '截图',
     'shots.title': '长这样',
@@ -77,6 +83,9 @@ window.SITE_I18N = {
     'privacy.noCloudDesc': '我们不做服务器，也没有任何一条记录会被上传到我们这里。',
     'privacy.export': '导出即备份',
     'privacy.exportDesc': '一次导出 Markdown、纯文本或完整 JSON；桌面上数据就是一个能复制的文件。',
+    'privacy.aiTitle': 'AI 只连你指定的服务',
+    'privacy.aiDesc':
+      '只有你点「AI 整理」时，那一天的正文才会发给你自己配置的模型服务；其余记录不出本机。',
 
     'open.kicker': '开源',
     'open.title': '源码一直是公开的',
@@ -118,7 +127,7 @@ window.SITE_I18N = {
 
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
-      'Jot down today and let AI shape it into a finished entry. Everything stays on this device — Windows and Android run the same code.',
+      'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
     'hero.cta': 'Download 0.1.0',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
@@ -156,8 +165,13 @@ window.SITE_I18N = {
     'ai.after': 'AI wrote',
     'ai.polished':
       'Picked up my health report at the hospital today. The doctor flipped two pages and said everything looked normal, and told me to stop staying up so late. It was overcast and windy when I came out; I bought a roasted sweet potato at the corner and carried its warmth all the way home.',
-    'ai.note':
-      'Three tones to choose from. Point it at a model on your own machine, or any OpenAI-compatible endpoint you configure.',
+    'ai.stepsTitle': 'Bring your own model first',
+    'ai.step1':
+      'Open Settings → Assistant → AI and enter an endpoint and key: OpenAI, DeepSeek, Qwen, or a local Ollama — anything OpenAI-compatible',
+    'ai.step2': 'Back in the diary, pick an entry and hit AI compose, then choose a tone',
+    'ai.step3': 'Read the result; nothing is written until you confirm',
+    'ai.keyNote':
+      'No AI credits or keys are bundled: the model and its cost stay in your own account, and the key lives only in this device’s settings.',
 
     'shots.kicker': 'Screenshots',
     'shots.title': 'What it looks like',
@@ -178,6 +192,9 @@ window.SITE_I18N = {
     'privacy.export': 'Export is backup',
     'privacy.exportDesc':
       'Export Markdown, plain text or full JSON in one go. On desktop your data is a file you can copy.',
+    'privacy.aiTitle': 'AI talks only to the service you pick',
+    'privacy.aiDesc':
+      'Only when you tap AI compose does that day’s text go to the model service you configured. Nothing else leaves the device.',
 
     'open.kicker': 'Open source',
     'open.title': 'The source has always been public',

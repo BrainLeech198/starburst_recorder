@@ -183,8 +183,18 @@
             </figure>
           </div>
 
-          <p class="note" data-i18n="ai.note">
-            三种口气可选。模型可以是本机跑的，也可以是你在设置里填的任意 OpenAI 兼容接口。
+          <div class="steps">
+            <h3 data-i18n="ai.stepsTitle">用之前先准备一个模型</h3>
+            <ol>
+              <li data-i18n="ai.step1">
+                在「设置 → 助手 → AI」里填服务地址和 Key，OpenAI、DeepSeek、通义、本机 Ollama 都行，只要兼容 OpenAI 接口
+              </li>
+              <li data-i18n="ai.step2">回到日记，选一条记录点「AI 整理」，挑一种口气</li>
+              <li data-i18n="ai.step3">看一眼结果，确认之后才写进正文</li>
+            </ol>
+          </div>
+          <p class="note" data-i18n="ai.keyNote">
+            应用不附带 AI 额度和 Key：模型与费用都在你自己的账号下，Key 只存在本机设置里。
           </p>
         </div>
       </section>
@@ -260,6 +270,12 @@
               <h3 data-i18n="privacy.export">导出即备份</h3>
               <p data-i18n="privacy.exportDesc">
                 一次导出 Markdown、纯文本或完整 JSON；桌面上数据就是一个能复制的文件。
+              </p>
+            </li>
+            <li>
+              <h3 data-i18n="privacy.aiTitle">AI 只连你指定的服务</h3>
+              <p data-i18n="privacy.aiDesc">
+                只有你点「AI 整理」时，那一天的正文才会发给你自己配置的模型服务；其余记录不出本机。
               </p>
             </li>
           </ul>
