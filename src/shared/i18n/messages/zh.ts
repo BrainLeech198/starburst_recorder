@@ -1124,6 +1124,8 @@ export const zh = {
   'update.later': '稍后',
   'update.download': '下载并安装',
   'update.downloading': '正在下载 {name}…',
+  'update.downloadProgress': '{received} / {total} MB',
+  'update.downloadWaiting': '等待服务器响应…',
   'update.done': '已开始下载，按提示完成安装即可',
   'update.saved': '已保存到 {path}',
   'update.failed': '下载失败：{error}',

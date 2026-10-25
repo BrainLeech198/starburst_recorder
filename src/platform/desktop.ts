@@ -83,6 +83,8 @@ export interface DesktopBridge {
     check: (locale: 'zh' | 'en') => Promise<DesktopUpdateInfo | null>
     download: (url: string, fileName: string) => Promise<DesktopUpdateResult>
     open: (filePath: string) => Promise<boolean>
+    /** 下载进度（主进程按秒推），返回退订函数 */
+    onProgress: (listener: (progress: DesktopUpdateProgress) => void) => () => void
   }
 }
 
@@ -110,4 +112,11 @@ declare global {
 /** 拿桌面壳的能力，浏览器里返回 undefined */
 export function desktopBridge() {
   return window.desktop
+}
+
+
+/** 下载进度：received 已写盘字节数，total 为 0 表示服务端没给长度 */
+export interface DesktopUpdateProgress {
+  received: number
+  total: number
 }

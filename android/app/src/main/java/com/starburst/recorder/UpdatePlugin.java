@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Environment;
 import androidx.core.content.FileProvider;
+import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -52,10 +53,24 @@ public class UpdatePlugin extends Plugin {
 
         new Thread(() -> {
             try (InputStream input = open(url); FileOutputStream output = new FileOutputStream(target)) {
+                long total = 0;
+                java.net.URL parsed = new java.net.URL(url);
+                java.net.HttpURLConnection probe = (java.net.HttpURLConnection) parsed.openConnection();
+                probe.setRequestMethod("HEAD");
+                probe.connect();
+                total = probe.getContentLengthLong();
+                probe.disconnect();
+
                 byte[] buffer = new byte[64 * 1024];
+                long received = 0;
                 int read;
                 while ((read = input.read(buffer)) != -1) {
                     output.write(buffer, 0, read);
+                    received += read;
+                    JSObject payload = new JSObject();
+                    payload.put("received", received);
+                    payload.put("total", total > 0 ? total : 0);
+                    notifyListeners("progress", payload, false);
                 }
                 install(target);
             } catch (Exception ignored) {

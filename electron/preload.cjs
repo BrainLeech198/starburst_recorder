@@ -27,6 +27,11 @@ contextBridge.exposeInMainWorld('desktop', {
     check: (locale) => ipcRenderer.invoke('update:check', locale),
     download: (url, fileName) => ipcRenderer.invoke('update:download', url, fileName),
     open: (filePath) => ipcRenderer.invoke('update:open', filePath),
+    onProgress: (listener) => {
+      const handler = (_event, payload) => listener(payload)
+      ipcRenderer.on('update:progress', handler)
+      return () => ipcRenderer.removeListener('update:progress', handler)
+    },
   },
   /** 别的窗口写了数据时触发，返回退订函数 */
   onDbChanged: (listener) => {

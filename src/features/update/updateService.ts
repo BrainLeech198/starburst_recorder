@@ -173,6 +173,37 @@ export interface DownloadResult {
   error?: string
 }
 
+/** 下载进度：received 已写盘字节数，total 为 0 表示服务端没给长度 */
+export interface DownloadProgress {
+  received: number
+  total: number
+}
+
+/**
+ * 订阅下载进度。桌面走主进程推送，安卓走原生插件事件，
+ * 浏览器里没有可靠进度（直接交给浏览器的下载管理），返回一个空订阅。
+ */
+export function onDownloadProgress(listener: (progress: DownloadProgress) => void): () => void {
+  const desktop = desktopBridge()
+  if (desktop?.update) return desktop.update.onProgress(listener)
+
+  const native = androidNative()
+  if (native) {
+    let removed = false
+    let unsubscribe: (() => Promise<void>) | null = null
+    void native.addListener('progress', listener).then((handle) => {
+      if (removed) void handle.remove()
+      else unsubscribe = handle.remove
+    })
+    return () => {
+      removed = true
+      void unsubscribe?.()
+    }
+  }
+
+  return () => {}
+}
+
 /** 下载安装包：桌面端下到「下载」并在下载完后打开安装程序 */
 export async function downloadUpdate(info: UpdateInfo): Promise<DownloadResult> {
   const desktop = desktopBridge()
@@ -197,6 +228,10 @@ export async function downloadUpdate(info: UpdateInfo): Promise<DownloadResult> 
 /** 安卓原生插件（见 android/.../UpdatePlugin.java）：下 APK 并拉起系统安装器 */
 interface NativeUpdatePlugin {
   downloadAndInstall: (options: { url: string; fileName: string }) => Promise<{ ok?: boolean }>
+  addListener: (
+    event: 'progress',
+    listener: (payload: { received: number; total: number }) => void,
+  ) => Promise<{ remove: () => Promise<void> }>
 }
 
 const NativeUpdate = registerPlugin<NativeUpdatePlugin>('Update')

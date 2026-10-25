@@ -12,7 +12,7 @@ import { openExternal } from '@/platform/openExternal'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
-import { checkForUpdate, downloadUpdate, shouldPrompt, snooze } from './updateService'
+import { checkForUpdate, downloadUpdate, onDownloadProgress, shouldPrompt, snooze } from './updateService'
 import type { UpdateInfo } from './updateService'
 
 interface UpdateValue {
@@ -28,6 +28,11 @@ interface UpdateValue {
 
 const UpdateContext = createContext<UpdateValue | null>(null)
 
+/** 进度条上显示的 MB 数，保留一位小数 */
+function formatMb(bytes: number) {
+  return (bytes / 1024 / 1024).toFixed(1)
+}
+
 export function useUpdate() {
   const value = useContext(UpdateContext)
   if (!value) throw new Error('useUpdate 必须在 UpdateProvider 里使用')
@@ -41,6 +46,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const [checking, setChecking] = useState(false)
   const [downloading, setDownloading] = useState(false)
+  const [progress, setProgress] = useState<{ received: number; total: number } | null>(null)
   const started = useRef(false)
 
   const runCheck = useCallback(
@@ -100,8 +106,16 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
   async function startDownload() {
     if (!info || downloading) return
     setDownloading(true)
-    const result = await downloadUpdate(info)
-    setDownloading(false)
+    setProgress({ received: 0, total: 0 })
+    const unsubscribe = onDownloadProgress((next) => setProgress(next))
+    let result
+    try {
+      result = await downloadUpdate(info)
+    } finally {
+      unsubscribe()
+      setProgress(null)
+      setDownloading(false)
+    }
     if (result.ok) {
       showToast({
         message: result.path ? t('update.saved', { path: result.path }) : t('update.done'),
@@ -129,6 +143,35 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
               </div>
             </>
           )}
+          {downloading && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between text-xs text-muted">
+                <span>
+                  {t('update.downloading', { name: info.fileName })}
+                </span>
+                <span className="tabular-nums">
+                  {progress && progress.total > 0
+                    ? t('update.downloadProgress', {
+                        received: formatMb(progress.received),
+                        total: formatMb(progress.total),
+                      })
+                    : t('update.downloadWaiting')}
+                </span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2">
+                <div
+                  className="h-full rounded-full bg-brand transition-all duration-300"
+                  style={{
+                    width:
+                      progress && progress.total > 0
+                        ? `${Math.min(100, Math.round((progress.received / progress.total) * 100))}%`
+                        : '15%',
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="mt-5 flex items-center justify-between gap-2">
             <button
               type="button"

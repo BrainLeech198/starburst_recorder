@@ -537,23 +537,36 @@ ipcMain.handle('update:check', async (_event, locale) => {
   return info
 })
 
-/** 下载安装包到「下载」目录；边下边写盘，不在内存里攒一整个包 */
-ipcMain.handle('update:download', async (_event, url, fileName) => {
+/** 下载安装包到「下载」目录；边下边写盘，进度用 update:progress 推给页面 */
+ipcMain.handle('update:download', async (event, url, fileName) => {
   try {
     const response = await net.fetch(String(url), { redirect: 'follow' })
     if (!response.ok || !response.body) return { ok: false, error: `HTTP ${response.status}` }
+    const total = Number(response.headers.get('content-length') ?? 0) || 0
     const dir = app.getPath('downloads')
-    const safe = String(fileName || 'starburst-update.bin').replace(/[\\/:*?"<>|]/g, '_')
+    const safe = String(fileName || 'starburst-update.bin').replace(/[/:*?"<>|\\]/g, '_')
     const target = path.join(dir, safe)
     await fs.promises.mkdir(dir, { recursive: true })
+
+    let received = 0
+    let lastPush = 0
     await new Promise((resolve, reject) => {
       const stream = Readable.fromWeb(response.body)
       const file = fs.createWriteStream(target)
+      stream.on('data', (chunk) => {
+        received += chunk.length
+        const now = Date.now()
+        if (now - lastPush >= 1000 || (total > 0 && received >= total)) {
+          lastPush = now
+          event.sender.send('update:progress', { received, total })
+        }
+      })
       stream.on('error', reject)
       file.on('error', reject)
       file.on('finish', resolve)
       stream.pipe(file)
     })
+    event.sender.send('update:progress', { received, total: total || received })
     return { ok: true, path: target }
   } catch (error) {
     return { ok: false, error: error && error.message ? error.message : String(error) }

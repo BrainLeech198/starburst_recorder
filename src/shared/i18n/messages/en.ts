@@ -1171,6 +1171,8 @@ export const en: Record<MessageKey, string> = {
   'update.later': 'Later',
   'update.download': 'Download and install',
   'update.downloading': 'Downloading {name}…',
+  'update.downloadProgress': '{received} / {total} MB',
+  'update.downloadWaiting': 'Waiting for the server…',
   'update.done': 'Download started — follow the prompts to finish installing',
   'update.saved': 'Saved to {path}',
   'update.failed': 'Download failed: {error}',
