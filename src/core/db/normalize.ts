@@ -1,14 +1,15 @@
 /**
- * 把不可信的行数据（备份文件、以后的同步包）收成 schema 里定义的样子。
+ * 把不可信的行数据收成 schema 里定义的样子。
  *
- * 为什么要单独一层：备份是用户唯一能救回数据的东西，而备份文件可能来自
- * 旧版本、别的设备、甚至被手改过。读进来就直接当类型用，会在某个字段缺失时
- * 悄悄写出一条畸形记录，几天后才炸在完全不相干的地方。
+ * 备份文件是用户唯一能救回数据的东西，但它可能来自旧版本、别的设备，甚至被手改过；
+ * 直接当类型用，会在某个字段缺失时悄悄写出一条畸形记录，几天后才炸在别处。
  *
- * 规则只有三条，好记也好测：
+ * 规则只有三条：
  *   1. **必填字段缺失或类型不对 → 整行丢掉**，宁可少一条也不要脏数据
- *   2. **可选字段缺失 → 补默认值**，这样旧版本的行在新版本里照样能读
+ *   2. **可选字段缺失 → 补默认值**，旧版本的行在新版本里照样能读
  *   3. **多出来的字段不管**，新版备份拿到旧版应用里也能降级打开
+ *
+ * 这层跟存储无关：备份导入、以后的同步、以及从老库升级都走它。
  */
 import type {
   DiaryDay,
@@ -16,19 +17,40 @@ import type {
   DiaryPreset,
   DiaryStamp,
   FinanceEntry,
-  HealthActivity,
   HealthFood,
   HealthIntake,
   HealthMeal,
   HealthMealItem,
+  HealthActivity,
   HealthProfile,
   HealthSex,
   IntakeComponent,
-  PresetKind,
 } from './schema'
+import { newCode } from '@/core/utils/id'
 
-/** 日期键：'YYYY-MM-DD'，并且真得是个日历上存在的日子 */
-export function toDateKey(value: unknown): string | null {
+function text(value: unknown, fallback = '') {
+  return typeof value === 'string' ? value : fallback
+}
+
+function number(value: unknown, fallback: number) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
+}
+
+function nullableNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function deletedAt(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+/**
+ * 日期键必须是 YYYY-MM-DD，**并且是日历上真存在的日子**。
+ *
+ * 只做正则会放过 '2026-13-40' 这种写坏的日期：它一路存进库，
+ * 之后所有按天分组、按周统计的地方都会算出莫名其妙的结果。
+ */
+function dateKey(value: unknown) {
   if (typeof value !== 'string') return null
   const matched = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
   if (!matched) return null
@@ -36,293 +58,237 @@ export function toDateKey(value: unknown): string | null {
   const month = Number(matched[2])
   const day = Number(matched[3])
   const date = new Date(year, month - 1, day)
-  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-    return null
-  }
-  return value
-}
-
-/** 时刻：'HH:MM'，24 小时制 */
-export function toClock(value: unknown): string | null {
-  if (typeof value !== 'string') return null
-  const matched = value.match(/^(\d{2}):(\d{2})$/)
-  if (!matched) return null
-  const hour = Number(matched[1])
-  const minute = Number(matched[2])
-  return hour < 24 && minute < 60 ? value : null
-}
-
-/** 非空字符串；空串和空白都算没填 */
-export function toText(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() !== '' ? value : null
-}
-
-/** 数字：也接受 '12.5' 这种字符串写法，手改过的备份很常见 */
-export function toNumber(value: unknown): number | null {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : null
-  if (typeof value === 'string') {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-  return null
-}
-
-/** 非负整数时间戳；缺失或写坏就当 0，不让整行因此被丢 */
-export function toStamp(value: unknown): number {
-  const parsed = toNumber(value)
-  return parsed !== null && parsed >= 0 ? Math.floor(parsed) : 0
-}
-
-/** 可空的时间戳：写坏了当没填 */
-export function toNullableStamp(value: unknown): number | null {
-  const parsed = toNumber(value)
-  return parsed !== null && parsed >= 0 ? Math.floor(parsed) : null
-}
-
-/** 可空数字；写坏了当没填，不要变成 0 误导统计 */
-export function toNullableNumber(value: unknown): number | null {
-  return toNumber(value)
-}
-
-function toEnum<T extends string>(value: unknown, allowed: readonly T[]): T | null {
-  return typeof value === 'string' && (allowed as readonly string[]).includes(value)
-    ? (value as T)
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+    ? value
     : null
 }
 
-const SEXES: readonly HealthSex[] = ['male', 'female']
-const ACTIVITIES: readonly HealthActivity[] = ['sedentary', 'light', 'moderate', 'high']
-const PRESET_KINDS: readonly PresetKind[] = ['person', 'place']
-const INTAKE_SOURCES = ['library', 'manual'] as const
-
-// ─────────── 日记 ───────────
-
-export function normalizeDiaryEntry(raw: unknown): DiaryEntry | null {
-  const row = raw as Record<string, unknown> | null
-  if (!row) return null
-  const id = toText(row.id)
-  const dateKey = toDateKey(row.dateKey)
-  const content = typeof row.content === 'string' ? row.content : null
-  if (!id || !dateKey || content === null) return null
+/**
+ * 一条一条挑字段：只留 schema 里认识的，顺手把不合格的剔掉（返回 null）。
+ * 已知字段缺失时补默认值，缺失的短编号（code）现场生成一个——老备份可能没有它。
+ */
+export function pickEntry(raw: unknown): DiaryEntry | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  const id = text(item.id)
+  const day = dateKey(item.dateKey)
+  if (id === '' || day === null) return null
   return {
     id,
-    code: toText(row.code) ?? '',
-    dateKey,
-    content,
-    createdAt: toStamp(row.createdAt),
-    updatedAt: toStamp(row.updatedAt),
-    deletedAt: toNullableStamp(row.deletedAt),
+    code: text(item.code) || newCode(),
+    dateKey: day,
+    createdAt: number(item.createdAt, Date.now()),
+    updatedAt: number(item.updatedAt, Date.now()),
+    content: text(item.content),
+    deletedAt: deletedAt(item.deletedAt),
   }
 }
 
-export function normalizeDiaryDay(raw: unknown): DiaryDay | null {
-  const row = raw as Record<string, unknown> | null
-  if (!row) return null
-  const dateKey = toDateKey(row.dateKey)
-  if (!dateKey) return null
+export function pickStamp(raw: unknown): DiaryStamp | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  const id = text(item.id)
+  const day = dateKey(item.dateKey)
+  if (id === '' || day === null) return null
+  const time = text(item.time)
   return {
-    dateKey,
-    weather: toText(row.weather),
-    updatedAt: toStamp(row.updatedAt),
+    id,
+    dateKey: day,
+    // 时间必须是 HH:MM，坏的就退回 '00:00'，免得一条脏数据废掉整份备份
+    time: /^\d{2}:\d{2}$/.test(time) ? time : '00:00',
+    content: text(item.content),
+    createdAt: number(item.createdAt, Date.now()),
+    updatedAt: number(item.updatedAt, Date.now()),
+    deletedAt: deletedAt(item.deletedAt),
   }
 }
 
-export function normalizeDiaryStamp(raw: unknown): DiaryStamp | null {
-  const row = raw as Record<string, unknown> | null
-  if (!row) return null
-  const id = toText(row.id)
-  const dateKey = toDateKey(row.dateKey)
-  const time = toClock(row.time)
-  const content = typeof row.content === 'string' ? row.content : null
-  if (!id || !dateKey || !time || content === null) return null
+export function pickPreset(raw: unknown): DiaryPreset | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  const id = text(item.id)
+  const name = text(item.name).trim()
+  if (id === '' || name === '') return null
   return {
     id,
-    dateKey,
-    time,
-    content,
-    createdAt: toStamp(row.createdAt),
-    updatedAt: toStamp(row.updatedAt),
-    deletedAt: toNullableStamp(row.deletedAt),
-  }
-}
-
-export function normalizeDiaryPreset(raw: unknown): DiaryPreset | null {
-  const row = raw as Record<string, unknown> | null
-  if (!row) return null
-  const id = toText(row.id)
-  const kind = toEnum(row.kind, PRESET_KINDS)
-  const name = toText(row.name)
-  if (!id || !kind || !name) return null
-  return {
-    id,
-    code: toText(row.code) ?? '',
-    kind,
+    code: text(item.code) || newCode(),
+    kind: item.kind === 'place' ? 'place' : 'person',
     name,
-    createdAt: toStamp(row.createdAt),
-    updatedAt: toStamp(row.updatedAt),
-    deletedAt: toNullableStamp(row.deletedAt),
+    createdAt: number(item.createdAt, Date.now()),
+    updatedAt: number(item.updatedAt, Date.now()),
+    deletedAt: deletedAt(item.deletedAt),
   }
 }
 
-// ─────────── 健康 ───────────
+export function pickDay(raw: unknown): DiaryDay | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  const day = dateKey(item.dateKey)
+  if (day === null) return null
+  return {
+    dateKey: day,
+    // 没写就是 null：空串和 null 两套写法并存，判空的地方早晚漏一处
+    weather: text(item.weather) || null,
+    updatedAt: number(item.updatedAt, Date.now()),
+  }
+}
 
-export function normalizeHealthProfile(raw: unknown): HealthProfile | null {
-  const row = raw as Record<string, unknown> | null
-  if (!row) return null
-  // 整个应用只有一行，id 固定 'me'；别的 id 直接不要
-  if (toText(row.id) !== 'me') return null
+const SEXES: HealthSex[] = ['male', 'female']
+const ACTIVITIES: HealthActivity[] = ['sedentary', 'light', 'moderate', 'high']
+
+export function pickProfile(raw: unknown): HealthProfile | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  const sex = SEXES.includes(item.sex as HealthSex) ? (item.sex as HealthSex) : null
+  const activity = ACTIVITIES.includes(item.activity as HealthActivity)
+    ? (item.activity as HealthActivity)
+    : null
   return {
     id: 'me',
-    sex: toEnum(row.sex, SEXES),
-    age: toNullableNumber(row.age),
-    heightCm: toNullableNumber(row.heightCm),
-    weightKg: toNullableNumber(row.weightKg),
-    weightAt: toNullableStamp(row.weightAt),
-    activity: toEnum(row.activity, ACTIVITIES),
-    tdee: toNullableNumber(row.tdee),
-    targetKcal: toNullableNumber(row.targetKcal),
-    proteinTarget: toNullableNumber(row.proteinTarget),
-    plan: typeof row.plan === 'string' ? row.plan : '',
-    note: typeof row.note === 'string' ? row.note : '',
-    updatedAt: toStamp(row.updatedAt),
+    sex,
+    age: nullableNumber(item.age),
+    heightCm: nullableNumber(item.heightCm),
+    weightKg: nullableNumber(item.weightKg),
+    weightAt: nullableNumber(item.weightAt),
+    activity,
+    tdee: nullableNumber(item.tdee),
+    targetKcal: nullableNumber(item.targetKcal),
+    proteinTarget: nullableNumber(item.proteinTarget),
+    plan: text(item.plan),
+    note: text(item.note),
+    updatedAt: number(item.updatedAt, Date.now()),
   }
 }
 
-export function normalizeHealthFood(raw: unknown): HealthFood | null {
-  const row = raw as Record<string, unknown> | null
-  if (!row) return null
-  const id = toText(row.id)
-  const name = toText(row.name)
-  const kcal = toNumber(row.kcal)
-  if (!id || !name || kcal === null) return null
+export function pickFood(raw: unknown): HealthFood | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  const id = text(item.id)
+  const name = text(item.name).trim()
+  if (id === '' || name === '') return null
   return {
     id,
-    code: toText(row.code) ?? '',
+    code: text(item.code) || newCode(),
     name,
-    kcal,
-    protein: toNumber(row.protein) ?? 0,
-    carbs: toNumber(row.carbs) ?? 0,
-    fat: toNumber(row.fat) ?? 0,
-    servingName: toText(row.servingName),
-    servingGrams: toNullableNumber(row.servingGrams),
-    createdAt: toStamp(row.createdAt),
-    updatedAt: toStamp(row.updatedAt),
-    deletedAt: toNullableStamp(row.deletedAt),
+    kcal: number(item.kcal, 0),
+    protein: number(item.protein, 0),
+    carbs: number(item.carbs, 0),
+    fat: number(item.fat, 0),
+    servingName: typeof item.servingName === 'string' ? item.servingName : null,
+    servingGrams: nullableNumber(item.servingGrams),
+    createdAt: number(item.createdAt, Date.now()),
+    updatedAt: number(item.updatedAt, Date.now()),
+    deletedAt: deletedAt(item.deletedAt),
   }
 }
 
-function toMealItem(raw: unknown): HealthMealItem | null {
-  const row = raw as Record<string, unknown> | null
-  if (!row) return null
-  const foodId = toText(row.foodId)
-  const grams = toNumber(row.grams)
-  if (!foodId || grams === null) return null
-  return { foodId, grams }
+/** 套餐只认 { foodId: string, grams: number }，坏项剔掉 */
+function pickMealItems(raw: unknown): HealthMealItem[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') return null
+      const item = entry as Record<string, unknown>
+      const foodId = text(item.foodId)
+      const grams = Number(item.grams)
+      if (foodId === '' || !Number.isFinite(grams) || grams <= 0) return null
+      return { foodId, grams }
+    })
+    .filter((item): item is HealthMealItem => item !== null)
 }
 
-export function normalizeHealthMeal(raw: unknown): HealthMeal | null {
-  const row = raw as Record<string, unknown> | null
-  if (!row) return null
-  const id = toText(row.id)
-  const name = toText(row.name)
-  if (!id || !name) return null
-  const items = Array.isArray(row.items)
-    ? row.items.map(toMealItem).filter((item): item is HealthMealItem => item !== null)
-    : []
+export function pickMeal(raw: unknown): HealthMeal | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  const id = text(item.id)
+  const name = text(item.name).trim()
+  if (id === '' || name === '') return null
   return {
     id,
     name,
-    items,
-    createdAt: toStamp(row.createdAt),
-    updatedAt: toStamp(row.updatedAt),
-    deletedAt: toNullableStamp(row.deletedAt),
+    items: pickMealItems(item.items),
+    createdAt: number(item.createdAt, Date.now()),
+    updatedAt: number(item.updatedAt, Date.now()),
+    deletedAt: deletedAt(item.deletedAt),
   }
 }
 
-function toComponent(raw: unknown): IntakeComponent | null {
-  const row = raw as Record<string, unknown> | null
-  if (!row) return null
-  const name = toText(row.name)
-  if (!name) return null
-  return {
-    foodId: toText(row.foodId),
-    name,
-    grams: toNumber(row.grams) ?? 0,
-    kcal: toNumber(row.kcal) ?? 0,
-    protein: toNumber(row.protein) ?? 0,
-    carbs: toNumber(row.carbs) ?? 0,
-    fat: toNumber(row.fat) ?? 0,
-  }
+function pickComponents(raw: unknown): IntakeComponent[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null
+  return raw
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') return null
+      const item = entry as Record<string, unknown>
+      return {
+        foodId: typeof item.foodId === 'string' ? item.foodId : null,
+        name: text(item.name),
+        grams: number(item.grams, 0),
+        kcal: number(item.kcal, 0),
+        protein: number(item.protein, 0),
+        carbs: number(item.carbs, 0),
+        fat: number(item.fat, 0),
+      }
+    })
+    .filter((item): item is IntakeComponent => item !== null)
 }
 
-export function normalizeHealthIntake(raw: unknown): HealthIntake | null {
-  const row = raw as Record<string, unknown> | null
-  if (!row) return null
-  const id = toText(row.id)
-  const dateKey = toDateKey(row.dateKey)
-  const time = toClock(row.time)
-  const name = toText(row.name)
-  const grams = toNumber(row.grams)
-  const source = toEnum(row.source, INTAKE_SOURCES)
-  if (!id || !dateKey || !time || !name || grams === null || !source) return null
-
-  const components = Array.isArray(row.components)
-    ? row.components.map(toComponent).filter((item): item is IntakeComponent => item !== null)
-    : null
-
+export function pickIntake(raw: unknown): HealthIntake | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  const id = text(item.id)
+  const day = dateKey(item.dateKey)
+  const name = text(item.name).trim()
+  if (id === '' || day === null || name === '') return null
+  const time = text(item.time)
   return {
     id,
-    code: toText(row.code) ?? '',
-    dateKey,
-    time,
-    foodId: toText(row.foodId),
+    code: text(item.code) || newCode(),
+    dateKey: day,
+    time: /^\d{2}:\d{2}$/.test(time) ? time : '00:00',
+    foodId: typeof item.foodId === 'string' ? item.foodId : null,
     name,
-    grams,
-    kcal: toNumber(row.kcal) ?? 0,
-    protein: toNumber(row.protein) ?? 0,
-    carbs: toNumber(row.carbs) ?? 0,
-    fat: toNumber(row.fat) ?? 0,
-    source,
-    mealId: toText(row.mealId),
-    components: components && components.length > 0 ? components : null,
-    // 旧记录可能没有这三个快照字段：缺了就当没填，统计时回退到当前目标
-    tdeeSnapshot: toNullableNumber(row.tdeeSnapshot),
-    targetKcalSnapshot: toNullableNumber(row.targetKcalSnapshot),
-    proteinTargetSnapshot: toNullableNumber(row.proteinTargetSnapshot),
-    createdAt: toStamp(row.createdAt),
-    updatedAt: toStamp(row.updatedAt),
-    deletedAt: toNullableStamp(row.deletedAt),
+    grams: number(item.grams, 0),
+    kcal: number(item.kcal, 0),
+    protein: number(item.protein, 0),
+    carbs: number(item.carbs, 0),
+    fat: number(item.fat, 0),
+    source: item.source === 'library' ? 'library' : 'manual',
+    mealId: typeof item.mealId === 'string' ? item.mealId : null,
+    components: pickComponents(item.components),
+    // 旧记录没有这三个口径：显式给 null，别让对象形状随版本漂
+    tdeeSnapshot: nullableNumber(item.tdeeSnapshot) ?? null,
+    targetKcalSnapshot: nullableNumber(item.targetKcalSnapshot) ?? null,
+    proteinTargetSnapshot: nullableNumber(item.proteinTargetSnapshot) ?? null,
+    createdAt: number(item.createdAt, Date.now()),
+    updatedAt: number(item.updatedAt, Date.now()),
+    deletedAt: deletedAt(item.deletedAt),
   }
 }
 
-// ─────────── 经济 ───────────
-
-export function normalizeFinanceEntry(raw: unknown): FinanceEntry | null {
-  const row = raw as Record<string, unknown> | null
-  if (!row) return null
-  const id = toText(row.id)
-  const dateKey = toDateKey(row.dateKey)
-  const name = toText(row.name)
-  const amount = toNumber(row.amount)
-  if (!id || !dateKey || !name || amount === null) return null
+export function pickFinance(raw: unknown): FinanceEntry | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  const id = text(item.id)
+  const day = dateKey(item.dateKey)
+  if (id === '' || day === null) return null
   return {
     id,
-    dateKey,
-    name,
-    amount,
-    note: typeof row.note === 'string' ? row.note : '',
-    createdAt: toStamp(row.createdAt),
-    updatedAt: toStamp(row.updatedAt),
-    deletedAt: toNullableStamp(row.deletedAt),
+    dateKey: day,
+    name: text(item.name),
+    amount: number(item.amount, 0),
+    note: text(item.note),
+    createdAt: number(item.createdAt, Date.now()),
+    updatedAt: number(item.updatedAt, Date.now()),
+    deletedAt: deletedAt(item.deletedAt),
   }
 }
 
-/** 一批行 → 只留下读得懂的那些。丢掉的条数由调用方决定要不要告诉用户 */
-export function normalizeRows<T>(rows: unknown[], normalize: (raw: unknown) => T | null): T[] {
-  const out: T[] = []
-  for (const row of rows) {
-    const parsed = normalize(row)
-    if (parsed !== null) out.push(parsed)
-  }
-  return out
+export function rows(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+export function bag(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {}
 }

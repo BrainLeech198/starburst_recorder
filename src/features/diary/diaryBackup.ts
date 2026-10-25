@@ -19,20 +19,44 @@ import type {
   DiaryPreset,
   DiaryStamp,
   FinanceEntry,
-  HealthActivity,
   HealthFood,
   HealthIntake,
   HealthMeal,
-  HealthMealItem,
   HealthProfile,
-  HealthSex,
-  IntakeComponent,
 } from '@/core/db/schema'
-import { newCode } from '@/core/utils/id'
+import {
+  pickDay,
+  pickEntry,
+  pickFinance,
+  pickFood,
+  pickIntake,
+  pickMeal,
+  pickPreset,
+  pickProfile,
+  pickStamp,
+  rows,
+  bag,
+} from '@/core/db/normalize'
 import type { ExportFile } from './diaryExport'
 
 const BACKUP_APP = 'starburst-recorder'
+
+/**
+ * 备份里其实有两个版本号，职责不同：
+ *
+ * - version：**文件摆法**的版本。1 是扁平的（entries / stamps / days 直接放顶层），
+ *   2 起收进 sections 里。以后再动整体结构才升它。
+ * - schemaVersion：**每行长什么样**的版本。加字段、改字段含义才升它。
+ *   行级校验在 core/db/normalize.ts，旧版本的行会先在那儿补齐再进库，
+ *   所以读旧备份永远不需要写一堆 if（version < 3）。
+ *
+ * 兼容口径（写给以后改这里的人）：
+ *   - 读：不看版本号，只看字段。缺的补默认、坏的丢行、多的忽略。
+ *   - 写：永远写最新形状，并把两个版本号都带上，方便以后定位。
+ *   - 于是「新应用读旧备份」不需要代码，「旧应用读新备份」也不至于整份读不出来。
+ */
 const BACKUP_VERSION = 2
+const SCHEMA_VERSION = 1
 
 /** 备份里的三块：日记、健康、经济 */
 export type BackupSection = 'diary' | 'health' | 'finance'
@@ -131,6 +155,7 @@ export function buildBackup(
       {
         app: BACKUP_APP,
         version: BACKUP_VERSION,
+        schemaVersion: SCHEMA_VERSION,
         exportedAt: now.toISOString(),
         sections: {
           ...(keep.has('diary')
@@ -162,242 +187,6 @@ export function buildBackup(
   }
 }
 
-function text(value: unknown, fallback = '') {
-  return typeof value === 'string' ? value : fallback
-}
-
-function number(value: unknown, fallback: number) {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
-}
-
-function nullableNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null
-}
-
-function deletedAt(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null
-}
-
-/** 日期键必须是 YYYY-MM-DD，别的都不认 */
-function dateKey(value: unknown) {
-  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null
-}
-
-/**
- * 一条一条挑字段：只留 schema 里认识的，顺手把不合格的剔掉（返回 null）。
- * 已知字段缺失时补默认值，缺失的短编号（code）现场生成一个——老备份可能没有它。
- */
-function pickEntry(raw: unknown): DiaryEntry | null {
-  if (!raw || typeof raw !== 'object') return null
-  const item = raw as Record<string, unknown>
-  const id = text(item.id)
-  const day = dateKey(item.dateKey)
-  if (id === '' || day === null) return null
-  return {
-    id,
-    code: text(item.code) || newCode(),
-    dateKey: day,
-    createdAt: number(item.createdAt, Date.now()),
-    updatedAt: number(item.updatedAt, Date.now()),
-    content: text(item.content),
-    deletedAt: deletedAt(item.deletedAt),
-  }
-}
-
-function pickStamp(raw: unknown): DiaryStamp | null {
-  if (!raw || typeof raw !== 'object') return null
-  const item = raw as Record<string, unknown>
-  const id = text(item.id)
-  const day = dateKey(item.dateKey)
-  if (id === '' || day === null) return null
-  const time = text(item.time)
-  return {
-    id,
-    dateKey: day,
-    // 时间必须是 HH:MM，坏的就退回 '00:00'，免得一条脏数据废掉整份备份
-    time: /^\d{2}:\d{2}$/.test(time) ? time : '00:00',
-    content: text(item.content),
-    createdAt: number(item.createdAt, Date.now()),
-    updatedAt: number(item.updatedAt, Date.now()),
-    deletedAt: deletedAt(item.deletedAt),
-  }
-}
-
-function pickPreset(raw: unknown): DiaryPreset | null {
-  if (!raw || typeof raw !== 'object') return null
-  const item = raw as Record<string, unknown>
-  const id = text(item.id)
-  const name = text(item.name).trim()
-  if (id === '' || name === '') return null
-  return {
-    id,
-    code: text(item.code) || newCode(),
-    kind: item.kind === 'place' ? 'place' : 'person',
-    name,
-    createdAt: number(item.createdAt, Date.now()),
-    updatedAt: number(item.updatedAt, Date.now()),
-    deletedAt: deletedAt(item.deletedAt),
-  }
-}
-
-function pickDay(raw: unknown): DiaryDay | null {
-  if (!raw || typeof raw !== 'object') return null
-  const item = raw as Record<string, unknown>
-  const day = dateKey(item.dateKey)
-  if (day === null) return null
-  return {
-    dateKey: day,
-    weather: text(item.weather),
-    updatedAt: number(item.updatedAt, Date.now()),
-  }
-}
-
-const SEXES: HealthSex[] = ['male', 'female']
-const ACTIVITIES: HealthActivity[] = ['sedentary', 'light', 'moderate', 'high']
-
-function pickProfile(raw: unknown): HealthProfile | null {
-  if (!raw || typeof raw !== 'object') return null
-  const item = raw as Record<string, unknown>
-  const sex = SEXES.includes(item.sex as HealthSex) ? (item.sex as HealthSex) : null
-  const activity = ACTIVITIES.includes(item.activity as HealthActivity)
-    ? (item.activity as HealthActivity)
-    : null
-  return {
-    id: 'me',
-    sex,
-    age: nullableNumber(item.age),
-    heightCm: nullableNumber(item.heightCm),
-    weightKg: nullableNumber(item.weightKg),
-    weightAt: nullableNumber(item.weightAt),
-    activity,
-    tdee: nullableNumber(item.tdee),
-    targetKcal: nullableNumber(item.targetKcal),
-    proteinTarget: nullableNumber(item.proteinTarget),
-    plan: text(item.plan),
-    note: text(item.note),
-    updatedAt: number(item.updatedAt, Date.now()),
-  }
-}
-
-function pickFood(raw: unknown): HealthFood | null {
-  if (!raw || typeof raw !== 'object') return null
-  const item = raw as Record<string, unknown>
-  const id = text(item.id)
-  const name = text(item.name).trim()
-  if (id === '' || name === '') return null
-  return {
-    id,
-    code: text(item.code) || newCode(),
-    name,
-    kcal: number(item.kcal, 0),
-    protein: number(item.protein, 0),
-    carbs: number(item.carbs, 0),
-    fat: number(item.fat, 0),
-    servingName: typeof item.servingName === 'string' ? item.servingName : null,
-    servingGrams: nullableNumber(item.servingGrams),
-    createdAt: number(item.createdAt, Date.now()),
-    updatedAt: number(item.updatedAt, Date.now()),
-    deletedAt: deletedAt(item.deletedAt),
-  }
-}
-
-/** 套餐只认 { foodId: string, grams: number }，坏项剔掉 */
-function pickMealItems(raw: unknown): HealthMealItem[] {
-  if (!Array.isArray(raw)) return []
-  return raw
-    .map((entry) => {
-      if (!entry || typeof entry !== 'object') return null
-      const item = entry as Record<string, unknown>
-      const foodId = text(item.foodId)
-      const grams = Number(item.grams)
-      if (foodId === '' || !Number.isFinite(grams) || grams <= 0) return null
-      return { foodId, grams }
-    })
-    .filter((item): item is HealthMealItem => item !== null)
-}
-
-function pickMeal(raw: unknown): HealthMeal | null {
-  if (!raw || typeof raw !== 'object') return null
-  const item = raw as Record<string, unknown>
-  const id = text(item.id)
-  const name = text(item.name).trim()
-  if (id === '' || name === '') return null
-  return {
-    id,
-    name,
-    items: pickMealItems(item.items),
-    createdAt: number(item.createdAt, Date.now()),
-    updatedAt: number(item.updatedAt, Date.now()),
-    deletedAt: deletedAt(item.deletedAt),
-  }
-}
-
-function pickComponents(raw: unknown): IntakeComponent[] | null {
-  if (!Array.isArray(raw) || raw.length === 0) return null
-  return raw
-    .map((entry) => {
-      if (!entry || typeof entry !== 'object') return null
-      const item = entry as Record<string, unknown>
-      return {
-        foodId: typeof item.foodId === 'string' ? item.foodId : null,
-        name: text(item.name),
-        grams: number(item.grams, 0),
-        kcal: number(item.kcal, 0),
-        protein: number(item.protein, 0),
-        carbs: number(item.carbs, 0),
-        fat: number(item.fat, 0),
-      }
-    })
-    .filter((item): item is IntakeComponent => item !== null)
-}
-
-function pickIntake(raw: unknown): HealthIntake | null {
-  if (!raw || typeof raw !== 'object') return null
-  const item = raw as Record<string, unknown>
-  const id = text(item.id)
-  const day = dateKey(item.dateKey)
-  const name = text(item.name).trim()
-  if (id === '' || day === null || name === '') return null
-  const time = text(item.time)
-  return {
-    id,
-    code: text(item.code) || newCode(),
-    dateKey: day,
-    time: /^\d{2}:\d{2}$/.test(time) ? time : '00:00',
-    foodId: typeof item.foodId === 'string' ? item.foodId : null,
-    name,
-    grams: number(item.grams, 0),
-    kcal: number(item.kcal, 0),
-    protein: number(item.protein, 0),
-    carbs: number(item.carbs, 0),
-    fat: number(item.fat, 0),
-    source: item.source === 'library' ? 'library' : 'manual',
-    mealId: typeof item.mealId === 'string' ? item.mealId : null,
-    components: pickComponents(item.components),
-    createdAt: number(item.createdAt, Date.now()),
-    updatedAt: number(item.updatedAt, Date.now()),
-    deletedAt: deletedAt(item.deletedAt),
-  }
-}
-
-function pickFinance(raw: unknown): FinanceEntry | null {
-  if (!raw || typeof raw !== 'object') return null
-  const item = raw as Record<string, unknown>
-  const id = text(item.id)
-  const day = dateKey(item.dateKey)
-  if (id === '' || day === null) return null
-  return {
-    id,
-    dateKey: day,
-    name: text(item.name),
-    amount: number(item.amount, 0),
-    note: text(item.note),
-    createdAt: number(item.createdAt, Date.now()),
-    updatedAt: number(item.updatedAt, Date.now()),
-    deletedAt: deletedAt(item.deletedAt),
-  }
-}
-
 export interface BackupReadResult {
   ok: boolean
   /** 读不出来时的人话解释 */
@@ -411,16 +200,6 @@ export interface BackupReadResult {
 
 function fail(error: string): BackupReadResult {
   return { ok: false, error, payload: emptyPayload(), sections: [], skipped: 0 }
-}
-
-function rows(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : []
-}
-
-function bag(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {}
 }
 
 /** 读一份备份文本，校验并挑出可用的数据 */
