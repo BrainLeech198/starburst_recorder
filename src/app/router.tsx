@@ -11,7 +11,13 @@ const HomePage = lazy(() => import('@/features/home/HomePage'))
 const DiaryPage = lazy(() => import('@/features/diary/DiaryPage'))
 const DiaryEditPage = lazy(() => import('@/features/diary/DiaryEditPage'))
 const TrashPage = lazy(() => import('@/features/diary/TrashPage'))
+const PresetsPage = lazy(() => import('@/features/diary/PresetsPage'))
+const PresetTrashPage = lazy(() => import('@/features/diary/PresetTrashPage'))
 const HealthPage = lazy(() => import('@/features/health/HealthPage'))
+const HealthProfilePage = lazy(() => import('@/features/health/ProfilePage'))
+const FoodLibraryPage = lazy(() => import('@/features/health/FoodLibraryPage'))
+const FoodTrashPage = lazy(() => import('@/features/health/FoodTrashPage'))
+const IntakeTrashPage = lazy(() => import('@/features/health/IntakeTrashPage'))
 const FinancePage = lazy(() => import('@/features/finance/FinancePage'))
 const AssistantPage = lazy(() => import('@/features/assistant/AssistantPage'))
 const CalendarPage = lazy(() => import('@/features/calendar/CalendarPage'))
@@ -39,8 +45,14 @@ export const router = createHashRouter([
       { path: 'diary/trash', element: <TrashPage /> },
       // 静态段优先于 :code，别把 new 当成一条 7 位编号去查
       { path: 'diary/new', element: <DiaryEditPage /> },
+      { path: 'diary/presets', element: <PresetsPage /> },
+      { path: 'diary/presets/trash', element: <PresetTrashPage /> },
       { path: 'diary/:code', element: <DiaryEditPage /> },
       { path: 'health', element: <HealthPage /> },
+      { path: 'health/profile', element: <HealthProfilePage /> },
+      { path: 'health/foods', element: <FoodLibraryPage /> },
+      { path: 'health/foods/trash', element: <FoodTrashPage /> },
+      { path: 'health/intakes/trash', element: <IntakeTrashPage /> },
       { path: 'finance', element: <FinancePage /> },
       { path: 'assistant', element: <AssistantPage /> },
       { path: 'calendar', element: <CalendarPage /> },

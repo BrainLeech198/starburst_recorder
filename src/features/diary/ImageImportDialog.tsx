@@ -13,7 +13,11 @@ import { compressImage, transcribeDiary } from '@/features/ai/aiVision'
 import type { Transcript } from '@/features/ai/aiVision'
 import type { AiConfig } from '@/features/ai/aiConfig'
 import { useI18n } from '@/shared/i18n/context'
-import { canUseCamera } from '@/platform/camera'
+import { useLiveQuery } from '@/core/db/live'
+import type { DiaryPreset } from '@/core/db/schema'
+import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
+import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
+import { diaryPresets } from './diaryRepo'
 import { MAX_IMPORT_IMAGES, mergePages } from './importPages'
 import type { ImportSummary } from './importPages'
 import ImageViewer from './ImageViewer'
@@ -47,6 +51,8 @@ export default function ImageImportDialog({
   onCancel: () => void
 }) {
   const { t } = useI18n()
+  /** 预设库：识别时把人名、地名一起给模型当参考，提高手写的认字准确率 */
+  const presets = useLiveQuery(() => diaryPresets(), [])
   const [pages, setPages] = useState<Page[]>([])
   const [running, setRunning] = useState(false)
   const [seconds, setSeconds] = useState(0)
@@ -56,6 +62,8 @@ export default function ImageImportDialog({
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
   /** 点过「开始识别」才显示进度和结果，空窗口时不占地方 */
   const [hasRun, setHasRun] = useState(false)
+  /** 选文件还是拍照，先弹一层让用户选 */
+  const [sourceOpen, setSourceOpen] = useState(false)
 
   const inputRef = useRef<HTMLInputElement>(null)
   /** 拍照走另一个 input：带 capture 属性，安卓 WebView 会直接唤起相机 */
@@ -123,6 +131,14 @@ export default function ImageImportDialog({
   /** 逐张识别。一张一请求，既能看到进度，也不会因为一张失败拖垮整批 */
   const recognize = useCallback(
     async (ids: string[]) => {
+      const hints = {
+        people: (presets ?? [])
+          .filter((preset: DiaryPreset) => preset.kind === 'person')
+          .map((preset: DiaryPreset) => preset.name),
+        places: (presets ?? [])
+          .filter((preset: DiaryPreset) => preset.kind === 'place')
+          .map((preset: DiaryPreset) => preset.name),
+      }
       setRunning(true)
       for (const id of ids) {
         if (cancelled.current) return
@@ -131,7 +147,7 @@ export default function ImageImportDialog({
         updatePage(id, { status: 'running', error: '' })
         try {
           const image = await compressImage(file)
-          const result = await transcribeDiary(config, image)
+          const result = await transcribeDiary(config, image, hints)
           if (cancelled.current) return
           if (!result.ok || !result.transcript) {
             updatePage(id, { status: 'failed', transcript: null, error: result.error })
@@ -145,7 +161,7 @@ export default function ImageImportDialog({
       }
       if (!cancelled.current) setRunning(false)
     },
-    [config, updatePage],
+    [config, presets, updatePage],
   )
 
   /** 「继续添加」/「拍照」共用的落点：新照片接在列表末尾，不覆盖已有的识别结果 */
@@ -153,6 +169,16 @@ export default function ImageImportDialog({
     const picked = Array.from(event.target.files ?? [])
     event.target.value = ''
     addFiles(picked)
+  }
+
+  /** 原生端走系统相机（WebView 会忽略 input 的 capture 属性），浏览器端仍用带 capture 的 input */
+  async function handleCamera() {
+    if (!usesNativeCamera()) {
+      cameraRef.current?.click()
+      return
+    }
+    const shot = await takeNativePhoto()
+    if (shot) addFiles([shot])
   }
 
   /** 识别还没成功的页（新加的、失败的），已经成功的不重跑，省时间也省钱 */
@@ -241,7 +267,7 @@ export default function ImageImportDialog({
       {pages.length === 0 ? (
         <button
           type="button"
-          onClick={() => inputRef.current?.click()}
+          onClick={() => setSourceOpen(true)}
           className="mt-3 flex h-28 w-full items-center justify-center rounded-lg border border-dashed border-line text-sm text-muted transition-colors hover:border-brand hover:text-brand"
         >
           {t('imageImport.add')}
@@ -374,22 +400,12 @@ export default function ImageImportDialog({
         )}
         <button
           type="button"
-          onClick={() => inputRef.current?.click()}
+          onClick={() => setSourceOpen(true)}
           disabled={running || pages.length >= MAX_IMPORT_IMAGES}
           className={OUTLINE_BUTTON}
         >
           {t('imageImport.add')}
         </button>
-        {canUseCamera() && (
-          <button
-            type="button"
-            onClick={() => cameraRef.current?.click()}
-            disabled={running || pages.length >= MAX_IMPORT_IMAGES}
-            className={OUTLINE_BUTTON}
-          >
-            {t('imageImport.capture')}
-          </button>
-        )}
         <button
           type="button"
           onClick={startRecognize}
@@ -424,6 +440,14 @@ export default function ImageImportDialog({
         onChange={handlePick}
         className="hidden"
       />
+
+      {sourceOpen && (
+        <ImageSourceDialog
+          onPickFile={() => inputRef.current?.click()}
+          onTakePhoto={() => void handleCamera()}
+          onClose={() => setSourceOpen(false)}
+        />
+      )}
 
       {viewerIndex !== null && (
         <ImageViewer

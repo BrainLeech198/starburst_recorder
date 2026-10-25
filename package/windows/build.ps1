@@ -30,7 +30,11 @@ $iscc = Get-IsccPath
 $manifest = Get-Content (Join-Path $root 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 $version = $manifest.version
 $appName = $manifest.build.productName
-$exeName = "$appName.exe"
+$exeName = if ($manifest.build.win.executableName) {
+  "$($manifest.build.win.executableName).exe"
+} else {
+  "$appName.exe"
+}
 
 Write-Host '== 1/3 构建前端 ==' -ForegroundColor Cyan
 Push-Location $root

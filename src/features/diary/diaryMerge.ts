@@ -8,10 +8,27 @@
  * 这里只做纯计算，不碰数据库：输入是「备份里的数据」和「当前库里的数据」，
  * 输出是一串冲突描述 + 一个按用户选择剔除冲突项的函数。这样能单独测。
  */
-import type { DiaryDay, DiaryEntry, DiaryStamp } from '@/core/db/schema'
+import type {
+  DiaryDay,
+  DiaryEntry,
+  DiaryPreset,
+  DiaryStamp,
+  HealthFood,
+  HealthIntake,
+  HealthMeal,
+  HealthProfile,
+} from '@/core/db/schema'
 import type { BackupPayload } from './diaryBackup'
 
-export type ConflictKind = 'entry' | 'stamp' | 'day'
+export type ConflictKind =
+  | 'entry'
+  | 'stamp'
+  | 'day'
+  | 'preset'
+  | 'food'
+  | 'meal'
+  | 'intake'
+  | 'profile'
 
 export interface MergeConflict {
   kind: ConflictKind
@@ -19,10 +36,16 @@ export interface MergeConflict {
   key: string
   /** 弹窗里一行显示的标题，例如「2026-10-20 · 08:30」 */
   label: string
-  /** 本地这边的内容摘要 */
+  /** 本地这边的内容摘要，列表里用 */
   localText: string
-  /** 备份这边的内容摘要 */
+  /** 备份这边的内容摘要，列表里用 */
   incomingText: string
+  /** 完整原文：「看全文」层要拿它对照，摘要截过没法判断 */
+  localBody: string
+  incomingBody: string
+  /** 这条在各自那边是不是躺在回收站里，摘要为空时得说清楚是删了还是本来没写 */
+  localDeleted: boolean
+  incomingDeleted: boolean
   localAt: number
   incomingAt: number
 }
@@ -43,6 +66,11 @@ function snippet(text: string) {
 /** 删掉的条目也算不同：一件事「在回收站」和「没删」不能当成同一条 */
 function tombstone(value: number | null) {
   return value === null || value === undefined ? 'alive' : 'gone'
+}
+
+/** 软删除标记：有值就是在回收站里 */
+function isDeleted(value: number | null) {
+  return value !== null && value !== undefined
 }
 
 function entryDiffers(local: DiaryEntry, incoming: DiaryEntry) {
@@ -66,6 +94,19 @@ function dayDiffers(local: DiaryDay, incoming: DiaryDay) {
   return local.weather !== incoming.weather
 }
 
+function presetDiffers(local: DiaryPreset, incoming: DiaryPreset) {
+  return (
+    local.name !== incoming.name ||
+    local.kind !== incoming.kind ||
+    local.code !== incoming.code ||
+    tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
+  )
+}
+
+function presetSummary(preset: DiaryPreset) {
+  return `${preset.kind === 'place' ? '📍' : '👤'} ${preset.name} · ${preset.code}`
+}
+
 /**
  * 找出所有冲突。内容完全一样的条目不算冲突——导入它本来也不改变任何东西。
  * 只在本地存在／只在备份存在的条目也都不算，那些是「纯新增」或「不受影响」。
@@ -83,6 +124,10 @@ export function findConflicts(incoming: BackupPayload, local: BackupPayload): Me
       label: item.dateKey,
       localText: snippet(mine.content),
       incomingText: snippet(item.content),
+      localBody: mine.content,
+      incomingBody: item.content,
+      localDeleted: isDeleted(mine.deletedAt),
+      incomingDeleted: isDeleted(item.deletedAt),
       localAt: mine.updatedAt,
       incomingAt: item.updatedAt,
     })
@@ -98,6 +143,10 @@ export function findConflicts(incoming: BackupPayload, local: BackupPayload): Me
       label: `${item.dateKey} · ${item.time}`,
       localText: snippet(mine.content),
       incomingText: snippet(item.content),
+      localBody: mine.content,
+      incomingBody: item.content,
+      localDeleted: isDeleted(mine.deletedAt),
+      incomingDeleted: isDeleted(item.deletedAt),
       localAt: mine.updatedAt,
       incomingAt: item.updatedAt,
     })
@@ -113,6 +162,30 @@ export function findConflicts(incoming: BackupPayload, local: BackupPayload): Me
       label: item.dateKey,
       localText: mine.weather ?? '',
       incomingText: item.weather ?? '',
+      localBody: mine.weather ?? '',
+      incomingBody: item.weather ?? '',
+      // 天气是挂在某天上的标记，没有回收站概念
+      localDeleted: false,
+      incomingDeleted: false,
+      localAt: mine.updatedAt,
+      incomingAt: item.updatedAt,
+    })
+  }
+
+  const localPresets = new Map(local.presets.map((item) => [item.id, item]))
+  for (const item of incoming.presets) {
+    const mine = localPresets.get(item.id)
+    if (!mine || !presetDiffers(mine, item)) continue
+    conflicts.push({
+      kind: 'preset',
+      key: item.id,
+      label: item.name,
+      localText: snippet(presetSummary(mine)),
+      incomingText: snippet(presetSummary(item)),
+      localBody: presetSummary(mine),
+      incomingBody: presetSummary(item),
+      localDeleted: isDeleted(mine.deletedAt),
+      incomingDeleted: isDeleted(item.deletedAt),
       localAt: mine.updatedAt,
       incomingAt: item.updatedAt,
     })
@@ -131,8 +204,297 @@ export function pickIncoming(
 ): BackupPayload {
   if (keepLocal.size === 0) return incoming
   return {
+    ...incoming,
     entries: incoming.entries.filter((item) => !keepLocal.has(conflictKey({ kind: 'entry', key: item.id }))),
     stamps: incoming.stamps.filter((item) => !keepLocal.has(conflictKey({ kind: 'stamp', key: item.id }))),
     days: incoming.days.filter((item) => !keepLocal.has(conflictKey({ kind: 'day', key: item.dateKey }))),
+    presets: incoming.presets.filter(
+      (item) => !keepLocal.has(conflictKey({ kind: 'preset', key: item.id })),
+    ),
   }
+}
+
+export interface HealthPart {
+  profile: HealthProfile | null
+  foods: HealthFood[]
+  meals: HealthMeal[]
+  intakes: HealthIntake[]
+}
+
+function foodSummary(food: HealthFood) {
+  const parts = [
+    food.name,
+    `${Math.round(food.kcal)} kcal/100g`,
+    `P ${food.protein} / C ${food.carbs} / F ${food.fat}`,
+  ]
+  if (food.servingName && food.servingGrams) {
+    parts.push(`${food.servingName} ${food.servingGrams} g`)
+  }
+  return parts.join(' · ')
+}
+
+function mealSummary(meal: HealthMeal) {
+  const grams = meal.items.reduce((sum, item) => sum + item.grams, 0)
+  return `${meal.name} · ${meal.items.length} items · ${Math.round(grams)} g`
+}
+
+function intakeSummary(intake: HealthIntake) {
+  const parts = [
+    `${intake.dateKey} ${intake.time}`,
+    intake.name,
+    `${intake.grams} g`,
+    `${Math.round(intake.kcal)} kcal`,
+    `P ${intake.protein} / C ${intake.carbs} / F ${intake.fat}`,
+  ]
+  if (intake.components && intake.components.length > 0) {
+    parts.push(`${intake.components.length} parts`)
+  }
+  return parts.join(' · ')
+}
+
+function profileSummary(profile: HealthProfile) {
+  return [
+    profile.sex,
+    `${profile.age}y`,
+    `${profile.heightCm}cm`,
+    `${profile.weightKg}kg`,
+    `TDEE ${profile.tdee ?? '—'}`,
+    `target ${profile.targetKcal ?? '—'}`,
+    `protein ${profile.proteinTarget ?? '—'}g`,
+  ].join(' · ')
+}
+
+/** 套餐只看组成；两份组成完全一样就不算冲突 */
+function itemsKey(items: HealthMeal['items']) {
+  return JSON.stringify(items ?? [])
+}
+
+function componentsKey(components: HealthIntake['components']) {
+  return JSON.stringify(components ?? null)
+}
+
+function foodDiffers(local: HealthFood, incoming: HealthFood) {
+  return (
+    local.name !== incoming.name ||
+    local.kcal !== incoming.kcal ||
+    local.protein !== incoming.protein ||
+    local.carbs !== incoming.carbs ||
+    local.fat !== incoming.fat ||
+    (local.servingName ?? null) !== (incoming.servingName ?? null) ||
+    (local.servingGrams ?? null) !== (incoming.servingGrams ?? null) ||
+    tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
+  )
+}
+
+function mealDiffers(local: HealthMeal, incoming: HealthMeal) {
+  return (
+    local.name !== incoming.name ||
+    itemsKey(local.items) !== itemsKey(incoming.items) ||
+    tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
+  )
+}
+
+function intakeDiffers(local: HealthIntake, incoming: HealthIntake) {
+  return (
+    local.dateKey !== incoming.dateKey ||
+    local.time !== incoming.time ||
+    (local.foodId ?? null) !== (incoming.foodId ?? null) ||
+    local.name !== incoming.name ||
+    local.grams !== incoming.grams ||
+    local.kcal !== incoming.kcal ||
+    local.protein !== incoming.protein ||
+    local.carbs !== incoming.carbs ||
+    local.fat !== incoming.fat ||
+    (local.mealId ?? null) !== (incoming.mealId ?? null) ||
+    componentsKey(local.components) !== componentsKey(incoming.components) ||
+    (local.tdeeSnapshot ?? null) !== (incoming.tdeeSnapshot ?? null) ||
+    (local.targetKcalSnapshot ?? null) !== (incoming.targetKcalSnapshot ?? null) ||
+    (local.proteinTargetSnapshot ?? null) !== (incoming.proteinTargetSnapshot ?? null) ||
+    tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
+  )
+}
+
+function profileDiffers(local: HealthProfile, incoming: HealthProfile) {
+  return (
+    local.sex !== incoming.sex ||
+    local.age !== incoming.age ||
+    local.heightCm !== incoming.heightCm ||
+    local.weightKg !== incoming.weightKg ||
+    local.activity !== incoming.activity ||
+    (local.tdee ?? null) !== (incoming.tdee ?? null) ||
+    (local.targetKcal ?? null) !== (incoming.targetKcal ?? null) ||
+    (local.proteinTarget ?? null) !== (incoming.proteinTarget ?? null) ||
+    local.plan !== incoming.plan ||
+    local.note !== incoming.note
+  )
+}
+
+/**
+ * 健康块的冲突：同 id 但内容不同就算一处，交给用户逐条决定留哪边。
+ * 以前是按 updatedAt 自动取新的——看着省事，但会把「本地刚改过」直接盖掉，用户无从选择。
+ */
+export function findHealthConflicts(
+  incoming: HealthPart,
+  local: HealthPart,
+): MergeConflict[] {
+  const conflicts: MergeConflict[] = []
+
+  const localFoods = new Map(local.foods.map((item) => [item.id, item]))
+  for (const item of incoming.foods) {
+    const mine = localFoods.get(item.id)
+    if (!mine || !foodDiffers(mine, item)) continue
+    conflicts.push({
+      kind: 'food',
+      key: item.id,
+      label: item.name,
+      localText: snippet(foodSummary(mine)),
+      incomingText: snippet(foodSummary(item)),
+      localBody: foodSummary(mine),
+      incomingBody: foodSummary(item),
+      localDeleted: isDeleted(mine.deletedAt),
+      incomingDeleted: isDeleted(item.deletedAt),
+      localAt: mine.updatedAt,
+      incomingAt: item.updatedAt,
+    })
+  }
+
+  const localMeals = new Map(local.meals.map((item) => [item.id, item]))
+  for (const item of incoming.meals) {
+    const mine = localMeals.get(item.id)
+    if (!mine || !mealDiffers(mine, item)) continue
+    conflicts.push({
+      kind: 'meal',
+      key: item.id,
+      label: item.name,
+      localText: snippet(mealSummary(mine)),
+      incomingText: snippet(mealSummary(item)),
+      localBody: mealSummary(mine),
+      incomingBody: mealSummary(item),
+      localDeleted: isDeleted(mine.deletedAt),
+      incomingDeleted: isDeleted(item.deletedAt),
+      localAt: mine.updatedAt,
+      incomingAt: item.updatedAt,
+    })
+  }
+
+  const localIntakes = new Map(local.intakes.map((item) => [item.id, item]))
+  for (const item of incoming.intakes) {
+    const mine = localIntakes.get(item.id)
+    if (!mine || !intakeDiffers(mine, item)) continue
+    conflicts.push({
+      kind: 'intake',
+      key: item.id,
+      label: `${item.dateKey} · ${item.time} · ${item.name}`,
+      localText: snippet(intakeSummary(mine)),
+      incomingText: snippet(intakeSummary(item)),
+      localBody: intakeSummary(mine),
+      incomingBody: intakeSummary(item),
+      localDeleted: isDeleted(mine.deletedAt),
+      incomingDeleted: isDeleted(item.deletedAt),
+      localAt: mine.updatedAt,
+      incomingAt: item.updatedAt,
+    })
+  }
+
+  // 身体档案只有一份：两边都在又不一样时也给用户选
+  if (
+    incoming.profile &&
+    local.profile &&
+    profileDiffers(local.profile, incoming.profile)
+  ) {
+    conflicts.push({
+      kind: 'profile',
+      key: incoming.profile.id,
+      label: '',
+      localText: snippet(profileSummary(local.profile)),
+      incomingText: snippet(profileSummary(incoming.profile)),
+      localBody: profileSummary(local.profile),
+      incomingBody: profileSummary(incoming.profile),
+      localDeleted: false,
+      incomingDeleted: false,
+      localAt: local.profile.updatedAt,
+      incomingAt: incoming.profile.updatedAt,
+    })
+  }
+
+  return conflicts
+}
+
+/** 按用户的选择把「保留本地」的健康记录从备份里剔掉，其余按备份版本写库 */
+export function pickHealth(
+  incoming: HealthPart,
+  keepLocal: Set<string>,
+): HealthPart {
+  if (keepLocal.size === 0) return incoming
+  return {
+    profile:
+      incoming.profile && keepLocal.has(conflictKey({ kind: 'profile', key: incoming.profile.id }))
+        ? null
+        : incoming.profile,
+    foods: incoming.foods.filter(
+      (item) => !keepLocal.has(conflictKey({ kind: 'food', key: item.id })),
+    ),
+    meals: incoming.meals.filter(
+      (item) => !keepLocal.has(conflictKey({ kind: 'meal', key: item.id })),
+    ),
+    intakes: incoming.intakes.filter(
+      (item) => !keepLocal.has(conflictKey({ kind: 'intake', key: item.id })),
+    ),
+  }
+}
+
+/** 同名但 id 不同的食物：不自动合并，只提示导入后会多出一条 */
+export function duplicateFoodNames(
+  incoming: HealthPart,
+  local: HealthPart,
+): string[] {
+  const localNames = new Map(
+    local.foods
+      .filter((item) => item.deletedAt === null)
+      .map((item) => [item.name.trim(), item.id] as const),
+  )
+  const names = new Set<string>()
+  for (const food of incoming.foods) {
+    if (food.deletedAt !== null) continue
+    const other = localNames.get(food.name.trim())
+    if (other && other !== food.id) names.add(food.name.trim())
+  }
+  return [...names]
+}
+
+export interface DiffSegment {
+  text: string
+  /** 两边相同的部分，显示时压暗 */
+  same: boolean
+}
+
+/**
+ * 「看全文」对照层里「相同内容淡化」的分段：只找公共前缀和公共后缀，中间那段算差异。
+ * 中文短句做逐行 diff 噪声太大，这样已经够看出改了哪儿，也不用引入 diff 库。
+ */
+export function diffText(
+  local: string,
+  incoming: string,
+): { local: DiffSegment[]; incoming: DiffSegment[] } {
+  const max = Math.min(local.length, incoming.length)
+  let prefix = 0
+  while (prefix < max && local[prefix] === incoming[prefix]) prefix += 1
+  let suffix = 0
+  while (
+    suffix < max - prefix &&
+    local[local.length - 1 - suffix] === incoming[incoming.length - 1 - suffix]
+  ) {
+    suffix += 1
+  }
+
+  const split = (value: string): DiffSegment[] => {
+    const parts: DiffSegment[] = []
+    if (prefix > 0) parts.push({ text: value.slice(0, prefix), same: true })
+    const middle = value.slice(prefix, value.length - suffix)
+    if (middle !== '') parts.push({ text: middle, same: false })
+    if (suffix > 0) parts.push({ text: value.slice(value.length - suffix), same: true })
+    return parts
+  }
+
+  return { local: split(local), incoming: split(incoming) }
 }

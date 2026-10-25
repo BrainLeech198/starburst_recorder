@@ -13,7 +13,7 @@
   #define MyAppName "星芒记录者"
 #endif
 #ifndef MyAppExeName
-  #define MyAppExeName "星芒记录者.exe"
+  #define MyAppExeName "starburst-recorder.exe"
 #endif
 
 [Setup]
@@ -21,7 +21,8 @@ AppId={{A7C3E8B1-5D42-4F6E-9B0A-2C7D1E4F6A93}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher=starburst
-DefaultDirName={autopf}\{#MyAppName}
+; 安装目录用英文；升级时 Inno 会沿用旧安装路径，AppId 不变所以不会变成两份安装
+DefaultDirName={autopf}\StarburstRecorder
 DisableProgramGroupPage=yes
 OutputDir=dist
 OutputBaseFilename=starburst-recorder-{#MyAppVersion}-setup
@@ -44,6 +45,10 @@ Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: 
 
 [Files]
 Source: "..\..\release\win-unpacked\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+; 旧版本用的是中文可执行文件名，升级时把残留的那个删掉
+[InstallDelete]
+Type: files; Name: "{app}\星芒记录者.exe"
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

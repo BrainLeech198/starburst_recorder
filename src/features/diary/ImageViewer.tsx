@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useI18n } from '@/shared/i18n/context'
+import { useBackdropClose } from '@/shared/ui/useBackdropClose'
 
 const MIN_ZOOM = 1
 const MAX_ZOOM = 4
@@ -29,6 +30,7 @@ export default function ImageViewer({
   onClose: () => void
 }) {
   const { t } = useI18n()
+  const backdrop = useBackdropClose(onClose)
   const [zoom, setZoom] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
 
@@ -149,7 +151,7 @@ export default function ImageViewer({
       aria-modal="true"
       aria-label={t('imageImport.view')}
       className="fixed inset-0 z-[60] flex flex-col bg-black/95 text-white"
-      onClick={onClose}
+      {...backdrop}
     >
       <div
         className="flex items-center justify-between px-4 py-3 text-sm"

@@ -6,6 +6,10 @@ export const SOLID_BUTTON =
 export const SOLID_DANGER =
   'inline-flex min-h-11 items-center justify-center rounded-lg bg-danger px-3 py-1.5 text-sm font-medium text-on-danger transition-opacity hover:opacity-90 md:min-h-0'
 
+/** 可恢复的危险操作（例如整块放进回收站）：黄色实心，和红色「永久删除」区分开 */
+export const SOLID_WARN =
+  'inline-flex min-h-11 items-center justify-center rounded-lg bg-warning px-3 py-1.5 text-sm font-medium text-ink transition-opacity hover:opacity-90 md:min-h-0'
+
 /**
  * 「返回上一级」按钮：实心危险色红 + 反色文字。
  *

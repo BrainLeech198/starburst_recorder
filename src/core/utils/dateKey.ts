@@ -35,9 +35,7 @@ export function isDateKey(value: string | null | undefined): value is string {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
   const [year, month, day] = value.split('-').map(Number)
   const date = new Date(year, month - 1, day)
-  return (
-    date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
-  )
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
 }
 
 function parseDateKey(dateKey: string): Date {
@@ -55,6 +53,20 @@ export function formatDateCn(dateKey: string): string {
 export function formatMonthDayCn(dateKey: string): string {
   const [, month, day] = dateKey.split('-').map(Number)
   return `${month}月${day}日`
+}
+
+type Translate = (key: MessageKey, params?: Record<string, string | number>) => string
+
+/** 界面显示用的完整日期，按当前语言拼：中文 '2026年10月5日'，英文 '2026/10/5' */
+export function formatDate(dateKey: string, t: Translate): string {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  return t('date.full', { year, month, day })
+}
+
+/** 界面显示用的月日，按当前语言拼：中文 '10月5日'，英文 '10/5' */
+export function formatMonthDay(dateKey: string, t: Translate): string {
+  const [, month, day] = dateKey.split('-').map(Number)
+  return t('date.monthDay', { month, day })
 }
 
 /** 星期几的文案 key：界面用 t(weekdayKey(...))，导出这类固定中文的文本用 weekdayLabel */

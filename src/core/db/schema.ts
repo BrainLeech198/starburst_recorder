@@ -22,6 +22,135 @@ export interface DiaryDay {
   updatedAt: number
 }
 
+/** 性别：只影响 BMR 公式里的常数项，不做别的用途 */
+export type HealthSex = 'male' | 'female'
+
+/** 日常活动量：Mifflin-St Jeor 的活动系数，档位少一点更好选 */
+export type HealthActivity = 'sedentary' | 'light' | 'moderate' | 'high'
+
+/** 身体档案：整个应用只有一行，id 固定为 'me' */
+export interface HealthProfile {
+  id: 'me'
+  sex: HealthSex | null
+  age: number | null
+  heightCm: number | null
+  /** 最新一次体重；周一空腹称重的历史序列以后再加 */
+  weightKg: number | null
+  /** 上面那个体重是什么时候称的 */
+  weightAt: number | null
+  activity: HealthActivity | null
+  /** 维持体重的热量，靠公式估算或手填，可随时改 */
+  tdee: number | null
+  /** 减脂/增肌的目标线，必须自己定 */
+  targetKcal: number | null
+  proteinTarget: number | null
+  /** 计划预设的键；空串表示没选。预设只改目标和一段话，不动 TDEE */
+  plan: string
+  /** 一段自我评价 / 计划说明 */
+  note: string
+  updatedAt: number
+}
+
+/**
+ * 食物库的一条。营养按每 100g 存，另外记一个常用份量，
+ * 这样「一拳米饭」和「150g 米饭」都能记，不用为每种吃法建一条。
+ */
+export interface HealthFood {
+  id: string
+  /** 7 位十六进制短编号，列表里用来区分同名食物 */
+  code: string
+  name: string
+  /** 每 100g 的热量与三大营养素 */
+  kcal: number
+  protein: number
+  carbs: number
+  fat: number
+  /** 常用份量的叫法，例如「1 个鸡腿」；可以为空 */
+  servingName: string | null
+  servingGrams: number | null
+  createdAt: number
+  updatedAt: number
+  deletedAt: number | null
+}
+
+/** 套餐里的一项：引用食物库的一条，加这份吃多少克 */
+export interface HealthMealItem {
+  foodId: string
+  grams: number
+}
+
+/**
+ * 整体食物（套餐），比如「沙县鸡腿饭」= 卤鸡腿 + 卤蛋 + 米饭。
+ * 只存组合，不存营养值：营养每次按食物库实时算，改名、改营养都跟着走。
+ */
+export interface HealthMeal {
+  id: string
+  name: string
+  items: HealthMealItem[]
+  createdAt: number
+  updatedAt: number
+  deletedAt: number | null
+}
+
+/** 一笔套餐摄入的成分快照：当时每项食物叫什么、吃了多少、有多少营养 */
+export interface IntakeComponent {
+  /** 对应的食物库条目；引用已经被彻底删掉时为空 */
+  foodId: string | null
+  name: string
+  grams: number
+  kcal: number
+  protein: number
+  carbs: number
+  fat: number
+}
+
+/** 记下的一笔摄入：存当时的快照，以后改食物库不会改历史 */
+export interface HealthIntake {
+  id: string
+  /** 7 位十六进制短编号，跟日记一样用来指代某一笔 */
+  code: string
+  dateKey: string
+  time: string
+  /** 来自食物库时记下 id，便于统计最爱吃的东西；手动新增时为空 */
+  foodId: string | null
+  name: string
+  grams: number
+  kcal: number
+  protein: number
+  carbs: number
+  fat: number
+  /** 从哪儿来的：食物库 / 手动新增（AI 识别和助手对话以后再接） */
+  source: 'library' | 'manual'
+  /** 来自套餐时记下套餐 id，普通食物为空 */
+  mealId?: string | null
+  /** 套餐这一行的成分快照；普通食物没有 */
+  components?: IntakeComponent[] | null
+  /** 记这一笔时的目标口径：当天第一笔定下来，之后补记沿用，旧记录可能没有 */
+  tdeeSnapshot?: number | null
+  targetKcalSnapshot?: number | null
+  proteinTargetSnapshot?: number | null
+  createdAt: number
+  updatedAt: number
+  deletedAt: number | null
+}
+
+/**
+ * 经济模块的占位表：真正的记账模型还没设计，先留一张「一行一笔」的表，
+ * 好让备份能按块带上它；等经济模块落地再按需改字段。
+ */
+export interface FinanceEntry {
+  id: string
+  dateKey: string
+  /** 项目名，例如「午饭」 */
+  name: string
+  /** 金额，正数；收入还是支出以后再加字段 */
+  amount: number
+  note: string
+  createdAt: number
+  updatedAt: number
+  deletedAt: number | null
+}
+
 /** 随记的一笔：某天某个时刻发生的一件小事，一天可以有很多笔 */
 export interface DiaryStamp {
   /** 内部唯一 id（ULID） */
@@ -35,5 +164,23 @@ export interface DiaryStamp {
   createdAt: number
   updatedAt: number
   /** 软删除标记 */
+  deletedAt: number | null
+}
+
+/** 预设库的分类：常用人物 / 常用地名 */
+export type PresetKind = 'person' | 'place'
+
+/**
+ * 日记预设库的一条：编辑日记时可一键插入的名字。
+ * 和食物库一样带 hex 短编号，备份、查重时能指代具体哪一条。
+ */
+export interface DiaryPreset {
+  id: string
+  /** 7 位十六进制短编号 */
+  code: string
+  kind: PresetKind
+  name: string
+  createdAt: number
+  updatedAt: number
   deletedAt: number | null
 }

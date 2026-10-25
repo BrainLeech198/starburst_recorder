@@ -14,8 +14,8 @@ export default function Tab({
       onClick={onClick}
       className={
         active
-          ? 'border-b-2 border-brand px-2 py-1 text-sm text-brand'
-          : 'border-b-2 border-transparent px-2 py-1 text-sm text-muted transition-colors hover:text-fg'
+          ? 'whitespace-nowrap border-b-2 border-brand px-2 py-1 text-sm text-brand'
+          : 'whitespace-nowrap border-b-2 border-transparent px-2 py-1 text-sm text-muted transition-colors hover:text-fg'
       }
     >
       {children}

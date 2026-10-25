@@ -8,7 +8,14 @@
 import { desktopBridge } from '@/platform/desktop'
 import { formatClock } from '@/core/utils/dateKey'
 import { newCode, newId } from '@/core/utils/id'
-import type { DiaryEntry, DiaryStamp } from './schema'
+import type {
+  DiaryEntry,
+  DiaryPreset,
+  DiaryStamp,
+  HealthFood,
+  HealthMeal,
+  HealthProfile,
+} from './schema'
 import type { DiaryStore } from './store'
 
 function call<T>(method: string, ...args: unknown[]): Promise<T> {
@@ -87,6 +94,29 @@ export const sqliteStore: DiaryStore = {
   restoreStamps: (ids) => call('restoreStamps', ids),
   moveStamps: (ids, dateKey) => call('moveStamps', ids, dateKey),
 
+  // ─────────── 预设库 ───────────
+  diaryPresets: () => call('diaryPresets'),
+  trashedDiaryPresets: () => call('trashedDiaryPresets'),
+  saveDiaryPreset: async (preset) => {
+    const next: DiaryPreset = { ...preset, updatedAt: Date.now() }
+    await call('saveDiaryPreset', next)
+    return next
+  },
+  removeDiaryPreset: async (id) => {
+    await call('removeDiaryPreset', id)
+  },
+  removeDiaryPresets: (ids) => call('removeDiaryPresets', ids),
+  restoreDiaryPreset: async (id) => {
+    await call('restoreDiaryPreset', id)
+  },
+  restoreDiaryPresets: (ids) => call('restoreDiaryPresets', ids),
+  purgeDiaryPreset: async (id) => {
+    await call('purgeDiaryPreset', id)
+  },
+  purgeTrashedDiaryPresets: async () => {
+    await call('purgeTrashedDiaryPresets')
+  },
+
   // ─────────── 回收站 ───────────
   trashedEntries: () => call('trashedEntries'),
   trashedStamps: () => call('trashedStamps'),
@@ -110,5 +140,83 @@ export const sqliteStore: DiaryStore = {
   everyStamp: () => call('everyStamp'),
   everyDay: () => call('everyDay'),
   totals: () => call('totals'),
+  exportAllData: () => call('exportAllData'),
+  importSections: (data) => call('importSections', data),
+  replaceSections: (data) => call('replaceSections', data),
   importBackup: (data) => call('importBackup', data),
+  clearDiaryData: () => call('clearDiaryData'),
+  clearHealthData: () => call('clearHealthData'),
+  clearFinanceData: () => call('clearFinanceData'),
+  trashDiaryData: () => call('trashDiaryData'),
+  trashHealthData: () => call('trashHealthData'),
+  trashFinanceData: () => call('trashFinanceData'),
+
+  // ─────────── 健康 ───────────
+  healthProfile: () => call('healthProfile'),
+  saveHealthProfile: async (profile) => {
+    const next: HealthProfile = { ...profile, id: 'me', updatedAt: Date.now() }
+    await call('saveHealthProfile', next)
+    return next
+  },
+  healthFoods: () => call('healthFoods'),
+  saveHealthFood: async (food) => {
+    const next: HealthFood = { ...food, updatedAt: Date.now() }
+    await call('saveHealthFood', next)
+    return next
+  },
+  mergeHealthFoods: (sourceId, targetId) => call('mergeHealthFoods', sourceId, targetId),
+  removeHealthFood: async (id) => {
+    await call('removeHealthFood', id)
+  },
+  removeHealthFoods: (ids) => call('removeHealthFoods', ids),
+  trashedHealthFoods: () => call('trashedHealthFoods'),
+  restoreHealthFood: async (id) => {
+    await call('restoreHealthFood', id)
+  },
+  restoreHealthFoods: (ids) => call('restoreHealthFoods', ids),
+  purgeHealthFood: async (id) => {
+    await call('purgeHealthFood', id)
+  },
+  purgeTrashedHealthFoods: async () => {
+    await call('purgeTrashedHealthFoods')
+  },
+  healthMeals: () => call('healthMeals'),
+  saveHealthMeal: async (meal) => {
+    const next: HealthMeal = { ...meal, updatedAt: Date.now() }
+    await call('saveHealthMeal', next)
+    return next
+  },
+  removeHealthMeal: async (id) => {
+    await call('removeHealthMeal', id)
+  },
+  removeHealthMeals: (ids) => call('removeHealthMeals', ids),
+  trashedHealthMeals: () => call('trashedHealthMeals'),
+  restoreHealthMeal: async (id) => {
+    await call('restoreHealthMeal', id)
+  },
+  restoreHealthMeals: (ids) => call('restoreHealthMeals', ids),
+  purgeHealthMeal: async (id) => {
+    await call('purgeHealthMeal', id)
+  },
+  purgeTrashedHealthMeals: async () => {
+    await call('purgeTrashedHealthMeals')
+  },
+  intakesOfDay: (dateKey) => call('intakesOfDay', dateKey),
+  intakeDays: () => call('intakeDays'),
+  addIntake: (intake) => call('insertIntake', intake),
+  removeIntake: async (id) => {
+    await call('removeIntake', id)
+  },
+  removeIntakes: (ids) => call('removeIntakes', ids),
+  restoreIntake: async (id) => {
+    await call('restoreIntake', id)
+  },
+  restoreIntakes: (ids) => call('restoreIntakes', ids),
+  trashedIntakes: () => call('trashedIntakes'),
+  purgeIntake: async (id) => {
+    await call('purgeIntake', id)
+  },
+  purgeTrashedIntakes: async () => {
+    await call('purgeTrashedIntakes')
+  },
 }

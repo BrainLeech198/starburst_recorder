@@ -14,3 +14,9 @@ export const INPUT = `w-full px-3 py-2 ${FIELD}`
 
 /** 小号输入框：内边距小一圈，宽度由调用方给（年月、窗口尺寸这类） */
 export const INPUT_NARROW = `px-2 py-1 ${FIELD}`
+
+/**
+ * 行内数字输入框：固定窄宽、不参与拉伸。
+ * 不要用 `${INPUT} w-20` —— INPUT 里带着 w-full，和 w-20 抢宽度时会把同行的名称挤没。
+ */
+export const INPUT_NUM = `w-20 shrink-0 px-2 py-1.5 text-center ${FIELD}`

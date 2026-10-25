@@ -25,6 +25,7 @@ export default function PageHeader({
   title,
   description,
   badge,
+  status,
   actions,
   backTo = '/me/settings',
   backLabel,
@@ -33,6 +34,8 @@ export default function PageHeader({
   description?: string
   /** 标题右侧的当前值，通常传一个 <SettingBadge> */
   badge?: ReactNode
+  /** 返回按钮旁边的状态提示（例如「未保存」），放在工具条左侧 */
+  status?: ReactNode
   /** 本页的整体性动作（保存 / 批量恢复 / 新增 / 测试…）；没有动作时工具条里只放返回 */
   actions?: ReactNode
   /** 返回哪儿：子页回自己的菜单，菜单回「我的」 */
@@ -48,6 +51,7 @@ export default function PageHeader({
       <Link to={backTo} className={`inline-flex items-center ${BACK_BUTTON}`}>
         ← {backLabel ?? t('common.settings')}
       </Link>
+      {status && <div className="flex items-center">{status}</div>}
       {actions && <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>}
     </>
   )

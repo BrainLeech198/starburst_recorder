@@ -192,6 +192,25 @@
   border-radius: 4px;
 }
 
+/* 删除按钮在鼠标设备上跟着悬停出现，平时不占视线；触屏没有 hover，就保持常驻 */
+.stamp-delete {
+  opacity: 0.7;
+}
+@media (hover: hover) and (pointer: fine) {
+  .stamp-delete {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .stamp-row:hover .stamp-delete,
+  .stamp-row:focus-within .stamp-delete {
+    opacity: 0.7;
+    pointer-events: auto;
+  }
+  .stamp-delete:hover {
+    opacity: 1;
+  }
+}
+
 .paper-binding {
   position: absolute;
   left: 0.7rem;

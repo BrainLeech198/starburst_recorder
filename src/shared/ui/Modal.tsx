@@ -13,9 +13,10 @@ import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { useScrollLock } from './useScrollLock'
 import { useOverlayEntry } from './useOverlayEntry'
+import { useBackdropClose } from './useBackdropClose'
 
-/** 面板宽度：小提示用 xs，常规用 sm，要写字的（例如 AI 草稿）用 lg */
-const WIDTHS = { xs: 'max-w-xs', sm: 'max-w-sm', lg: 'max-w-lg' } as const
+/** 面板宽度：小提示用 xs，常规用 sm，要写字的（例如 AI 草稿）用 lg，并排对照用 xl */
+const WIDTHS = { xs: 'max-w-xs', sm: 'max-w-sm', lg: 'max-w-lg', xl: 'max-w-2xl' } as const
 
 /** 能接键盘焦点的元素：Tab 在弹窗里循环时用 */
 const FOCUSABLE =
@@ -38,6 +39,7 @@ export default function Modal({
   children: ReactNode
 }) {
   const panelRef = useRef<HTMLDivElement>(null)
+  const backdrop = useBackdropClose(onClose)
   useScrollLock()
   useOverlayEntry(onClose ?? null)
 
@@ -95,7 +97,7 @@ export default function Modal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={onClose}
+      {...backdrop}
     >
       <div
         ref={panelRef}

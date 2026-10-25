@@ -26,8 +26,8 @@ import {
 } from './diaryRepo'
 import {
   formatClock,
-  formatDateCn,
-  formatMonthDayCn,
+  formatDate,
+  formatMonthDay,
   isDateKey,
   relativeDayKey,
   shiftDay,
@@ -51,7 +51,7 @@ function SlipBody({ entry }: { entry: DiaryEntry }) {
   const { t } = useI18n()
   return (
     <>
-      <div className="font-hand text-sm">{formatMonthDayCn(entry.dateKey)}</div>
+      <div className="font-hand text-sm">{formatMonthDay(entry.dateKey, t)}</div>
       <div className="font-hand mt-1 line-clamp-3 text-sm">
         {entry.content.trim() || <span className="text-ink-muted">{t('diary.emptyContent')}</span>}
       </div>
@@ -243,7 +243,7 @@ export default function DiaryPage() {
     showToast({
       message: t('diary.moved', {
         target: targetOf(ids.length),
-        date: formatDateCn(next),
+        date: formatDate(next, t),
       }),
     })
   }
@@ -271,8 +271,8 @@ export default function DiaryPage() {
 
   return (
     <div className="w-full p-4">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+        <div className="flex flex-wrap items-center gap-1">
           <button
             type="button"
             onClick={() => setDateKey(shiftDay(dateKey, -1))}
@@ -300,15 +300,15 @@ export default function DiaryPage() {
             >
               {t(relativeDayKey(dateKey))}
             </span>
-            <span className="text-sm">{formatDateCn(dateKey)}</span>
-            <span className="text-xs text-muted">{t(weekdayKey(dateKey))}</span>
+            <span className="whitespace-nowrap text-sm">{formatDate(dateKey, t)}</span>
+            <span className="whitespace-nowrap text-xs text-muted">{t(weekdayKey(dateKey))}</span>
           </button>
 
           {!isToday && (
             <button
               type="button"
               onClick={() => setDateKey(todayKey())}
-              className="ml-1 rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-brand"
+              className="ml-1 whitespace-nowrap rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-brand"
             >
               {t('diary.today')}
             </button>
@@ -324,7 +324,7 @@ export default function DiaryPage() {
           </button>
         </div>
 
-        <div className="flex items-center">
+        <div className="flex shrink-0 items-center">
           <Tab active={mode === 'diary'} onClick={() => switchMode('diary')}>
             {t('diary.tabDiary')}
           </Tab>
@@ -386,9 +386,14 @@ export default function DiaryPage() {
           )}
         </div>
 
-        <Link to="/diary/trash" state={{ mode }} className={SOLID_BUTTON}>
-          {t('diary.trash')}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to="/diary/presets" className={SOLID_BUTTON}>
+            {t('diary.presets')}
+          </Link>
+          <Link to="/diary/trash" state={{ mode }} className={SOLID_BUTTON}>
+            {t('diary.trash')}
+          </Link>
+        </div>
       </ToolbarRow>
 
       {hint && <p className="mt-2 text-xs text-muted">{hint}</p>}
@@ -568,7 +573,7 @@ export default function DiaryPage() {
                 onClick={() => void finishImport(dateChoice, key)}
                 className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2"
               >
-                {formatDateCn(key)}
+                {formatDate(key, t)}
               </button>
             ))}
             <button

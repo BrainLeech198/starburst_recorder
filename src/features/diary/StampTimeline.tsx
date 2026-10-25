@@ -10,17 +10,28 @@ import { parseWeather, weatherIcons, weatherText } from './weather'
 import { formatClock, todayKey } from '@/core/utils/dateKey'
 import WeatherDialog from './WeatherDialog'
 
-/** 一笔随记：时间一行（可点改）、内容默认只读，点一下进入编辑态；整笔挂在左侧时间轴上 */
+/** 一笔随记：时间一行（可点改）、内容默认只读，双击进入编辑态；整笔挂在左侧时间轴上 */
 function StampRow({
   stamp,
-  autoFocus,
+  editing,
+  draft,
+  onDraftChange,
+  onRequestEdit,
+  onCancelEdit,
+  onSaveEdit,
   onDelete,
   selectable,
   selected,
   onToggle,
 }: {
   stamp: DiaryStamp
-  autoFocus: boolean
+  /** 编辑态由时间轴统一管：同一时刻最多只有一条在编辑 */
+  editing: boolean
+  draft: string
+  onDraftChange: (next: string) => void
+  onRequestEdit: () => void
+  onCancelEdit: () => void
+  onSaveEdit: () => void
   onDelete: (stamp: DiaryStamp) => void
   /** 批量多选：整笔变成可点选的，不再能编辑内容与时间 */
   selectable: boolean
@@ -29,38 +40,15 @@ function StampRow({
 }) {
   const [time, setTime] = useState(stamp.time)
   const [editingTime, setEditingTime] = useState(false)
-  const [editingContent, setEditingContent] = useState(autoFocus)
-  const [draft, setDraft] = useState(stamp.content)
   const areaRef = useRef<HTMLTextAreaElement>(null)
-  const originalContentRef = useRef(stamp.content)
-  const { showToast } = useToast()
   const { t } = useI18n()
 
-  // 进编辑态时把当前内容存一份原始值，给取消用
-  function enterEdit() {
-    originalContentRef.current = stamp.content
-    setDraft(stamp.content)
-    setEditingContent(true)
+  // 进入编辑态时把光标放进正文，避免手还要再点一次
+  useEffect(() => {
+    if (!editing) return
     // 下一帧聚焦 textarea，避免点击事件还没冒泡完
     requestAnimationFrame(() => areaRef.current?.focus())
-  }
-
-  async function handleSave() {
-    if (draft === originalContentRef.current) {
-      // 没改内容，直接退出，别存一次无效写入
-      setEditingContent(false)
-      return
-    }
-    await updateStamp(stamp.id, { content: draft })
-    originalContentRef.current = draft
-    setEditingContent(false)
-    showToast({ message: t('stamp.saved') })
-  }
-
-  function handleCancel() {
-    setDraft(originalContentRef.current)
-    setEditingContent(false)
-  }
+  }, [editing])
 
   // 高度跟着文字长，避免纸面上出现内部滚动条
   useEffect(() => {
@@ -68,13 +56,19 @@ function StampRow({
     if (!area) return
     area.style.height = 'auto'
     area.style.height = `${area.scrollHeight}px`
-  }, [draft, editingContent])
+  }, [draft, editing])
 
   return (
-    <li className="relative pb-5">
+    <li className="stamp-row relative pb-5">
       <span aria-hidden="true" className="timeline-dot" />
 
-      <div className={selected ? 'timeline-row-selected pr-8' : 'pr-8'}>
+      <div
+        className={[
+          '-my-1 -ml-2 rounded-lg py-1 pr-8 pl-2 transition-colors',
+          selected ? 'timeline-row-selected' : '',
+          editing ? 'bg-brand/5 outline outline-1 outline-brand/25 outline-offset-2' : '',
+        ].join(' ')}
+      >
         {selectable ? (
           <button type="button" onClick={onToggle} className="block w-full px-1 text-left">
             <span className="font-hand block text-lg text-ink">{stamp.time}</span>
@@ -107,7 +101,7 @@ function StampRow({
               </button>
             )}
 
-            {editingContent ? (
+            {editing ? (
               <>
                 <textarea
                   ref={areaRef}
@@ -116,30 +110,49 @@ function StampRow({
                   spellCheck={false}
                   aria-label={t('stamp.placeholder')}
                   placeholder={t('stamp.placeholder')}
-                  onChange={(event) => setDraft(event.target.value)}
+                  onChange={(event) => onDraftChange(event.target.value)}
+                  onKeyDown={(event) => {
+                    // 键盘直接收尾：Ctrl/⌘+Enter 存，Esc 退，不用去够按钮
+                    if (event.key === 'Escape') {
+                      event.preventDefault()
+                      onCancelEdit()
+                    } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                      event.preventDefault()
+                      onSaveEdit()
+                    }
+                  }}
                   className="font-hand block w-full resize-none bg-transparent text-sm leading-6 text-ink outline-none placeholder:text-ink-muted"
                 />
                 <div className="mt-1 flex items-center gap-2 text-xs">
                   <button
                     type="button"
-                    onClick={() => void handleSave()}
+                    onClick={onSaveEdit}
                     className="rounded border border-brand bg-brand/10 px-2 py-0.5 text-brand transition-colors hover:bg-brand/20"
                   >
                     {t('stamp.save')}
                   </button>
                   <button
                     type="button"
-                    onClick={handleCancel}
+                    onClick={onCancelEdit}
                     className="rounded border border-line px-2 py-0.5 text-muted transition-colors hover:text-fg"
                   >
                     {t('stamp.cancel')}
                   </button>
+                  {/* 手机上没键盘，这行提示只在能看见键盘的宽度显示 */}
+                  <span className="ml-auto hidden text-ink-muted sm:inline">{t('stamp.saveHint')}</span>
                 </div>
               </>
             ) : (
               <button
                 type="button"
-                onClick={enterEdit}
+                onDoubleClick={onRequestEdit}
+                // 单击只留给框选文字和误触；键盘没有双击手势，Enter / 空格照样能进编辑
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    onRequestEdit()
+                  }
+                }}
                 title={t('stamp.tapToEdit')}
                 className="font-hand mt-0.5 block w-full min-h-6 text-left text-sm leading-6 text-ink transition-colors hover:text-brand"
               >
@@ -162,18 +175,20 @@ function StampRow({
           {selected ? '✓' : ''}
         </span>
       ) : (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete(stamp)
-          }}
-          title={t('stamp.deleteHint')}
-          className="absolute top-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-ink-muted opacity-70 transition-colors hover:text-danger hover:opacity-100"
-        >
-          <span aria-hidden="true">✕</span>
-          <span className="sr-only">{t('stamp.deleteHint')}</span>
-        </button>
+        !editing && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete(stamp)
+            }}
+            title={t('stamp.deleteHint')}
+            className="stamp-delete absolute top-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-ink-muted transition-colors hover:text-danger"
+          >
+            <span aria-hidden="true">✕</span>
+            <span className="sr-only">{t('stamp.deleteHint')}</span>
+          </button>
+        )
       )}
     </li>
   )
@@ -211,8 +226,62 @@ export default function StampTimeline({
   const { t } = useI18n()
   const [pendingDelete, setPendingDelete] = useState<DiaryStamp | null>(null)
   const [weatherOpen, setWeatherOpen] = useState(false)
+  /** 同一时刻只允许一条在编辑；草稿放在这一层，切换时才判断得出有没有没存的东西 */
+  const [editingId, setEditingId] = useState('')
+  const [draft, setDraft] = useState('')
+  const originalRef = useRef('')
+  /** 已经自动进过编辑的那条，取消后不要再把它拽回来 */
+  const autoEditRef = useRef('')
+  const [pendingSwitch, setPendingSwitch] = useState<DiaryStamp | null>(null)
 
   const day = useLiveQuery(() => dayInfo(dateKey), [dateKey])
+
+  function startEdit(stamp: DiaryStamp) {
+    originalRef.current = stamp.content
+    setDraft(stamp.content)
+    setEditingId(stamp.id)
+  }
+
+  /** 点另一条要编辑：当前这条有改动就先问一句，别悄悄丢 */
+  function requestEdit(stamp: DiaryStamp) {
+    if (editingId === stamp.id) return
+    if (editingId !== '' && draft !== originalRef.current) {
+      setPendingSwitch(stamp)
+      return
+    }
+    startEdit(stamp)
+  }
+
+  function cancelEdit() {
+    setEditingId('')
+    setDraft(originalRef.current)
+  }
+
+  async function saveEdit(stamp: DiaryStamp) {
+    const next = draft
+    setEditingId('')
+    // 没改内容，直接退出，别存一次无效写入
+    if (next === originalRef.current) return
+    await updateStamp(stamp.id, { content: next })
+    originalRef.current = next
+    showToast({ message: t('stamp.saved') })
+  }
+
+  // 新记下的一笔直接进编辑态，光标落到正文
+  useEffect(() => {
+    if (selectMode || !focusId || autoEditRef.current === focusId) return
+    const target = stamps?.find((stamp) => stamp.id === focusId)
+    if (!target) return
+    autoEditRef.current = focusId
+    startEdit(target)
+  }, [focusId, selectMode, stamps])
+
+  // 进批量多选时先退出编辑，两种状态别叠着
+  useEffect(() => {
+    if (!selectMode) return
+    setEditingId('')
+    setDraft('')
+  }, [selectMode])
 
   const states = parseWeather(day?.weather)
 
@@ -242,7 +311,12 @@ export default function StampTimeline({
         <StampRow
           key={stamp.id}
           stamp={stamp}
-          autoFocus={!selectMode && stamp.id === focusId}
+          editing={!selectMode && editingId === stamp.id}
+          draft={editingId === stamp.id ? draft : stamp.content}
+          onDraftChange={setDraft}
+          onRequestEdit={() => requestEdit(stamp)}
+          onCancelEdit={cancelEdit}
+          onSaveEdit={() => void saveEdit(stamp)}
           onDelete={setPendingDelete}
           selectable={selectMode}
           selected={selected.includes(stamp.id)}
@@ -303,6 +377,20 @@ export default function StampTimeline({
             setWeatherOpen(false)
           }}
           onCancel={() => setWeatherOpen(false)}
+        />
+      )}
+
+      {pendingSwitch && (
+        <ConfirmDialog
+          title={t('stamp.unsavedTitle')}
+          description={t('stamp.unsavedSwitch')}
+          confirmLabel={t('stamp.discardAndEdit')}
+          onConfirm={() => {
+            const target = pendingSwitch
+            setPendingSwitch(null)
+            startEdit(target)
+          }}
+          onCancel={() => setPendingSwitch(null)}
         />
       )}
 

@@ -29,6 +29,16 @@ export const {
   removeStamps,
   restoreStamps,
   moveStamps,
+  // 预设库
+  diaryPresets,
+  trashedDiaryPresets,
+  saveDiaryPreset,
+  removeDiaryPreset,
+  removeDiaryPresets,
+  restoreDiaryPreset,
+  restoreDiaryPresets,
+  purgeDiaryPreset,
+  purgeTrashedDiaryPresets,
   // 回收站
   trashedEntries,
   trashedStamps,
@@ -43,7 +53,16 @@ export const {
   everyStamp,
   everyDay,
   totals,
+  exportAllData,
+  importSections,
+  replaceSections,
   importBackup,
+  clearDiaryData,
+  clearHealthData,
+  clearFinanceData,
+  trashDiaryData,
+  trashHealthData,
+  trashFinanceData,
 } = store
 
-export type { ImportStats } from '@/core/db/store'
+export type { ImportStats, BackupData, BackupSections, SectionCount } from '@/core/db/store'

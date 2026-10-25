@@ -12,6 +12,7 @@ const {
   shell,
   Tray,
   Menu,
+  screen,
 } = require('electron')
 const path = require('node:path')
 const nodeUrl = require('node:url')
@@ -22,6 +23,72 @@ const { createDatabase } = require('./database.cjs')
 /** 窗口不能小于这个尺寸，免得版式被压坏 */
 const MIN_WIDTH = 420
 const MIN_HEIGHT = 560
+
+/**
+ * 主窗口的位置、大小、是否最大化。
+ *
+ * 设置页里的「窗口尺寸」和直接拖边框都会改它，但以前只改了当前窗口，
+ * 一重启就回到默认的 1000×760。这里把它落到 userData 下的一个小文件里，
+ * 和数据库同一个目录，删掉这个文件就等于恢复默认。
+ */
+function windowStatePath() {
+  return path.join(app.getPath('userData'), 'window-state.json')
+}
+
+/** 坐标还落在某块屏幕的可见范围里吗（换显示器后旧坐标可能完全在屏幕外） */
+function isOnScreen(x, y, width, height) {
+  return screen.getAllDisplays().some(({ workArea }) => {
+    return (
+      x + width > workArea.x + 80 &&
+      x < workArea.x + workArea.width - 80 &&
+      y + height > workArea.y + 40 &&
+      y < workArea.y + workArea.height - 40
+    )
+  })
+}
+
+/** 读上次的窗口状态；文件坏了、数字不对、位置在屏幕外，都当没存过 */
+function readWindowState() {
+  try {
+    const saved = JSON.parse(fs.readFileSync(windowStatePath(), 'utf8'))
+    if (!saved || typeof saved !== 'object') return null
+    const width = Math.round(Number(saved.width))
+    const height = Math.round(Number(saved.height))
+    if (!Number.isFinite(width) || !Number.isFinite(height)) return null
+    const state = {
+      width: Math.max(MIN_WIDTH, width),
+      height: Math.max(MIN_HEIGHT, height),
+      maximized: saved.maximized === true,
+    }
+    const x = Math.round(Number(saved.x))
+    const y = Math.round(Number(saved.y))
+    if (Number.isFinite(x) && Number.isFinite(y) && isOnScreen(x, y, state.width, state.height)) {
+      state.x = x
+      state.y = y
+    }
+    return state
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 存窗口状态。最大化时 getBounds() 给的是铺满屏幕的尺寸，
+ * 用 getNormalBounds() 才能记住还原后的大小。
+ */
+function saveWindowState(win) {
+  if (!win || win.isDestroyed()) return
+  try {
+    const bounds = win.getNormalBounds()
+    fs.writeFileSync(
+      windowStatePath(),
+      JSON.stringify({ ...bounds, maximized: win.isMaximized() }),
+      'utf8',
+    )
+  } catch (error) {
+    console.error('[window-state] 保存失败', error)
+  }
+}
 
 const DIST = path.join(__dirname, '..', 'dist')
 const APP_URL = 'app://starburst/index.html'
@@ -71,9 +138,11 @@ function assetPathFor(requestUrl) {
 }
 
 function createWindow() {
+  const state = readWindowState()
   const win = new BrowserWindow({
-    width: 1000,
-    height: 760,
+    width: state?.width ?? 1000,
+    height: state?.height ?? 760,
+    ...(state?.x !== undefined ? { x: state.x, y: state.y } : {}),
     minWidth: MIN_WIDTH,
     minHeight: MIN_HEIGHT,
     title: '星芒记录者',
@@ -89,8 +158,20 @@ function createWindow() {
 
   mainWindow = win
 
+  // 拖边框、点设置页的预设、最大化都会落盘；防抖一下，别拖一次写几十次文件
+  let saveTimer = null
+  const scheduleSave = () => {
+    clearTimeout(saveTimer)
+    saveTimer = setTimeout(() => saveWindowState(win), 500)
+  }
+  win.on('resize', scheduleSave)
+  win.on('move', scheduleSave)
+
+  if (state?.maximized) win.maximize()
+
   // 点关闭不退出，收进托盘；只有真的走「退出应用」时才放行
   win.on('close', (event) => {
+    saveWindowState(win)
     if (isQuitting) return
     event.preventDefault()
     win.hide()

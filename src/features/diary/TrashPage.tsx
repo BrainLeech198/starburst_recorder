@@ -29,7 +29,7 @@ import {
   trashedEntries,
   trashedStamps,
 } from './diaryRepo'
-import { formatMonthDayCn, formatStamp } from '@/core/utils/dateKey'
+import { formatMonthDay, formatStamp } from '@/core/utils/dateKey'
 
 /** 纸条上的小文字按钮 */
 const SLIP_BUTTON = 'rounded-lg px-2 py-1 text-xs transition-colors'
@@ -180,7 +180,7 @@ export default function TrashPage() {
                     onClick={() => batch.toggle(entry.id)}
                     className="block w-full pr-8 text-left"
                   >
-                    <div className="font-hand text-sm">{formatMonthDayCn(entry.dateKey)}</div>
+                    <div className="font-hand text-sm">{formatMonthDay(entry.dateKey, t)}</div>
                     <div className="font-hand mt-1 line-clamp-2 text-sm">
                       {entry.content.trim() || (
                         <span className="text-ink-muted">{t('diary.emptyContent')}</span>
@@ -189,7 +189,7 @@ export default function TrashPage() {
                   </button>
                 ) : (
                   <>
-                    <div className="font-hand text-sm">{formatMonthDayCn(entry.dateKey)}</div>
+                    <div className="font-hand text-sm">{formatMonthDay(entry.dateKey, t)}</div>
                     <div className="font-hand mt-1 line-clamp-2 text-sm">
                       {entry.content.trim() || (
                         <span className="text-ink-muted">{t('diary.emptyContent')}</span>
@@ -259,7 +259,7 @@ export default function TrashPage() {
                     className="block w-full pr-8 text-left"
                   >
                     <div className="font-hand text-sm">
-                      {formatMonthDayCn(stamp.dateKey)} {stamp.time}
+                      {formatMonthDay(stamp.dateKey, t)} {stamp.time}
                     </div>
                     <div className="font-hand mt-1 line-clamp-2 text-sm">
                       {stamp.content.trim() || (
@@ -270,7 +270,7 @@ export default function TrashPage() {
                 ) : (
                   <>
                     <div className="font-hand text-sm">
-                      {formatMonthDayCn(stamp.dateKey)} {stamp.time}
+                      {formatMonthDay(stamp.dateKey, t)} {stamp.time}
                     </div>
                     <div className="font-hand mt-1 line-clamp-2 text-sm">
                       {stamp.content.trim() || (

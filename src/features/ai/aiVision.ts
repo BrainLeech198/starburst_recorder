@@ -154,18 +154,37 @@ export function parseTranscript(reply: string): Transcript | null {
   return { dateKey: '', weather: '', content: text }
 }
 
+/** 预设库给的辨认参考：只是提示，照片里没有就不能硬写 */
+export interface TranscribeHints {
+  people: string[]
+  places: string[]
+}
+
 /** 把一张压缩好的图片交给模型，拿回正文、日期与天气 */
 export async function transcribeDiary(
   config: AiConfig,
   imageDataUrl: string,
+  hints?: TranscribeHints,
 ): Promise<TranscribeResult> {
   const part: ChatContentPart = { type: 'image_url', image_url: { url: imageDataUrl } }
+  const people = hints?.people.filter((name) => name.trim() !== '') ?? []
+  const places = hints?.places.filter((name) => name.trim() !== '') ?? []
+  const system =
+    people.length === 0 && places.length === 0
+      ? SYSTEM_PROMPT
+      : `${SYSTEM_PROMPT}
+
+补充参考：作者预设库里常出现的人名和地名如下，转写时可以优先往这些名字上辨认，
+但照片里没有出现的名字绝不能补写进来。
+${people.length > 0 ? `常用人物：${people.join('、')}` : ''}
+${places.length > 0 ? `常用地名：${places.join('、')}` : ''}`.trim()
+
   const result = await chat({
     baseUrl: config.baseUrl.trim(),
     apiKey: config.apiKey.trim(),
     model: config.model.trim(),
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: system },
       {
         role: 'user',
         content: [

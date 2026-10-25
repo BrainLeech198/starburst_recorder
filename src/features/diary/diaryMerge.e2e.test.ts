@@ -5,7 +5,7 @@
  * 这里把每一段接起来测，不只测单个纯函数。
  */
 import { describe, expect, it } from 'vitest'
-import { buildBackup, readBackup } from './diaryBackup'
+import { buildBackup, emptyPayload, readBackup } from './diaryBackup'
 import type { BackupPayload } from './diaryBackup'
 import { findConflicts, pickIncoming } from './diaryMerge'
 import type { DiaryDay, DiaryEntry, DiaryStamp } from '@/core/db/schema'
@@ -20,9 +20,7 @@ const mkDay = (dateKey: string, weather: string | null): DiaryDay => ({ dateKey,
 
 function scenario(local: Partial<BackupPayload>, incoming: Partial<BackupPayload>) {
   const fill = (p: Partial<BackupPayload>): BackupPayload => ({
-    entries: [],
-    stamps: [],
-    days: [],
+    ...emptyPayload(),
     ...p,
   })
   return { local: fill(local), incoming: fill(incoming) }
@@ -116,6 +114,7 @@ describe('端到端合并链路', () => {
 describe('导入文件读取校验链路', () => {
   it('备份 → buildBackup → readBackup 是 round-trip', () => {
     const payload: BackupPayload = {
+      ...emptyPayload(),
       entries: [mkEntry('e1', 'test entry')],
       stamps: [mkStamp('s1', 'test stamp')],
       days: [mkDay('2026-10-23', '晴')],
@@ -129,6 +128,7 @@ describe('导入文件读取校验链路', () => {
 
   it('备份中 content 为空字符串是合法的', () => {
     const file = buildBackup({
+      ...emptyPayload(),
       entries: [mkEntry('e1', '')],
       stamps: [mkStamp('s1', '')],
       days: [mkDay('2026-10-23', null)],
@@ -144,12 +144,13 @@ describe('真实的本地 + 备份交叉场景（模拟用户浏览器 → 桌�
   it('场景：浏览器写了 3 条日记 + 2 笔随记；桌面写了 2 条（其中 1 条 id 撞）', () => {
     // 桌面现有
     const local: BackupPayload = {
+      ...emptyPayload(),
       entries: [mkEntry('L1', '桌面独有的一条'), mkEntry('SHARED', '桌面改了 SHARED')],
       stamps: [mkStamp('LS1', '桌面独有的随记')],
-      days: [],
     }
     // 浏览器导出
     const incoming: BackupPayload = {
+      ...emptyPayload(),
       entries: [mkEntry('B1', '浏览器独有的一条'), mkEntry('SHARED', '浏览器改了 SHARED')],
       stamps: [mkStamp('BS1', '浏览器独有的随记'), mkStamp('SHARED-S', '浏览器共享随记')],
       days: [mkDay('2026-10-23', '多云')],

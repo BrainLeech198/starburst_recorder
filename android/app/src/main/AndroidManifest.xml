@@ -38,6 +38,10 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 拍照导入日记/成分表：@capacitor/camera 调系统相机时检查这一项 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 没有相机的设备（少数平板/模拟器）也能装，只是不显示拍照入口 -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <!-- 天气自动填会先试着定位；拒绝了也能在弹窗里搜城市 -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />

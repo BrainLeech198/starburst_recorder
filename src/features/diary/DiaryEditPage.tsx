@@ -19,7 +19,7 @@ import {
   setWeather,
   updateContent,
 } from './diaryRepo'
-import { formatDateCn, isDateKey, todayKey, weekdayKey } from '@/core/utils/dateKey'
+import { formatDate, isDateKey, todayKey, weekdayKey } from '@/core/utils/dateKey'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import type { AiConfig } from '@/features/ai/aiConfig'
 import { parseWeather, weatherIcons, weatherText } from './weather'
@@ -27,6 +27,8 @@ import WeatherDialog from './WeatherDialog'
 import DatePickerDialog from './DatePickerDialog'
 import ImageImportDialog from './ImageImportDialog'
 import type { ImportSummary } from './importPages'
+import CommonPresetDialog from './CommonPresetDialog'
+import { polishDiary } from '@/features/ai/aiPolish'
 
 /** 弹窗底部的取消按钮：全站弹窗统一的样子 */
 const DIALOG_BUTTON =
@@ -82,6 +84,14 @@ export default function DiaryEditPage() {
   /** 编辑页里继续补图：先开弹窗选图识别，识别出来的正文接在现有内容末尾 */
   const [appendOpen, setAppendOpen] = useState(false)
   const [appendConfig, setAppendConfig] = useState<AiConfig | null>(null)
+  /** 常用人物 / 地名快速插入 */
+  const [commonOpen, setCommonOpen] = useState(false)
+  /** AI 润色：结果先放在弹窗里，确认后才替换正文 */
+  const [polishOpen, setPolishOpen] = useState(false)
+  const [polishBusy, setPolishBusy] = useState(false)
+  const [polishResult, setPolishResult] = useState('')
+  const [polishError, setPolishError] = useState('')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const entry = useLiveQuery(async (): Promise<DiaryEntry | null> => {
     if (!code) return null
@@ -101,9 +111,7 @@ export default function DiaryEditPage() {
   }, [isNew, draftDate])
 
   const storedContent = isNew ? (navState.content ?? '') : (entry?.content ?? '')
-  const storedWeather = isNew
-    ? (navState.weather ?? draftDay?.weather ?? '')
-    : (day?.weather ?? '')
+  const storedWeather = isNew ? (navState.weather ?? draftDay?.weather ?? '') : (day?.weather ?? '')
   const baseContent = saved?.content ?? storedContent
   const baseWeather = saved?.weather ?? storedWeather
   const value = contentDraft ?? baseContent
@@ -186,7 +194,7 @@ export default function DiaryEditPage() {
       await updateContent(created.id, value)
       if (weatherValue !== '') await setWeather(dateKey, weatherValue)
       setSaved({ content: value, weather: weatherValue })
-      showToast({ message: t('diaryEdit.savedAs', { date: formatDateCn(dateKey) }) })
+      showToast({ message: t('diaryEdit.savedAs', { date: formatDate(dateKey, t) }) })
       if (saveAsLeave) {
         const target = proceedTarget()
         const toList = target.split('?')[0] === '/diary'
@@ -213,7 +221,7 @@ export default function DiaryEditPage() {
       showToast({
         message: t('diary.moved', {
           target: t('diary.targetDiary', { count: 1 }),
-          date: formatDateCn(next),
+          date: formatDate(next, t),
         }),
       })
     } finally {
@@ -251,10 +259,65 @@ export default function DiaryEditPage() {
     if (others.length > 0) {
       showToast({
         message: t('diaryEdit.appendOtherDate', {
-          dates: others.map((key) => formatDateCn(key)).join('、'),
+          dates: others.map((key) => formatDate(key, t)).join('、'),
         }),
       })
     }
+  }
+
+  /** 「常用」里点了个名字：有光标就插在光标处，锁定态先解锁再接在末尾 */
+  function insertCommon(name: string) {
+    const el = editing ? textareaRef.current : null
+    if (el) {
+      const start = el.selectionStart ?? value.length
+      const end = el.selectionEnd ?? start
+      const next = value.slice(0, start) + name + value.slice(end)
+      setContentDraft(next)
+      requestAnimationFrame(() => {
+        el.focus()
+        const caret = start + name.length
+        el.setSelectionRange(caret, caret)
+      })
+      return
+    }
+    const next = value === '' ? name : `${value}${value.endsWith('\n') ? '' : ' '}${name}`
+    setContentDraft(next)
+    setEditing(true)
+  }
+
+  /** AI 润色：先检查配置和正文，再把结果放进弹窗等用户确认 */
+  async function openPolish() {
+    if (value.trim() === '') {
+      showToast({ message: t('diaryEdit.polishEmpty') })
+      return
+    }
+    const config = loadAiConfig()
+    if (!isConfigured(config)) {
+      showToast({ message: t('diaryEdit.polishNoConfig') })
+      return
+    }
+    setPolishResult('')
+    setPolishError('')
+    setPolishOpen(true)
+    setPolishBusy(true)
+    try {
+      const result = await polishDiary(config, value)
+      if (!result.ok) {
+        setPolishError(t('diaryEdit.polishFailed', { message: result.error }))
+        return
+      }
+      setPolishResult(result.content)
+    } finally {
+      setPolishBusy(false)
+    }
+  }
+
+  function applyPolish() {
+    if (polishResult.trim() === '') return
+    setContentDraft(polishResult)
+    setEditing(true)
+    setPolishOpen(false)
+    showToast({ message: t('diaryEdit.polishDone') })
   }
 
   function handleDeleteOrDiscard() {
@@ -352,7 +415,10 @@ export default function DiaryEditPage() {
           <Dropdown
             label={t('diaryEdit.menuInsert')}
             buttonClassName={OUTLINE_BUTTON}
-            items={[{ label: t('diaryEdit.appendImage'), onSelect: handleAppendPick }]}
+            items={[
+              { label: t('diaryEdit.appendImage'), onSelect: handleAppendPick },
+              { label: t('diaryEdit.menuCommon'), onSelect: () => setCommonOpen(true) },
+            ]}
           />
           <Dropdown
             label={t('diaryEdit.menuFile')}
@@ -371,6 +437,11 @@ export default function DiaryEditPage() {
                 danger: true,
               },
             ]}
+          />
+          <Dropdown
+            label={t('diaryEdit.menuTools')}
+            buttonClassName={OUTLINE_BUTTON}
+            items={[{ label: t('diaryEdit.polish'), onSelect: () => void openPolish() }]}
           />
           <button
             type="button"
@@ -391,7 +462,7 @@ export default function DiaryEditPage() {
         </span>
 
         <div className="grid grid-cols-[1fr_auto_1fr] items-center font-hand text-sm">
-          <span className="whitespace-nowrap">{formatDateCn(shownDate)}</span>
+          <span className="whitespace-nowrap">{formatDate(shownDate, t)}</span>
           <span className="px-2 text-center text-ink-muted">{t(weekdayKey(shownDate))}</span>
           {/* 天气跟正文一样是内容：锁定态只读，不给点 */}
           <button
@@ -410,6 +481,7 @@ export default function DiaryEditPage() {
         <div className="ruled font-hand mt-4 min-h-[50vh] text-sm">
           {editing ? (
             <textarea
+              ref={textareaRef}
               value={value}
               onChange={(event) => setContentDraft(event.target.value)}
               placeholder={t('diaryEdit.placeholder')}
@@ -565,6 +637,44 @@ export default function DiaryEditPage() {
           onDone={handleAppendDone}
           onCancel={() => setAppendOpen(false)}
         />
+      )}
+
+      {commonOpen && (
+        <CommonPresetDialog onInsert={insertCommon} onClose={() => setCommonOpen(false)} />
+      )}
+
+      {polishOpen && (
+        <Modal size="sm" label={t('diaryEdit.polishTitle')} onClose={() => setPolishOpen(false)}>
+          <div className="text-sm font-medium">{t('diaryEdit.polishTitle')}</div>
+          <p className="mt-1 text-xs text-muted">{t('diaryEdit.polishHint')}</p>
+
+          {polishBusy ? (
+            <p className="mt-4 text-sm text-muted">{t('diaryEdit.polishBusy')}</p>
+          ) : polishError !== '' ? (
+            <p className="mt-4 text-xs text-danger">{polishError}</p>
+          ) : (
+            <textarea
+              value={polishResult}
+              onChange={(event) => setPolishResult(event.target.value)}
+              rows={12}
+              className="font-hand mt-3 w-full resize-y rounded-lg border border-line bg-surface-2 p-3 text-sm text-fg outline-none"
+            />
+          )}
+
+          <div className="mt-4 flex justify-end gap-2">
+            <button type="button" onClick={() => setPolishOpen(false)} className={DIALOG_BUTTON}>
+              {t('common.cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={applyPolish}
+              disabled={polishBusy || polishResult.trim() === ''}
+              className={`${SOLID_BUTTON} disabled:opacity-40`}
+            >
+              {t('diaryEdit.polishApply')}
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   )

@@ -6,6 +6,7 @@ import { useTheme } from '@/app/providers/ThemeProvider'
 import { useI18n } from '@/shared/i18n/context'
 import { useScrollLock } from '@/shared/ui/useScrollLock'
 import { useOverlayEntry } from '@/shared/ui/useOverlayEntry'
+import { useBackdropClose } from '@/shared/ui/useBackdropClose'
 import { Mascot } from './Mascot'
 
 const POS_KEY = 'starburst.ball.pos'
@@ -208,13 +209,14 @@ export default function FloatingAssistant() {
 
 function AssistantSheet({ onClose }: { onClose: () => void }) {
   const { t } = useI18n()
+  const backdrop = useBackdropClose(onClose)
   useScrollLock()
   // 登记成一层覆盖层：安卓实体返回键先关它，而不是直接退到上一页
   useOverlayEntry(onClose)
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/50" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-black/50" {...backdrop} />
       <div className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[75dvh] w-full max-w-md flex-col rounded-t-2xl border-t border-line bg-surface">
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
           <span className="text-sm font-medium">{t('assistant.sheetTitle')}</span>

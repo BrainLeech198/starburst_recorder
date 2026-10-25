@@ -8,10 +8,13 @@ import { everyEntry, everyStamp } from './diaryRepo'
 
 export default function DatePickerDialog({
   value,
+  highlightDays,
   onConfirm,
   onCancel,
 }: {
   value: string
+  /** 要标「这天有内容」的日期；不传就按日记 + 随记去查（健康页传自己的摄入日期） */
+  highlightDays?: Set<string>
   onConfirm: (dateKey: string) => void
   onCancel: () => void
 }) {
@@ -22,11 +25,15 @@ export default function DatePickerDialog({
   const [headEditing, setHeadEditing] = useState(false)
   const [draftYear, setDraftYear] = useState('')
   const [draftMonth, setDraftMonth] = useState('')
-  /** 写过东西的日期（日记或随记）；回收站里的不算 */
-  const [writtenDays, setWrittenDays] = useState<Set<string>>(new Set())
+  /** 写过东西的日期（日记或随记）；回收站里的不算。调用方给了就用它的 */
+  const [writtenDays, setWrittenDays] = useState<Set<string>>(() => highlightDays ?? new Set())
 
   // 一次性把「哪些天有内容」捞出来：日历只是个小面板，不需要实时订阅
   useEffect(() => {
+    if (highlightDays) {
+      setWrittenDays(highlightDays)
+      return
+    }
     let alive = true
     void Promise.all([everyEntry(), everyStamp()]).then(([entries, stamps]) => {
       if (!alive) return
@@ -39,7 +46,7 @@ export default function DatePickerDialog({
     return () => {
       alive = false
     }
-  }, [])
+  }, [highlightDays])
 
   function shiftMonth(delta: number) {
     const next = viewMonth + delta

@@ -13,34 +13,44 @@ export default function PageShell({
   title,
   description,
   badge,
+  status,
   actions,
   backTo,
   backLabel,
+  wide,
   children,
 }: {
   title?: string
   description?: string
   /** 标题右侧的当前值，通常传一个 <SettingBadge> */
   badge?: ReactNode
+  /** 返回按钮旁边的状态提示（例如「未保存」） */
+  status?: ReactNode
   /** 本页的整体性动作（保存 / 批量恢复 / 新增 / 测试…），放在返回按钮同一行的工具条里 */
   actions?: ReactNode
   /** 返回哪儿：子页回自己的菜单，菜单回「我的」；默认见 PageHeader */
   backTo?: string
   /** 返回链接上的名字，跟上一层同名；默认见 PageHeader */
   backLabel?: string
+  /** 列表类页面铺满整宽（跟日记/健康首页一致）；表单类默认留窄栏 */
+  wide?: boolean
   children: ReactNode
 }) {
-  return (
-    <Page>
+  const body = (
+    <>
       <PageHeader
         title={title}
         description={description}
         badge={badge}
+        status={status}
         actions={actions}
         backTo={backTo}
         backLabel={backLabel}
       />
       <div className="mt-6 space-y-4">{children}</div>
-    </Page>
+    </>
   )
+
+  if (wide) return <div className="w-full p-4">{body}</div>
+  return <Page>{body}</Page>
 }

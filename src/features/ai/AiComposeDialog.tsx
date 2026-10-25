@@ -8,7 +8,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import type { DiaryStamp } from '@/core/db/schema'
-import { formatDateCn, weekdayKey } from '@/core/utils/dateKey'
+import { formatDate, weekdayKey } from '@/core/utils/dateKey'
 import { dayInfo } from '@/features/diary/diaryRepo'
 import { parseWeather, weatherIcons, weatherText } from '@/features/diary/weather'
 import { loadAiConfig } from './aiConfig'
@@ -82,7 +82,7 @@ export default function AiComposeDialog({
       <div className="text-sm font-medium">{t('ai.composeTitle')}</div>
       <p className="mt-1 text-xs text-muted">
         {t('ai.composeDesc', {
-          date: formatDateCn(dateKey),
+          date: formatDate(dateKey, t),
           weekday: t(weekdayKey(dateKey)),
           count: stamps.length,
           weather:
@@ -157,11 +157,7 @@ export default function AiComposeDialog({
             onClick={() => void generate(style)}
             className={`${FOOTER_BUTTON} disabled:opacity-40`}
           >
-            {!requested
-              ? t('ai.composeStart')
-              : text === ''
-                ? t('ai.retry')
-                : t('ai.regenerate')}
+            {!requested ? t('ai.composeStart') : text === '' ? t('ai.retry') : t('ai.regenerate')}
           </button>
           <button type="button" onClick={onCancel} className={FOOTER_BUTTON}>
             {t('common.cancel')}
