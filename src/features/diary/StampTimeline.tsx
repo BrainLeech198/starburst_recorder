@@ -267,21 +267,18 @@ export default function StampTimeline({
     showToast({ message: t('stamp.saved') })
   }
 
-  // 新记下的一笔直接进编辑态，光标落到正文
+  // 新记下的一笔直接进编辑态，光标落到正文。
+  // 这是对父组件 focusId 的响应（点「新增」后把光标送进来），不是在渲染期改状态。
   useEffect(() => {
     if (selectMode || !focusId || autoEditRef.current === focusId) return
     const target = stamps?.find((stamp) => stamp.id === focusId)
     if (!target) return
     autoEditRef.current = focusId
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 响应父组件的 focusId，不是渲染期改状态
     startEdit(target)
   }, [focusId, selectMode, stamps])
 
-  // 进批量多选时先退出编辑，两种状态别叠着
-  useEffect(() => {
-    if (!selectMode) return
-    setEditingId('')
-    setDraft('')
-  }, [selectMode])
+  // 进批量多选时由 DiaryPage 用 key 重挂载本组件，编辑态随之清掉，不需要再写一个 effect
 
   const states = parseWeather(day?.weather)
 

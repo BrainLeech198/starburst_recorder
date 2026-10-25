@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useBlocker } from 'react-router'
 import type { HealthActivity, HealthProfile, HealthSex } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
@@ -160,17 +160,21 @@ export default function ProfilePage() {
   const { t } = useI18n()
   const { showToast } = useToast()
   const profile = useLiveQuery(() => healthProfile(), [])
-  const [draft, setDraft] = useState<Draft>(BLANK)
+  const [draft, setDraft] = useState<Draft>(() => draftOf(profile))
+  /** 表单上一次对齐到哪一版档案；库里的版本变了就在渲染期对齐一次 */
+  const [syncedAt, setSyncedAt] = useState(profile?.updatedAt)
   const [step, setStep] = useState<1 | 2>(1)
   const [guessOpen, setGuessOpen] = useState(false)
   const [guessFreq, setGuessFreq] = useState('')
   const [guessDuration, setGuessDuration] = useState('')
   const [activityAiOpen, setActivityAiOpen] = useState(false)
 
-  // 档案从库里读回来时同步一次；之后保存会更新 updatedAt，再同步一次即可
-  useEffect(() => {
+  // 档案从库里读回来、或保存后 updatedAt 变了，就把表单对齐到最新一份。
+  // 这是 React 文档里「渲染期按 props 调整 state」的写法，比 effect 少一轮绘制。
+  if (profile?.updatedAt !== syncedAt) {
+    setSyncedAt(profile?.updatedAt)
     setDraft(draftOf(profile))
-  }, [profile?.updatedAt])
+  }
 
   function patch(next: Partial<Draft>) {
     setDraft((current) => ({ ...current, ...next }))
@@ -234,7 +238,8 @@ export default function ProfilePage() {
         nextWeight !== profile?.weightKg
           ? nextWeight === null
             ? null
-            : Date.now()
+            : // eslint-disable-next-line react-hooks/purity -- 在保存回调里取时间，不在渲染期
+              Date.now()
           : profile?.weightAt ?? null,
       activity: draft.activity,
       tdee,
@@ -242,6 +247,7 @@ export default function ProfilePage() {
       proteinTarget: parseNumber(draft.protein),
       plan: draft.plan,
       note: draft.note.trim(),
+      // eslint-disable-next-line react-hooks/purity -- 在保存回调里取时间，不在渲染期
       updatedAt: Date.now(),
     }
     await saveHealthProfile(next)

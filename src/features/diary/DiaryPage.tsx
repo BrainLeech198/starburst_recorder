@@ -400,6 +400,7 @@ export default function DiaryPage() {
 
       {mode === 'stamp' && (
         <StampTimeline
+          key={batch.active ? 'select' : 'edit'}
           dateKey={dateKey}
           focusId={focusStampId}
           stamps={stamps}

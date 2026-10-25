@@ -7,7 +7,10 @@ import prettier from 'eslint-config-prettier'
 
 export default [
   // .venv 是本机资料（AI 记忆存档 + 同类项目参考仓库），不进仓库也不参与检查
-  { ignores: ['dist', 'node_modules', 'android', 'src-tauri', '.venv'] },
+  {
+    // site/ 是独立静态官网（普通浏览器脚本，不走 App 构建），.release/.screenshots 是本机产物
+    ignores: ['dist', 'node_modules', 'android', 'src-tauri', '.venv', 'site', '.release', '.screenshots'],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

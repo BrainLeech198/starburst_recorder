@@ -179,7 +179,7 @@ export default function IntakeDialog({
 
   const [step, setStep] = useState<Step>('list')
   const [items, setItems] = useState<DraftItem[]>([])
-  const [time, setTime] = useState(formatClock(Date.now()))
+  const [time, setTime] = useState(() => formatClock(Date.now()))
 
   /** 正在配份量的那一项（普通食物） */
   const [food, setFood] = useState<DraftFood | null>(null)
@@ -687,6 +687,7 @@ export default function IntakeDialog({
     if (existing) {
       saved = asDraft(existing)
     } else {
+      // eslint-disable-next-line react-hooks/purity -- 在提交回调里取时间，不在渲染期
       const now = Date.now()
       const created = await saveHealthFood({
         id: newId(),
