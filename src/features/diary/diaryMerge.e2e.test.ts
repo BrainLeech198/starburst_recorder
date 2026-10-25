@@ -136,7 +136,8 @@ describe('导入文件读取校验链路', () => {
     const result = readBackup(file.content)
     expect(result.ok).toBe(true)
     expect(result.payload.entries[0].content).toBe('')
-    expect(result.payload.days[0].weather).toBe('') // null 会被 text() 退回成 ''
+    // 没写天气就还是 null，不要在导出/导入之间变成空串，两种写法并存判空早晚漏一处
+    expect(result.payload.days[0].weather).toBeNull()
   })
 })
 
