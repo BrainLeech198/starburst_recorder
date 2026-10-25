@@ -1096,6 +1096,7 @@ export const zh = {
   'common.listSeparator': '、',
   'common.settings': '设置',
   'common.loading': '加载中…',
+  'common.more': '更多操作',
 
   // ─────────── 检查更新 ───────────
   'update.title': '发现新版本 {version}',

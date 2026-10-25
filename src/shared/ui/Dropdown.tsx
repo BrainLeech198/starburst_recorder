@@ -19,10 +19,16 @@ export default function Dropdown({
   label,
   items,
   buttonClassName,
+  caret = true,
+  menuLabel,
 }: {
   label: string
   items: DropdownItem[]
   buttonClassName: string
+  /** 标签后面是否跟一个 ▾；图标按钮（⋯）不需要 */
+  caret?: boolean
+  /** 给读屏用的名字：按钮上只有图标时传 */
+  menuLabel?: string
 }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -50,10 +56,12 @@ export default function Dropdown({
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label={menuLabel}
         onClick={() => setOpen((value) => !value)}
         className={buttonClassName}
       >
-        {label} ▾
+        {label}
+        {caret && ' ▾'}
       </button>
       {open && (
         <div

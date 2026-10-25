@@ -1141,6 +1141,7 @@ export const en: Record<MessageKey, string> = {
   'common.listSeparator': ', ',
   'common.settings': 'Settings',
   'common.loading': 'Loading…',
+  'common.more': 'More actions',
 
   // ─────────── 检查更新 ───────────
   'update.title': 'Version {version} is available',

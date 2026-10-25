@@ -9,12 +9,14 @@ import PageShell from '@/shared/ui/PageShell'
 import Modal from '@/shared/ui/Modal'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import BatchActions from '@/shared/ui/BatchActions'
+import RowMenu from '@/shared/ui/RowMenu'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
-import { BAR_BUTTON, BAR_DANGER, OUTLINE_BUTTON, SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import { BAR_DANGER, OUTLINE_BUTTON, SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
 import { INPUT } from '@/shared/ui/inputStyles'
 import FoodForm from './FoodForm'
 import type { FoodDraft } from './FoodForm'
 import MealForm from './MealForm'
+import FoodInfoDialog from './FoodInfoDialog'
 import { mealTotals } from './healthMath'
 import {
   healthFoods,
@@ -33,6 +35,11 @@ import {
 } from './healthRepo'
 
 type Tab = 'foods' | 'meals'
+
+/** 食物库按名字排：中文按拼音、数字按大小，跟文件管理器一个直觉 */
+function byName(a: { name: string }, b: { name: string }) {
+  return a.name.localeCompare(b.name, 'zh-CN', { numeric: true, sensitivity: 'base' })
+}
 
 /** 复制出来的名字：默认「原名 副本」，撞名就往后加序号 */
 function copyName(base: string, foods: HealthFood[]): string {
@@ -54,6 +61,7 @@ export default function FoodLibraryPage() {
   const meals = useLiveQuery(() => healthMeals(), [])
   const [tab, setTab] = useState<Tab>('foods')
 
+  const [detailFood, setDetailFood] = useState<HealthFood | null>(null)
   const [editing, setEditing] = useState<HealthFood | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<HealthFood | null>(null)
@@ -123,6 +131,7 @@ export default function FoodLibraryPage() {
 
   /** 复制一份：营养、份量原样带过来，名称加「副本」 */
   async function handleCopy(food: HealthFood) {
+    // eslint-disable-next-line react-hooks/purity -- 在菜单回调里取时间，不在渲染期
     const now = Date.now()
     await saveHealthFood({
       ...food,
@@ -233,9 +242,12 @@ export default function FoodLibraryPage() {
 
   /** 可选的合并目标：除自己以外、按搜索词过滤 */
   const mergeKeyword = mergeQuery.trim().toLowerCase()
-  const mergeList = (foods ?? []).filter(
-    (food) => food.id !== merging?.id && food.name.toLowerCase().includes(mergeKeyword),
-  )
+  const sortedFoods = [...(foods ?? [])].sort(byName)
+  const sortedMeals = [...(meals ?? [])].sort(byName)
+
+  const mergeList = (foods ?? [])
+    .filter((food) => food.id !== merging?.id && food.name.toLowerCase().includes(mergeKeyword))
+    .sort(byName)
   const mergeTarget = mergeTargetId
     ? (foods ?? []).find((food) => food.id === mergeTargetId) ?? null
     : null
@@ -304,7 +316,7 @@ export default function FoodLibraryPage() {
           <p className="m-0 text-sm text-muted">{t('foods.empty')}</p>
         ) : (
           <ul className="m-0 list-none space-y-2 p-0">
-            {foods.map((food) => {
+            {sortedFoods.map((food) => {
               const selected = batch.isSelected(food.id)
               return (
                 <li
@@ -328,7 +340,13 @@ export default function FoodLibraryPage() {
                       <span aria-hidden="true">✓</span>
                     </button>
                   )}
-                  <div className="min-w-0 flex-1">
+                  <button
+                    type="button"
+                    disabled={batch.active}
+                    onClick={() => setDetailFood(food)}
+                    aria-label={food.name}
+                    className="min-w-0 flex-1 rounded-lg text-left transition-colors hover:text-brand disabled:cursor-default"
+                  >
                     <p className="m-0 flex items-baseline gap-2 text-sm text-fg">
                       <span className="truncate">{food.name}</span>
                       <span className="shrink-0 font-mono text-[10px] text-muted">{food.code}</span>
@@ -342,26 +360,21 @@ export default function FoodLibraryPage() {
                         {food.servingName} · {food.servingGrams} g
                       </p>
                     )}
-                  </div>
+                  </button>
                   {!batch.active && (
-                    <div className="flex shrink-0 flex-wrap justify-end gap-1">
-                      <button type="button" onClick={() => openEdit(food)} className={BAR_BUTTON}>
-                        {t('foods.edit')}
-                      </button>
-                      <button type="button" onClick={() => void handleCopy(food)} className={BAR_BUTTON}>
-                        {t('foods.copy')}
-                      </button>
-                      <button type="button" onClick={() => openMerge(food)} className={BAR_BUTTON}>
-                        {t('foods.merge')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPendingDelete(food)}
-                        className={BAR_DANGER}
-                      >
-                        {t('foods.delete')}
-                      </button>
-                    </div>
+                    <RowMenu
+                      label={t('common.more')}
+                      items={[
+                        { label: t('foods.edit'), onSelect: () => openEdit(food) },
+                        { label: t('foods.copy'), onSelect: () => void handleCopy(food) },
+                        { label: t('foods.merge'), onSelect: () => openMerge(food) },
+                        {
+                          label: t('foods.delete'),
+                          danger: true,
+                          onSelect: () => setPendingDelete(food),
+                        },
+                      ]}
+                    />
                   )}
                 </li>
               )
@@ -374,7 +387,7 @@ export default function FoodLibraryPage() {
           <p className="m-0 text-sm text-muted">{t('foods.mealEmpty')}</p>
         ) : (
           <ul className="m-0 list-none space-y-2 p-0">
-            {meals.map((meal) => {
+            {sortedMeals.map((meal) => {
               const totals = mealTotals(meal.items, foods ?? [])
               const selected = batch.isSelected(meal.id)
               return (
@@ -418,18 +431,17 @@ export default function FoodLibraryPage() {
                     </p>
                   </div>
                   {!batch.active && (
-                    <div className="flex shrink-0 gap-1">
-                      <button type="button" onClick={() => openEditMeal(meal)} className={BAR_BUTTON}>
-                        {t('foods.edit')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPendingMealDelete(meal)}
-                        className={BAR_DANGER}
-                      >
-                        {t('foods.delete')}
-                      </button>
-                    </div>
+                    <RowMenu
+                      label={t('common.more')}
+                      items={[
+                        { label: t('foods.edit'), onSelect: () => openEditMeal(meal) },
+                        {
+                          label: t('foods.delete'),
+                          danger: true,
+                          onSelect: () => setPendingMealDelete(meal),
+                        },
+                      ]}
+                    />
                   )}
                 </li>
               )
@@ -598,6 +610,8 @@ export default function FoodLibraryPage() {
           onCancel={() => setPendingMealDelete(null)}
         />
       )}
+
+      {detailFood && <FoodInfoDialog food={detailFood} onClose={() => setDetailFood(null)} />}
     </PageShell>
   )
 }
