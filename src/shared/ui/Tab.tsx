@@ -11,6 +11,8 @@ export default function Tab({
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       className={
         active

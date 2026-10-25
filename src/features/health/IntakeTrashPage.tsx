@@ -75,12 +75,13 @@ export default function IntakeTrashPage() {
                 key={intake.id}
                 className="flex items-start justify-between gap-3 rounded-xl border border-line bg-surface p-3"
               >
-                <div className="min-w-0">
-                  <p className="m-0 text-sm text-fg">
-                    {intake.name}
-                    <span className="ml-2 font-mono text-[10px] text-muted">{intake.code}</span>
+                <div className="min-w-0 flex-1">
+                  {/* 名字可能很长：让它自己截断，编号和徽章跟着留一行 */}
+                  <p className="m-0 flex items-baseline gap-2 text-sm text-fg">
+                    <span className="truncate">{intake.name}</span>
+                    <span className="shrink-0 font-mono text-[10px] text-muted">{intake.code}</span>
                     {(intake.components?.length ?? 0) > 0 && (
-                      <span className="ml-2 rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">
+                      <span className="shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">
                         {t('intake.partsLabel', { n: intake.components!.length })}
                       </span>
                     )}

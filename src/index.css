@@ -42,6 +42,11 @@
   /* 多选选中时纸面的染色：淡淡混一点主题色，还是一张纸 */
   --color-slip-selected: color-mix(in srgb, var(--color-paper) 86%, var(--color-brand));
 
+  /* 三大营养素：色相固定，深浅跟主题走（浅色底要压深才够对比） */
+  --color-macro-protein: #eab308;
+  --color-macro-carbs: #38bdf8;
+  --color-macro-fat: #f97316;
+
   --animate-breathe: mascot-breathe 3.2s ease-in-out infinite;
 }
 
@@ -88,6 +93,10 @@
 
 /* 浅色主题：在设置里切换 */
 :root[data-theme='light'] {
+  --color-macro-protein: #a16207;
+  --color-macro-carbs: #0e7490;
+  --color-macro-fat: #c2410c;
+
   /* 桌面加深一点，纸用纯白 + 投影，两者才分得开 */
   --color-bg: color-mix(in srgb, var(--sb-accent, #0891b2) 6%, #e7ebf1);
   --color-surface: color-mix(in srgb, var(--sb-accent, #0891b2) 3%, #ffffff);
@@ -121,6 +130,10 @@
 
 /* 暮色：暖调深色，像傍晚屋里点灯的那点橘 */
 :root[data-theme='dusk'] {
+  --color-macro-protein: #e0a911;
+  --color-macro-carbs: #7cc0dd;
+  --color-macro-fat: #e0834a;
+
   --color-bg: color-mix(in srgb, var(--sb-accent, #f0a978) 8%, #171008);
   --color-surface: color-mix(in srgb, var(--sb-accent, #f0a978) 13%, #171008);
   --color-surface-2: color-mix(in srgb, var(--sb-accent, #f0a978) 18%, #171008);
@@ -147,6 +160,10 @@
 
 /* 深夜：近乎纯黑的 AMOLED，光晕只留主题色一点 */
 :root[data-theme='night'] {
+  --color-macro-protein: #eab308;
+  --color-macro-carbs: #38bdf8;
+  --color-macro-fat: #f97316;
+
   --color-bg: #000000;
   --color-surface: color-mix(in srgb, var(--sb-accent, #7cc4ff) 10%, #060608);
   --color-surface-2: color-mix(in srgb, var(--sb-accent, #7cc4ff) 15%, #0c0c0f);
@@ -173,6 +190,10 @@
 
 /* 纸白：暖米色的亮色，像把日记摊在木桌上写 */
 :root[data-theme='paper'] {
+  --color-macro-protein: #96660a;
+  --color-macro-carbs: #0f6d8a;
+  --color-macro-fat: #b8531c;
+
   --color-bg: color-mix(in srgb, var(--sb-accent, #c08a4a) 5%, #efe6d6);
   --color-surface: color-mix(in srgb, var(--sb-accent, #c08a4a) 3%, #fbf6ec);
   --color-surface-2: color-mix(in srgb, var(--sb-accent, #c08a4a) 8%, #f2ebdd);
@@ -200,6 +221,10 @@
 
 /* 薄雾：冷调的柔和亮色，蓝灰打底，长时间看不刺眼 */
 :root[data-theme='mist'] {
+  --color-macro-protein: #8a6109;
+  --color-macro-carbs: #12627d;
+  --color-macro-fat: #b1491a;
+
   --color-bg: color-mix(in srgb, var(--sb-accent, #5b8fd6) 5%, #e8eef4);
   --color-surface: color-mix(in srgb, var(--sb-accent, #5b8fd6) 3%, #f8fbfd);
   --color-surface-2: color-mix(in srgb, var(--sb-accent, #5b8fd6) 8%, #eef4f8);

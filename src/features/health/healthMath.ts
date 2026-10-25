@@ -24,11 +24,15 @@ export const KCAL_PER_GRAM = { protein: 4, carbs: 4, fat: 9 } as const
 /** 进度条量程 = TDEE 的多少倍；固定住，每天的刻度位置才可比 */
 export const BAR_RATIO = 1.35
 
-/** 三大营养素的固定颜色：蛋白黄、碳水蓝、脂肪橙，不跟主题色走 */
+/**
+ * 三大营养素的颜色：蛋白黄、碳水蓝、脂肪橙。
+ * 色相固定（一眼分得出是哪种），但深浅跟主题走——浅色底上要压深才够对比，
+ * 所以值是 CSS 变量，由 index.css 按主题给。
+ */
 export const MACRO_COLORS = {
-  protein: '#eab308',
-  carbs: '#38bdf8',
-  fat: '#f97316',
+  protein: 'var(--color-macro-protein)',
+  carbs: 'var(--color-macro-carbs)',
+  fat: 'var(--color-macro-fat)',
 } as const
 
 export type MacroKey = keyof typeof MACRO_COLORS

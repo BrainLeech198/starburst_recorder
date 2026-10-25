@@ -159,7 +159,7 @@ export default function PresetTrashPage() {
                   </button>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="m-0 text-sm text-fg">{preset.name}</p>
+                  <p className="m-0 truncate text-sm text-fg">{preset.name}</p>
                   <p className="m-0 mt-0.5 font-mono text-[11px] text-muted">
                     {t('presets.codeDeletedAt', {
                       code: preset.code,
