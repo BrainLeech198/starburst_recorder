@@ -36,6 +36,9 @@ android/capacitor-cordova-android-plugins/build/
 .idea
 .DS_Store
 
+# 本地截图（官网素材压缩后才进 site/assets/shots）
+.screenshots/
+
 # 日志
 logs
 *.log

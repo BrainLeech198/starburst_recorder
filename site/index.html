@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>星芒记录者 · 把零散的日子，攒成看得见的自己</title>
+    <meta
+      name="description"
+      content="星芒记录者是一个本地优先的个人记录工具：随手记下今天，AI 帮你整理成完整的日记。无账号、无云端，Windows 与 Android 同源。"
+    />
+    <link rel="icon" href="assets/icon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="assets/icon.png" />
+    <link
+      rel="preload"
+      href="assets/fonts/lxgw-wenkai-subset.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="theme-color" content="#0a0d12" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main" data-i18n="a11y.skip">跳到正文</a>
+
+    <header class="topbar">
+      <a class="topbar__brand" href="#top" aria-label="星芒记录者">
+        <svg width="28" height="28" viewBox="0 0 88 88" aria-hidden="true">
+          <circle cx="44" cy="44" r="34" fill="currentColor" fill-opacity="0.14" />
+          <path
+            d="M44 5 L52.5 35.5 L83 44 L52.5 52.5 L44 83 L35.5 52.5 L5 44 L35.5 35.5 Z"
+            fill="currentColor"
+          />
+        </svg>
+        <span data-i18n="app.name">星芒记录者</span>
+      </a>
+
+      <nav class="topbar__nav" aria-label="站点导航">
+        <a href="#features" data-i18n="nav.features">功能</a>
+        <a href="#ai" data-i18n="nav.ai">AI</a>
+        <a href="#shots" data-i18n="nav.shots">截图</a>
+        <a href="#download" data-i18n="nav.download">下载</a>
+      </nav>
+
+      <div class="lang" role="group" aria-label="Language / 语言">
+        <button type="button" class="lang__btn" data-lang="zh" aria-pressed="true">中</button>
+        <button type="button" class="lang__btn" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- 1. 深空开场 -->
+      <section class="hero" id="top">
+        <div class="hero__sky" aria-hidden="true"></div>
+        <div class="hero__inner">
+          <div class="hero__copy">
+            <p class="eyebrow" data-i18n="hero.eyebrow">本地优先 · 内置 AI</p>
+            <h1 class="hero__title">
+              <span data-i18n="app.name">星芒记录者</span>
+              <span class="hero__title-en" data-i18n="app.nameEn">Starburst Recorder</span>
+            </h1>
+            <p class="hero__lead" data-i18n="app.tagline">把零散的日子，攒成看得见的自己。</p>
+            <p class="hero__sub" data-i18n="hero.sub">
+              随手记下今天，AI 帮你整理成完整的日记。数据只留在这台设备上，Windows 和 Android
+              用的是同一份代码。
+            </p>
+            <div class="hero__actions">
+              <a class="btn btn--primary" href="#download" data-i18n="hero.cta">下载 0.1.0</a>
+              <a
+                class="btn btn--ghost"
+                href="https://github.com/BrainLeech198/starburst_recorder"
+                target="_blank"
+                rel="noreferrer noopener"
+                data-i18n="hero.source"
+                >看源码</a
+              >
+            </div>
+            <ul class="hero__meta">
+              <li data-i18n="hero.meta.local">数据在本地</li>
+              <li data-i18n="hero.meta.noAccount">不用注册</li>
+              <li data-i18n="hero.meta.bilingual">中英双语</li>
+              <li data-i18n="hero.meta.platform">Windows / Android</li>
+            </ul>
+          </div>
+
+          <div class="hero__paper" aria-hidden="true">
+            <figure class="slip slip--back">
+              <p class="slip__date">10 / 21</p>
+              <p class="slip__text" data-i18n="hero.slip2">
+                今天没什么大事，只是把拖了很久的报销单交了。
+              </p>
+            </figure>
+            <figure class="slip slip--front">
+              <p class="slip__date">10 / 24 <span class="slip__weather">阴</span></p>
+              <p class="slip__text" data-i18n="hero.slip1">
+                早上把阳台的花搬进来，晚上沿河跑了三公里，回来煮了碗面。
+              </p>
+              <p class="slip__ai"><span data-i18n="hero.slipAi">AI 已整理</span></p>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. 纸张段：功能 -->
+      <section class="paper-section" id="features">
+        <div class="paper-section__inner">
+          <header class="section-head">
+            <p class="kicker" data-i18n="features.kicker">功能</p>
+            <h2 data-i18n="features.title">一张纸上的生活</h2>
+            <p class="section-head__desc" data-i18n="features.desc">
+              日记和健康已经能天天用，财务和日历还在路上——没做完的功能，我们不会说它做完了。
+            </p>
+          </header>
+
+          <div class="cards">
+            <article class="card">
+              <span class="card__icon" aria-hidden="true">📖</span>
+              <h3 data-i18n="features.diary">日记</h3>
+              <p data-i18n="features.diaryDesc">
+                随手记一句、按天翻看，也能一次导入整页手写照片，让 AI 认成文字。
+              </p>
+              <span class="tag tag--ready" data-i18n="features.ready">已可用</span>
+            </article>
+            <article class="card">
+              <span class="card__icon" aria-hidden="true">💪</span>
+              <h3 data-i18n="features.health">健康</h3>
+              <p data-i18n="features.healthDesc">
+                TDEE、身体档案、食物库和每日摄入，热量与蛋白都算得清清楚楚。
+              </p>
+              <span class="tag tag--ready" data-i18n="features.ready">已可用</span>
+            </article>
+            <article class="card card--wip">
+              <span class="card__icon" aria-hidden="true">💰</span>
+              <h3 data-i18n="features.finance">财务</h3>
+              <p data-i18n="features.financeDesc">每一笔收支，都记在同一本本子上。</p>
+              <span class="tag" data-i18n="features.wip">建设中</span>
+            </article>
+            <article class="card card--wip">
+              <span class="card__icon" aria-hidden="true">📅</span>
+              <h3 data-i18n="features.calendar">日历</h3>
+              <p data-i18n="features.calendarDesc">把日子摊开看：哪几天写了，哪几天空着。</p>
+              <span class="tag" data-i18n="features.wip">建设中</span>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. 纸张段：AI -->
+      <section class="paper-section paper-section--tint" id="ai">
+        <div class="paper-section__inner">
+          <header class="section-head">
+            <p class="kicker" data-i18n="ai.kicker">AI 整理</p>
+            <h2 data-i18n="ai.title">随手记一句，剩下的交给 AI</h2>
+            <p class="section-head__desc" data-i18n="ai.desc">
+              那天发生了什么、当时是什么心情——你不用写得完整，AI 会按你选的口气重组，确认之后才写进去。
+            </p>
+          </header>
+
+          <div class="compare">
+            <figure class="slip slip--raw">
+              <figcaption data-i18n="ai.before">你写的</figcaption>
+              <p class="slip__text" data-i18n="ai.raw">
+                10.24 阴 早上去医院拿报告，医生说没事，回来的路上买了个红薯。
+              </p>
+            </figure>
+            <div class="compare__arrow" aria-hidden="true">
+              <span data-i18n="ai.arrow">AI 整理</span>
+              <svg width="64" height="24" viewBox="0 0 64 24" fill="none" aria-hidden="true">
+                <path
+                  d="M2 12h56m0 0-8-8m8 8-8 8"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+            <figure class="slip slip--polished">
+              <figcaption data-i18n="ai.after">AI 写的</figcaption>
+              <p class="slip__text" data-i18n="ai.polished">
+                今天去医院拿体检报告。医生翻了两页，说各项都正常，让我别老熬夜。出来的时候天阴着，风有点凉，在路口买了个烤红薯，捧在手里一路暖到家。
+              </p>
+            </figure>
+          </div>
+
+          <p class="note" data-i18n="ai.note">
+            三种口气可选。模型可以是本机跑的，也可以是你在设置里填的任意 OpenAI 兼容接口。
+          </p>
+        </div>
+      </section>
+
+      <!-- 4. 截图展台 -->
+      <section class="shots" id="shots">
+        <div class="shots__inner">
+          <header class="section-head section-head--dark">
+            <p class="kicker" data-i18n="shots.kicker">截图</p>
+            <h2 data-i18n="shots.title">长这样</h2>
+            <p class="section-head__desc" data-i18n="shots.desc">
+              没有花哨的仪表盘，一天就是一张纸，翻过去就是前一天。
+            </p>
+          </header>
+
+          <div class="shots__grid">
+            <figure class="shot">
+              <img
+                src="assets/shots/diary.webp"
+                alt="日记页：一天一张纸条，顶部有日期与星期"
+                data-i18n-alt="shots.diaryAlt"
+                width="1280"
+                height="520"
+                loading="lazy"
+              />
+              <figcaption data-i18n="shots.diary">日记：按天翻，纸条上只留摘要</figcaption>
+            </figure>
+            <figure class="shot shot--tilt">
+              <img
+                src="assets/shots/health.webp"
+                alt="健康页：今日摄入进度条与蛋白进度"
+                data-i18n-alt="shots.healthAlt"
+                width="1280"
+                height="655"
+                loading="lazy"
+              />
+              <figcaption data-i18n="shots.health">健康：今天的摄入与蛋白进度</figcaption>
+            </figure>
+            <figure class="shot shot--phone">
+              <img
+                src="assets/shots/edit.webp"
+                alt="编辑页：正文写在稿纸一样的横线上"
+                data-i18n-alt="shots.editAlt"
+                width="780"
+                height="1688"
+                loading="lazy"
+              />
+              <figcaption data-i18n="shots.edit">编辑页：写在稿纸上</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. 隐私 -->
+      <section class="dark-section" id="privacy">
+        <div class="dark-section__inner">
+          <header class="section-head section-head--dark">
+            <p class="kicker" data-i18n="privacy.kicker">隐私</p>
+            <h2 data-i18n="privacy.title">你的日子，不离开这台机器</h2>
+          </header>
+          <ul class="privacy">
+            <li>
+              <h3 data-i18n="privacy.noAccount">不用注册</h3>
+              <p data-i18n="privacy.noAccountDesc">打开就能写。没有账号，也就没有找回密码那套流程。</p>
+            </li>
+            <li>
+              <h3 data-i18n="privacy.noCloud">没有云端</h3>
+              <p data-i18n="privacy.noCloudDesc">
+                我们不做服务器，也没有任何一条记录会被上传到我们这里。
+              </p>
+            </li>
+            <li>
+              <h3 data-i18n="privacy.export">导出即备份</h3>
+              <p data-i18n="privacy.exportDesc">
+                一次导出 Markdown、纯文本或完整 JSON；桌面上数据就是一个能复制的文件。
+              </p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 6. 开源 -->
+      <section class="dark-section dark-section--open" id="open-source">
+        <div class="dark-section__inner">
+          <header class="section-head section-head--dark">
+            <p class="kicker" data-i18n="open.kicker">开源</p>
+            <h2 data-i18n="open.title">源码一直是公开的</h2>
+            <p class="section-head__desc" data-i18n="open.desc">
+              从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走
+              SQLite、浏览器走 IndexedDB。
+            </p>
+          </header>
+
+          <ul class="chips" aria-label="技术栈">
+            <li>React 19</li>
+            <li>TypeScript</li>
+            <li>Vite 8</li>
+            <li>Tailwind v4</li>
+            <li>Electron</li>
+            <li>Capacitor</li>
+            <li>SQLite</li>
+            <li>Dexie</li>
+          </ul>
+
+          <div class="open__actions">
+            <a
+              class="btn btn--ghost"
+              href="https://github.com/BrainLeech198/starburst_recorder"
+              target="_blank"
+              rel="noreferrer noopener"
+              >GitHub</a
+            >
+            <a
+              class="btn btn--ghost"
+              href="https://gitee.com/Mr_brainleech/starburst_recorder"
+              target="_blank"
+              rel="noreferrer noopener"
+              >Gitee</a
+            >
+            <span class="open__version" data-i18n="open.version">版本 0.1.0</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. 下载 -->
+      <section class="dark-section dark-section--download" id="download">
+        <div class="dark-section__inner">
+          <header class="section-head section-head--dark">
+            <p class="kicker" data-i18n="download.kicker">下载</p>
+            <h2 data-i18n="download.title">拿一份回去用</h2>
+            <p class="section-head__desc" data-i18n="download.desc">
+              0.1.0 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。
+            </p>
+          </header>
+
+          <div class="downloads">
+            <article class="download">
+              <div class="download__head">
+                <h3 data-i18n="download.windows">Windows 安装包</h3>
+                <p class="download__meta" data-i18n="download.windowsMeta">Windows 10/11 · 约 112 MB</p>
+              </div>
+              <p class="download__desc" data-i18n="download.windowsDesc">
+                双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。
+              </p>
+              <div class="download__links">
+                <a
+                  class="btn btn--primary btn--sm"
+                  href="https://github.com/BrainLeech198/starburst_recorder/releases/latest"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  >GitHub</a
+                >
+                <a
+                  class="btn btn--ghost btn--sm"
+                  href="https://gitee.com/Mr_brainleech/starburst_recorder/releases"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  >Gitee</a
+                >
+              </div>
+            </article>
+
+            <article class="download">
+              <div class="download__head">
+                <h3 data-i18n="download.android">Android APK</h3>
+                <p class="download__meta" data-i18n="download.androidMeta">Android 10 以上 · 约 15 MB</p>
+              </div>
+              <p class="download__desc" data-i18n="download.androidDesc">
+                侧载安装，需要允许「安装未知来源应用」。手机上是同一套界面，数据留在本机。
+              </p>
+              <div class="download__links">
+                <a
+                  class="btn btn--primary btn--sm"
+                  href="https://github.com/BrainLeech198/starburst_recorder/releases/latest"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  >GitHub</a
+                >
+                <a
+                  class="btn btn--ghost btn--sm"
+                  href="https://gitee.com/Mr_brainleech/starburst_recorder/releases"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  >Gitee</a
+                >
+              </div>
+            </article>
+          </div>
+
+          <p class="note" data-i18n="download.note">
+            两个仓库放的是同一份安装包，哪个快就用哪个。
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>
+          <span data-i18n="app.name">星芒记录者</span>
+          <span class="footer__dot" aria-hidden="true">·</span>
+          <span data-i18n="footer.version">版本 0.1.0</span>
+        </p>
+        <p data-i18n="footer.tagline">数据只存在你的设备上</p>
+      </div>
+    </footer>
+
+    <script src="i18n.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
