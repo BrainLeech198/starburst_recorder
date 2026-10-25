@@ -40,6 +40,9 @@ window.SITE_I18N = {
     'features.diaryDesc': '随手记一句、按天翻看，也能一次导入整页手写照片，让 AI 认成文字。',
     'features.health': '健康',
     'features.healthDesc': 'TDEE、身体档案、食物库和每日摄入，热量与蛋白都算得清清楚楚。',
+    'features.appearance': '外观',
+    'features.appearanceDesc':
+      '六套主题模式配六种主题色，深浅冷暖都能调到顺眼；连纸上那支笔的颜色也跟着走。',
     'features.finance': '财务',
     'features.financeDesc': '每一笔收支，都记在同一本本子上。',
     'features.calendar': '日历',
@@ -103,6 +106,16 @@ window.SITE_I18N = {
     'download.androidMeta': 'Android 10 以上 · 约 16 MB',
     'download.androidDesc': '侧载安装，需要允许「安装未知来源应用」。手机上是同一套界面，数据留在本机。',
     'download.note': '两个仓库放的是同一份安装包，哪个快就用哪个。',
+
+    'whatsnew.title': '这一版有什么',
+    'whatsnew.item1':
+      '六套主题模式：深空 / 暮色 / 深夜 / 晴日 / 纸白 / 薄雾，配六种主题色自由组合',
+    'whatsnew.item2':
+      '整理日记守住时刻：随记的时间与事件强绑定，AI 不再拆条、并条、打乱顺序',
+    'whatsnew.item3': '下载带进度条：应用内升级能看见下了多少',
+    'whatsnew.item4': '修掉安卓导出 JSON 备份闪退的问题，并加固了几处同类崩溃点',
+    'whatsnew.more': '完整更新日志',
+    'whatsnew.moreHref': 'notes.zh.md',
     'download.history': '历史版本',
     'download.current': '当前',
 
@@ -149,6 +162,9 @@ window.SITE_I18N = {
     'features.health': 'Health',
     'features.healthDesc':
       'TDEE, body profile, a food library and daily intake — calories and protein add up clearly.',
+    'features.appearance': 'Appearance',
+    'features.appearanceDesc':
+      'Six theme modes with six accent colours — tune the light, the warmth and even the ink on the page.',
     'features.finance': 'Finance',
     'features.financeDesc': 'Every cent in and out, in the same notebook.',
     'features.calendar': 'Calendar',
@@ -216,6 +232,17 @@ window.SITE_I18N = {
     'download.androidDesc':
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
+
+    'whatsnew.title': "What's new in 0.2.3",
+    'whatsnew.item1':
+      'Six theme modes — Deep space / Dusk / Midnight / Daylight / Paper / Mist — each pairing with any of six accent colours',
+    'whatsnew.item2':
+      "Composing respects each moment: a quick note's time is bound to its event, so the AI no longer splits, merges or reorders them",
+    'whatsnew.item3': 'Download progress: see how far the in-app upgrade has got',
+    'whatsnew.item4':
+      'Fixed an Android crash when exporting a JSON backup, and hardened several similar crash points',
+    'whatsnew.more': 'Full release notes',
+    'whatsnew.moreHref': 'notes.en.md',
     'download.history': 'Previous versions',
     'download.current': 'Current',
 

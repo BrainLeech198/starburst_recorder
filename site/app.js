@@ -46,6 +46,12 @@
       if (messages[key] !== undefined) node.setAttribute('alt', messages[key]);
     });
 
+    // 链接目标也跟语言走：完整更新日志中文版和英文版是两份文件
+    document.querySelectorAll('[data-i18n-href]').forEach(function (node) {
+      var key = node.getAttribute('data-i18n-href');
+      if (messages[key] !== undefined) node.setAttribute('href', messages[key]);
+    });
+
     document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
     document.title = messages['meta.title'];
     setMeta('description', messages['meta.description']);

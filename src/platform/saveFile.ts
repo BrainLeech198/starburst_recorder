@@ -11,8 +11,13 @@
  * 所以安卓走系统自带的「保存到文件」选择器（SAF，见 android 侧的 SaveFilePlugin）：
  * 用户自己挑位置，不需要任何存储权限，也不依赖第三方应用。
  * 浏览器 / Windows 桌面壳照旧直接下载（那边 `<a download>` 是正常的）。
+ *
+ * 安卓侧**分块**传：一份 JSON 备份几 MB，一次性当参数穿过 Capacitor 桥，
+ * 同一时刻会同时存在「原文 + base64 + 桥序列化副本 + Java String + 解码 byte[]」，
+ * 低端机直接 OutOfMemoryError 闪退（2026-10-25 线上崩了）。分块之后任一时刻只有一小块。
  */
 import { Capacitor, registerPlugin } from '@capacitor/core'
+import { chunkToBase64 } from './textChunk'
 import type { MessageParams } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 
@@ -35,25 +40,15 @@ export type SaveOutcome =
 
 /** android/app/src/main/java/com/starburst/recorder/SaveFilePlugin.java */
 interface SaveFileBridge {
-  save(options: { filename: string; mime: string; data: string }): Promise<{ saved: boolean }>
+  begin(options: { filename: string; mime: string }): Promise<{ canceled: boolean; token?: number }>
+  chunk(options: { token: number; data: string }): Promise<void>
+  end(options: { token: number }): Promise<{ saved: boolean }>
 }
 
 const nativeSave = registerPlugin<SaveFileBridge>('SaveFile')
 
 function inAndroidShell() {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
-}
-
-/** UTF-8 文本 → base64。安卓侧只收 base64 字符串，中文要先按 UTF-8 编码再转 */
-function toBase64(text: string) {
-  const bytes = new TextEncoder().encode(text)
-  let binary = ''
-  // 分块拼接，避免一次展开太多参数把调用栈撑爆（长日记很容易超过这个量）
-  const chunk = 0x8000
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
-  }
-  return btoa(binary)
 }
 
 function downloadInBrowser(file: TextFile) {
@@ -72,12 +67,16 @@ export async function saveTextFile(file: TextFile): Promise<SaveOutcome> {
     return { kind: 'downloaded' }
   }
 
-  const result = await nativeSave.save({
-    filename: file.filename,
-    mime: file.mime,
-    data: toBase64(file.content),
-  })
-  return result.saved ? { kind: 'saved' } : { kind: 'canceled' }
+  // 先让系统选择器弹出来；用户取消就什么都不传，省掉一次大对象的构建
+  const begun = await nativeSave.begin({ filename: file.filename, mime: file.mime })
+  if (begun.canceled || begun.token === undefined) return { kind: 'canceled' }
+
+  const bytes = new TextEncoder().encode(file.content)
+  for (const piece of chunkToBase64(bytes)) {
+    await nativeSave.chunk({ token: begun.token, data: piece })
+  }
+  const done = await nativeSave.end({ token: begun.token })
+  return done.saved ? { kind: 'saved' } : { kind: 'canceled' }
 }
 
 /**

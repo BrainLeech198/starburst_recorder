@@ -79,7 +79,13 @@ public class UpdatePlugin extends Plugin {
         }).start();
     }
 
-    /** 用系统浏览器打开官网这类链接 */
+    /**
+     * 用系统浏览器打开官网这类链接。
+     *
+     * 必须包 try/catch：设备上没有浏览器、或者 URL 不合法，startActivity 会抛
+     * ActivityNotFoundException / IllegalArgumentException——插件方法里漏掉的异常
+     * 会一路冒到主线程把整个应用带崩，而"打开官网"这种外围功能不该有这个杀伤力。
+     */
     @PluginMethod
     public void openUrl(PluginCall call) {
         String url = call.getString("url");
@@ -87,10 +93,14 @@ public class UpdatePlugin extends Plugin {
             call.reject("url 是必需的");
             return;
         }
-        Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        getContext().startActivity(intent);
-        call.resolve();
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (Exception error) {
+            call.reject("打不开这个链接：" + error.getMessage(), error);
+        }
     }
 
     private InputStream open(String url) throws Exception {
@@ -102,6 +112,12 @@ public class UpdatePlugin extends Plugin {
         return connection.getInputStream();
     }
 
+    /**
+     * 拉起系统安装器。
+     *
+     * 这里也可能抛：文件不在 FileProvider 配的目录里、或者设备没有包安装器，
+     * 都会抛异常。调用方已经在外层 try 里，但单独说一句免得以后有人把它挪出去。
+     */
     private void install(File apk) {
         Uri uri = FileProvider.getUriForFile(
                 getContext(),
