@@ -6,6 +6,7 @@
  *
  * 识别结果按缩略图当前的页序拼成一篇；失败页在正文里留占位，可以原地重试。
  */
+import { GHOST_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import Modal from '@/shared/ui/Modal'
@@ -33,10 +34,6 @@ interface Page {
   error: string
 }
 
-const OUTLINE_BUTTON =
-  'rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg disabled:opacity-40'
-const SOLID_BUTTON =
-  'rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-on-brand transition-opacity hover:opacity-90 disabled:opacity-40'
 const TILE_BUTTON =
   'flex h-6 w-6 items-center justify-center rounded bg-black/55 text-xs text-white transition-opacity hover:bg-black/75 disabled:opacity-30'
 
@@ -402,7 +399,7 @@ export default function ImageImportDialog({
           type="button"
           onClick={() => setSourceOpen(true)}
           disabled={running || pages.length >= MAX_IMPORT_IMAGES}
-          className={OUTLINE_BUTTON}
+          className={GHOST_BUTTON}
         >
           {t('imageImport.add')}
         </button>
@@ -410,7 +407,7 @@ export default function ImageImportDialog({
           type="button"
           onClick={startRecognize}
           disabled={running || pages.length === 0 || waitingCount + failedCount === 0}
-          className={OUTLINE_BUTTON}
+          className={GHOST_BUTTON}
         >
           {t('imageImport.start')}
         </button>

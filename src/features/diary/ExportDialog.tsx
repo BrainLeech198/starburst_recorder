@@ -1,4 +1,5 @@
 import type { ExportFormat } from './diaryExport'
+import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
@@ -45,7 +46,7 @@ export default function ExportDialog({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
+          className={GHOST_BUTTON}
         >
           {t('common.cancel')}
         </button>

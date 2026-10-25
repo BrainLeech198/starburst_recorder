@@ -4,6 +4,7 @@
  * 一天最多烦一次：点「稍后」会把版本记到今天，明天启动才会再弹；
  * 红点不受这个限制，只要还有新版就一直亮着。
  */
+import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { APP_VERSION } from '@/core/version'
@@ -184,7 +185,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
               <button
                 type="button"
                 onClick={close}
-                className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
+                className={GHOST_BUTTON}
               >
                 {t('update.later')}
               </button>

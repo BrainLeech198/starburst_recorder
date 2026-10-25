@@ -8,13 +8,7 @@ import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import Tab from '@/shared/ui/Tab'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
-import {
-  BACK_BUTTON,
-  BAR_BUTTON,
-  BAR_DANGER,
-  SOLID_BUTTON,
-  SOLID_DANGER,
-} from '@/shared/ui/buttonStyles'
+import { BACK_BUTTON, BAR_BUTTON, BAR_DANGER, PAPER_ROW_ACTION, SOLID_BUTTON, SOLID_DANGER } from '@/shared/ui/buttonStyles'
 import {
   purgeEntries,
   purgeEntry,
@@ -32,7 +26,6 @@ import {
 import { formatMonthDay, formatStamp } from '@/core/utils/dateKey'
 
 /** 纸条上的小文字按钮 */
-const SLIP_BUTTON = 'rounded-lg px-2 py-1 text-xs transition-colors'
 
 type Mode = 'diary' | 'stamp'
 type Pending = { kind: 'entry' | 'stamp' | 'clear' | 'batch'; id?: string }
@@ -210,14 +203,14 @@ export default function TrashPage() {
                       <button
                         type="button"
                         onClick={() => void handleRestore('entry', entry.id)}
-                        className={`${SLIP_BUTTON} text-ink-muted hover:text-ink`}
+                        className={`${PAPER_ROW_ACTION} text-ink-muted hover:text-ink`}
                       >
                         {t('trash.restore')}
                       </button>
                       <button
                         type="button"
                         onClick={() => setPending({ kind: 'entry', id: entry.id })}
-                        className={`${SLIP_BUTTON} text-danger`}
+                        className={`${PAPER_ROW_ACTION} text-danger`}
                       >
                         {t('trash.purge')}
                       </button>
@@ -289,14 +282,14 @@ export default function TrashPage() {
                       <button
                         type="button"
                         onClick={() => void handleRestore('stamp', stamp.id)}
-                        className={`${SLIP_BUTTON} text-ink-muted hover:text-ink`}
+                        className={`${PAPER_ROW_ACTION} text-ink-muted hover:text-ink`}
                       >
                         {t('trash.restore')}
                       </button>
                       <button
                         type="button"
                         onClick={() => setPending({ kind: 'stamp', id: stamp.id })}
-                        className={`${SLIP_BUTTON} text-danger`}
+                        className={`${PAPER_ROW_ACTION} text-danger`}
                       >
                         {t('trash.purge')}
                       </button>

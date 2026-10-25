@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 import { WEATHER_PRESETS, joinWeather, parseWeather, weatherIcon, weatherText } from './weather'
 import { askWeather, loadWeatherPlace, saveWeatherPlace } from './weatherQuery'
 import type { DayWeather } from './weatherQuery'
@@ -172,14 +173,14 @@ export default function WeatherDialog({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
+          className={GHOST_BUTTON}
         >
           {t('common.cancel')}
         </button>
         <button
           type="button"
           onClick={() => onConfirm(joinWeather(states))}
-          className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors"
+          className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2"
         >
           {t('common.confirm')}
         </button>

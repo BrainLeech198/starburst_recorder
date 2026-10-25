@@ -33,6 +33,28 @@ export const OUTLINE_BUTTON =
   'inline-flex min-h-11 items-center justify-center rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2 disabled:opacity-40 md:min-h-0'
 
 /**
+ * 弹窗里的「取消 / 关闭」这类退一步的按钮：描边浅、字色淡，跟主动作拉开层次。
+ * 全站弹窗都用它，别再各自写一遍同样的类名——那样改一次要动十几处。
+ */
+export const GHOST_BUTTON =
+  'inline-flex min-h-11 items-center justify-center rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg disabled:opacity-40 md:min-h-0'
+
+/**
+ * 列表行尾的操作（恢复 / 彻底删除 / 编辑 / 删除）：小、淡、只在需要时亮。
+ * 统一到一个写法，四个回收站和食物库才长得一样。
+ */
+export const ROW_ACTION =
+  'inline-flex min-h-11 items-center justify-center rounded-lg px-2.5 py-1 text-xs text-muted transition-colors hover:text-fg disabled:opacity-40 md:min-h-0'
+
+/** 纸面上的行操作：底色是纸，字色跟着墨走，形状同 ROW_ACTION */
+export const PAPER_ROW_ACTION =
+  'inline-flex min-h-11 items-center justify-center rounded-lg px-2.5 py-1 text-xs transition-colors disabled:opacity-40 md:min-h-0'
+
+/** 行操作里的危险项（彻底删除），形状同 ROW_ACTION，只换色 */
+export const ROW_DANGER =
+  'inline-flex min-h-11 items-center justify-center rounded-lg px-2.5 py-1 text-xs text-danger transition-colors hover:opacity-80 disabled:opacity-40 md:min-h-0'
+
+/**
  * 「点一下就选中」的格子，全站统一写法：厂商、明暗、悬浮球形象/大小、窗口预设都用它。
  * 尺寸和内容排布靠 extra 追加，免得每处各写一套边框和选中态。
  */

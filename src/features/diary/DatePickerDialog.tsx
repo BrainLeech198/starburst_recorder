@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 import type { FocusEvent as ReactFocusEvent } from 'react'
 import { monthGrid, toDateKey, todayKey } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
@@ -203,7 +204,7 @@ export default function DatePickerDialog({
         <button
           type="button"
           onClick={goToday}
-          className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
+          className={GHOST_BUTTON}
         >
           {t('datePicker.today')}
         </button>
@@ -211,14 +212,14 @@ export default function DatePickerDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
+            className={GHOST_BUTTON}
           >
             {t('common.cancel')}
           </button>
           <button
             type="button"
             onClick={() => onConfirm(selected)}
-            className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors"
+            className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2"
           >
             {t('common.confirm')}
           </button>

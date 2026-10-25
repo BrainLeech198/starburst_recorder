@@ -4,6 +4,7 @@
  * 它只干一件事：拿到这一天的随记 → 让 AI 写一篇草稿 → 给用户改 → 把最终文本交回去。
  * 「新建一条日记」那个动作不在这里，交给日记页做，这样弹窗不用知道数据怎么存。
  */
+import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
@@ -19,8 +20,6 @@ import Modal from '@/shared/ui/Modal'
 import Dropdown from '@/shared/ui/Dropdown'
 import { FIELD } from '@/shared/ui/inputStyles'
 
-const FOOTER_BUTTON =
-  'rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg'
 
 export default function AiComposeDialog({
   dateKey,
@@ -155,18 +154,18 @@ export default function AiComposeDialog({
             type="button"
             disabled={loading}
             onClick={() => void generate(style)}
-            className={`${FOOTER_BUTTON} disabled:opacity-40`}
+            className={`${GHOST_BUTTON} disabled:opacity-40`}
           >
             {!requested ? t('ai.composeStart') : text === '' ? t('ai.retry') : t('ai.regenerate')}
           </button>
-          <button type="button" onClick={onCancel} className={FOOTER_BUTTON}>
+          <button type="button" onClick={onCancel} className={GHOST_BUTTON}>
             {t('common.cancel')}
           </button>
           <button
             type="button"
             disabled={loading || text.trim() === ''}
             onClick={() => onConfirm(text.trim())}
-            className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors disabled:opacity-40"
+            className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2 disabled:opacity-40"
           >
             {t('ai.writeDiary')}
           </button>

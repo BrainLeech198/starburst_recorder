@@ -4,6 +4,7 @@
  * 列表一行塞不下完整信息（份量、编号、四项营养），点一下把这一条摊开看；
  * 要改的话还是走「⋯ → 编辑」，这里刻意不放操作按钮，免得又变成第二个编辑页。
  */
+import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 import type { HealthFood } from '@/core/db/schema'
 import Modal from '@/shared/ui/Modal'
 import { useI18n } from '@/shared/i18n/context'
@@ -54,7 +55,7 @@ export default function FoodInfoDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
+          className={GHOST_BUTTON}
         >
           {t('common.done')}
         </button>

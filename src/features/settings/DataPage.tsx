@@ -328,7 +328,7 @@ function SectionPicker({
             >
               <span
                 className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] leading-none ${
-                  checked && !empty ? 'border-brand bg-brand text-brand-fg' : 'border-muted'
+                  checked && !empty ? 'border-brand bg-brand text-on-brand' : 'border-muted'
                 }`}
               >
                 {checked && !empty ? '✓' : ''}

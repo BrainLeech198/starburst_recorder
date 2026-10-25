@@ -8,7 +8,7 @@ import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import Dropdown from '@/shared/ui/Dropdown'
 import Modal from '@/shared/ui/Modal'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
-import { BACK_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { BACK_BUTTON, GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import {
   createEntry,
   dayInfo,
@@ -31,8 +31,6 @@ import CommonPresetDialog from './CommonPresetDialog'
 import { polishDiary } from '@/features/ai/aiPolish'
 
 /** 弹窗底部的取消按钮：全站弹窗统一的样子 */
-const DIALOG_BUTTON =
-  'rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg'
 
 /** 从日记列表进编辑页时带过来的草稿：新增 / 图片导入 / AI 整理都走这里 */
 interface DraftNav {
@@ -541,7 +539,7 @@ export default function DiaryEditPage() {
             >
               {t('diaryEdit.saveAs')}
             </button>
-            <button type="button" onClick={() => setSaveOpen(false)} className={DIALOG_BUTTON}>
+            <button type="button" onClick={() => setSaveOpen(false)} className={GHOST_BUTTON}>
               {t('common.cancel')}
             </button>
           </div>
@@ -580,7 +578,7 @@ export default function DiaryEditPage() {
             >
               {t('diaryEdit.discard')}
             </button>
-            <button type="button" onClick={() => blocker.reset()} className={DIALOG_BUTTON}>
+            <button type="button" onClick={() => blocker.reset()} className={GHOST_BUTTON}>
               {t('common.cancel')}
             </button>
           </div>
@@ -662,7 +660,7 @@ export default function DiaryEditPage() {
           )}
 
           <div className="mt-4 flex justify-end gap-2">
-            <button type="button" onClick={() => setPolishOpen(false)} className={DIALOG_BUTTON}>
+            <button type="button" onClick={() => setPolishOpen(false)} className={GHOST_BUTTON}>
               {t('common.cancel')}
             </button>
             <button

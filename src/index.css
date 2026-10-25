@@ -58,6 +58,18 @@
   --color-nav-strong: color-mix(in srgb, var(--sb-accent, #6ee7ff) 11%, #0a0d12);
 }
 
+/* 键盘焦点环：鼠标点不出环，Tab / 方向键走到才出，全站一圈主题色。
+   用 :where() 压到最低优先级，页面自己的 outline（例如纸面编辑框）仍然盖得住 */
+:where(a, button, input, textarea, select, summary, [role='button'], [role='menuitem'], [role='tab']):focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* 选中文字也跟着主题色走，深浅两套底都能看清 */
+::selection {
+  background: color-mix(in srgb, var(--color-brand) 32%, transparent);
+}
+
 @keyframes mascot-breathe {
   0%,
   100% {

@@ -8,6 +8,7 @@
  * 同一个弹窗里换成对照层（宽屏并排两栏，窄屏上下堆叠），相同的字淡化、不同的字加深。
  * 不另叠一层弹窗——两层都会抢 Esc 和 Tab，焦点陷阱也互相打架。
  */
+import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 import { useState } from 'react'
 import Modal from '@/shared/ui/Modal'
 import { useI18n } from '@/shared/i18n/context'
@@ -160,14 +161,14 @@ export default function ConflictDialog({
           <button
             type="button"
             onClick={() => choose(detail, true)}
-            className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
+            className={GHOST_BUTTON}
           >
             {t('data.conflictKeepLocal')}
           </button>
           <button
             type="button"
             onClick={() => choose(detail, false)}
-            className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors"
+            className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2"
           >
             {t('data.conflictUseIncoming')}
           </button>
@@ -272,14 +273,14 @@ export default function ConflictDialog({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
+          className={GHOST_BUTTON}
         >
           {t('common.cancel')}
         </button>
         <button
           type="button"
           onClick={() => onDone(keepLocal)}
-          className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors"
+          className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2"
         >
           {t('data.conflictContinue')}
         </button>

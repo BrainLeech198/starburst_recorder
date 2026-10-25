@@ -4,6 +4,7 @@
  * 摄入的删除也只是把 deletedAt 写上，所以这里能原样恢复（日期、时间、成分快照都在）。
  * 回收站只负责恢复和彻底删掉，不参与每天的统计。
  */
+import EmptyState from '@/shared/ui/EmptyState'
 import { useState } from 'react'
 import type { HealthIntake } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
@@ -64,7 +65,7 @@ export default function IntakeTrashPage() {
       }
     >
       {!loaded ? null : rows.length === 0 ? (
-        <p className="m-0 text-sm text-muted">{t('intakeTrash.empty')}</p>
+        <EmptyState icon="🗑️" text={t('intakeTrash.empty')} />
       ) : (
         <>
           <p className="m-0 text-xs text-muted">{t('intakeTrash.count', { n: rows.length })}</p>

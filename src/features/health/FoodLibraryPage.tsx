@@ -1,3 +1,4 @@
+import EmptyState from '@/shared/ui/EmptyState'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import type { HealthFood, HealthMeal } from '@/core/db/schema'
@@ -313,7 +314,7 @@ export default function FoodLibraryPage() {
 
       {tab === 'foods' &&
         (foods === undefined ? null : foods.length === 0 ? (
-          <p className="m-0 text-sm text-muted">{t('foods.empty')}</p>
+          <EmptyState icon="🍎" text={t('foods.empty')} />
         ) : (
           <ul className="m-0 list-none space-y-2 p-0">
             {sortedFoods.map((food) => {
@@ -384,7 +385,7 @@ export default function FoodLibraryPage() {
 
       {tab === 'meals' &&
         (meals === undefined ? null : meals.length === 0 ? (
-          <p className="m-0 text-sm text-muted">{t('foods.mealEmpty')}</p>
+          <EmptyState icon="🍱" text={t('foods.mealEmpty')} />
         ) : (
           <ul className="m-0 list-none space-y-2 p-0">
             {sortedMeals.map((meal) => {

@@ -10,7 +10,7 @@ import { useMemo, useState } from 'react'
 import type { HealthFood } from '@/core/db/schema'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
-import { SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { GHOST_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { INPUT } from '@/shared/ui/inputStyles'
 import FoodForm from './FoodForm'
 import type { FoodDraft } from './FoodForm'
@@ -113,7 +113,7 @@ export default function PhraseReviewDialog({
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
+              className={GHOST_BUTTON}
             >
               {t('common.cancel')}
             </button>

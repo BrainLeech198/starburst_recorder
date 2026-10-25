@@ -8,7 +8,7 @@ import type { PresetKind } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
-import { choiceTile } from '@/shared/ui/buttonStyles'
+import { GHOST_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
 import { diaryPresets } from './diaryRepo'
 
 export default function CommonPresetDialog({
@@ -78,7 +78,7 @@ export default function CommonPresetDialog({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
+          className={GHOST_BUTTON}
         >
           {t('common.cancel')}
         </button>

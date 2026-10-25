@@ -1,3 +1,4 @@
+import EmptyState from '@/shared/ui/EmptyState'
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
@@ -10,7 +11,7 @@ import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import Modal from '@/shared/ui/Modal'
 import Tab from '@/shared/ui/Tab'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
-import { BAR_BUTTON, BAR_DANGER, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { BAR_BUTTON, BAR_DANGER, GHOST_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import {
   addStamp,
   entriesOfDay,
@@ -418,7 +419,7 @@ export default function DiaryPage() {
       )}
 
       {mode === 'diary' && entries !== undefined && entries.length === 0 && (
-        <p className="mt-6 text-center text-sm text-muted">{t('diary.noEntries')}</p>
+        <EmptyState icon="📓" text={t('diary.noEntries')} />
       )}
 
       {mode === 'diary' && entries !== undefined && entries.length > 0 && (
@@ -583,7 +584,7 @@ export default function DiaryPage() {
             <button
               type="button"
               onClick={() => setDateChoice(null)}
-              className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
+              className={GHOST_BUTTON}
             >
               {t('common.cancel')}
             </button>

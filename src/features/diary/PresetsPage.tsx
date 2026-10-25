@@ -4,6 +4,7 @@
  * 和食物库一样带 hex 短编号、批量删除和回收站：备份里靠编号区分同名的两条，
  * 导入时也能一眼看出哪条是哪条。这里只存名字和分类，正文里的用法交给「常用」弹窗。
  */
+import EmptyState from '@/shared/ui/EmptyState'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import type { DiaryPreset, PresetKind } from '@/core/db/schema'
@@ -170,9 +171,10 @@ export default function PresetsPage() {
       </div>
 
       {presets === undefined ? null : rows.length === 0 ? (
-        <p className="m-0 text-sm text-muted">
-          {t(tab === 'person' ? 'presets.emptyPerson' : 'presets.emptyPlace')}
-        </p>
+        <EmptyState
+          icon="🏷️"
+          text={t(tab === 'person' ? 'presets.emptyPerson' : 'presets.emptyPlace')}
+        />
       ) : (
         <ul className="m-0 list-none space-y-2 p-0">
           {rows.map((preset) => {

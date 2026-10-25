@@ -4,6 +4,7 @@
  * 食物和套餐删除只是把 deletedAt 写上，历史摄入存的是当时那份快照，
  * 所以删掉不影响已经记过的账；这里只负责恢复或彻底删掉。
  */
+import EmptyState from '@/shared/ui/EmptyState'
 import { useState } from 'react'
 import type { HealthFood, HealthMeal } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
@@ -92,7 +93,7 @@ export default function FoodTrashPage() {
       }
     >
       {!loaded ? null : rows.length === 0 ? (
-        <p className="m-0 text-sm text-muted">{t('foodTrash.empty')}</p>
+        <EmptyState icon="🗑️" text={t('foodTrash.empty')} />
       ) : (
         <>
           <p className="m-0 text-xs text-muted">{t('foodTrash.count', { n: rows.length })}</p>
@@ -102,13 +103,14 @@ export default function FoodTrashPage() {
                 key={row.kind === 'food' ? row.food.id : row.meal.id}
                 className="flex items-start justify-between gap-3 rounded-xl border border-line bg-surface p-3"
               >
-                <div className="min-w-0">
-                  <p className="m-0 text-sm text-fg">
-                    {rowName(row)}
+                <div className="min-w-0 flex-1">
+                  {/* 名字可能很长：让它自己截断，编号和类别徽章跟着留一行 */}
+                  <p className="m-0 flex items-baseline gap-2 text-sm text-fg">
+                    <span className="truncate">{rowName(row)}</span>
                     {row.kind === 'food' && (
-                      <span className="ml-2 font-mono text-[10px] text-muted">{row.food.code}</span>
+                      <span className="shrink-0 font-mono text-[10px] text-muted">{row.food.code}</span>
                     )}
-                    <span className="ml-2 rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">
+                    <span className="shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">
                       {row.kind === 'food' ? t('foods.tabFoods') : t('foods.tabMeals')}
                     </span>
                   </p>

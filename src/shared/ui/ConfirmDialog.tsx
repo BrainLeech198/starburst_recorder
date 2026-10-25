@@ -1,4 +1,5 @@
 import Modal from './Modal'
+import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 import { useI18n } from '@/shared/i18n/context'
 
 export default function ConfirmDialog({
@@ -31,7 +32,7 @@ export default function ConfirmDialog({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:text-fg"
+          className={GHOST_BUTTON}
         >
           {cancelLabel ?? t('common.cancel')}
         </button>
