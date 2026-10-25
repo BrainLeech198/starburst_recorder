@@ -1,11 +1,28 @@
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 
-export type ThemeId = 'deep' | 'light'
+/** 主题模式：深色 / 暖深色 / 纯黑 / 两种亮色。主题色（accent）与模式互相独立 */
+export type ThemeId = 'deep' | 'dusk' | 'night' | 'paper' | 'mist' | 'light'
 
-export const THEMES: { id: ThemeId; labelKey: MessageKey }[] = [
-  { id: 'deep', labelKey: 'theme.deep' },
-  { id: 'light', labelKey: 'theme.light' },
+/**
+ * 主题模式。swatch 是给「主题」页画缩略图用的三个代表色（底 / 卡片 / 点缀），
+ * 只是示意，实际色值由 index.css 里的 color-mix 跟着主题色派生。
+ */
+export const THEMES: {
+  id: ThemeId
+  labelKey: MessageKey
+  mark: string
+  swatch: [string, string, string]
+}[] = [
+  { id: 'deep', labelKey: 'theme.deep', mark: '🌌', swatch: ['#0a0d12', '#161b26', '#6ee7ff'] },
+  { id: 'dusk', labelKey: 'theme.dusk', mark: '🌇', swatch: ['#171008', '#2a1c10', '#f0a978'] },
+  { id: 'night', labelKey: 'theme.night', mark: '🌙', swatch: ['#000000', '#0c0c0f', '#7cc4ff'] },
+  { id: 'light', labelKey: 'theme.light', mark: '☀️', swatch: ['#e7ebf1', '#ffffff', '#0891b2'] },
+  { id: 'paper', labelKey: 'theme.paper', mark: '📜', swatch: ['#efe6d6', '#fbf6ec', '#c08a4a'] },
+  { id: 'mist', labelKey: 'theme.mist', mark: '🌫️', swatch: ['#e8eef4', '#f8fbfd', '#5b8fd6'] },
 ]
+
+/** 只有这三个是亮底，切主题色时白字/深字的取舍要跟着变 */
+export const LIGHT_THEMES: ThemeId[] = ['light', 'paper', 'mist']
 
 export const THEME_KEY = 'starburst.theme'
 export const ACCENT_KEY = 'starburst.accent'
@@ -27,8 +44,15 @@ export function accentLabelKey(value: string): MessageKey | null {
   return ACCENT_COLORS.find((item) => item.value === value)?.labelKey ?? null
 }
 
+/** 主题标记（emoji）：光看两个字不容易一眼分清 */
+export function themeMark(id: ThemeId): string {
+  return THEMES.find((item) => item.id === id)?.mark ?? '●'
+}
+
+/** 存过什么就用什么；认不出来（旧版本、手改过）退回深空 */
 export function readTheme(): ThemeId {
-  return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'deep'
+  const raw = localStorage.getItem(THEME_KEY)
+  return THEMES.some((item) => item.id === raw) ? (raw as ThemeId) : 'deep'
 }
 
 export function readAccent(): string {

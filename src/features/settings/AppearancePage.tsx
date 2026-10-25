@@ -4,15 +4,11 @@
  * 页面名与当前值交给页头（见 PageShell），卡片里只剩两个分组，所以卡片不再自带标题。
  */
 import { useTheme } from '@/app/providers/ThemeProvider'
-import { ACCENT_COLORS, accentLabelKey } from '@/app/theme'
+import { ACCENT_COLORS, accentLabelKey, themeMark } from '@/app/theme'
 import { useI18n } from '@/shared/i18n/context'
 import SettingCard, { SettingBadge, SettingGroup } from '@/shared/ui/SettingCard'
 import PageShell from '@/shared/ui/PageShell'
-import { choiceTile } from '@/shared/ui/buttonStyles'
 import { WindowCard } from './WindowCard'
-
-/** 明暗主题的标记：光看两个字不容易一眼分清 */
-const THEME_MARK: Record<string, string> = { deep: '🌌', light: '☀️' }
 
 export default function AppearancePage() {
   const { theme, setTheme, themes, accent, setAccent } = useTheme()
@@ -34,18 +30,55 @@ export default function AppearancePage() {
     >
       <SettingCard>
         <SettingGroup label={t('appearance.mode')} first>
-          <div className="grid grid-cols-2 gap-2">
-            {themes.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setTheme(item.id)}
-                className={choiceTile(theme === item.id, 'flex items-center gap-2 px-3 py-2')}
-              >
-                <span aria-hidden="true">{THEME_MARK[item.id] ?? '●'}</span>
-                {t(item.labelKey)}
-              </button>
-            ))}
+          {/* 每个主题给一张缩略图：光看名字想象不出底色，看色块一眼就能挑 */}
+          <div className="grid grid-cols-3 gap-2">
+            {themes.map((item) => {
+              const active = theme === item.id
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setTheme(item.id)}
+                  className={[
+                    'overflow-hidden rounded-xl border text-left transition-all',
+                    active
+                      ? 'border-brand shadow-sm ring-2 ring-brand/30'
+                      : 'border-line hover:border-muted hover:shadow-sm',
+                  ].join(' ')}
+                >
+                  <span aria-hidden="true" className="flex h-11 w-full">
+                    <span
+                      style={{ backgroundColor: item.swatch[0] }}
+                      className="h-full flex-1"
+                    />
+                    <span
+                      style={{ backgroundColor: item.swatch[1] }}
+                      className="h-full flex-1"
+                    />
+                    <span
+                      style={{ backgroundColor: item.swatch[2] }}
+                      className="h-full w-2.5"
+                    />
+                  </span>
+                  <span className="flex items-center gap-1 px-2 py-1.5">
+                    <span aria-hidden="true" className="text-sm leading-none">
+                      {themeMark(item.id)}
+                    </span>
+                    <span
+                      className={active ? 'text-xs font-medium text-brand' : 'text-xs text-muted'}
+                    >
+                      {t(item.labelKey)}
+                    </span>
+                    {active && (
+                      <span aria-hidden="true" className="ml-auto text-xs text-brand">
+                        ✓
+                      </span>
+                    )}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </SettingGroup>
 

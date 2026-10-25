@@ -107,6 +107,112 @@
   --color-slip-selected: color-mix(in srgb, var(--color-paper) 93%, var(--color-brand));
 }
 
+/* 暮色：暖调深色，像傍晚屋里点灯的那点橘 */
+:root[data-theme='dusk'] {
+  --color-bg: color-mix(in srgb, var(--sb-accent, #f0a978) 8%, #171008);
+  --color-surface: color-mix(in srgb, var(--sb-accent, #f0a978) 13%, #171008);
+  --color-surface-2: color-mix(in srgb, var(--sb-accent, #f0a978) 18%, #171008);
+  --color-line: color-mix(in srgb, var(--sb-accent, #f0a978) 23%, #171008);
+  --color-fg: #f5ebdf;
+  --color-muted: #ab9585;
+  --color-nav: color-mix(in srgb, var(--sb-accent, #f0a978) 21%, #171008);
+  --color-nav-strong: color-mix(in srgb, var(--sb-accent, #f0a978) 11%, #171008);
+  --color-danger: #f0616a;
+  --color-success: #63c795;
+  --color-warning: #e0a911;
+  --color-on-brand: #1b0f05;
+
+  --color-paper: #f7efe1;
+  --color-paper-strong: #efe3cd;
+  --color-ink: #2c2419;
+  --color-ink-muted: rgb(44 36 25 / 62%);
+  --color-rule: rgb(44 36 25 / 16%);
+  --color-binding: rgb(44 36 25 / 22%);
+  --shadow-paper: 0 12px 28px rgb(0 0 0 / 46%);
+  --shadow-slip: 0 6px 14px rgb(0 0 0 / 36%);
+  --color-slip-selected: color-mix(in srgb, var(--color-paper) 86%, var(--color-brand));
+}
+
+/* 深夜：近乎纯黑的 AMOLED，光晕只留主题色一点 */
+:root[data-theme='night'] {
+  --color-bg: #000000;
+  --color-surface: color-mix(in srgb, var(--sb-accent, #7cc4ff) 10%, #060608);
+  --color-surface-2: color-mix(in srgb, var(--sb-accent, #7cc4ff) 15%, #0c0c0f);
+  --color-line: color-mix(in srgb, var(--sb-accent, #7cc4ff) 18%, #17171c);
+  --color-fg: #eef0f5;
+  --color-muted: #8f97a8;
+  --color-nav: color-mix(in srgb, var(--sb-accent, #7cc4ff) 14%, #08080a);
+  --color-nav-strong: color-mix(in srgb, var(--sb-accent, #7cc4ff) 8%, #040405);
+  --color-danger: #f2555c;
+  --color-success: #46d391;
+  --color-warning: #eab308;
+  --color-on-brand: #04070c;
+
+  --color-paper: #f5f1e8;
+  --color-paper-strong: #ece5d6;
+  --color-ink: #292520;
+  --color-ink-muted: rgb(41 37 32 / 62%);
+  --color-rule: rgb(41 37 32 / 16%);
+  --color-binding: rgb(41 37 32 / 22%);
+  --shadow-paper: 0 12px 28px rgb(0 0 0 / 52%);
+  --shadow-slip: 0 6px 14px rgb(0 0 0 / 42%);
+  --color-slip-selected: color-mix(in srgb, var(--color-paper) 86%, var(--color-brand));
+}
+
+/* 纸白：暖米色的亮色，像把日记摊在木桌上写 */
+:root[data-theme='paper'] {
+  --color-bg: color-mix(in srgb, var(--sb-accent, #c08a4a) 5%, #efe6d6);
+  --color-surface: color-mix(in srgb, var(--sb-accent, #c08a4a) 3%, #fbf6ec);
+  --color-surface-2: color-mix(in srgb, var(--sb-accent, #c08a4a) 8%, #f2ebdd);
+  --color-line: color-mix(in srgb, var(--sb-accent, #c08a4a) 15%, #ded2bd);
+  --color-fg: #26201a;
+  --color-muted: #6d6252;
+  --color-brand: color-mix(in srgb, var(--sb-accent, #c08a4a) 45%, #241a10);
+  --color-nav: color-mix(in srgb, var(--sb-accent, #c08a4a) 18%, #fbf6ec);
+  --color-nav-strong: color-mix(in srgb, var(--sb-accent, #c08a4a) 32%, #e2d4bd);
+  --color-danger: #c2352a;
+  --color-success: #2f7a4f;
+  --color-warning: #96660a;
+  --color-on-brand: #fffaf2;
+
+  --color-paper: #fffdf7;
+  --color-paper-strong: #f4ecdc;
+  --color-ink: #221c14;
+  --color-ink-muted: rgb(34 28 20 / 62%);
+  --color-rule: rgb(34 28 20 / 13%);
+  --color-binding: rgb(34 28 20 / 18%);
+  --shadow-paper: 0 10px 22px rgb(96 74 44 / 18%);
+  --shadow-slip: 0 4px 12px rgb(96 74 44 / 14%);
+  --color-slip-selected: color-mix(in srgb, var(--color-paper) 93%, var(--color-brand));
+}
+
+/* 薄雾：冷调的柔和亮色，蓝灰打底，长时间看不刺眼 */
+:root[data-theme='mist'] {
+  --color-bg: color-mix(in srgb, var(--sb-accent, #5b8fd6) 5%, #e8eef4);
+  --color-surface: color-mix(in srgb, var(--sb-accent, #5b8fd6) 3%, #f8fbfd);
+  --color-surface-2: color-mix(in srgb, var(--sb-accent, #5b8fd6) 8%, #eef4f8);
+  --color-line: color-mix(in srgb, var(--sb-accent, #5b8fd6) 15%, #d4dee8);
+  --color-fg: #1a2530;
+  --color-muted: #5b6875;
+  --color-brand: color-mix(in srgb, var(--sb-accent, #5b8fd6) 45%, #0b1a26);
+  --color-nav: color-mix(in srgb, var(--sb-accent, #5b8fd6) 18%, #f8fbfd);
+  --color-nav-strong: color-mix(in srgb, var(--sb-accent, #5b8fd6) 32%, #d3e0ec);
+  --color-danger: #c93228;
+  --color-success: #22724c;
+  --color-warning: #8a6109;
+  --color-on-brand: #f7fbff;
+
+  --color-paper: #ffffff;
+  --color-paper-strong: #eef2f7;
+  --color-ink: #1c2128;
+  --color-ink-muted: rgb(28 33 40 / 62%);
+  --color-rule: rgb(28 33 40 / 13%);
+  --color-binding: rgb(28 33 40 / 18%);
+  --shadow-paper: 0 10px 22px rgb(30 50 80 / 16%);
+  --shadow-slip: 0 4px 12px rgb(30 50 80 / 12%);
+  --color-slip-selected: color-mix(in srgb, var(--color-paper) 93%, var(--color-brand));
+}
+
 /* 一张纸：直角、投影托起；左侧一条装订线加三个打孔 */
 .paper {
   position: relative;

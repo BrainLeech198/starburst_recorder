@@ -6,8 +6,10 @@
     <title>星芒记录者</title>
     <script>
       try {
-        document.documentElement.dataset.theme =
-          localStorage.getItem('starburst.theme') === 'light' ? 'light' : 'deep'
+        // 首屏之前就把主题定下来，避免闪一下默认色；认不出的名字退回深空
+        var known = ['deep', 'dusk', 'night', 'light', 'paper', 'mist']
+        var saved = localStorage.getItem('starburst.theme')
+        document.documentElement.dataset.theme = known.indexOf(saved) >= 0 ? saved : 'deep'
         document.documentElement.style.setProperty(
           '--sb-accent',
           localStorage.getItem('starburst.accent') || '#6ee7ff',

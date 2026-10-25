@@ -506,13 +506,17 @@ export const en: Record<MessageKey, string> = {
   'ball.size.lg': 'L',
 
   'appearance.description':
-    'Changing the accent color also recolors the nav background, accents and the floating ball.',
-  'appearance.mode': 'Mode',
+    'Theme modes reskin the whole surface and paper. Changing the accent also recolors the nav, accents and the floating ball.',
+  'appearance.mode': 'Theme',
   'appearance.accent': 'Accent',
   'appearance.accentAria': 'Accent {label}',
 
   'theme.deep': 'Deep space',
-  'theme.light': 'Light',
+  'theme.dusk': 'Dusk',
+  'theme.night': 'Midnight',
+  'theme.light': 'Daylight',
+  'theme.paper': 'Paper',
+  'theme.mist': 'Mist',
   'accent.cyan': 'Cyan',
   'accent.mint': 'Mint',
   'accent.lilac': 'Lilac',
