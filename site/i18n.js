@@ -100,7 +100,7 @@ window.SITE_I18N = {
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
     'download.android': 'Android APK',
-    'download.androidMeta': 'Android 10 以上 · 约 21 MB',
+    'download.androidMeta': 'Android 10 以上 · 约 16 MB',
     'download.androidDesc': '侧载安装，需要允许「安装未知来源应用」。手机上是同一套界面，数据留在本机。',
     'download.note': '两个仓库放的是同一份安装包，哪个快就用哪个。',
 
@@ -210,7 +210,7 @@ window.SITE_I18N = {
     'download.windowsDesc':
       'Double-click to install, then find it in the Start menu. Desktop data is a SQLite file you can copy anywhere.',
     'download.android': 'Android APK',
-    'download.androidMeta': 'Android 10+ · about 21 MB',
+    'download.androidMeta': 'Android 10+ · about 16 MB',
     'download.androidDesc':
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',

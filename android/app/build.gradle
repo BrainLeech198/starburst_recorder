@@ -7,8 +7,13 @@ android {
         applicationId "com.starburst.recorder"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // 版本号只认 package.json：0.1.0 → versionName 0.1.0，versionCode 100。
+        // 每次发版改 package.json 就够了，省得两处版本对不上、升级包装不进去。
+        def appVersion = new groovy.json.JsonSlurper()
+                .parseText(file('../../package.json').getText('UTF-8')).version as String
+        def versionBits = appVersion.tokenize('.').collect { it as int }
+        versionCode versionBits[0] * 10000 + versionBits[1] * 100 + versionBits[2]
+        versionName appVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +21,28 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // 正式包用仓库外的密钥签名：keystore.properties 不进 git（见 .gitignore）。
+    // 文件不在就跳过 release 签名，assembleRelease 会产出未签名包，避免 CI 直接炸掉。
+    signingConfigs {
+        release {
+            if (rootProject.file('keystore.properties').exists()) {
+                def signing = new Properties()
+                rootProject.file('keystore.properties').withInputStream { signing.load(it) }
+                storeFile file(signing['storeFile'])
+                storePassword signing['storePassword']
+                keyAlias signing['keyAlias']
+                keyPassword signing['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (rootProject.file('keystore.properties').exists()) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }

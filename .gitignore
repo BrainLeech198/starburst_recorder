@@ -42,6 +42,11 @@ android/capacitor-cordova-android-plugins/build/
 # 发版用的临时产物与说明草稿
 .release/
 
+# 安卓签名：密钥和密码都不进仓库，丢了就再也发不了升级包
+android/keystore.properties
+*.jks
+*.keystore
+
 # 日志
 logs
 *.log
