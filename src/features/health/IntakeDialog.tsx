@@ -40,6 +40,13 @@ import MealParts from './MealParts'
 import { dayTargets, foodMacros, mealTotals, sumMacros } from './healthMath'
 import { analyzeFoodPhoto } from './foodVision'
 import { analyzeMealPhrase } from './mealPhrase'
+import type { PhraseItem } from './mealPhrase'
+import PhraseReviewDialog from './PhraseReviewDialog'
+import type { PhraseResolution } from './PhraseReviewDialog'
+import { matchFood, matchPhrase } from './phraseMatch'
+import { normalizeFoodName } from './intakeDraft'
+import { asDraft } from './intakeDraft'
+import type { DraftFood } from './intakeDraft'
 import {
   addIntake,
   healthFoods,
@@ -49,18 +56,6 @@ import {
   saveHealthMeal,
 } from './healthRepo'
 
-/** 加到这一笔里的食物；foodId 为空表示还没入库的临时食物（AI 估的这类） */
-interface DraftFood {
-  foodId: string | null
-  name: string
-  /** 每 100g */
-  kcal: number
-  protein: number
-  carbs: number
-  fat: number
-  servingName: string | null
-  servingGrams: number | null
-}
 
 /** 这一笔里的一项：普通食物，或者一个套餐（成分快照先算好） */
 interface DraftItem {
@@ -100,18 +95,6 @@ function round1(value: number) {
   return Math.round(value * 10) / 10
 }
 
-function asDraft(food: HealthFood): DraftFood {
-  return {
-    foodId: food.id,
-    name: food.name,
-    kcal: food.kcal,
-    protein: food.protein,
-    carbs: food.carbs,
-    fat: food.fat,
-    servingName: food.servingName,
-    servingGrams: food.servingGrams,
-  }
-}
 
 /** 普通食物取自己的快照，套餐取成分快照 */
 function itemMacros(item: DraftItem) {
@@ -215,6 +198,8 @@ export default function IntakeDialog({
   const [phrase, setPhrase] = useState('')
   const [phraseBusy, setPhraseBusy] = useState(false)
   const [phraseError, setPhraseError] = useState('')
+  /** 一句话解析完、有没命中库的项时挂在这里，核对窗关掉就清空 */
+  const [phraseReview, setPhraseReview] = useState<PhraseItem[] | null>(null)
 
   /** 「存为套餐」的内联表单 */
   const [mealSaveOpen, setMealSaveOpen] = useState(false)
@@ -557,11 +542,7 @@ export default function IntakeDialog({
     fat: number
     matched: string
   }): DraftItem {
-    const existing =
-      (entry.matched
-        ? (foods ?? []).find((item) => item.name.toLowerCase() === entry.matched.toLowerCase())
-        : undefined) ??
-      (foods ?? []).find((item) => item.name.toLowerCase() === entry.name.toLowerCase())
+    const existing = matchFood(entry.name, foods ?? [])
     const base: DraftFood = existing
       ? asDraft(existing)
       : {
@@ -608,15 +589,62 @@ export default function IntakeDialog({
         setPhraseError(result.error || t('intake.phraseFailed'))
         return
       }
-      setItems((current) => [...current, ...result.items.map(phraseToItem)])
-      showToast({ message: t('intake.phraseAdded', { n: result.items.length }) })
-      setPhrase('')
-      backToList()
+      const matched = matchPhrase(result.items, foods ?? [])
+      if (matched.every((entry) => entry.food)) {
+        // 全部命中：和老流程一样直接塞进这一笔，不打扰
+        setItems((current) => [...current, ...result.items.map(phraseToItem)])
+        showToast({ message: t('intake.phraseAdded', { n: result.items.length }) })
+        setPhrase('')
+        backToList()
+        return
+      }
+      // 有没命中的：先让用户逐条决定，确认后再落库
+      setPhraseReview(result.items)
     } catch (error) {
       setPhraseError((error as Error).message || t('intake.phraseFailed'))
     } finally {
       setPhraseBusy(false)
     }
+  }
+
+  /** 核对窗点了「完成」：命中的直接用，新建的先落库，再并进这一笔 */
+  async function applyPhraseReview(resolutions: PhraseResolution[]) {
+    const next: DraftItem[] = []
+    /** 同一批里两条同名的新建（用户分别确认过），只写一次库 */
+    const created = new Map<string, DraftFood>()
+    for (const resolution of resolutions) {
+      let food: DraftFood
+      if (resolution.food) {
+        food = asDraft(resolution.food)
+      } else {
+        const draft = resolution.draft as FoodDraft
+        const key = normalizeFoodName(draft.name)
+        food = created.get(key) ?? (await ensureFood(draft))
+        created.set(key, food)
+      }
+      const spoken = ['克', '毫升', 'g', 'ml'].includes(resolution.item.unit.toLowerCase())
+        ? ''
+        : t('intake.phraseUnitNote', {
+            count: resolution.item.count,
+            unit: resolution.item.unit || t('intake.phraseUnitFallback'),
+            grams: resolution.grams,
+          })
+      next.push({
+        key: newId(),
+        food,
+        name: food.name,
+        grams: resolution.grams,
+        source: resolution.food ? 'library' : 'manual',
+        mealId: null,
+        components: [],
+        unitNote: spoken === '' ? undefined : spoken,
+      })
+    }
+    setPhraseReview(null)
+    setItems((current) => [...current, ...next])
+    showToast({ message: t('intake.phraseAdded', { n: next.length }) })
+    setPhrase('')
+    backToList()
   }
 
   async function analyze(file: File) {
@@ -673,6 +701,27 @@ export default function IntakeDialog({
     if (shot) void analyze(shot)
   }
 
+  /** 同名就复用库里的那条，没有才落库；一句话核对与 AI 估值都走这里 */
+  async function ensureFood(draft: FoodDraft): Promise<DraftFood> {
+    const name = draft.name.trim()
+    const existing = (foods ?? []).find(
+      (item) => normalizeFoodName(item.name) === normalizeFoodName(name),
+    )
+    if (existing) return asDraft(existing)
+    // eslint-disable-next-line react-hooks/purity -- 在提交回调里取时间，不在渲染期
+    const now = Date.now()
+    const created = await saveHealthFood({
+      id: newId(),
+      code: newCode(),
+      ...draft,
+      name,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    })
+    return asDraft(created)
+  }
+
   /** AI 估的临时食物：核对完再入库，同名就复用已有的那条 */
   async function saveAdhoc(draft: FoodDraft) {
     const amount = parseGrams(grams)
@@ -680,25 +729,7 @@ export default function IntakeDialog({
       showToast({ message: t('intake.gramsInvalid') })
       return
     }
-    const existing = (foods ?? []).find(
-      (item) => item.name.toLowerCase() === draft.name.trim().toLowerCase(),
-    )
-    let saved: DraftFood
-    if (existing) {
-      saved = asDraft(existing)
-    } else {
-      // eslint-disable-next-line react-hooks/purity -- 在提交回调里取时间，不在渲染期
-      const now = Date.now()
-      const created = await saveHealthFood({
-        id: newId(),
-        code: newCode(),
-        ...draft,
-        createdAt: now,
-        updatedAt: now,
-        deletedAt: null,
-      })
-      saved = asDraft(created)
-    }
+    const saved = await ensureFood(draft)
     setItems((current) => [
       ...current,
       {
@@ -1548,6 +1579,15 @@ export default function IntakeDialog({
           onPickFile={() => imageInputRef.current?.click()}
           onTakePhoto={() => void takePhoto()}
           onClose={() => setImageSourceOpen(false)}
+        />
+      )}
+
+      {phraseReview && (
+        <PhraseReviewDialog
+          items={phraseReview}
+          foods={foods ?? []}
+          onCancel={() => setPhraseReview(null)}
+          onDone={(resolutions) => void applyPhraseReview(resolutions)}
         />
       )}
     </>

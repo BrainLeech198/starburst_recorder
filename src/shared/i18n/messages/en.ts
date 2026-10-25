@@ -358,6 +358,26 @@ export const en: Record<MessageKey, string> = {
   'intake.phraseEmpty': 'Write the meal down first.',
   'intake.phraseUnitNote': 'counted as {count} {unit} ≈ {grams} g',
   'intake.phraseUnitFallback': 'serving',
+
+  // ─────────── 一句话解析的核对窗 ───────────
+  'phrase.reviewTitle': 'Review what we found',
+  'phrase.reviewDesc':
+    'Anything in your food library uses the saved numbers; tap the rest to decide.',
+  'phrase.statusLibrary': 'In library',
+  'phrase.statusPending': 'Needs review',
+  'phrase.statusNew': 'New food',
+  'phrase.statusSkipped': 'Skipped',
+  'phrase.pendingLeft': '{n} left to review',
+  'phrase.done': 'Done',
+  'phrase.backToList': 'Back to list',
+  'phrase.detailTitle': 'Not in your food library',
+  'phrase.detailDesc':
+    'Check the numbers and portion, then save: this creates the food and logs it to this intake.',
+  'phrase.grams': 'How much you had',
+  'phrase.totalPreview': 'About {kcal} kcal · {protein} g protein',
+  'phrase.createAndLog': 'Create food and log it',
+  'phrase.skipItem': 'Skip this one',
+  'phrase.duplicateName': '“{name}” is already in your food library — pick another name.',
   'intake.pickFood': 'Pick a source, then choose a food and its amount.',
   'intake.confirmPick': 'Use this food',
   'intake.cancelAdd': 'Cancel',
