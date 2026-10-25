@@ -103,6 +103,8 @@ window.SITE_I18N = {
     'download.androidMeta': 'Android 10 以上 · 约 16 MB',
     'download.androidDesc': '侧载安装，需要允许「安装未知来源应用」。手机上是同一套界面，数据留在本机。',
     'download.note': '两个仓库放的是同一份安装包，哪个快就用哪个。',
+    'download.history': '历史版本',
+    'download.current': '当前',
 
     'footer.version': '版本 0.2.0',
     'footer.tagline': '数据只存在你的设备上',
@@ -214,6 +216,8 @@ window.SITE_I18N = {
     'download.androidDesc':
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
+    'download.history': 'Previous versions',
+    'download.current': 'Current',
 
     'footer.version': 'Version 0.2.0',
     'footer.tagline': 'Data stays on your device',

@@ -1020,3 +1020,77 @@ html[lang='en'] .download h3 {
     flex-direction: column;
   }
 }
+
+/* 历史版本：默认收起，一行小字 */
+.history {
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.history summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--muted);
+  list-style: none;
+}
+
+.history summary::-webkit-details-marker {
+  display: none;
+}
+
+.history summary::before {
+  content: '＋';
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.history[open] summary::before {
+  content: '－';
+}
+
+.history summary:hover {
+  color: var(--fg);
+}
+
+.history ul {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding-left: 2px;
+}
+
+.history li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.history__ver {
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+
+.history__tag {
+  padding: 1px 6px;
+  border: 1px solid rgb(110 231 255 / 35%);
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--brand);
+}
+
+.history a {
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px dotted rgb(143 154 179 / 45%);
+}
+
+.history a:hover {
+  color: var(--brand);
+  border-bottom-color: currentColor;
+}
+
