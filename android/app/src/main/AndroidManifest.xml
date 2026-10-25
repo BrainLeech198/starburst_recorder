@@ -38,6 +38,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 应用内下载更新包后拉起系统安装器 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- 拍照导入日记/成分表：@capacitor/camera 调系统相机时检查这一项 -->
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- 没有相机的设备（少数平板/模拟器）也能装，只是不显示拍照入口 -->

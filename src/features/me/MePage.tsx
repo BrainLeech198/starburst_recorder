@@ -6,9 +6,12 @@
  */
 import SettingRow from '@/shared/ui/SettingRow'
 import { useI18n } from '@/shared/i18n/context'
+import { APP_VERSION } from '@/core/version'
+import { useUpdate } from '@/features/update/UpdateProvider'
 
 export default function MePage() {
   const { t } = useI18n()
+  const { info, checking, check } = useUpdate()
 
   return (
     <div className="mx-auto w-full max-w-md p-4">
@@ -32,6 +35,37 @@ export default function MePage() {
           hint={t('me.settingsHint')}
         />
         <SettingRow to="/me/agent" emoji="✨" title={t('me.agent')} hint={t('me.agentHint')} />
+
+        {/* 有新版时点一个红点：平时不打扰，但也别让人翻不到 */}
+        <button
+          type="button"
+          onClick={check}
+          className="flex w-full items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3 text-left transition-colors hover:border-brand"
+        >
+          <span aria-hidden="true" className="text-lg leading-none">
+            ⬇️
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2 text-sm font-medium text-fg">
+              {t('update.check')}
+              {info && (
+                <span
+                  aria-hidden="true"
+                  className="h-2 w-2 rounded-full bg-danger"
+                  title={t('update.found', { version: info.version })}
+                />
+              )}
+            </span>
+            <span className="mt-0.5 block text-xs text-muted">
+              {info
+                ? t('update.found', { version: info.version })
+                : t('update.checkHint', { version: APP_VERSION })}
+            </span>
+          </span>
+          <span aria-hidden="true" className="text-muted">
+            {checking ? '…' : '›'}
+          </span>
+        </button>
       </div>
 
       <p className="mt-4 text-xs text-muted">{t('me.futureNote')}</p>

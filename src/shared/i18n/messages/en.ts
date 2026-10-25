@@ -1142,6 +1142,22 @@ export const en: Record<MessageKey, string> = {
   'common.settings': 'Settings',
   'common.loading': 'Loading…',
 
+  // ─────────── 检查更新 ───────────
+  'update.title': 'Version {version} is available',
+  'update.current': 'You are on {version}',
+  'update.notes': "What's new",
+  'update.later': 'Later',
+  'update.download': 'Download and install',
+  'update.downloading': 'Downloading {name}…',
+  'update.done': 'Download started — follow the prompts to finish installing',
+  'update.saved': 'Saved to {path}',
+  'update.failed': 'Download failed: {error}',
+  'update.check': 'Check for updates',
+  'update.checkHint': 'Version {version}',
+  'update.checking': 'Checking…',
+  'update.latest': 'You are up to date ({version})',
+  'update.found': 'Version {version} is available',
+
   'error.title': 'Something went wrong on this page',
   'error.hint': 'Try refreshing first; if it persists, your records are safe on this device.',
   'error.reload': 'Refresh',

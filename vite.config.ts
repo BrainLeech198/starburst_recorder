@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import type { Plugin } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
@@ -76,8 +77,16 @@ function aiDevProxy(): Plugin {
   }
 }
 
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+  version: string
+}
+
 export default defineConfig({
   plugins: [react(), tailwindcss(), aiDevProxy()],
+  // 版本号只认 package.json，页面与检查更新都用 __APP_VERSION__
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   // 桌面壳（Electron/Tauri）用 file:// 或自定义协议打开 index.html，
   // 资源必须走相对路径，否则绝对路径 /assets/... 会 404
   base: './',

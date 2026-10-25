@@ -76,6 +76,27 @@ export interface DesktopBridge {
   }
   /** 其他窗口写了数据时触发；返回退订函数 */
   onDbChanged: (listener: () => void) => () => void
+  /** 检查更新与下载安装包：走主进程，避开 CORS 和渲染进程的网络栈 */
+  update: {
+    check: () => Promise<DesktopUpdateInfo | null>
+    download: (url: string, fileName: string) => Promise<DesktopUpdateResult>
+    open: (filePath: string) => Promise<boolean>
+  }
+}
+
+/** 主进程回的「有新版本」信息，形状与 features/update 里的 UpdateInfo 一致 */
+export interface DesktopUpdateInfo {
+  version: string
+  notes: string
+  pageUrl: string
+  downloadUrl: string
+  fileName: string
+}
+
+export interface DesktopUpdateResult {
+  ok: boolean
+  path?: string
+  error?: string
 }
 
 declare global {

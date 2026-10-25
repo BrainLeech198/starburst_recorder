@@ -1,0 +1,166 @@
+/**
+ * 检查更新。
+ *
+ * 两个源：GitHub 优先，失败退 Gitee（国内网络更稳）。桌面端由主进程代取（没有 CORS，
+ * 也走系统代理）；浏览器和安卓走 fetch，拿不到就安静地放弃，不打扰用户。
+ *
+ * 版本号比较只看三段数字：'v0.2.0' 与 '0.2.0-beta' 都算 0.2.0，
+ * 预发布版不提示——用户装的是哪个版本，就只跟正式发版比。
+ */
+import { Capacitor, registerPlugin } from '@capacitor/core'
+import { APP_VERSION } from '@/core/version'
+import { isNewerVersion } from '@/core/utils/versionCompare'
+import { desktopBridge } from '@/platform/desktop'
+
+export interface UpdateInfo {
+  version: string
+  notes: string
+  /** 发版页，给「手动看看」用 */
+  pageUrl: string
+  /** 安装包直链 */
+  downloadUrl: string
+  fileName: string
+}
+
+const GITHUB_REPO = 'BrainLeech198/starburst_recorder'
+const GITEE_REPO = 'Mr_brainleech/starburst_recorder'
+const SNOOZE_KEY = 'sb.update.snoozed'
+
+export function isAndroid(): boolean {
+  return /Android/i.test(navigator.userAgent)
+}
+
+/** 只看正式版：latest 比 current 新就返回 true */
+export function isNewer(latest: string, current = APP_VERSION): boolean {
+  return isNewerVersion(latest, current)
+}
+
+/** 今天是不是已经把这个版本「稍后」掉了；一天只烦一次 */
+function snoozedToday(version: string): boolean {
+  try {
+    return localStorage.getItem(SNOOZE_KEY) === `${version}@${new Date().toDateString()}`
+  } catch {
+    return false
+  }
+}
+
+export function snooze(version: string) {
+  try {
+    localStorage.setItem(SNOOZE_KEY, `${version}@${new Date().toDateString()}`)
+  } catch {
+    // 存不了就只在本次会话生效
+  }
+}
+
+export function shouldPrompt(info: UpdateInfo): boolean {
+  return !snoozedToday(info.version)
+}
+
+interface RawRelease {
+  tag_name?: string
+  body?: string
+  html_url?: string
+  assets?: { name?: string; browser_download_url?: string }[]
+}
+
+/** 从一份 Release JSON 里挑出当前平台要下的那个文件 */
+function pickAsset(assets: RawRelease['assets'], android: boolean): { url: string; name: string } | null {
+  const list = assets ?? []
+  const wanted = android
+    ? list.find((item) => (item.name ?? '').toLowerCase().endsWith('.apk'))
+    : list.find((item) => (item.name ?? '').toLowerCase().endsWith('.exe'))
+  if (!wanted?.browser_download_url) return null
+  return { url: wanted.browser_download_url, name: wanted.name ?? (android ? 'update.apk' : 'update.exe') }
+}
+
+function normalize(raw: RawRelease | null, pageUrl: string, android: boolean): UpdateInfo | null {
+  if (!raw?.tag_name) return null
+  const version = raw.tag_name.replace(/^v/i, '')
+  if (!isNewer(version)) return null
+  const asset = pickAsset(raw.assets, android)
+  if (!asset) return null
+  return {
+    version,
+    notes: (raw.body ?? '').trim(),
+    pageUrl: raw.html_url || pageUrl,
+    downloadUrl: asset.url,
+    fileName: android ? `starburst-recorder-${version}.apk` : `starburst-recorder-${version}-setup.exe`,
+  }
+}
+
+async function fetchJson(url: string): Promise<RawRelease | null> {
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!response.ok) return null
+    return (await response.json()) as RawRelease
+  } catch {
+    return null
+  }
+}
+
+/** 检查一次；没有新版、两个源都失败、或当前平台没有对应安装包时返回 null */
+export async function checkForUpdate(): Promise<UpdateInfo | null> {
+  const android = isAndroid()
+
+  // 桌面端交给主进程：不受 CORS 限制，也跟系统代理走
+  const desktop = desktopBridge()
+  if (desktop?.update) {
+    const info = await desktop.update.check()
+    return info && isNewer(info.version) ? info : null
+  }
+
+  const github = await fetchJson(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`)
+  const fromGithub = normalize(
+    github,
+    `https://github.com/${GITHUB_REPO}/releases`,
+    android,
+  )
+  if (fromGithub) return fromGithub
+
+  const gitee = await fetchJson(`https://gitee.com/api/v5/repos/${GITEE_REPO}/releases/latest`)
+  return normalize(gitee, `https://gitee.com/${GITEE_REPO}/releases`, android)
+}
+
+export interface DownloadResult {
+  ok: boolean
+  /** 桌面端落到磁盘的位置 */
+  path?: string | null
+  error?: string
+}
+
+/** 下载安装包：桌面端下到「下载」并在下载完后打开安装程序 */
+export async function downloadUpdate(info: UpdateInfo): Promise<DownloadResult> {
+  const desktop = desktopBridge()
+  if (desktop?.update) {
+    const result = await desktop.update.download(info.downloadUrl, info.fileName)
+    if (result.ok && result.path) await desktop.update.open(result.path)
+    return result
+  }
+
+  const native = androidNative()
+  if (native) {
+    // 安卓壳里下完会自己拉起系统安装器，这里只等「开始下载」的确认
+    await native.downloadAndInstall({ url: info.downloadUrl, fileName: info.fileName })
+    return { ok: true }
+  }
+
+  // 浏览器调试：交给浏览器的下载管理
+  window.open(info.downloadUrl, '_blank', 'noopener')
+  return { ok: true }
+}
+
+/** 安卓原生插件（见 android/.../UpdatePlugin.java）：下 APK 并拉起系统安装器 */
+interface NativeUpdatePlugin {
+  downloadAndInstall: (options: { url: string; fileName: string }) => Promise<{ ok?: boolean }>
+}
+
+const NativeUpdate = registerPlugin<NativeUpdatePlugin>('Update')
+
+function androidNative(): NativeUpdatePlugin | undefined {
+  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android'
+    ? NativeUpdate
+    : undefined
+}

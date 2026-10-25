@@ -20,6 +20,12 @@ contextBridge.exposeInMainWorld('desktop', {
     close: () => ipcRenderer.invoke('quick:close'),
     notifyChange: () => ipcRenderer.send('db:notify'),
   },
+  // 检查更新与下载安装包：由主进程代劳，网页只拿到结果
+  update: {
+    check: () => ipcRenderer.invoke('update:check'),
+    download: (url, fileName) => ipcRenderer.invoke('update:download', url, fileName),
+    open: (filePath) => ipcRenderer.invoke('update:open', filePath),
+  },
   /** 别的窗口写了数据时触发，返回退订函数 */
   onDbChanged: (listener) => {
     const handler = () => listener()

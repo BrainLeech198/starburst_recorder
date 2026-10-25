@@ -18,6 +18,7 @@ const path = require('node:path')
 const nodeUrl = require('node:url')
 const fs = require('node:fs')
 const os = require('node:os')
+const { Readable } = require('node:stream')
 const { createDatabase } = require('./database.cjs')
 
 /** 窗口不能小于这个尺寸，免得版式被压坏 */
@@ -416,6 +417,113 @@ function getDatabase() {
 // 渲染进程只有这一个入口，方法名由 database.cjs 的白名单兜底
 ipcMain.handle('db:call', (_event, method, args) => getDatabase().call(method, args))
 ipcMain.handle('db:path', () => getDatabase().file)
+
+/**
+ * 检查更新：主进程代取 Release JSON（没有 CORS，也跟系统代理走）。
+ * GitHub 先试，失败退 Gitee；版本号只比三段数字，预发布版不提示。
+ */
+function versionParts(version) {
+  return String(version)
+    .replace(/^v/i, '')
+    .split('-')[0]
+    .split('.')
+    .map((part) => Number.parseInt(part, 10) || 0)
+    .slice(0, 3)
+}
+
+function isNewerVersion(latest, current) {
+  const a = versionParts(latest)
+  const b = versionParts(current)
+  for (let index = 0; index < 3; index += 1) {
+    const left = a[index] ?? 0
+    const right = b[index] ?? 0
+    if (left !== right) return left > right
+  }
+  return false
+}
+
+function pickUpdateAsset(assets, wantApk) {
+  const list = Array.isArray(assets) ? assets : []
+  const hit = list.find((item) =>
+    String(item?.name ?? '')
+      .toLowerCase()
+      .endsWith(wantApk ? '.apk' : '.exe'),
+  )
+  return hit?.browser_download_url ? { url: hit.browser_download_url, name: hit.name } : null
+}
+
+function normalizeRelease(raw, pageUrl, wantApk) {
+  if (!raw?.tag_name) return null
+  const version = String(raw.tag_name).replace(/^v/i, '')
+  if (!isNewerVersion(version, app.getVersion())) return null
+  const asset = pickUpdateAsset(raw.assets, wantApk)
+  if (!asset) return null
+  return {
+    version,
+    notes: String(raw.body ?? '').trim(),
+    pageUrl: raw.html_url || pageUrl,
+    downloadUrl: asset.url,
+    fileName: wantApk
+      ? `starburst-recorder-${version}.apk`
+      : `starburst-recorder-${version}-setup.exe`,
+  }
+}
+
+async function fetchReleaseJson(url) {
+  try {
+    const response = await net.fetch(url, { headers: { Accept: 'application/json' } })
+    if (!response.ok) return null
+    return await response.json()
+  } catch {
+    return null
+  }
+}
+
+ipcMain.handle('update:check', async () => {
+  const wantApk = process.platform !== 'win32' && process.platform !== 'darwin'
+  const github = await fetchReleaseJson(
+    'https://api.github.com/repos/BrainLeech198/starburst_recorder/releases/latest',
+  )
+  const fromGithub = normalizeRelease(
+    github,
+    'https://github.com/BrainLeech198/starburst_recorder/releases',
+    wantApk,
+  )
+  if (fromGithub) return fromGithub
+
+  const gitee = await fetchReleaseJson(
+    'https://gitee.com/api/v5/repos/Mr_brainleech/starburst_recorder/releases/latest',
+  )
+  return normalizeRelease(gitee, 'https://gitee.com/Mr_brainleech/starburst_recorder/releases', wantApk)
+})
+
+/** 下载安装包到「下载」目录；边下边写盘，不在内存里攒一整个包 */
+ipcMain.handle('update:download', async (_event, url, fileName) => {
+  try {
+    const response = await net.fetch(String(url), { redirect: 'follow' })
+    if (!response.ok || !response.body) return { ok: false, error: `HTTP ${response.status}` }
+    const dir = app.getPath('downloads')
+    const safe = String(fileName || 'starburst-update.bin').replace(/[\\/:*?"<>|]/g, '_')
+    const target = path.join(dir, safe)
+    await fs.promises.mkdir(dir, { recursive: true })
+    await new Promise((resolve, reject) => {
+      const stream = Readable.fromWeb(response.body)
+      const file = fs.createWriteStream(target)
+      stream.on('error', reject)
+      file.on('error', reject)
+      file.on('finish', resolve)
+      stream.pipe(file)
+    })
+    return { ok: true, path: target }
+  } catch (error) {
+    return { ok: false, error: error && error.message ? error.message : String(error) }
+  }
+})
+
+ipcMain.handle('update:open', async (_event, filePath) => {
+  const failure = await shell.openPath(String(filePath))
+  return failure === ''
+})
 
 /**
  * 「数据在哪」：userData 是整个程序的数据目录，数据库文件就在它下面。

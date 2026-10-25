@@ -1097,6 +1097,22 @@ export const zh = {
   'common.settings': '设置',
   'common.loading': '加载中…',
 
+  // ─────────── 检查更新 ───────────
+  'update.title': '发现新版本 {version}',
+  'update.current': '当前版本 {version}',
+  'update.notes': '更新内容',
+  'update.later': '稍后',
+  'update.download': '下载并安装',
+  'update.downloading': '正在下载 {name}…',
+  'update.done': '已开始下载，按提示完成安装即可',
+  'update.saved': '已保存到 {path}',
+  'update.failed': '下载失败：{error}',
+  'update.check': '检查更新',
+  'update.checkHint': '当前版本 {version}',
+  'update.checking': '正在检查…',
+  'update.latest': '已经是最新版本 {version}',
+  'update.found': '发现新版本 {version}',
+
   'error.title': '这个页面出问题了',
   'error.hint': '可以先刷新重试；如果一直这样，记录不会丢，数据还在本机。',
   'error.reload': '刷新重试',

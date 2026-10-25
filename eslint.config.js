@@ -31,12 +31,12 @@ export default [
   {
     // Provider 文件刻意同时导出组件与其配套 hook（如 ThemeProvider / useTheme）。
     // 这会让 Fast Refresh 退化为整页刷新，影响可忽略，故对这类文件关闭该规则。
-    files: ['src/app/providers/*.tsx'],
+    files: ['src/app/providers/*.tsx', 'src/features/update/UpdateProvider.tsx'],
     rules: { 'react-refresh/only-export-components': 'off' },
   },
   {
     // Electron 主进程/预加载脚本跑在 Node 里，用的是 CommonJS
-    files: ['electron/**/*.cjs'],
+    files: ['electron/**/*.cjs', 'package/**/*.cjs'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'commonjs',

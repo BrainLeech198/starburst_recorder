@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router'
 import { ThemeProvider } from './app/providers/ThemeProvider'
 import { BallProvider } from './app/providers/BallProvider'
 import { ToastProvider } from './app/providers/ToastProvider'
+import { UpdateProvider } from './features/update/UpdateProvider'
 import { I18nProvider } from './shared/i18n/I18nProvider'
 import { router } from './app/router'
 import { desktopBridge } from './platform/desktop'
@@ -19,7 +20,9 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider>
         <BallProvider>
           <ToastProvider>
-            <RouterProvider router={router} />
+            <UpdateProvider>
+              <RouterProvider router={router} />
+            </UpdateProvider>
           </ToastProvider>
         </BallProvider>
       </ThemeProvider>
