@@ -33,7 +33,7 @@ export function useUpdate() {
 }
 
 export function UpdateProvider({ children }: { children: ReactNode }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const { showToast } = useToast()
   const [info, setInfo] = useState<UpdateInfo | null>(null)
   const [open, setOpen] = useState(false)
@@ -45,7 +45,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     async (manual: boolean) => {
       if (checking) return
       setChecking(true)
-      const found = await checkForUpdate()
+      const found = await checkForUpdate(locale)
       setChecking(false)
       if (found) setInfo(found)
       if (manual) {
@@ -57,7 +57,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       }
       return found
     },
-    [checking, showToast, t],
+    [checking, locale, showToast, t],
   )
 
   // 启动检查一次；StrictMode 下 effect 会跑两遍，用 ref 挡住

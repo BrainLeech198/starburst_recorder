@@ -479,22 +479,40 @@ async function fetchReleaseJson(url) {
   }
 }
 
-ipcMain.handle('update:check', async () => {
+const UPDATE_SOURCES = {
+  github: 'https://api.github.com/repos/BrainLeech198/starburst_recorder/releases/latest',
+  gitee: 'https://gitee.com/api/v5/repos/Mr_brainleech/starburst_recorder/releases/latest',
+}
+
+ipcMain.handle('update:check', async (_event, locale) => {
   const wantApk = process.platform !== 'win32' && process.platform !== 'darwin'
-  const github = await fetchReleaseJson(
-    'https://api.github.com/repos/BrainLeech198/starburst_recorder/releases/latest',
-  )
-  const fromGithub = normalizeRelease(
+  const github = await fetchReleaseJson(UPDATE_SOURCES.github)
+  let info = normalizeRelease(
     github,
     'https://github.com/BrainLeech198/starburst_recorder/releases',
     wantApk,
   )
-  if (fromGithub) return fromGithub
 
-  const gitee = await fetchReleaseJson(
-    'https://gitee.com/api/v5/repos/Mr_brainleech/starburst_recorder/releases/latest',
-  )
-  return normalizeRelease(gitee, 'https://gitee.com/Mr_brainleech/starburst_recorder/releases', wantApk)
+  // GitHub 拿不到就退 Gitee；Gitee 上可能只有 APK，那 normalize 会返回 null
+  if (!info) {
+    const gitee = await fetchReleaseJson(UPDATE_SOURCES.gitee)
+    info = normalizeRelease(
+      gitee,
+      'https://gitee.com/Mr_brainleech/starburst_recorder/releases',
+      wantApk,
+    )
+    if (!info) return null
+  }
+
+  // 中文界面换成 Gitee 那份中文说明
+  if (locale === 'zh') {
+    const gitee = await fetchReleaseJson(UPDATE_SOURCES.gitee)
+    const body = String(gitee?.body ?? '').trim()
+    const tag = String(gitee?.tag_name ?? '').replace(/^v/i, '')
+    if (body && tag === info.version) info.notes = body
+  }
+
+  return info
 })
 
 /** 下载安装包到「下载」目录；边下边写盘，不在内存里攒一整个包 */

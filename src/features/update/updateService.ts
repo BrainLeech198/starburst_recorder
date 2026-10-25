@@ -101,27 +101,42 @@ async function fetchJson(url: string): Promise<RawRelease | null> {
   }
 }
 
-/** 检查一次；没有新版、两个源都失败、或当前平台没有对应安装包时返回 null */
-export async function checkForUpdate(): Promise<UpdateInfo | null> {
+/**
+ * 检查一次；没有新版、两个源都失败、或当前平台没有对应安装包时返回 null。
+ *
+ * 版本号和下载地址一律取 GitHub（两个平台的包都传在那儿）；
+ * 中文界面会再取一次 Gitee，把同版本的更新说明换成中文那版。
+ */
+export async function checkForUpdate(locale: 'zh' | 'en' = 'zh'): Promise<UpdateInfo | null> {
   const android = isAndroid()
 
   // 桌面端交给主进程：不受 CORS 限制，也跟系统代理走
   const desktop = desktopBridge()
   if (desktop?.update) {
-    const info = await desktop.update.check()
+    const info = await desktop.update.check(locale)
     return info && isNewer(info.version) ? info : null
   }
 
   const github = await fetchJson(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`)
-  const fromGithub = normalize(
-    github,
-    `https://github.com/${GITHUB_REPO}/releases`,
-    android,
-  )
-  if (fromGithub) return fromGithub
+  let info = normalize(github, `https://github.com/${GITHUB_REPO}/releases`, android)
 
-  const gitee = await fetchJson(`https://gitee.com/api/v5/repos/${GITEE_REPO}/releases/latest`)
-  return normalize(gitee, `https://gitee.com/${GITEE_REPO}/releases`, android)
+  // GitHub 连不上（国内网络常见）时退到 Gitee；Gitee 上安卓包一定在，桌面包可能因为
+  // 100 MB 上限缺席——那种情况 normalize 会返回 null，安静地当作「没有更新」。
+  if (!info) {
+    const gitee = await fetchJson(`https://gitee.com/api/v5/repos/${GITEE_REPO}/releases/latest`)
+    info = normalize(gitee, `https://gitee.com/${GITEE_REPO}/releases`, android)
+    if (!info) return null
+  }
+
+  // 中文界面用 Gitee 那份中文说明
+  if (locale === 'zh') {
+    const gitee = await fetchJson(`https://gitee.com/api/v5/repos/${GITEE_REPO}/releases/latest`)
+    const body = String(gitee?.body ?? '').trim()
+    const tag = String(gitee?.tag_name ?? '').replace(/^v/i, '')
+    if (body && tag === info.version) info.notes = body
+  }
+
+  return info
 }
 
 export interface DownloadResult {

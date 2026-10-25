@@ -22,7 +22,7 @@ contextBridge.exposeInMainWorld('desktop', {
   },
   // 检查更新与下载安装包：由主进程代劳，网页只拿到结果
   update: {
-    check: () => ipcRenderer.invoke('update:check'),
+    check: (locale) => ipcRenderer.invoke('update:check', locale),
     download: (url, fileName) => ipcRenderer.invoke('update:download', url, fileName),
     open: (filePath) => ipcRenderer.invoke('update:open', filePath),
   },

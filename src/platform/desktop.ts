@@ -78,7 +78,7 @@ export interface DesktopBridge {
   onDbChanged: (listener: () => void) => () => void
   /** 检查更新与下载安装包：走主进程，避开 CORS 和渲染进程的网络栈 */
   update: {
-    check: () => Promise<DesktopUpdateInfo | null>
+    check: (locale: 'zh' | 'en') => Promise<DesktopUpdateInfo | null>
     download: (url: string, fileName: string) => Promise<DesktopUpdateResult>
     open: (filePath: string) => Promise<boolean>
   }
