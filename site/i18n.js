@@ -23,7 +23,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.2.8',
+    'hero.cta': '下载 0.2.9',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -94,11 +94,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.2.8',
+    'open.version': '版本 0.2.9',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.2.8 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.2.9 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -109,12 +109,11 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '随记也有短编号：每条随记带上 7 位编号，和日记一样方便指代，旧记录会自动补齐',
+      '首页回到屏幕中间：手机上图标和标题不再贴着头，整块内容落在可视区中间',
     'whatsnew.item2':
-      'AI 整理后可以接着聊：生成草稿后继续提要求，每轮都给出完整新稿，手动改过的内容也会带上',
-    'whatsnew.item3': 'AI 润色也能对话：不满意就接着提要求，反复调整到顺眼再替换正文',
-    'whatsnew.item4': '手机更新下载更稳：Gitee 和 GitHub 两个源各试一次，国内网络下不再卡在 GitHub',
-    'whatsnew.item5': '设置里能清缓存：一键清掉临时文件和已下载的安装包，日记、随记和 AI 配置都不动',
+      '长弹窗不再跑出屏幕：内容多的弹窗在面板里自己滚，按钮和输入框都能滚到',
+    'whatsnew.item3':
+      '顶栏下拉不再伸出屏幕：窄屏上「插入」「文件」「工具」的菜单贴着边缘展开，不会从左边跑出去',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -123,7 +122,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.2.8',
+    'footer.version': '版本 0.2.9',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -146,7 +145,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.2.8',
+    'hero.cta': 'Download 0.2.9',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -221,12 +220,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.2.8',
+    'open.version': 'Version 0.2.9',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.2.8 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.2.9 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -237,17 +236,13 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.2.8",
+    'whatsnew.title': "What's new in 0.2.9",
     'whatsnew.item1':
-      'Stamps get short IDs: every stamp carries a 7-character code like diary entries do, and existing records are filled in automatically',
+      'Home sits in the middle again: the mark and title no longer hug the top edge on phones, and the whole block is centred in the viewport',
     'whatsnew.item2':
-      'Keep refining after AI compose: ask for changes in plain words, get a whole new draft each round, and hand edits are carried along',
+      'Long dialogs stay on screen: content scrolls inside the panel, so buttons and fields are always reachable',
     'whatsnew.item3':
-      'AI polish is a conversation too: keep asking for tweaks until it reads right, then apply it to the diary',
-    'whatsnew.item4':
-      'Steadier Android updates: Gitee and GitHub are each tried once, so downloads no longer hang on GitHub in China',
-    'whatsnew.item5':
-      'Clear cache in Settings: one tap removes temporary files and downloaded installers, leaving diary, stamps and AI settings untouched',
+      'Top-bar menus stay on screen: on narrow phones the Insert / File / Tools menus open against the nearest edge instead of off the left side',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -256,7 +251,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.2.8',
+    'footer.version': 'Version 0.2.9',
     'footer.tagline': 'Data stays on your device',
   },
 };

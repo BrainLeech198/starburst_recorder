@@ -1,3 +1,16 @@
+## 0.2.9 · 2026-10-26
+
+### What's new
+
+- **Home sits in the middle again** — the mark and title no longer hug the top edge on phones, and the whole block is centred in the viewport
+- **Long dialogs stay on screen** — content scrolls inside the panel, so buttons and fields are always reachable
+- **Top-bar menus stay on screen** — on narrow phones the Insert / File / Tools menus open against the nearest edge instead of off the left side
+
+### Downloads
+
+- Windows 10/11: `starburst-recorder-0.2.9-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.2.9.apk` (~16 MB, release-signed)
+
 ## 0.2.8 · 2026-10-26
 
 ### What's new
