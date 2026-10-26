@@ -1,3 +1,16 @@
+## 0.2.10 · 2026-10-26
+
+### What's new
+
+- **Export only the records you pick** — mix diary entries, quick notes, health intake and finance records in one file for AI or someone else, without exporting the whole library
+- **Three formats** — Markdown grouped by date and type, clean plain text, or JSON with every field kept
+- **Two entry points** — Data & backup in Settings, and the batch bar in the intake list
+
+### Downloads
+
+- Windows 10/11: `starburst-recorder-0.2.10-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.2.10.apk` (~16 MB, release-signed)
+
 ## 0.2.9 · 2026-10-26
 
 ### What's new

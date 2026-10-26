@@ -4,6 +4,11 @@
  * 单独开一页而不是塞进设置页：这三件事都是全局的数据管理，不属于任何单个功能模块，
  * 以后要加「清空数据」「导入旧笔记」也有地方放。
  *
+ * 导出有两条路，别混：
+ *   - 「导出数据…」是整库备份：JSON、按日记 / 健康 / 经济分块，能导入恢复；
+ *   - 「挑选记录导出…」只认勾中的几条（四类记录可混选），给 AI 或别人看，
+ *     格式可选 Markdown / 纯文本 / JSON。
+ *
  * 备份从 v2 起分块：导出时先勾选要带走的块（日记 / 健康 / 经济），
  * 导入时也先问要合并哪些块——只写勾选的块，没勾的一个字都不动。
  */
@@ -55,6 +60,7 @@ import {
   pickIncoming,
 } from '@/features/diary/diaryMerge'
 import type { HealthPart, MergeConflict } from '@/features/diary/diaryMerge'
+import RecordExportDialog from '@/features/records/RecordExportDialog'
 
 /** 导入方式：融合只补/更新，替换则先把选中的块清空再恢复 */
 type ImportMode = 'merge' | 'replace'
@@ -405,6 +411,8 @@ export default function DataPage() {
   const counts = useLiveQuery(() => totals(), [])
   const [exportData, setExportData] = useState<BackupData | null>(null)
   const [exportSelected, setExportSelected] = useState<Set<BackupSection>>(new Set(ALL_SECTIONS))
+  /** 「挑选记录导出」用的整库数据；非 null 就打开勾选弹窗 */
+  const [recordData, setRecordData] = useState<BackupData | null>(null)
   const [pending, setPending] = useState<Pending | null>(null)
   const [report, setReport] = useState<Report | null>(null)
   const [error, setError] = useState('')
@@ -469,6 +477,20 @@ export default function DataPage() {
         t,
       ),
     })
+  }
+
+  /** 打开「挑选记录导出」：先取整库，勾选与格式都在弹窗里定 */
+  async function handleRecordExportStart() {
+    setError('')
+    setReport(null)
+    setBusy(true)
+    try {
+      setRecordData(await exportAllData())
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught))
+    } finally {
+      setBusy(false)
+    }
   }
 
   /** 一键清空某一块：先弹确认；safe 只软删进回收站，否则物理删除 */
@@ -761,6 +783,18 @@ export default function DataPage() {
           </button>
           <p className="mt-2 text-xs text-muted">{t('data.exportHint')}</p>
         </SettingGroup>
+
+        <SettingGroup label={t('data.pickExportGroup')}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void handleRecordExportStart()}
+            className={OUTLINE_BUTTON}
+          >
+            {busy ? t('data.reading') : t('data.pickExport')}
+          </button>
+          <p className="mt-2 text-xs text-muted">{t('data.pickExportHint')}</p>
+        </SettingGroup>
       </SettingCard>
 
       <SettingCard
@@ -879,6 +913,13 @@ export default function DataPage() {
           confirmLabel={t(clearing.safe ? 'data.safeClearConfirm' : 'data.clearConfirm')}
           onConfirm={() => void handleClearConfirm()}
           onCancel={() => setClearing(null)}
+        />
+      )}
+
+      {recordData && (
+        <RecordExportDialog
+          data={asPayload(recordData)}
+          onClose={() => setRecordData(null)}
         />
       )}
 

@@ -23,7 +23,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.2.9',
+    'hero.cta': '下载 0.2.10',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -94,11 +94,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.2.9',
+    'open.version': '版本 0.2.10',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.2.9 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.2.10 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -109,11 +109,11 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '首页回到屏幕中间：手机上图标和标题不再贴着头，整块内容落在可视区中间',
+      '可以只挑几条记录导出：日记、随记、健康摄入、收支混着勾，单独发给 AI 或别人看',
     'whatsnew.item2':
-      '长弹窗不再跑出屏幕：内容多的弹窗在面板里自己滚，按钮和输入框都能滚到',
+      '三种格式任选：Markdown 按日期和种类分节，纯文本干净好读，JSON 保留完整字段',
     'whatsnew.item3':
-      '顶栏下拉不再伸出屏幕：窄屏上「插入」「文件」「工具」的菜单贴着边缘展开，不会从左边跑出去',
+      '入口有两处：设置里的「数据与备份」，以及健康摄入列表的批量条',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -122,7 +122,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.2.9',
+    'footer.version': '版本 0.2.10',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -145,7 +145,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.2.9',
+    'hero.cta': 'Download 0.2.10',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -220,12 +220,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.2.9',
+    'open.version': 'Version 0.2.10',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.2.9 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.2.10 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -236,13 +236,13 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.2.9",
+    'whatsnew.title': "What's new in 0.2.10",
     'whatsnew.item1':
-      'Home sits in the middle again: the mark and title no longer hug the top edge on phones, and the whole block is centred in the viewport',
+      'Export only the records you pick: mix diary entries, stamps, intakes and finance records for AI or someone else',
     'whatsnew.item2':
-      'Long dialogs stay on screen: content scrolls inside the panel, so buttons and fields are always reachable',
+      'Three formats: Markdown grouped by date and type, clean plain text, or JSON with every field kept',
     'whatsnew.item3':
-      'Top-bar menus stay on screen: on narrow phones the Insert / File / Tools menus open against the nearest edge instead of off the left side',
+      'Two entry points: Data & backup in Settings, and the batch bar in the intake list',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -251,7 +251,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.2.9',
+    'footer.version': 'Version 0.2.10',
     'footer.tagline': 'Data stays on your device',
   },
 };

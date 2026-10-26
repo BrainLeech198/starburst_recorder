@@ -24,6 +24,7 @@ import IntakeDetailDialog from './IntakeDetailDialog'
 import MealParts from './MealParts'
 import { dayTargets, missingProfileFields, remainingKcal, sumMacros } from './healthMath'
 import {
+  exportAllData,
   healthProfile,
   intakeDays,
   intakesOfDay,
@@ -32,7 +33,9 @@ import {
   restoreIntake,
   restoreIntakes,
 } from './healthRepo'
+import type { BackupData } from './healthRepo'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
+import RecordExportDialog from '@/features/records/RecordExportDialog'
 
 const FIELD_LABELS = {
   sex: 'profile.fieldSex',
@@ -56,6 +59,8 @@ export default function HealthPage() {
   /** 批量多选：只针对当前这一天的摄入 */
   const batch = useBatchSelect()
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
+  /** 批量导出时取来的整库数据；非 null 就打开挑选弹窗，当前勾中的摄入带进去预选 */
+  const [exportData, setExportData] = useState<BackupData | null>(null)
 
   function setDayKey(next: string) {
     batch.exit()
@@ -104,6 +109,10 @@ export default function HealthPage() {
         void restoreIntake(target.id)
       },
     })
+  }
+
+  async function handleBatchExport() {
+    setExportData(await exportAllData())
   }
 
   async function handleBatchDelete() {
@@ -370,6 +379,14 @@ export default function HealthPage() {
         >
           <button
             type="button"
+            onClick={() => void handleBatchExport()}
+            disabled={batch.count === 0}
+            className={BAR_BUTTON}
+          >
+            {t('health.exportIntakes')}
+          </button>
+          <button
+            type="button"
             onClick={() => setBatchDeleteOpen(true)}
             disabled={batch.count === 0}
             className={BAR_DANGER}
@@ -386,6 +403,14 @@ export default function HealthPage() {
           confirmLabel={t('health.deleteIntake')}
           onConfirm={() => void handleBatchDelete()}
           onCancel={() => setBatchDeleteOpen(false)}
+        />
+      )}
+
+      {exportData && (
+        <RecordExportDialog
+          data={exportData}
+          initial={{ intake: batch.selected }}
+          onClose={() => setExportData(null)}
         />
       )}
 

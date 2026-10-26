@@ -54,6 +54,7 @@ export const en: Record<MessageKey, string> = {
   'health.deleteIntake': 'Delete this entry',
   'health.intakeTrash': 'Intake trash',
   'health.batch': 'Batch',
+  'health.exportIntakes': 'Export',
   'health.unitIntake': 'entry',
   'health.batchDeleteTitle': 'Delete the {n} selected entries?',
   'health.batchDeleteBody': 'They can be restored from the intake trash, or undone from the toast.',
@@ -755,6 +756,10 @@ export const en: Record<MessageKey, string> = {
   'data.export': 'Export data…',
   'data.exportHint':
     'On phones the system save dialog appears; on computers it downloads directly. Keep it safe — it is your backup and the only thing to carry when switching machines.',
+  'data.pickExportGroup': 'Pick records',
+  'data.pickExport': 'Pick records to export…',
+  'data.pickExportHint':
+    'Tick a few diary entries, stamps, intakes or finance records and export as Markdown / plain text / JSON. Use "Export data" above for a full backup.',
   'data.savedAll':
     'Everything: {entries} entries, {stamps} stamps, {days} days of weather (trash included)',
   'data.savedDownloaded': 'Exported {detail}',
@@ -1081,6 +1086,31 @@ export const en: Record<MessageKey, string> = {
   'export.textLabel': 'Plain text .txt',
   'export.textHint': 'Clean and readable, no markup',
   'export.jsonHint': 'Keeps all fields — for full backups',
+
+  'records.title': 'Pick records to export',
+  'records.desc':
+    'Export only the records you tick, for AI or someone else. Use "Export data" above for a full backup.',
+  'records.window': 'Show',
+  'records.window7': 'Last 7 days',
+  'records.window30': 'Last 30 days',
+  'records.windowAll': 'All time',
+  'records.kindDiary': 'Diary',
+  'records.kindStamp': 'Stamps',
+  'records.kindIntake': 'Intakes',
+  'records.kindFinance': 'Finance',
+  'records.emptyKind': 'Nothing here yet.',
+  'records.emptyWindow': 'Nothing in this range — switch to "All time".',
+  'records.picked': '{count} picked',
+  'records.previewEmpty': '(no content)',
+  'records.selectAllVisible': 'Select all',
+  'records.clearKind': 'Clear',
+  'records.format': 'Format',
+  'records.markdownHint': 'Grouped by date and type — ready for AI to read',
+  'records.textHint': 'Clean and readable, no markup',
+  'records.jsonHint': 'Only the picked records, all fields kept for programs',
+  'records.selected': '{count} records selected',
+  'records.export': 'Export',
+  'records.exported': '{count} records ({label})',
 
   'imageImport.dialogTitle': 'Import images',
   'imageImport.emptyHint':

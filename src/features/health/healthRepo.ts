@@ -36,4 +36,8 @@ export const {
   trashedIntakes,
   purgeIntake,
   purgeTrashedIntakes,
+  // 整库取数：健康页的「导出」要把所选摄入放进四类记录里一起挑
+  exportAllData,
 } = store
+
+export type { BackupData } from '@/core/db/store'
