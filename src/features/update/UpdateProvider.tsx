@@ -119,7 +119,11 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     }
     if (result.ok) {
       showToast({
-        message: result.path ? t('update.saved', { path: result.path }) : t('update.done'),
+        message: result.path
+          ? t('update.saved', { path: result.path })
+          : result.finished
+            ? t('update.launched')
+            : t('update.done'),
       })
       setOpen(false)
       return

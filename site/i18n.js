@@ -23,7 +23,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.2.5',
+    'hero.cta': '下载 0.2.6',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -94,11 +94,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.2.5',
+    'open.version': '版本 0.2.6',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.2.5 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.2.6 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -109,18 +109,23 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '备份更扛折腾：写坏的日期不再混进库、悄悄污染按天统计，老备份和以后的新字段都能读',
+      'AI 整理可以挑素材：随记、健康摄入、经济收支各自勾选，想写什么就取什么',
     'whatsnew.item2':
-      '数据格式有了明确口径：备份带两个版本号，以后升级不用再担心旧记录读不出来',
+      '整理时会翻旧账：默认参考最近 14 天，也能只取前两天或自定义区间；旧记录只用来呼应，不会写成今天的事',
     'whatsnew.item3':
-      '每条记录带时间戳：标着「建于 …」，真被编辑过才多半句「改于 …」，不抢正文',
-    'whatsnew.item4': '修掉安卓导出备份闪退，加固了几处崩溃点；另有六套主题、下载进度条',
+      '导出能选范围和内容：选中项 / 当天 / 自定义区间，日记与随记分开勾，天气和时间戳按需带上',
+    'whatsnew.item4':
+      '健康摄入列表默认收起，给后续卡片留出首屏；应用内更新修好安卓下载完成后的提示',
+    'whatsnew.item5': '窄屏日期不再被挤成省略号，右侧入口自动换行',
     'whatsnew.more': '完整更新日志',
-    'whatsnew.moreHref': 'notes.zh.md',
+    'whatsnew.moreHref': 'changelog.html',
+    'changelog.kicker': '更新日志',
+    'changelog.title': '每一版改了什么',
+    'changelog.back': '← 回到下载',
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.2.5',
+    'footer.version': '版本 0.2.6',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -143,7 +148,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.2.5',
+    'hero.cta': 'Download 0.2.6',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -218,12 +223,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.2.5',
+    'open.version': 'Version 0.2.6',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.2.5 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.2.6 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -234,21 +239,26 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.2.5",
+    'whatsnew.title': "What's new in 0.2.6",
     'whatsnew.item1':
-      'Backups are harder to break: a malformed date can no longer sneak in and quietly corrupt your per-day totals, and old or future fields still read',
+      'AI compose picks its own material: toggle stamps, health intake and finances independently',
     'whatsnew.item2':
-      'The data format now has an explicit policy: two version numbers per backup, so old records keep opening as the app grows',
+      'It also reads back: the last 14 days by default, or two days, today only or a custom range — older records only echo, never pass as today',
     'whatsnew.item3':
-      'Every record carries its timestamps — "Created …", and an "Edited …" half-line only when actually edited',
+      'Export now has range and content controls: selection, one day or a custom span, with diary and stamps toggled separately, weather and timestamps optional',
     'whatsnew.item4':
-      'Fixed the Android backup-export crash and hardened several crash points; plus six themes and download progress',
+      'The health intake list starts collapsed to leave room for upcoming cards; fixed the Android in-app update confirmation',
+    'whatsnew.item5':
+      'Dates survive narrow screens: the full date stays visible and actions wrap below',
     'whatsnew.more': 'Full release notes',
-    'whatsnew.moreHref': 'notes.en.md',
+    'whatsnew.moreHref': 'changelog.html',
+    'changelog.kicker': 'Changelog',
+    'changelog.title': 'What changed in each version',
+    'changelog.back': '← Back to downloads',
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.2.5',
+    'footer.version': 'Version 0.2.6',
     'footer.tagline': 'Data stays on your device',
   },
 };

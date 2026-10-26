@@ -1134,7 +1134,8 @@ html[lang='en'] .download h3 {
   padding-left: 18px;
   font-size: 13.5px;
   line-height: 1.7;
-  color: var(--ink-soft);
+  /* 更新日志在深色下载区里，正文要用浅色；--ink-soft 是纸面墨色，深底上会隐身 */
+  color: var(--fg);
 }
 
 .whatsnew__list li::marker {

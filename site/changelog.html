@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>更新日志 · 星芒记录者</title>
+    <meta name="description" content="星芒记录者的完整更新日志：每一版改了什么、怎么下载。" />
+    <link rel="icon" href="assets/icon.png" type="image/png" />
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="theme-color" content="#0a0d12" />
+    <style>
+      /* 更新日志页自己的排版；其余配色、顶栏、按钮全走 styles.css */
+      .changelog {
+        max-width: 780px;
+        margin: 0 auto;
+        padding: clamp(32px, 5vw, 56px) clamp(20px, 4vw, 48px) 64px;
+      }
+
+      .changelog__head {
+        margin-bottom: 36px;
+      }
+
+      .changelog__head h1 {
+        margin: 8px 0 0;
+        font-size: clamp(26px, 4vw, 36px);
+      }
+
+      .changelog__back {
+        display: inline-block;
+        margin-top: 14px;
+        font-size: 13px;
+        color: var(--brand);
+        text-decoration: none;
+        border-bottom: 1px dotted currentColor;
+      }
+
+      .changelog__back:hover {
+        border-bottom-style: solid;
+      }
+
+      .ver {
+        padding: 22px 24px;
+        margin-bottom: 18px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+      }
+
+      .ver__head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .ver__tag {
+        padding: 2px 10px;
+        border: 1px solid rgb(110 231 255 / 38%);
+        border-radius: 999px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        font-variant-numeric: tabular-nums;
+        color: var(--brand);
+      }
+
+      .ver__date {
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+
+      .ver h3 {
+        margin: 14px 0 8px;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+
+      .ver ul {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding-left: 18px;
+        font-size: 14px;
+        line-height: 1.75;
+        color: var(--fg);
+      }
+
+      .ver li::marker {
+        color: var(--brand);
+      }
+
+      .ver dl {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 6px 14px;
+        margin: 0;
+        font-size: 13px;
+      }
+
+      .ver dt {
+        color: var(--muted);
+      }
+
+      .ver dd {
+        margin: 0;
+        color: var(--fg);
+        overflow-wrap: anywhere;
+      }
+
+      .ver code {
+        font-size: 12px;
+      }
+
+      /* 两种语言各放一份正文，靠 html[lang] 切换：内容长，塞进 i18n 字典反而难维护 */
+      html[lang='zh-CN'] .lang-en {
+        display: none;
+      }
+
+      html[lang='en'] .lang-zh {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="topbar__brand" href="index.html" aria-label="星芒记录者">
+        <svg width="28" height="28" viewBox="0 0 88 88" aria-hidden="true">
+          <circle cx="44" cy="44" r="34" fill="currentColor" fill-opacity="0.14" />
+          <path
+            d="M44 5 L52.5 35.5 L83 44 L52.5 52.5 L44 83 L35.5 52.5 L5 44 L35.5 35.5 Z"
+            fill="currentColor"
+          />
+        </svg>
+        <span data-i18n="app.name">星芒记录者</span>
+      </a>
+
+      <div class="lang" role="group" aria-label="Language / 语言">
+        <button type="button" class="lang__btn" data-lang="zh" aria-pressed="true">中</button>
+        <button type="button" class="lang__btn" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </header>
+
+    <main class="changelog">
+      <header class="changelog__head">
+        <p class="kicker" data-i18n="changelog.kicker">更新日志</p>
+        <h1 data-i18n="changelog.title">每一版改了什么</h1>
+        <p class="section-head__desc lang-zh" style="margin: 10px 0 0">
+          从新到旧。下载文件在两个仓库都放着，哪个快用哪个。
+        </p>
+        <p class="section-head__desc lang-en" style="margin: 10px 0 0">
+          Newest first. Every file is on both repositories — use whichever is faster.
+        </p>
+        <a class="changelog__back" href="index.html#download" data-i18n="changelog.back">← 回到下载</a>
+      </header>
+
+      <article class="ver">
+        <div class="ver__head">
+          <span class="ver__tag">0.2.6</span>
+          <span class="ver__date">2026-10-26</span>
+        </div>
+        <div class="lang-zh">
+          <h3>这一版有什么</h3>
+          <ul>
+            <li><strong>AI 整理可以挑素材</strong>：随记、健康摄入、经济收支各自勾选；一样都没选会直接提示，不会空跑模型</li>
+            <li><strong>整理时会翻旧账</strong>：默认参考最近 14 天，也能只取前两天或自定义区间；起止填反会被拦住，旧记录只用来呼应，不会写成今天的事</li>
+            <li><strong>导出能选范围和内容</strong>：选中项 / 当天 / 自定义区间，日记与随记分开勾，天气和时间戳按需带上；JSON 仍是完整备份</li>
+            <li><strong>健康首页更清爽</strong>：摄入列表默认收起，给后续卡片留出首屏</li>
+            <li><strong>应用内更新修好了</strong>：安卓下载完成才提示成功，失败会明说，进度条不再提前消失</li>
+            <li><strong>窄屏不再挤掉日期</strong>：日记和健康页的日期完整显示，右侧入口自动换行；时间戳带上年份</li>
+            <li><strong>官网「这一版有什么」看得清了</strong>：深色背景下文字不再融进背景</li>
+          </ul>
+          <h3>下载</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.2.6-setup.exe</code>（约 95 MB）</dd>
+            <dt>Android 10 以上</dt>
+            <dd><code>starburst-recorder-0.2.6.apk</code>（约 16 MB，正式签名）</dd>
+          </dl>
+        </div>
+        <div class="lang-en">
+          <h3>What's new</h3>
+          <ul>
+            <li><strong>AI compose picks its own material</strong> — toggle stamps, health intake and finances; if nothing is picked it says so instead of calling the model</li>
+            <li><strong>It also reads back</strong> — the last 14 days by default, or two days, today only or a custom range; a reversed range is blocked; older records only echo, never pass as today</li>
+            <li><strong>Export has range and content controls</strong> — selection, one day or a custom span, with diary and stamps toggled separately, weather and timestamps optional; JSON remains a full backup</li>
+            <li><strong>The health page breathes</strong> — the intake list starts collapsed to leave room for upcoming cards</li>
+            <li><strong>Fixed in-app updates</strong> — Android reports success only after the download finishes, failures are explicit, and the progress bar no longer vanishes early</li>
+            <li><strong>Dates survive narrow screens</strong> — the diary and health headers show the full date and wrap the actions below; timestamps carry the year</li>
+            <li><strong>The site's "What's new" panel is readable again</strong> — text no longer blends into the dark background</li>
+          </ul>
+          <h3>Downloads</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.2.6-setup.exe</code> (~95 MB)</dd>
+            <dt>Android 10+</dt>
+            <dd><code>starburst-recorder-0.2.6.apk</code> (~16 MB, release-signed)</dd>
+          </dl>
+        </div>
+      </article>
+
+      <article class="ver">
+        <div class="ver__head">
+          <span class="ver__tag">0.2.5</span>
+          <span class="ver__date">2026-10-26</span>
+        </div>
+        <div class="lang-zh">
+          <h3>这一版有什么</h3>
+          <ul>
+            <li><strong>数据格式加固</strong>：行级校验把缺胳膊少腿的记录挡在门外，写坏的日期不再混进库</li>
+            <li><strong>备份有了版本号</strong>：文件版、数据版各记一个，以后升级不用担心旧记录读不出来</li>
+            <li><strong>天气空值修好了</strong>：没查到天气的日子，导出再导入不会凭空多出空字符串</li>
+          </ul>
+          <h3>下载</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.2.5-setup.exe</code>（约 95 MB）</dd>
+            <dt>Android 10 以上</dt>
+            <dd><code>starburst-recorder-0.2.5.apk</code>（约 16 MB，正式签名）</dd>
+          </dl>
+        </div>
+        <div class="lang-en">
+          <h3>What's new</h3>
+          <ul>
+            <li><strong>Hardened the data format</strong> — row-level validation keeps broken records out, and impossible dates no longer slip into the database</li>
+            <li><strong>Backups carry version numbers</strong> — file version and data version are both recorded, so future upgrades won't strand old records</li>
+            <li><strong>Fixed empty weather values</strong> — days without weather survive an export/import round trip without sprouting blank strings</li>
+          </ul>
+          <h3>Downloads</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.2.5-setup.exe</code> (~95 MB)</dd>
+            <dt>Android 10+</dt>
+            <dd><code>starburst-recorder-0.2.5.apk</code> (~16 MB, release-signed)</dd>
+          </dl>
+        </div>
+      </article>
+
+      <article class="ver">
+        <div class="ver__head">
+          <span class="ver__tag">0.2.4</span>
+          <span class="ver__date">2026-10-26</span>
+        </div>
+        <div class="lang-zh">
+          <h3>这一版有什么</h3>
+          <ul>
+            <li><strong>每条记录带时间戳</strong>：标着「建于…」，真被编辑过才多一句「改于…」，不抢正文</li>
+          </ul>
+          <h3>下载</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.2.4-setup.exe</code>（约 95 MB）</dd>
+            <dt>Android 10 以上</dt>
+            <dd><code>starburst-recorder-0.2.4.apk</code>（约 16 MB，正式签名）</dd>
+          </dl>
+        </div>
+        <div class="lang-en">
+          <h3>What's new</h3>
+          <ul>
+            <li><strong>Every record shows timestamps</strong> — "Created …", plus "Edited …" only when it really was, kept out of the way</li>
+          </ul>
+          <h3>Downloads</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.2.4-setup.exe</code> (~95 MB)</dd>
+            <dt>Android 10+</dt>
+            <dd><code>starburst-recorder-0.2.4.apk</code> (~16 MB, release-signed)</dd>
+          </dl>
+        </div>
+      </article>
+
+      <article class="ver">
+        <div class="ver__head">
+          <span class="ver__tag">0.2.3</span>
+          <span class="ver__date">2026-10-26</span>
+        </div>
+        <div class="lang-zh">
+          <h3>这一版有什么</h3>
+          <ul>
+            <li><strong>六套主题模式</strong>：深空 / 暮色 / 深夜 / 晴日 / 纸白 / 薄雾，配六种主题色自由组合</li>
+            <li><strong>整理日记守住时刻</strong>：随记的时间与事件强绑定，AI 不再拆条、并条、打乱顺序</li>
+            <li><strong>下载带进度条</strong>：应用内升级能看见下了多少</li>
+            <li><strong>安卓导出修好了</strong>：备份改分块写入，大备份也不会把应用压垮</li>
+            <li>按钮、空态、勾选框统一风格，补键盘焦点环</li>
+          </ul>
+          <h3>下载</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.2.3-setup.exe</code>（约 95 MB）</dd>
+            <dt>Android 10 以上</dt>
+            <dd><code>starburst-recorder-0.2.3.apk</code>（约 16 MB，正式签名）</dd>
+          </dl>
+        </div>
+        <div class="lang-en">
+          <h3>What's new</h3>
+          <ul>
+            <li><strong>Six theme modes</strong> — Deep space / Dusk / Night / Clear day / Paper / Mist, each pairing with six accent colours</li>
+            <li><strong>AI compose respects moments</strong> — a quick note's time stays bound to its event; the AI no longer splits, merges or reorders</li>
+            <li><strong>Download progress bar</strong> — in-app upgrades show how much has arrived</li>
+            <li><strong>Fixed the Android backup export crash</strong> — backups are written in chunks, so large ones can't overwhelm the app</li>
+            <li>Unified buttons, empty states and checkboxes; keyboard focus rings added</li>
+          </ul>
+          <h3>Downloads</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.2.3-setup.exe</code> (~95 MB)</dd>
+            <dt>Android 10+</dt>
+            <dd><code>starburst-recorder-0.2.3.apk</code> (~16 MB, release-signed)</dd>
+          </dl>
+        </div>
+      </article>
+
+      <article class="ver">
+        <div class="ver__head">
+          <span class="ver__tag">0.2.2</span>
+          <span class="ver__date">2026-10-25</span>
+        </div>
+        <div class="lang-zh">
+          <h3>这一版有什么</h3>
+          <ul>
+            <li><strong>预设库挪到右上角</strong>：日记和随记都能随时打开，随记也支持插入预设了</li>
+            <li>修预设库返回按钮多一个箭头的问题</li>
+          </ul>
+          <h3>下载</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.2.2-setup.exe</code>（约 95 MB）</dd>
+            <dt>Android 10 以上</dt>
+            <dd><code>starburst-recorder-0.2.2.apk</code>（约 16 MB，正式签名）</dd>
+          </dl>
+        </div>
+        <div class="lang-en">
+          <h3>What's new</h3>
+          <ul>
+            <li><strong>Preset library moved to the top-right</strong> — open it any time from diary or quick notes; quick notes can insert presets now</li>
+            <li>Fixed the preset library's doubled back arrow</li>
+          </ul>
+          <h3>Downloads</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.2.2-setup.exe</code> (~95 MB)</dd>
+            <dt>Android 10+</dt>
+            <dd><code>starburst-recorder-0.2.2.apk</code> (~16 MB, release-signed)</dd>
+          </dl>
+        </div>
+      </article>
+
+      <article class="ver">
+        <div class="ver__head">
+          <span class="ver__tag">0.2.1</span>
+          <span class="ver__date">2026-10-25</span>
+        </div>
+        <div class="lang-zh">
+          <h3>这一版有什么</h3>
+          <ul>
+            <li><strong>食物库好用了</strong>：按名字排序，行尾操作收进菜单，点一行看只读详情</li>
+            <li><strong>一句话记摄入更聪明</strong>：先核对食物库，未命中的逐条决定要不要新建</li>
+            <li>官网下载区加了历史版本入口</li>
+          </ul>
+          <h3>下载</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.2.1-setup.exe</code>（约 95 MB）</dd>
+            <dt>Android 10 以上</dt>
+            <dd><code>starburst-recorder-0.2.1.apk</code>（约 16 MB，正式签名）</dd>
+          </dl>
+        </div>
+        <div class="lang-en">
+          <h3>What's new</h3>
+          <ul>
+            <li><strong>Food library polished</strong> — sorted by name, row actions tucked into a menu, tap a row for a read-only detail</li>
+            <li><strong>Smarter one-line intake logging</strong> — checked against your food library first, with unmatched items decided one by one</li>
+            <li>Website gains a previous-versions entry</li>
+          </ul>
+          <h3>Downloads</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.2.1-setup.exe</code> (~95 MB)</dd>
+            <dt>Android 10+</dt>
+            <dd><code>starburst-recorder-0.2.1.apk</code> (~16 MB, release-signed)</dd>
+          </dl>
+        </div>
+      </article>
+
+      <article class="ver">
+        <div class="ver__head">
+          <span class="ver__tag">0.2.0</span>
+          <span class="ver__date">2026-10-25</span>
+        </div>
+        <div class="lang-zh">
+          <h3>这一版有什么</h3>
+          <ul>
+            <li><strong>版本页上线</strong>：「我的 → 版本」里检查更新、进入官网两个入口</li>
+            <li><strong>应用内更新</strong>：启动时静默查一次新版，能直接下载安装包并拉起安装</li>
+            <li>中文界面的更新说明改用中文；Windows 安装包压到约 95 MB</li>
+          </ul>
+          <h3>下载</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.2.0-setup.exe</code>（约 95 MB）</dd>
+            <dt>Android 10 以上</dt>
+            <dd><code>starburst-recorder-0.2.0.apk</code>（约 16 MB，正式签名）</dd>
+          </dl>
+        </div>
+        <div class="lang-en">
+          <h3>What's new</h3>
+          <ul>
+            <li><strong>Version page</strong> — check for updates and open the website from Me → Version</li>
+            <li><strong>In-app updates</strong> — a quiet check on startup, then download and launch the installer without leaving the app</li>
+            <li>Chinese UI now reads Chinese release notes; Windows installer slimmed to ~95 MB</li>
+          </ul>
+          <h3>Downloads</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.2.0-setup.exe</code> (~95 MB)</dd>
+            <dt>Android 10+</dt>
+            <dd><code>starburst-recorder-0.2.0.apk</code> (~16 MB, release-signed)</dd>
+          </dl>
+        </div>
+      </article>
+
+      <article class="ver">
+        <div class="ver__head">
+          <span class="ver__tag">0.1.0</span>
+          <span class="ver__date">2026-10-25</span>
+        </div>
+        <div class="lang-zh">
+          <h3>这一版有什么</h3>
+          <ul>
+            <li><strong>首个正式版本</strong>：日记一天一张纸条、随记走时间轴，另有只读纸面视图、回收站和批量操作</li>
+            <li><strong>AI 整理</strong>：三种口气可选，确认后才写入；接口兼容 OpenAI，也可以指向本机模型</li>
+            <li><strong>图片导入</strong>：拍一张手写页，交给视觉模型认成文字送进编辑页</li>
+            <li><strong>天气</strong>：每天查一次 Open-Meteo，结果要你点「填上」才写入</li>
+            <li><strong>健康</strong>：身体档案、TDEE、食物库与套餐、每日热量与蛋白进度</li>
+            <li><strong>备份</strong>：导出 Markdown / 纯文本 / 完整 JSON；导入会合并并逐条处理冲突</li>
+            <li>中英双语界面、深浅两套主题</li>
+          </ul>
+          <h3>下载</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.1.0-setup.exe</code>（约 95 MB）</dd>
+            <dt>Android 10 以上</dt>
+            <dd><code>starburst-recorder-0.1.0.apk</code>（约 16 MB，正式签名）</dd>
+          </dl>
+        </div>
+        <div class="lang-en">
+          <h3>What's new</h3>
+          <ul>
+            <li><strong>First release</strong> — one slip per day for diary, quick notes on a timeline, read-only paper view, trash and batch actions</li>
+            <li><strong>AI compose</strong> — three tones, nothing written until you confirm; works with any OpenAI-compatible endpoint, including a local model</li>
+            <li><strong>Image import</strong> — photograph a handwritten page and let a vision model read it into the editor</li>
+            <li><strong>Weather</strong> — one lookup per day via Open-Meteo, applied only when you accept it</li>
+            <li><strong>Health</strong> — body profile, TDEE, food library and meals, daily calorie and protein progress</li>
+            <li><strong>Backup</strong> — export Markdown, plain text or full JSON; import merges and walks you through conflicts</li>
+            <li>Bilingual UI (Chinese/English), light and dark themes</li>
+          </ul>
+          <h3>Downloads</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.1.0-setup.exe</code> (~95 MB)</dd>
+            <dt>Android 10+</dt>
+            <dd><code>starburst-recorder-0.1.0.apk</code> (~16 MB, release-signed)</dd>
+          </dl>
+        </div>
+      </article>
+    </main>
+
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>
+          <span data-i18n="app.name">星芒记录者</span>
+          <span class="footer__dot" aria-hidden="true">·</span>
+          <span data-i18n="footer.version">版本 0.2.6</span>
+        </p>
+        <p data-i18n="footer.tagline">数据只存在你的设备上</p>
+      </div>
+    </footer>
+
+    <script src="i18n.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

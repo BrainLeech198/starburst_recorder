@@ -34,6 +34,9 @@ import {
 } from './healthRepo'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
 
+/** 收起时露几行：够认出今天记了什么，又不至于把下面的卡片挤出屏幕 */
+const INTAKE_COLLAPSED_ROWS = 3
+
 const FIELD_LABELS = {
   sex: 'profile.fieldSex',
   age: 'profile.fieldAge',
@@ -59,12 +62,15 @@ export default function HealthPage() {
 
   function setDayKey(next: string) {
     batch.exit()
+    setListOpen(false)
     setSearchParams({ date: next }, { replace: true })
   }
 
   const profile = useLiveQuery(() => healthProfile(), [])
   const intakes = useLiveQuery(() => intakesOfDay(dayKey), [dayKey])
   const [dialogOpen, setDialogOpen] = useState(false)
+  /** 摄入列表默认只露几行：下面还要接别的健康卡片，一屏不该全被记录占掉 */
+  const [listOpen, setListOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<HealthIntake | null>(null)
   /** 点开某一笔看完整营养成分 */
   const [detailIntake, setDetailIntake] = useState<HealthIntake | null>(null)
@@ -80,6 +86,8 @@ export default function HealthPage() {
   const missing = missingProfileFields(profile)
   const ready = missing.length === 0
   const totals = sumMacros(intakes ?? [])
+  // 折叠时只露前几条；进批量多选就整段展开，不然勾不到藏起来的行
+  const shownIntakes = listOpen || batch.active ? (intakes ?? []) : (intakes ?? []).slice(0, INTAKE_COLLAPSED_ROWS)
   // 每天按第一笔摄入时定下的目标线走；旧记录没快照就用当前档案
   const targets = dayTargets(intakes ?? [], profile)
   const remaining = remainingKcal(targets.targetKcal, totals.kcal)
@@ -118,13 +126,14 @@ export default function HealthPage() {
   return (
     <div className="w-full p-4">
       {/* 第一行只放页面级入口；「记一笔」是当天卡片自己的操作，留在卡片里 */}
-      <header className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-        <div className="flex flex-wrap items-center gap-1">
+      <header className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        {/* 日期导航优先：窄屏时右侧入口整体换到下一行，而不是把日期挤成省略号 */}
+        <div className="flex min-w-0 items-center gap-1">
           <button
             type="button"
             onClick={() => setDayKey(shiftDay(dayKey, -1))}
             aria-label={t('health.prevDay')}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
           >
             ‹
           </button>
@@ -134,19 +143,21 @@ export default function HealthPage() {
             type="button"
             onClick={() => void openPicker()}
             aria-label={t('health.pickDate')}
-            className="font-hand flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:text-brand"
+            className="font-hand flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:text-brand"
           >
             {/* 今天绿、其他日期黄：跟日记一致，一眼知道在看哪一天 */}
             <span
               className={[
-                'rounded px-1.5 py-0.5 text-[11px] font-medium leading-none',
+                'shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium leading-none',
                 isToday ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning',
               ].join(' ')}
             >
               {t(relativeDayKey(dayKey))}
             </span>
-            <span className="whitespace-nowrap text-sm">{formatDate(dayKey, t)}</span>
-            <span className="whitespace-nowrap text-xs text-muted">{t(weekdayKey(dayKey))}</span>
+            <span className="min-w-0 truncate text-sm">{formatDate(dayKey, t)}</span>
+            <span className="hidden shrink-0 text-xs text-muted min-[360px]:inline">
+              {t(weekdayKey(dayKey))}
+            </span>
           </button>
 
           {!isToday && (
@@ -156,7 +167,7 @@ export default function HealthPage() {
                 batch.exit()
                 setSearchParams({}, { replace: true })
               }}
-              className="ml-1 whitespace-nowrap rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-brand"
+              className="ml-1 shrink-0 whitespace-nowrap rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-brand"
             >
               {t('health.backToToday')}
             </button>
@@ -166,13 +177,13 @@ export default function HealthPage() {
             type="button"
             onClick={() => setDayKey(shiftDay(dayKey, 1))}
             aria-label={t('health.nextDay')}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
           >
             ›
           </button>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           <Link
             to="/health/foods"
             className="inline-flex h-10 items-center rounded-lg px-3 text-sm text-muted transition-colors hover:text-fg"
@@ -269,7 +280,7 @@ export default function HealthPage() {
               </p>
             ) : (
               <ul className="m-0 mt-2 list-none space-y-2 p-0">
-                {intakes.map((intake) => {
+                {shownIntakes.map((intake) => {
                   const selected = batch.isSelected(intake.id)
                   return (
                     <li
@@ -337,6 +348,18 @@ export default function HealthPage() {
                   )
                 })}
               </ul>
+            )}
+            {!batch.active && (intakes?.length ?? 0) > INTAKE_COLLAPSED_ROWS && (
+              <button
+                type="button"
+                aria-expanded={listOpen}
+                onClick={() => setListOpen((value) => !value)}
+                className={BAR_BUTTON + ' mt-2 w-full'}
+              >
+                {listOpen
+                  ? t('health.intakeCollapse')
+                  : t('health.intakeExpand', { n: (intakes?.length ?? 0) - INTAKE_COLLAPSED_ROWS })}
+              </button>
             )}
           </div>
         </section>

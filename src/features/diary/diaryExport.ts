@@ -1,7 +1,25 @@
-import type { DiaryEntry, DiaryStamp } from '@/core/db/schema'
-import { formatDateCn, weekdayLabel } from '@/core/utils/dateKey'
+import type { DiaryDay, DiaryEntry, DiaryStamp } from '@/core/db/schema'
+import { formatDateCn, formatShortStamp, weekdayLabel } from '@/core/utils/dateKey'
+import { parseWeather, weatherLabel } from './weather'
 
 export type ExportFormat = 'markdown' | 'text' | 'json'
+
+/** 只影响 Markdown / 纯文本；JSON 始终保留全部字段 */
+export interface ExportOptions {
+  includeWeather?: boolean
+  includeTimestamps?: boolean
+}
+
+/** 日期键是 'YYYY-MM-DD'，按字符串比较就是按时间比较 */
+export function pickInRange<T extends { dateKey: string; deletedAt: number | null }>(
+  items: T[],
+  from: string,
+  to: string,
+): T[] {
+  return items.filter(
+    (item) => item.deletedAt === null && item.dateKey >= from && item.dateKey <= to,
+  )
+}
 
 export interface ExportFile {
   /** 给提示条用的格式名 */
@@ -24,6 +42,8 @@ export function buildExport(
   entries: DiaryEntry[],
   stamps: DiaryStamp[],
   format: ExportFormat,
+  days: DiaryDay[] = [],
+  options: ExportOptions = {},
 ): ExportFile {
   const now = new Date()
   const stampText = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(
@@ -36,10 +56,11 @@ export function buildExport(
       label: 'JSON',
       filename: `${base}.json`,
       mime: 'application/json',
-      content: JSON.stringify({ exportedAt: now.toISOString(), entries, stamps }, null, 2),
+      content: JSON.stringify({ exportedAt: now.toISOString(), entries, stamps, days }, null, 2),
     }
   }
 
+  const weatherByDay = new Map(days.map((item) => [item.dateKey, item.weather]))
   const lines: string[] = []
   for (const day of daysOf(entries, stamps)) {
     if (format === 'markdown') {
@@ -48,11 +69,22 @@ export function buildExport(
       lines.push(`${formatDateCn(day)} ${weekdayLabel(day)}`, '------------------------------', '')
     }
 
+    const states = parseWeather(weatherByDay.get(day))
+    if (options.includeWeather && states.length > 0) {
+      lines.push(`天气：${weatherLabel(states)}`, '')
+    }
+
     const dayEntries = entries
       .filter((entry) => entry.dateKey === day)
       .sort((a, b) => a.createdAt - b.createdAt)
     for (const entry of dayEntries) {
       lines.push(entry.content.trim() || '（没有写内容）', '')
+      if (options.includeTimestamps) {
+        const created = `创建 ${formatShortStamp(entry.createdAt)}`
+        const edited =
+          entry.updatedAt !== entry.createdAt ? ` · 编辑 ${formatShortStamp(entry.updatedAt)}` : ''
+        lines.push(`（${created}${edited}）`, '')
+      }
     }
 
     const dayStamps = stamps

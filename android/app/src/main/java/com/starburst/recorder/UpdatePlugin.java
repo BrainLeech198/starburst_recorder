@@ -23,8 +23,9 @@ import java.net.URL;
  * 还得监听广播；这里直接下到应用自己的外部目录（Android 10 起不需要任何存储权限），
  * 再用已经配好的 FileProvider 换成 content:// 交给安装器，链路最短。
  *
- * 下载是异步的：先把 call 解决掉（前端弹一句「开始下载」），
- * 下完再起安装界面；失败就安静放弃——下次启动还会提示，用户也能自己去 Release 下。
+ * 下载是异步的，但 call 要等到下载完才解决：前端的进度条靠「await 没返回」撑着，
+ * 早解决等于进度条刚亮就被收走。失败就 reject，让前端说一句「下载失败」，
+ * 下次启动还会提示，用户也能自己去 Release 下。
  */
 @CapacitorPlugin(name = "Update")
 public class UpdatePlugin extends Plugin {
@@ -49,7 +50,6 @@ public class UpdatePlugin extends Plugin {
         }
 
         File target = new File(dir, fileName.replaceAll("[\\\\/:*?\"<>|]", "_"));
-        call.resolve();
 
         new Thread(() -> {
             try (InputStream input = open(url); FileOutputStream output = new FileOutputStream(target)) {
@@ -73,8 +73,12 @@ public class UpdatePlugin extends Plugin {
                     notifyListeners("progress", payload, false);
                 }
                 install(target);
-            } catch (Exception ignored) {
-                // 网络或写入失败：不打扰用户
+                JSObject done = new JSObject();
+                done.put("ok", true);
+                call.resolve(done);
+            } catch (Exception error) {
+                // 网络或写入失败：前端把进度条收掉、提示一句失败，下次启动还会再提示
+                call.reject("下载失败：" + error.getMessage(), error);
             }
         }).start();
     }

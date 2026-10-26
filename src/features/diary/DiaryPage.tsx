@@ -2,7 +2,7 @@ import EmptyState from '@/shared/ui/EmptyState'
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
-import type { DiaryEntry } from '@/core/db/schema'
+import type { DiaryEntry, DiaryStamp } from '@/core/db/schema'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import BatchActions from '@/shared/ui/BatchActions'
@@ -15,6 +15,9 @@ import { BAR_BUTTON, BAR_DANGER, GHOST_BUTTON, SOLID_BUTTON } from '@/shared/ui/
 import {
   addStamp,
   entriesOfDay,
+  everyDay,
+  everyEntry,
+  everyStamp,
   moveEntries,
   moveStamps,
   removeEntries,
@@ -38,13 +41,13 @@ import {
 import DatePickerDialog from './DatePickerDialog'
 import StampTimeline from './StampTimeline'
 import ExportDialog from './ExportDialog'
+import type { ExportRequest } from './ExportDialog'
 import AiComposeDialog from '@/features/ai/AiComposeDialog'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import type { AiConfig } from '@/features/ai/aiConfig'
 import ImageImportDialog from './ImageImportDialog'
 import type { ImportSummary } from './importPages'
-import { buildExport } from './diaryExport'
-import type { ExportFormat } from './diaryExport'
+import { buildExport, pickInRange } from './diaryExport'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
 import TimeMeta from '@/shared/ui/TimeMeta'
 
@@ -251,20 +254,51 @@ export default function DiaryPage() {
     })
   }
 
-  async function handleExport(format: ExportFormat) {
+  async function handleExport(request: ExportRequest) {
     setExportOpen(false)
-    const pickedEntries =
-      mode === 'diary' ? (entries ?? []).filter((e) => batch.isSelected(e.id)) : []
-    const pickedStamps =
-      mode === 'stamp' ? (stamps ?? []).filter((s) => batch.isSelected(s.id)) : []
-    const file = buildExport(pickedEntries, pickedStamps, format)
+    let pickedEntries: DiaryEntry[]
+    let pickedStamps: DiaryStamp[]
+    let { from, to } = request
+
+    if (request.range === 'selection') {
+      pickedEntries =
+        mode === 'diary' ? (entries ?? []).filter((entry) => batch.isSelected(entry.id)) : []
+      pickedStamps =
+        mode === 'stamp' ? (stamps ?? []).filter((stamp) => batch.isSelected(stamp.id)) : []
+      const dates = [
+        ...pickedEntries.map((entry) => entry.dateKey),
+        ...pickedStamps.map((stamp) => stamp.dateKey),
+      ].sort()
+      from = dates[0] ?? from
+      to = dates[dates.length - 1] ?? to
+    } else {
+      const [allEntries, allStamps] = await Promise.all([everyEntry(), everyStamp()])
+      pickedEntries = pickInRange(allEntries, from, to)
+      pickedStamps = pickInRange(allStamps, from, to)
+    }
+
+    if (!request.includeDiary) pickedEntries = []
+    if (!request.includeStamps) pickedStamps = []
+
+    const total = pickedEntries.length + pickedStamps.length
+    if (total === 0) {
+      showToast({ message: t('export.noItems') })
+      return
+    }
+
+    // 天气按天单独存，只有写进导出文件时才带上；JSON 也靠这份 days 保留天气
+    const days = (await everyDay()).filter((day) => day.dateKey >= from && day.dateKey <= to)
+    const file = buildExport(pickedEntries, pickedStamps, request.format, days, {
+      includeWeather: request.includeWeather,
+      includeTimestamps: request.includeTimestamps,
+    })
     batch.clear()
     const outcome = await saveTextFile(file)
     showToast({
       message: describeSave(
         outcome,
         t('diary.exportDetail', {
-          target: targetOf(pickedEntries.length + pickedStamps.length),
+          target: t('export.count', { count: total }),
           label: file.label,
         }),
         t,
@@ -274,13 +308,14 @@ export default function DiaryPage() {
 
   return (
     <div className="w-full p-4">
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-        <div className="flex flex-wrap items-center gap-1">
+      {/* 日期导航优先：窄屏时右侧入口整体换到下一行，而不是把日期挤成省略号 */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="flex min-w-0 items-center gap-1">
           <button
             type="button"
             onClick={() => setDateKey(shiftDay(dateKey, -1))}
             aria-label={t('diary.prevDay')}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
           >
             ‹
           </button>
@@ -292,26 +327,29 @@ export default function DiaryPage() {
               setHint('')
               setPickerOpen(true)
             }}
-            className="font-hand flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:text-brand"
+            className="font-hand flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:text-brand"
           >
             {/* 今天绿、其他日期黄：一眼知道列表停在哪一段 */}
             <span
               className={[
-                'rounded px-1.5 py-0.5 text-[11px] font-medium leading-none',
+                'shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium leading-none',
                 isToday ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning',
               ].join(' ')}
             >
               {t(relativeDayKey(dateKey))}
             </span>
-            <span className="whitespace-nowrap text-sm">{formatDate(dateKey, t)}</span>
-            <span className="whitespace-nowrap text-xs text-muted">{t(weekdayKey(dateKey))}</span>
+            <span className="min-w-0 truncate text-sm">{formatDate(dateKey, t)}</span>
+            <span className="hidden shrink-0 text-xs text-muted min-[360px]:inline"
+            >
+              {t(weekdayKey(dateKey))}
+            </span>
           </button>
 
           {!isToday && (
             <button
               type="button"
               onClick={() => setDateKey(todayKey())}
-              className="ml-1 whitespace-nowrap rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-brand"
+              className="ml-1 shrink-0 whitespace-nowrap rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-brand"
             >
               {t('diary.today')}
             </button>
@@ -321,13 +359,13 @@ export default function DiaryPage() {
             type="button"
             onClick={() => setDateKey(shiftDay(dateKey, 1))}
             aria-label={t('diary.nextDay')}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
           >
             ›
           </button>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           <Tab active={mode === 'diary'} onClick={() => switchMode('diary')}>
             {t('diary.tabDiary')}
           </Tab>
@@ -345,59 +383,62 @@ export default function DiaryPage() {
         </div>
       </div>
 
-      {/* 左：内容动作；右：回收站（两端对齐）；批量多选时收起动作，只留工具条。
-          整行都是按钮，套一层底色跟下面的内容分开 */}
-      <ToolbarRow className="mt-2 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          {!batch.active && (
-            <>
-              {mode === 'diary' ? (
-                <>
-                  <button type="button" onClick={handleCreate} className={SOLID_BUTTON}>
-                    {t('diary.new')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleImageImport}
-                    disabled={!aiReady}
-                    title={!aiReady ? t('diary.hintNoModel') : undefined}
-                    className={`${SOLID_BUTTON} disabled:opacity-40`}
-                  >
-                    {t('diary.imageImport')}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button type="button" onClick={handleAddStamp} className={SOLID_BUTTON}>
-                    {t('diary.addStamp')}
-                  </button>
-                  {/* 这天一笔都没记，或 AI 模型没配时不亮 */}
-                  <button
-                    type="button"
-                    onClick={handleCompose}
-                    disabled={!aiReady || stamps === undefined || stamps.length === 0}
-                    title={!aiReady ? t('diary.hintNoModel') : undefined}
-                    className={`${SOLID_BUTTON} disabled:opacity-40`}
-                  >
-                    {t('diary.compose')}
-                  </button>
-                </>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setHint('')
-                  batch.enter()
-                }}
-                className={SOLID_BUTTON}
-              >
-                {t('diary.batch')}
-              </button>
-            </>
-          )}
-        </div>
+      {/* 整行都是按钮，套一层底色跟下面的内容分开。
+          窄屏排 2×2 网格——流式换行会让第 2、3 行各剩一个孤按钮、右边一大片空白；
+          宽屏回到一行，回收站靠右。批量多选时收起动作，只留回收站 */}
+      <ToolbarRow className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
+        {!batch.active && (
+          <>
+            {mode === 'diary' ? (
+              <>
+                <button type="button" onClick={handleCreate} className={SOLID_BUTTON}>
+                  {t('diary.new')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleImageImport}
+                  disabled={!aiReady}
+                  title={!aiReady ? t('diary.hintNoModel') : undefined}
+                  className={`${SOLID_BUTTON} disabled:opacity-40`}
+                >
+                  {t('diary.imageImport')}
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={handleAddStamp} className={SOLID_BUTTON}>
+                  {t('diary.addStamp')}
+                </button>
+                {/* AI 模型没配好时不亮；这天有没有素材交给弹窗去说（健康/经济也能当来源） */}
+                <button
+                  type="button"
+                  onClick={handleCompose}
+                  disabled={!aiReady}
+                  title={!aiReady ? t('diary.hintNoModel') : undefined}
+                  className={`${SOLID_BUTTON} disabled:opacity-40`}
+                >
+                  {t('diary.compose')}
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setHint('')
+                batch.enter()
+              }}
+              className={SOLID_BUTTON}
+            >
+              {t('diary.batch')}
+            </button>
+          </>
+        )}
 
-        <Link to="/diary/trash" state={{ mode }} className={SOLID_BUTTON}>
+        <Link
+          to="/diary/trash"
+          state={{ mode }}
+          className={`${SOLID_BUTTON} ${batch.active ? 'col-span-2 sm:col-span-1' : ''}`}
+        >
           {t('diary.trash')}
         </Link>
       </ToolbarRow>
@@ -539,7 +580,9 @@ export default function DiaryPage() {
       {exportOpen && (
         <ExportDialog
           target={targetOf(selectedCount)}
-          onPick={handleExport}
+          dateKey={dateKey}
+          selectedCount={selectedCount}
+          onConfirm={handleExport}
           onCancel={() => setExportOpen(false)}
         />
       )}

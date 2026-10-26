@@ -170,6 +170,8 @@ export interface DownloadResult {
   ok: boolean
   /** 桌面端落到磁盘的位置 */
   path?: string | null
+  /** 安卓：下载完并拉起安装器才算完；浏览器直下没有这个阶段 */
+  finished?: boolean
   error?: string
 }
 
@@ -215,9 +217,14 @@ export async function downloadUpdate(info: UpdateInfo): Promise<DownloadResult> 
 
   const native = androidNative()
   if (native) {
-    // 安卓壳里下完会自己拉起系统安装器，这里只等「开始下载」的确认
-    await native.downloadAndInstall({ url: info.downloadUrl, fileName: info.fileName })
-    return { ok: true }
+    // 安卓壳里下完会自己拉起系统安装器。这个 Promise 到下载完成才回来——
+    // 进度条就靠「await 还没结束」撑着，所以别在中途收掉；失败会 reject，转成结果交给调用方提示
+    try {
+      await native.downloadAndInstall({ url: info.downloadUrl, fileName: info.fileName })
+      return { ok: true, finished: true }
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    }
   }
 
   // 浏览器调试：交给浏览器的下载管理

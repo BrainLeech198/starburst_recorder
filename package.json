@@ -2,7 +2,7 @@
   "name": "starburst-recorder",
   "private": true,
   "license": "MIT",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "type": "module",
   "description": "星芒记录者 —— 本地优先的个人记录工具，内置 AI 整理",
   "author": "starburst",
@@ -11,8 +11,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "node package/run-tests.cjs run",
+    "test:watch": "node package/run-tests.cjs",
     "lint": "eslint .",
     "format": "prettier --write .",
     "preview": "vite preview",
@@ -69,7 +69,10 @@
     "electronDownload": {
       "mirror": "https://npmmirror.com/mirrors/electron/"
     },
-    "electronLanguages": ["zh-CN", "en-US"],
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
     "afterPack": "package/windows/afterPack.cjs",
     "electronDist": "node_modules/electron/dist",
     "win": {
