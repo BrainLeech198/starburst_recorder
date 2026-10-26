@@ -28,6 +28,7 @@ const SCHEMA = `
 
   CREATE TABLE IF NOT EXISTS diaryStamps (
     id TEXT PRIMARY KEY,
+    code TEXT NOT NULL DEFAULT '',
     dateKey TEXT NOT NULL,
     time TEXT NOT NULL,
     content TEXT NOT NULL DEFAULT '',
@@ -165,6 +166,7 @@ function stampRow(row) {
   if (!row) return undefined
   return {
     id: row.id,
+    code: row.code ?? '',
     dateKey: row.dateKey,
     time: row.time,
     content: row.content,
@@ -349,11 +351,16 @@ function createDatabase(file) {
   )
   if (!foodColumns.has('code')) db.exec('ALTER TABLE healthFoods ADD COLUMN code TEXT')
   if (!intakeColumns.has('code')) db.exec('ALTER TABLE healthIntakes ADD COLUMN code TEXT')
+  const stampColumns = new Set(
+    db.prepare('PRAGMA table_info(diaryStamps)').all().map((row) => row.name),
+  )
+  if (!stampColumns.has('code')) db.exec('ALTER TABLE diaryStamps ADD COLUMN code TEXT')
   // 旧记录补上 7 位短编号；新记录写入时自己带
   const fillCode = "substr(lower(hex(randomblob(4))), 1, 7)"
   db.exec(`UPDATE healthFoods SET code = ${fillCode} WHERE code IS NULL OR code = ''`)
   db.exec(`UPDATE healthIntakes SET code = ${fillCode} WHERE code IS NULL OR code = ''`)
-  db.exec('PRAGMA user_version = 7')
+  db.exec(`UPDATE diaryStamps SET code = ${fillCode} WHERE code IS NULL OR code = ''`)
+  db.exec('PRAGMA user_version = 8')
 
   const q = {
     entriesOfDay: db.prepare(
@@ -406,9 +413,10 @@ function createDatabase(file) {
          deletedAt = excluded.deletedAt`,
     ),
     upsertStamp: db.prepare(
-      `INSERT INTO diaryStamps (id, dateKey, time, content, createdAt, updatedAt, deletedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO diaryStamps (id, code, dateKey, time, content, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
+         code = excluded.code,
          dateKey = excluded.dateKey,
          time = excluded.time,
          content = excluded.content,
@@ -584,6 +592,7 @@ function createDatabase(file) {
   function insertStamp(stamp) {
     q.upsertStamp.run(
       stamp.id,
+      stamp.code ?? '',
       stamp.dateKey,
       stamp.time,
       stamp.content ?? '',
@@ -880,6 +889,7 @@ function createDatabase(file) {
         for (const stamp of stamps) {
           q.upsertStamp.run(
             stamp.id,
+            stamp.code ?? '',
             stamp.dateKey,
             stamp.time,
             stamp.content ?? '',

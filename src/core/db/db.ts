@@ -77,3 +77,16 @@ db.version(6)
 db.version(7).stores({
   diaryPresets: 'id, code, kind, name, deletedAt',
 })
+
+// 随记也带 7 位短编号：表结构不变，只给旧记录补齐
+db.version(8)
+  .stores({})
+  .upgrade((tx) =>
+    tx
+      .table('diaryStamps')
+      .toCollection()
+      .modify((stamp: DiaryStamp) => {
+        if (!stamp.code) stamp.code = newCode()
+      })
+      .then(() => undefined),
+  )

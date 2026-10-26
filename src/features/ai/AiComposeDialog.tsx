@@ -15,11 +15,16 @@ import { parseWeather, weatherIcons, weatherText } from '@/features/diary/weathe
 import { loadAiConfig } from './aiConfig'
 import {
   COMPOSE_STYLES,
+  buildComposeSystemPrompt,
+  buildComposeUserPrompt,
   buildHistoryDays,
   buildStyleSamples,
   composeDiary,
 } from './aiCompose'
-import type { ComposeSource, ComposeStyle } from './aiCompose'
+import type { ComposeContext, ComposeSource, ComposeStyle } from './aiCompose'
+import { reviseText } from './aiRevision'
+import type { RevisionSeed, RevisionTurn } from './aiRevision'
+import RevisionChat from './RevisionChat'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import Dropdown from '@/shared/ui/Dropdown'
@@ -93,6 +98,11 @@ export default function AiComposeDialog({
   const [ms, setMs] = useState(0)
   /** 打开弹窗不直接请求，等用户点「开始生成」——打开即烧 token 不划算 */
   const [requested, setRequested] = useState(false)
+  /** 生成之后的改稿对话：第一次请求的固定输入，以及每一轮的要求与结果 */
+  const [seed, setSeed] = useState<RevisionSeed | null>(null)
+  const [turns, setTurns] = useState<RevisionTurn[]>([])
+  const [chatBusy, setChatBusy] = useState(false)
+  const [chatError, setChatError] = useState('')
 
   const states = parseWeather(day?.weather)
   const hasMaterial = sources.some((source) => counts[source] > 0)
@@ -122,9 +132,12 @@ export default function AiComposeDialog({
     setRequested(true)
     setLoading(true)
     setError('')
+    setSeed(null)
+    setTurns([])
+    setChatError('')
     const data = await exportAllData()
     const window = historyWindow()
-    const result = await composeDiary(config, {
+    const context: ComposeContext = {
       dateKey,
       today: {
         weather: day?.weather ?? null,
@@ -141,8 +154,8 @@ export default function AiComposeDialog({
       styleSamples: buildStyleSamples(
         data.entries.filter((item) => item.deletedAt === null && item.dateKey < dateKey),
       ),
-      style: next,
-    })
+    }
+    const result = await composeDiary(config, { ...context, style: next })
     setLoading(false)
     setMs(result.ms)
     if (!result.ok) {
@@ -151,6 +164,28 @@ export default function AiComposeDialog({
     }
     setText(result.content)
     setOrigin(result.content)
+    // 改稿沿用这次的素材与口气，用户后面提要求时不再重复读库、拼提示词
+    setSeed({
+      systemPrompt: buildComposeSystemPrompt(next),
+      seedUser: buildComposeUserPrompt(context),
+    })
+  }
+
+  /** 按用户这一轮的要求改稿，结果直接顶掉当前草稿，不满意可以接着提 */
+  async function handleRevise(request: string) {
+    if (!seed) return
+    setChatBusy(true)
+    setChatError('')
+    const result = await reviseText(config, { ...seed, draft: text, turns, request }, 0.5)
+    setChatBusy(false)
+    if (!result.ok) {
+      setChatError(t('ai.chatFailed', { message: result.error }))
+      return
+    }
+    setTurns([...turns, { request, content: result.content }])
+    setText(result.content)
+    setOrigin(result.content)
+    setMs(result.ms)
   }
 
   const edited = text !== origin
@@ -258,8 +293,13 @@ export default function AiComposeDialog({
             onSelect: () => {
               if (item.id === style) return
               setStyle(item.id)
-              // 草稿没被改过就顺手按新口气重写一遍，改过就先留着，免得覆盖你的修改
-              if (requested && !edited) void generate(item.id)
+              // 草稿没被改过、也还没开始对话，就顺手按新口气重写一遍；
+              // 已经聊过几轮时保留当前版本，只让后面的改稿换一套口气规矩
+              if (requested && !edited && turns.length === 0) {
+                void generate(item.id)
+              } else if (seed) {
+                setSeed({ ...seed, systemPrompt: buildComposeSystemPrompt(item.id) })
+              }
             },
           }))}
         />
@@ -283,12 +323,20 @@ export default function AiComposeDialog({
         )}
 
         {!loading && error === '' && text !== '' && (
-          <textarea
-            value={text}
-            spellCheck={false}
-            onChange={(event) => setText(event.target.value)}
-            className={`font-hand min-h-56 w-full resize-y leading-6 ${FIELD}`}
-          />
+          <>
+            <textarea
+              value={text}
+              spellCheck={false}
+              onChange={(event) => setText(event.target.value)}
+              className={`font-hand min-h-56 w-full resize-y leading-6 ${FIELD}`}
+            />
+            <RevisionChat
+              turns={turns}
+              busy={chatBusy}
+              error={chatError}
+              onSend={(request) => void handleRevise(request)}
+            />
+          </>
         )}
 
         {!loading && error === '' && text === '' && (
@@ -305,7 +353,7 @@ export default function AiComposeDialog({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            disabled={loading || !hasMaterial || customInvalid}
+            disabled={loading || chatBusy || !hasMaterial || customInvalid}
             onClick={() => void generate(style)}
             className={`${GHOST_BUTTON} disabled:opacity-40`}
           >
@@ -316,7 +364,7 @@ export default function AiComposeDialog({
           </button>
           <button
             type="button"
-            disabled={loading || text.trim() === ''}
+            disabled={loading || chatBusy || text.trim() === ''}
             onClick={() => onConfirm(text.trim())}
             className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2 disabled:opacity-40"
           >

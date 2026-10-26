@@ -155,6 +155,8 @@ export interface FinanceEntry {
 export interface DiaryStamp {
   /** 内部唯一 id（ULID） */
   id: string
+  /** 7 位十六进制短编号，和日记一样用来指代某一笔 */
+  code: string
   /** 归属日期，'YYYY-MM-DD' */
   dateKey: string
   /** 时刻标记，'HH:MM' */

@@ -92,35 +92,41 @@ function StampRow({
       >
         {selectable ? (
           <button type="button" onClick={onToggle} className="block w-full px-1 text-left">
-            <span className="font-hand block text-lg text-ink">{stamp.time}</span>
+            <span className="flex items-baseline gap-2">
+              <span className="font-hand text-lg text-ink">{stamp.time}</span>
+              <span className="font-mono text-[10px] text-ink-muted opacity-70">{stamp.code}</span>
+            </span>
             <span className="font-hand mt-0.5 block min-h-6 text-sm leading-6 text-ink">
               {stamp.content.trim() || <span className="text-ink-muted">{t('stamp.noContent')}</span>}
             </span>
           </button>
         ) : (
           <>
-            {editingTime ? (
-              <input
-                type="time"
-                value={time}
-                autoFocus
-                onChange={(event) => {
-                  setTime(event.target.value)
-                  void updateStamp(stamp.id, { time: event.target.value })
-                }}
-                onBlur={() => setEditingTime(false)}
-                className="font-hand rounded-lg border border-binding bg-paper-strong px-2 py-0.5 text-lg text-ink outline-none"
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setEditingTime(true)}
-                title={t('stamp.editTimeHint')}
-                className="font-hand rounded-lg px-1 text-lg text-ink transition-colors hover:text-brand"
-              >
-                {time}
-              </button>
-            )}
+            <div className="flex items-baseline gap-2">
+              {editingTime ? (
+                <input
+                  type="time"
+                  value={time}
+                  autoFocus
+                  onChange={(event) => {
+                    setTime(event.target.value)
+                    void updateStamp(stamp.id, { time: event.target.value })
+                  }}
+                  onBlur={() => setEditingTime(false)}
+                  className="font-hand rounded-lg border border-binding bg-paper-strong px-2 py-0.5 text-lg text-ink outline-none"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEditingTime(true)}
+                  title={t('stamp.editTimeHint')}
+                  className="font-hand rounded-lg px-1 text-lg text-ink transition-colors hover:text-brand"
+                >
+                  {time}
+                </button>
+              )}
+              <span className="font-mono text-[10px] text-ink-muted opacity-70">{stamp.code}</span>
+            </div>
 
             {editing ? (
               <>

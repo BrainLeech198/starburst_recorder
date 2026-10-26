@@ -70,6 +70,7 @@ export const sqliteStore: DiaryStore = {
     const now = Date.now()
     const stamp: DiaryStamp = {
       id: newId(),
+      code: newCode(),
       dateKey,
       time: formatClock(now),
       content: '',

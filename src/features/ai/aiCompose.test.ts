@@ -31,6 +31,7 @@ function entry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
 function stamp(overrides: Partial<DiaryStamp> = {}): DiaryStamp {
   return {
     id: 's1',
+    code: 'c000001',
     dateKey: '2026-10-25',
     time: '09:30',
     content: '排队排了很久。',

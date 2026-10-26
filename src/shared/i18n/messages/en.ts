@@ -472,7 +472,7 @@ export const en: Record<MessageKey, string> = {
   'me.agentHint': 'Floating ball, AI models',
   'me.futureNote': 'Account & sync will live here later (local only for now).',
 
-  'settings.description': 'Three app-level things: language, appearance, data.',
+  'settings.description': 'App-level things: language, appearance, data and the temporary cache.',
   'settings.language': 'Language',
   'settings.languageHint': 'Language used by the interface',
   'settings.theme': 'Theme',
@@ -480,6 +480,17 @@ export const en: Record<MessageKey, string> = {
   'settings.data': 'Data & Backup',
   'settings.dataHint': 'Export, restore, where data lives',
   'settings.dataCount': 'Diary {entries} · Notes {stamps}',
+  'settings.cache': 'Clear cache',
+  'settings.cacheHint': 'Remove temporary files and downloaded installers; records stay',
+  'settings.cacheAction': 'Clear',
+  'settings.cacheClearing': 'Clearing…',
+  'settings.cacheConfirmTitle': 'Clear temporary cache?',
+  'settings.cacheConfirmBody':
+    'This removes web/UI cache and downloaded update installers. Diary, notes, health, finance and AI settings are untouched.',
+  'settings.cacheConfirm': 'Clear',
+  'settings.cacheCleared': 'Cleared {size} of temporary files',
+  'settings.cacheEmpty': 'The cache is already empty',
+  'settings.cacheFailed': 'Could not clear: {message}',
   'language.title': 'Language',
   'language.description':
     'Pick the interface language. Applies immediately and is saved on this device.',
@@ -689,6 +700,14 @@ export const en: Record<MessageKey, string> = {
   'ai.retry': 'Try again',
   'ai.regenerate': 'Regenerate',
   'ai.writeDiary': 'Write to diary',
+  'ai.chatTitle': 'Keep talking to the AI',
+  'ai.chatHint':
+    'Try "make the second paragraph shorter" or "a lighter tone". The AI rewrites the whole text to match, and you can keep asking.',
+  'ai.chatPlaceholder': 'What should change?',
+  'ai.chatSend': 'Send',
+  'ai.chatBusy': 'Revising…',
+  'ai.chatYou': 'You',
+  'ai.chatFailed': 'Could not revise: {message}',
 
   'data.title': 'Data & Backup',
   'data.description':

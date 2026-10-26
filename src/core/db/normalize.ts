@@ -93,6 +93,7 @@ export function pickStamp(raw: unknown): DiaryStamp | null {
   const time = text(item.time)
   return {
     id,
+    code: text(item.code) || newCode(),
     dateKey: day,
     // 时间必须是 HH:MM，坏的就退回 '00:00'，免得一条脏数据废掉整份备份
     time: /^\d{2}:\d{2}$/.test(time) ? time : '00:00',

@@ -33,6 +33,7 @@ const entry = (id: string, content: string, extra: Partial<DiaryEntry> = {}): Di
 
 const stamp = (id: string, content: string, extra: Partial<DiaryStamp> = {}): DiaryStamp => ({
   id,
+  code: id.padEnd(7, '0'),
   dateKey: '2026-10-23',
   time: '08:00',
   content,

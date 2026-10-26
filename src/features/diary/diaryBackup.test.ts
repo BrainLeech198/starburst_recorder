@@ -19,6 +19,7 @@ function sample(): BackupPayload {
     stamps: [
       {
         id: 's1',
+        code: 'd4e5f60',
         dateKey: '2026-10-25',
         time: '09:30',
         content: '早上去公园散步。',
@@ -38,13 +39,14 @@ describe('备份读写的兼容口径', () => {
     expect(read.payload.entries).toHaveLength(1)
     expect(read.payload.stamps).toHaveLength(1)
     expect(read.payload.entries[0].content).toBe('今天在公园走了三公里。')
+    expect(read.payload.stamps[0].code).toBe('d4e5f60')
   })
 
   it('导出的文件带上两个版本号，方便以后定位', () => {
     const parsed = JSON.parse(buildBackup(sample()).content) as Record<string, unknown>
     expect(parsed.app).toBe('starburst-recorder')
     expect(parsed.version).toBe(2)
-    expect(parsed.schemaVersion).toBe(1)
+    expect(parsed.schemaVersion).toBe(2)
   })
 
   it('v1 那种扁平摆法照样读得出来', () => {

@@ -17,8 +17,10 @@ export interface UpdateInfo {
   notes: string
   /** 发版页，给「手动看看」用 */
   pageUrl: string
-  /** 安装包直链 */
+  /** 安装包直链，先试这个 */
   downloadUrl: string
+  /** 直链失败时再试的另一个源 */
+  fallbackUrl?: string
   fileName: string
 }
 
@@ -73,18 +75,41 @@ function pickAsset(assets: RawRelease['assets'], android: boolean): { url: strin
   return { url: wanted.browser_download_url, name: wanted.name ?? (android ? 'update.apk' : 'update.exe') }
 }
 
+/**
+ * 下载地址的尝试顺序：两个源都试一次。
+ *
+ * 国内手机上 GitHub 的 API 往往还通，下载 CDN 却超时；Gitee 反过来偶尔限流。
+ * 所以安卓先走 Gitee、桌面先走 Release 里挑出的资产（通常是 GitHub），失败再换另一个。
+ */
+export function downloadUrlsFor(
+  version: string,
+  fileName: string,
+  android: boolean,
+  assetUrl: string,
+): string[] {
+  const gitee = `https://gitee.com/${GITEE_REPO}/releases/download/v${version}/${fileName}`
+  const github = `https://github.com/${GITHUB_REPO}/releases/download/v${version}/${fileName}`
+  const ordered = android ? [gitee, assetUrl || github, github] : [assetUrl || github, gitee]
+  return [...new Set(ordered.filter((url) => url !== ''))]
+}
+
 function normalize(raw: RawRelease | null, pageUrl: string, android: boolean): UpdateInfo | null {
   if (!raw?.tag_name) return null
   const version = raw.tag_name.replace(/^v/i, '')
   if (!isNewer(version)) return null
   const asset = pickAsset(raw.assets, android)
   if (!asset) return null
+  const fileName = android
+    ? `starburst-recorder-${version}.apk`
+    : `starburst-recorder-${version}-setup.exe`
+  const urls = downloadUrlsFor(version, fileName, android, asset.url)
   return {
     version,
     notes: (raw.body ?? '').trim(),
     pageUrl: raw.html_url || pageUrl,
-    downloadUrl: asset.url,
-    fileName: android ? `starburst-recorder-${version}.apk` : `starburst-recorder-${version}-setup.exe`,
+    downloadUrl: urls[0],
+    fallbackUrl: urls[1],
+    fileName,
   }
 }
 
@@ -133,8 +158,8 @@ async function fetchChineseNotes(version: string): Promise<string | null> {
 /**
  * 检查一次；没有新版、两个源都失败、或当前平台没有对应安装包时返回 null。
  *
- * 版本号和下载地址一律取 GitHub（两个平台的包都传在那儿）；
- * 中文界面会再取一次 Gitee，把同版本的更新说明换成中文那版。
+ * 版本号和安装包信息取 GitHub（两个平台的包都传在那儿）；下载时两个源各试一次，
+ * 安卓先 Gitee、桌面先 GitHub。中文界面会再取一次 Gitee，把更新说明换成中文那版。
  */
 export async function checkForUpdate(locale: 'zh' | 'en' = 'zh'): Promise<UpdateInfo | null> {
   const android = isAndroid()
@@ -206,28 +231,46 @@ export function onDownloadProgress(listener: (progress: DownloadProgress) => voi
   return () => {}
 }
 
-/** 下载安装包：桌面端下到「下载」并在下载完后打开安装程序 */
+/**
+ * 下载安装包：先试 downloadUrl，失败再试 fallbackUrl。
+ *
+ * 桌面端下到「下载」并在下载完后打开安装程序；安卓壳里下完会自己拉起系统安装器。
+ * 安卓这个 Promise 到下载完成才回来——进度条就靠「await 还没结束」撑着，
+ * 所以别在中途收掉；失败会 reject，换下一个源再试。
+ */
 export async function downloadUpdate(info: UpdateInfo): Promise<DownloadResult> {
+  const urls = [info.downloadUrl, info.fallbackUrl].filter(
+    (url): url is string => typeof url === 'string' && url !== '',
+  )
+
   const desktop = desktopBridge()
   if (desktop?.update) {
-    const result = await desktop.update.download(info.downloadUrl, info.fileName)
-    if (result.ok && result.path) await desktop.update.open(result.path)
-    return result
+    let last: DownloadResult = { ok: false, error: '没有可用的下载地址' }
+    for (const url of urls) {
+      last = await desktop.update.download(url, info.fileName)
+      if (last.ok) {
+        if (last.path) await desktop.update.open(last.path)
+        return last
+      }
+    }
+    return last
   }
 
   const native = androidNative()
   if (native) {
-    // 安卓壳里下完会自己拉起系统安装器。这个 Promise 到下载完成才回来——
-    // 进度条就靠「await 还没结束」撑着，所以别在中途收掉；失败会 reject，转成结果交给调用方提示
-    try {
-      await native.downloadAndInstall({ url: info.downloadUrl, fileName: info.fileName })
-      return { ok: true, finished: true }
-    } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    const errors: string[] = []
+    for (const url of urls) {
+      try {
+        await native.downloadAndInstall({ url, fileName: info.fileName })
+        return { ok: true, finished: true }
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : String(error))
+      }
     }
+    return { ok: false, error: errors.join('；') }
   }
 
-  // 浏览器调试：交给浏览器的下载管理
+  // 浏览器调试：交给浏览器的下载管理，没法在这里换源重试
   window.open(info.downloadUrl, '_blank', 'noopener')
   return { ok: true }
 }

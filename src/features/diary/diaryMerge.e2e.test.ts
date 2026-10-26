@@ -14,7 +14,7 @@ const mkEntry = (id: string, content: string, dateKey = '2026-10-23', opts?: Par
   id, code: id.padEnd(7, '0'), dateKey, createdAt: 100, updatedAt: 100, content, deletedAt: null, ...opts,
 })
 const mkStamp = (id: string, content: string, dateKey = '2026-10-23', time = '08:00', opts?: Partial<DiaryStamp>): DiaryStamp => ({
-  id, dateKey, time, content, createdAt: 100, updatedAt: 100, deletedAt: null, ...opts,
+  id, code: id.padEnd(7, '0'), dateKey, time, content, createdAt: 100, updatedAt: 100, deletedAt: null, ...opts,
 })
 const mkDay = (dateKey: string, weather: string | null): DiaryDay => ({ dateKey, weather, updatedAt: 100 })
 

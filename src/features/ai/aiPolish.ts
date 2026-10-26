@@ -13,7 +13,8 @@ export interface PolishResult {
   error: string
 }
 
-const SYSTEM_PROMPT = `你是一位中文文字编辑，负责润色日记正文。
+/** 第一次润色的规矩；之后接着提要求时，在同一套规矩上追加改稿规则 */
+export const POLISH_SYSTEM_PROMPT = `你是一位中文文字编辑，负责润色日记正文。
 要求：
 1. 只调整标点、断句、重复用词和语序，让文字更通顺自然。
 2. 不增删事实：人名、地名、时间、数字、事件必须原样保留。
@@ -28,7 +29,7 @@ export async function polishDiary(config: AiConfig, text: string): Promise<Polis
     model: config.model.trim(),
     temperature: 0.3,
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: POLISH_SYSTEM_PROMPT },
       { role: 'user', content: text },
     ],
   })

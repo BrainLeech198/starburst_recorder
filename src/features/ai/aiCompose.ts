@@ -111,6 +111,11 @@ const STYLE_RULES: Record<ComposeStyle, string> = {
 【文风】：保留记录里的情绪信号，适度展开感受但不凭空捏造内心活动；用词讲究但不堆砌辞藻，不是散文，是一篇认真写过的日记随笔。多件事时详略分明，不要平均用力。`,
 }
 
+/** 整理这一版用的 system 提示；之后改稿也拿它当底 */
+export function buildComposeSystemPrompt(style: ComposeStyle): string {
+  return `${BASE_RULES}\n\n${STYLE_RULES[style]}`
+}
+
 /** 超过这个长度就截断，免得一篇旧日记把历史摘要挤爆 */
 const HISTORY_ENTRY_CHARS = 300
 const HISTORY_STAMP_CHARS = 80
@@ -318,7 +323,7 @@ export async function composeDiary(
     temperature: 0.6,
     seed: Math.floor(Math.random() * 2 ** 31),
     messages: [
-      { role: 'system', content: `${BASE_RULES}\n\n${STYLE_RULES[input.style]}` },
+      { role: 'system', content: buildComposeSystemPrompt(input.style) },
       { role: 'user', content: buildComposeUserPrompt(input) },
     ],
   })
@@ -331,7 +336,7 @@ export async function composeDiary(
 }
 
 /** LLM 偶尔会在正文前加一行 meta（比如"以下是小学生口吻的日记："），剥掉它 */
-function stripMetaLine(text: string): string {
+export function stripMetaLine(text: string): string {
   const lines = text.split('\n')
   if (lines.length === 0) return text
   const first = lines[0].trim()

@@ -29,7 +29,10 @@ import DatePickerDialog from './DatePickerDialog'
 import ImageImportDialog from './ImageImportDialog'
 import type { ImportSummary } from './importPages'
 import CommonPresetDialog from './CommonPresetDialog'
-import { polishDiary } from '@/features/ai/aiPolish'
+import { POLISH_SYSTEM_PROMPT, polishDiary } from '@/features/ai/aiPolish'
+import { reviseText } from '@/features/ai/aiRevision'
+import type { RevisionTurn } from '@/features/ai/aiRevision'
+import RevisionChat from '@/features/ai/RevisionChat'
 
 /** 弹窗底部的取消按钮：全站弹窗统一的样子 */
 
@@ -90,6 +93,11 @@ export default function DiaryEditPage() {
   const [polishBusy, setPolishBusy] = useState(false)
   const [polishResult, setPolishResult] = useState('')
   const [polishError, setPolishError] = useState('')
+  /** 润色之后接着提要求：第一轮的原文，以及每一轮的要求与结果 */
+  const [polishSeed, setPolishSeed] = useState('')
+  const [polishTurns, setPolishTurns] = useState<RevisionTurn[]>([])
+  const [polishChatBusy, setPolishChatBusy] = useState(false)
+  const [polishChatError, setPolishChatError] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const entry = useLiveQuery(async (): Promise<DiaryEntry | null> => {
@@ -297,6 +305,9 @@ export default function DiaryEditPage() {
     }
     setPolishResult('')
     setPolishError('')
+    setPolishSeed(value)
+    setPolishTurns([])
+    setPolishChatError('')
     setPolishOpen(true)
     setPolishBusy(true)
     try {
@@ -309,6 +320,35 @@ export default function DiaryEditPage() {
     } finally {
       setPolishBusy(false)
     }
+  }
+
+  /** 润色之后继续提要求：每轮都基于弹窗里当前这一版改，确认前不碰正文 */
+  async function handlePolishRevise(request: string) {
+    const config = loadAiConfig()
+    if (!isConfigured(config)) {
+      setPolishChatError(t('diaryEdit.polishNoConfig'))
+      return
+    }
+    setPolishChatBusy(true)
+    setPolishChatError('')
+    const result = await reviseText(
+      config,
+      {
+        systemPrompt: POLISH_SYSTEM_PROMPT,
+        seedUser: polishSeed,
+        draft: polishResult,
+        turns: polishTurns,
+        request,
+      },
+      0.3,
+    )
+    setPolishChatBusy(false)
+    if (!result.ok) {
+      setPolishChatError(t('ai.chatFailed', { message: result.error }))
+      return
+    }
+    setPolishTurns([...polishTurns, { request, content: result.content }])
+    setPolishResult(result.content)
   }
 
   function applyPolish() {
@@ -652,12 +692,20 @@ export default function DiaryEditPage() {
           ) : polishError !== '' ? (
             <ErrorNote>{polishError}</ErrorNote>
           ) : (
-            <textarea
-              value={polishResult}
-              onChange={(event) => setPolishResult(event.target.value)}
-              rows={12}
-              className="font-hand mt-3 w-full resize-y rounded-lg border border-line bg-surface-2 p-3 text-sm text-fg outline-none"
-            />
+            <>
+              <textarea
+                value={polishResult}
+                onChange={(event) => setPolishResult(event.target.value)}
+                rows={12}
+                className="font-hand mt-3 w-full resize-y rounded-lg border border-line bg-surface-2 p-3 text-sm text-fg outline-none"
+              />
+              <RevisionChat
+                turns={polishTurns}
+                busy={polishChatBusy}
+                error={polishChatError}
+                onSend={(request) => void handlePolishRevise(request)}
+              />
+            </>
           )}
 
           <div className="mt-4 flex justify-end gap-2">
@@ -667,7 +715,7 @@ export default function DiaryEditPage() {
             <button
               type="button"
               onClick={applyPolish}
-              disabled={polishBusy || polishResult.trim() === ''}
+              disabled={polishBusy || polishChatBusy || polishResult.trim() === ''}
               className={`${SOLID_BUTTON} disabled:opacity-40`}
             >
               {t('diaryEdit.polishApply')}

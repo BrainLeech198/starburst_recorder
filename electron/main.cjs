@@ -13,6 +13,7 @@ const {
   Tray,
   Menu,
   screen,
+  session,
 } = require('electron')
 const path = require('node:path')
 const nodeUrl = require('node:url')
@@ -458,14 +459,20 @@ function normalizeRelease(raw, pageUrl, wantApk) {
   if (!isNewerVersion(version, app.getVersion())) return null
   const asset = pickUpdateAsset(raw.assets, wantApk)
   if (!asset) return null
+  const fileName = wantApk
+    ? `starburst-recorder-${version}.apk`
+    : `starburst-recorder-${version}-setup.exe`
+  // 另一个源：这个资产来自 GitHub 就补 Gitee，反之补 GitHub
+  const fallbackUrl = asset.url.includes('gitee.com')
+    ? `https://github.com/BrainLeech198/starburst_recorder/releases/download/v${version}/${fileName}`
+    : `https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v${version}/${fileName}`
   return {
     version,
     notes: String(raw.body ?? '').trim(),
     pageUrl: raw.html_url || pageUrl,
     downloadUrl: asset.url,
-    fileName: wantApk
-      ? `starburst-recorder-${version}.apk`
-      : `starburst-recorder-${version}-setup.exe`,
+    fallbackUrl,
+    fileName,
   }
 }
 
@@ -583,6 +590,39 @@ ipcMain.handle('app:open-external', async (_event, url) => {
 ipcMain.handle('update:open', async (_event, filePath) => {
   const failure = await shell.openPath(String(filePath))
   return failure === ''
+})
+
+/** 只删我们自己下载的安装包，别碰用户下载目录里的其它东西 */
+const UPDATE_INSTALLER = /^starburst-recorder-\d+\.\d+\.\d+-setup\.exe$/i
+
+async function removeUpdateInstallers() {
+  const dir = app.getPath('downloads')
+  let bytes = 0
+  let names
+  try {
+    names = await fs.promises.readdir(dir)
+  } catch {
+    return 0
+  }
+  for (const name of names) {
+    if (!UPDATE_INSTALLER.test(name)) continue
+    const file = path.join(dir, name)
+    try {
+      const stat = await fs.promises.stat(file)
+      if (!stat.isFile()) continue
+      await fs.promises.unlink(file)
+      bytes += stat.size
+    } catch {
+      // 正在运行或没有权限就跳过；下次清理再说
+    }
+  }
+  return bytes
+}
+
+ipcMain.handle('cache:clear', async () => {
+  const bytes = await removeUpdateInstallers()
+  await session.defaultSession.clearCache()
+  return { bytes }
 })
 
 /**

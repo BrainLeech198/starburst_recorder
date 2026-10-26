@@ -253,6 +253,9 @@ export default function TrashPage() {
                   >
                     <div className="font-hand text-sm">
                       {formatMonthDay(stamp.dateKey, t)} {stamp.time}
+                      <span className="font-mono ml-2 text-[10px] text-ink-muted opacity-70">
+                        {stamp.code}
+                      </span>
                     </div>
                     <div className="font-hand mt-1 line-clamp-2 text-sm">
                       {stamp.content.trim() || (
@@ -264,6 +267,9 @@ export default function TrashPage() {
                   <>
                     <div className="font-hand text-sm">
                       {formatMonthDay(stamp.dateKey, t)} {stamp.time}
+                      <span className="font-mono ml-2 text-[10px] text-ink-muted opacity-70">
+                        {stamp.code}
+                      </span>
                     </div>
                     <div className="font-hand mt-1 line-clamp-2 text-sm">
                       {stamp.content.trim() || (

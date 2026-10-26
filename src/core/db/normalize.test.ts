@@ -27,6 +27,20 @@ describe('行级校验：必填缺失就丢行', () => {
     expect(pickStamp({ id: 'a', dateKey: '2026-10-25', time: '9:3', content: 'x' })?.time).toBe('00:00')
   })
 
+  it('随记的短编号缺失时现场补一个 7 位十六进制，已有的原样保留', () => {
+    const fresh = pickStamp({ id: 'a', dateKey: '2026-10-25', time: '09:30', content: 'x' })
+    expect(fresh?.code).toMatch(/^[0-9a-f]{7}$/)
+
+    const kept = pickStamp({
+      id: 'b',
+      code: 'abc1234',
+      dateKey: '2026-10-25',
+      time: '09:30',
+      content: 'x',
+    })
+    expect(kept?.code).toBe('abc1234')
+  })
+
   it('食物没有名字就丢', () => {
     expect(pickEntry({ id: 'a', dateKey: '2026-10-25', content: 'x' })).not.toBeNull()
     expect(pickMeal({ id: 'a', name: '鸡腿饭', items: [] })).not.toBeNull()
