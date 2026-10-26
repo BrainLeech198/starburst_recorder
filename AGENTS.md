@@ -34,6 +34,7 @@ Android：`npm run build && npx cap sync android`，再到 `android/` 执行 `gr
 - **主仓库是 Gitee（origin）**，GitHub 是自动镜像；日常只推 origin。
 - 版本号只改 `package.json`（连同 `package-lock.json`），Android 版本由构建脚本派生。
 - 不要提交构建产物或大体积二进制文件。
+- **清理缓存只碰临时文件**：WebView / Chromium 的 HTTP 缓存与已下载的安装包；日记、随记、健康、收支、AI 配置和 `localStorage` 一律不许动。
 
 ## 技术底线
 

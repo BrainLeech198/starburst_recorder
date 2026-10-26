@@ -67,7 +67,7 @@ CN=Starburst Recorder, OU=Personal, O=Mr_brainleech, L=Hangzhou, ST=Zhejiang, C=
 有效期：2026-10-25 → 2059-09-02
 ```
 
-**核验记录（2026-10-26）**：`0.1.0` 至 `0.2.6` 全部 APK 的签名证书 SHA-256 均为上值，且与当前 `.jks` 完全一致。也就是说，历次升级包一直使用同一套密钥。
+**核验记录（2026-10-26）**：`0.1.0` 至 `0.2.6` 全部 APK 的签名证书 SHA-256 均为上值，且与当前 `.jks` 完全一致。也就是说，历次升级包一直使用同一套密钥。`0.2.7` 出包时同样核对过；`0.2.8` 在发布后从 Gitee 重新下载 APK 复验，哈希与本地归档一致、指纹仍为上值。
 
 ### 2.3 每次出包必须验签
 
@@ -127,6 +127,35 @@ npm run desktop:installer
 9. **发 Release**：Gitee 与 GitHub 各建一条，上传同名的 `.apk` 与 `-setup.exe`；替换同名资产时先删旧资产再传。**Gitee 只保留最新版本的附件**：免费仓库的发行版附件总量只有 1 GB，每版两个包约 110 MB，发新版前先删掉旧版本 Release 里的附件（Release 与源码归档保留）；旧版本下载只走 GitHub，官网「历史版本」链接也一直指向 GitHub
 10. **验证**：官网 Pages 是否更新、两个平台的下载链接是否可用、APK 指纹是否仍是 §2.2
 
+### 4.1 Gitee 发行版附件配额（重要）
+
+Gitee 免费仓库（社区版）的 Release 附件有**两层限制**，不要混为一谈：
+
+| 限制 | 数值 | 当前状态 |
+| --- | --- | --- |
+| 单个附件大小 | **≤ 100 MB** | exe 约 94.9 MB，**已经贴着上限**；再长过 100 MB 就传不上 Gitee |
+| 仓库附件总量 | **≤ 1 GB** | 每版 `apk + exe` 约 110 MB，约 9 个版本占满 |
+
+GitHub 没有这两个总量限制（单文件上限远高于此）。如果哪天 Windows 包超过 100 MB，Gitee 只能放 APK，官网的 Gitee Windows 链接要下掉或改指向 GitHub。
+
+**定下的规矩（2026-10-26）：Gitee 只保留最新版本的 `apk` 与 `-setup.exe`。**
+
+- 发新版前，先删掉旧版本 Release 里的附件；**Release 条目与源码归档（zip / tar.gz）保留**。
+- 旧版本下载只走 GitHub；官网「历史版本」链接本来就全部指向 GitHub。
+- 上传前先看剩余配额，传完核对附件数量与大小；同名资产先删旧再传。
+- Token 在 `.local/keys/gitee-token.txt`：写请求时放在请求体（JSON / multipart）或查询串里，不要出现在命令行参数、提交信息或日志中。
+
+清理用的接口（`access_token` 均放在请求体或查询串，不要提交到 git）：
+
+```text
+GET    https://gitee.com/api/v5/repos/{owner}/{repo}/releases
+GET    https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files
+DELETE https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files/{file_id}
+POST   https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files   # multipart: file + access_token
+```
+
+> 0.2.8 发版时按这条规矩清空了 `0.1.0` 至 `0.2.7` 的全部附件，只留 `0.2.8` 的两个包；各版本 Release 页面与源码归档仍在。
+
 ## 5. 凭证与提交约定
 
 - **长期凭证（密钥、密码、Token）由用户决定**：需要新凭证时先给选项（用户提供 / 我生成并写进 gitignore 文件 / 用已有文件），得到确认再动手；已经生成的不要擅自更换。
@@ -144,6 +173,8 @@ npm run desktop:installer
 | 装上新包还是旧界面 | 漏了 `npx cap sync android` |
 | 新包装不上、提示签名冲突 | 换了 keystore，或装的是 debug 包；用 §2.3 验签 |
 | GitHub 资产本地下载报 TLS 吊销错误 | 本机证书链问题，用 `gh release view` 核对资产大小，不代表文件坏了 |
+| Gitee 上传安装包报「文件大小已超出仓库附件配额：1 GB」 | 这是**仓库附件总量**（1 GB）满了，不是单文件；按 §4.1 先删旧版本附件再传，之后坚持「Gitee 只留最新版」 |
+| Gitee 上传单个包被拒（接近或超过 100 MB） | 单附件上限 100 MB；当前 exe 94.9 MB 已接近，超过后 Windows 包只能放 GitHub |
 | Inno Setup 找不到 | 安装 Inno Setup 6，或把 `ISCC.exe` 放进 PATH |
 | 官网更新了但页面没变 | Pages 工作流只监听 `site/**`；确认提交里确实改了 `site/`，再看 Actions 是否成功 |
 
