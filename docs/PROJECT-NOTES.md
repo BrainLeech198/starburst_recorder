@@ -44,6 +44,9 @@
 
 ## 3. 打包（Windows 与手机 debug APK 都能出）
 
+> 本节是历史记录与设计背景。**当前发版的实际操作口径**（签名密钥、验签、版本派生、发版清单、已知坑）统一见
+> [`docs/PACKAGING-AND-RELEASE.md`](PACKAGING-AND-RELEASE.md)，两者冲突时以那份为准。
+
 ### 命令
 
 ```bash

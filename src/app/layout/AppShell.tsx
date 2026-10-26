@@ -13,6 +13,10 @@ const RECORDS: { to: string; labelKey: MessageKey; icon: string }[] = [
   { to: '/finance', labelKey: 'nav.finance', icon: '💰' },
 ]
 
+/** 导航图标：悬停轻抬、按下回弹，当前页由 CSS 再点亮一点（见 index.css 的 .nav-icon） */
+const NAV_ICON =
+  'nav-icon text-base leading-none transition-transform duration-200 group-hover:-translate-y-0.5 group-active:scale-90'
+
 /**
  * 「记录」下面的三项。
  * variant = 'bar'：手机底栏展开的那一行，横排、图标在上（跟底栏其他项一致）
@@ -28,6 +32,7 @@ function RecordLinks({ variant }: { variant: 'bar' | 'list' }) {
           to={item.to}
           className={({ isActive }) =>
             [
+              'group',
               variant === 'bar'
                 ? 'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs'
                 : 'flex items-center gap-2 py-2 pl-9 pr-5 text-xs',
@@ -36,7 +41,7 @@ function RecordLinks({ variant }: { variant: 'bar' | 'list' }) {
             ].join(' ')
           }
         >
-          <span aria-hidden="true" className="text-base leading-none">
+          <span aria-hidden="true" className={NAV_ICON}>
             {item.icon}
           </span>
           {t(item.labelKey)}
@@ -49,7 +54,7 @@ function RecordLinks({ variant }: { variant: 'bar' | 'list' }) {
 /** 导航项的统一写法（手机上图标在上、桌面端图标在左） */
 function itemClass(active: boolean) {
   return [
-    'flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs transition-colors',
+    'group flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs transition-colors',
     'md:flex-none md:flex-row md:justify-start md:gap-2 md:px-5 md:py-3 md:text-sm',
     active ? 'font-medium text-brand' : 'text-muted hover:text-fg',
   ].join(' ')
@@ -117,14 +122,17 @@ export default function AppShell() {
   }, [])
 
   return (
-    <div className="sb-shell flex flex-col bg-bg pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] text-fg md:flex-row">
+    <div className="sb-shell relative flex flex-col bg-bg pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] text-fg md:flex-row">
+      {/* 氛围层：两团随时间缓慢漂移的径向光晕，跟着主题色走（见 index.css 的 .sb-ambient）。
+          pointer-events-none 且压在内容下面，只负责「有气」不抢交互 */}
+      <div className="sb-ambient" aria-hidden="true" />
       {/* 上面三个内边距是给刘海/状态栏让位的：
           现在（API 34 及以下）系统已经把 WebView 摆在状态栏下面，inset 是 0，等于没生效；
           Android 15 起强制边到边，这里就变成真正把内容往下推的那一道。
           底部留给底栏自己处理（见下面 nav 的 pb），所以这里不重复加。 */}
       <nav
         ref={navRef}
-        className="order-last flex shrink-0 flex-col border-t border-line bg-nav pb-[env(safe-area-inset-bottom)] md:order-first md:w-56 md:border-t-0 md:border-r md:pb-0"
+        className="relative z-10 order-last flex shrink-0 flex-col border-t border-line bg-nav pb-[env(safe-area-inset-bottom)] md:order-first md:w-56 md:border-t-0 md:border-r md:pb-0"
       >
         <div className="hidden border-b-2 border-brand bg-nav-strong px-5 py-6 text-base font-medium tracking-wide md:block">
           {t('app.name')}
@@ -139,7 +147,7 @@ export default function AppShell() {
 
         <div className="flex flex-1 md:flex-none md:flex-col md:divide-y md:divide-line">
           <NavLink to="/" end className={({ isActive }) => itemClass(isActive)}>
-            <span aria-hidden="true" className="text-base leading-none">
+            <span aria-hidden="true" className={NAV_ICON}>
               🏠
             </span>
             {t('nav.home')}
@@ -155,7 +163,7 @@ export default function AppShell() {
               ' ',
             )}
           >
-            <span aria-hidden="true" className="text-base leading-none">
+            <span aria-hidden="true" className={NAV_ICON}>
               📝
             </span>
             {t('nav.records')}
@@ -169,13 +177,13 @@ export default function AppShell() {
           )}
 
           <NavLink to="/calendar" className={({ isActive }) => itemClass(isActive)}>
-            <span aria-hidden="true" className="text-base leading-none">
+            <span aria-hidden="true" className={NAV_ICON}>
               📅
             </span>
             {t('nav.calendar')}
           </NavLink>
           <NavLink to="/me" className={({ isActive }) => itemClass(isActive)}>
-            <span aria-hidden="true" className="text-base leading-none">
+            <span aria-hidden="true" className={NAV_ICON}>
               👤
             </span>
             {t('nav.me')}
@@ -186,11 +194,14 @@ export default function AppShell() {
       {/* sb-scroll：弹窗打开时锁的就是它（见 useScrollLock）；overscroll-contain 防滚动链 */}
       <main
         ref={contentRef}
-        className="sb-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        className="sb-scroll relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain"
       >
         {/* 页面按路由懒加载，切换时先显示一句「加载中」，避免白屏 */}
         <Suspense fallback={<div className="p-4 text-sm text-muted">{t('common.loading')}</div>}>
-          <Outlet />
+          {/* key=pathname：换页时整层重挂一次，播一遍入场动画（同板块内进出也算换页） */}
+          <div key={pathname} className="sb-page">
+            <Outlet />
+          </div>
         </Suspense>
       </main>
       {/* 悬浮球平时不显示（它还是个占位，点开只会说 AI 没接），调试开关见 debugFlags.ts */}

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ACCENT_KEY, readAccent, readTheme, THEME_KEY, THEMES } from '@/app/theme'
 import type { ThemeId } from '@/app/theme'
@@ -16,10 +16,25 @@ const ThemeContext = createContext<ThemeValue | null>(null)
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<ThemeId>(readTheme)
   const [accent, setAccent] = useState<string>(readAccent)
+  const firstTheme = useRef(true)
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme
+    const root = document.documentElement
+    const previous = root.dataset.theme
+    root.dataset.theme = theme
     localStorage.setItem(THEME_KEY, theme)
+
+    // 首次进入（含 StrictMode 的第二次执行）不该「淡入」，只给后来手动切换加过渡
+    if (firstTheme.current || previous === theme) {
+      firstTheme.current = false
+      return
+    }
+    root.classList.add('sb-theme-fading')
+    const timer = window.setTimeout(() => root.classList.remove('sb-theme-fading'), 320)
+    return () => {
+      window.clearTimeout(timer)
+      root.classList.remove('sb-theme-fading')
+    }
   }, [theme])
 
   useEffect(() => {

@@ -47,7 +47,7 @@ export default function PageShell({
         backTo={backTo}
         backLabel={backLabel}
       />
-      <div className="mt-6 space-y-4">{children}</div>
+      <div className="sb-rise mt-6 space-y-4">{children}</div>
     </>
   )
 

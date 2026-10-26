@@ -34,9 +34,6 @@ import {
 } from './healthRepo'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
 
-/** 收起时露几行：够认出今天记了什么，又不至于把下面的卡片挤出屏幕 */
-const INTAKE_COLLAPSED_ROWS = 3
-
 const FIELD_LABELS = {
   sex: 'profile.fieldSex',
   age: 'profile.fieldAge',
@@ -69,7 +66,7 @@ export default function HealthPage() {
   const profile = useLiveQuery(() => healthProfile(), [])
   const intakes = useLiveQuery(() => intakesOfDay(dayKey), [dayKey])
   const [dialogOpen, setDialogOpen] = useState(false)
-  /** 摄入列表默认只露几行：下面还要接别的健康卡片，一屏不该全被记录占掉 */
+  /** 摄入列表默认收起：下面还要接别的健康卡片，一屏不该全被记录占掉 */
   const [listOpen, setListOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<HealthIntake | null>(null)
   /** 点开某一笔看完整营养成分 */
@@ -86,8 +83,8 @@ export default function HealthPage() {
   const missing = missingProfileFields(profile)
   const ready = missing.length === 0
   const totals = sumMacros(intakes ?? [])
-  // 折叠时只露前几条；进批量多选就整段展开，不然勾不到藏起来的行
-  const shownIntakes = listOpen || batch.active ? (intakes ?? []) : (intakes ?? []).slice(0, INTAKE_COLLAPSED_ROWS)
+  // 默认一条不露；进批量多选或手动展开才显示，不然勾不到藏起来的行
+  const shownIntakes = listOpen || batch.active ? (intakes ?? []) : []
   // 每天按第一笔摄入时定下的目标线走；旧记录没快照就用当前档案
   const targets = dayTargets(intakes ?? [], profile)
   const remaining = remainingKcal(targets.targetKcal, totals.kcal)
@@ -278,7 +275,7 @@ export default function HealthPage() {
                   ? t('health.emptyIntake')
                   : t('health.emptyIntakeDay', { date: formatDate(dayKey, t) })}
               </p>
-            ) : (
+            ) : shownIntakes.length > 0 ? (
               <ul className="m-0 mt-2 list-none space-y-2 p-0">
                 {shownIntakes.map((intake) => {
                   const selected = batch.isSelected(intake.id)
@@ -348,8 +345,8 @@ export default function HealthPage() {
                   )
                 })}
               </ul>
-            )}
-            {!batch.active && (intakes?.length ?? 0) > INTAKE_COLLAPSED_ROWS && (
+            ) : null}
+            {!batch.active && (intakes?.length ?? 0) > 0 && (
               <button
                 type="button"
                 aria-expanded={listOpen}
@@ -358,7 +355,7 @@ export default function HealthPage() {
               >
                 {listOpen
                   ? t('health.intakeCollapse')
-                  : t('health.intakeExpand', { n: (intakes?.length ?? 0) - INTAKE_COLLAPSED_ROWS })}
+                  : t('health.intakeExpand', { n: intakes?.length ?? 0 })}
               </button>
             )}
           </div>

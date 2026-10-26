@@ -96,7 +96,7 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="sb-overlay-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       {...backdrop}
     >
       <div
@@ -105,7 +105,7 @@ export default function Modal({
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className={`w-full rounded-2xl border border-line bg-surface p-4 outline-none ${WIDTHS[size]} ${panelClassName}`}
+        className={`sb-panel-in w-full rounded-2xl border border-line bg-surface p-4 outline-none ${WIDTHS[size]} ${panelClassName}`}
         onClick={(event) => event.stopPropagation()}
       >
         {children}

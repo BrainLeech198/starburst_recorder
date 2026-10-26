@@ -52,26 +52,30 @@ public class UpdatePlugin extends Plugin {
         File target = new File(dir, fileName.replaceAll("[\\\\/:*?\"<>|]", "_"));
 
         new Thread(() -> {
-            try (InputStream input = open(url); FileOutputStream output = new FileOutputStream(target)) {
-                long total = 0;
-                java.net.URL parsed = new java.net.URL(url);
-                java.net.HttpURLConnection probe = (java.net.HttpURLConnection) parsed.openConnection();
-                probe.setRequestMethod("HEAD");
-                probe.connect();
-                total = probe.getContentLengthLong();
-                probe.disconnect();
+            HttpURLConnection connection = null;
+            try {
+                connection = open(url);
+                // 总长度取自真正下载的这次 GET：另发 HEAD 会有额外请求，还可能拿不到长度
+                long total = connection.getContentLengthLong();
+                notifyProgress(0, total);
 
-                byte[] buffer = new byte[64 * 1024];
-                long received = 0;
-                int read;
-                while ((read = input.read(buffer)) != -1) {
-                    output.write(buffer, 0, read);
-                    received += read;
-                    JSObject payload = new JSObject();
-                    payload.put("received", received);
-                    payload.put("total", total > 0 ? total : 0);
-                    notifyListeners("progress", payload, false);
+                try (InputStream input = connection.getInputStream();
+                     FileOutputStream output = new FileOutputStream(target)) {
+                    byte[] buffer = new byte[64 * 1024];
+                    long received = 0;
+                    long nextNotify = 256 * 1024;
+                    int read;
+                    while ((read = input.read(buffer)) != -1) {
+                        output.write(buffer, 0, read);
+                        received += read;
+                        // 95 MB 按 64 KB 逐块推事件会把桥压垮，攒到 256 KB 再报一次
+                        if (received >= nextNotify) {
+                            notifyProgress(received, total);
+                            nextNotify = received + 256 * 1024;
+                        }
+                    }
                 }
+                notifyProgress(target.length(), total);
                 install(target);
                 JSObject done = new JSObject();
                 done.put("ok", true);
@@ -79,6 +83,8 @@ public class UpdatePlugin extends Plugin {
             } catch (Exception error) {
                 // 网络或写入失败：前端把进度条收掉、提示一句失败，下次启动还会再提示
                 call.reject("下载失败：" + error.getMessage(), error);
+            } finally {
+                if (connection != null) connection.disconnect();
             }
         }).start();
     }
@@ -107,13 +113,20 @@ public class UpdatePlugin extends Plugin {
         }
     }
 
-    private InputStream open(String url) throws Exception {
+    private void notifyProgress(long received, long total) {
+        JSObject payload = new JSObject();
+        payload.put("received", received);
+        payload.put("total", total > 0 ? total : 0);
+        notifyListeners("progress", payload, false);
+    }
+
+    private HttpURLConnection open(String url) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setConnectTimeout(15000);
         connection.setReadTimeout(30000);
         connection.setInstanceFollowRedirects(true);
         connection.connect();
-        return connection.getInputStream();
+        return connection;
     }
 
     /**

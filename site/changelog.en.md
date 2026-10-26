@@ -1,3 +1,18 @@
+## 0.2.7 · 2026-10-26
+
+### What's new
+
+- **Downloads show real progress** — tapping download opens a progress panel with bytes received and total size; it can't be dismissed by accident, and the system installer opens when it finishes
+- **Three new themes** — Forest, Tide and Blossom join the existing six for 9 palettes in total, each with a slow-drifting ambient glow
+- **A livelier interface** — pages, modals and toasts enter with short motions; nav icons lift on hover and glow on the current page; buttons press in
+- **Theme changes no longer snap** — background, text and borders ease into the new palette together
+- **The intake list collapses fully** — the health page shows just the heading, count and "Show all N" until you open it, leaving the first screen for what comes next
+
+### Downloads
+
+- Windows 10/11: `starburst-recorder-0.2.7-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.2.7.apk` (~16 MB, release-signed)
+
 ## 0.2.6 · 2026-10-26
 
 ### What's new

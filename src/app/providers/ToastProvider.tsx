@@ -57,7 +57,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         className="pointer-events-none fixed inset-x-0 bottom-20 z-[60] flex justify-center px-4"
       >
         {toast && (
-          <div className="pointer-events-auto flex items-center gap-4 rounded-xl border border-line bg-surface px-4 py-2">
+          <div className="sb-toast-in pointer-events-auto flex items-center gap-4 rounded-xl border border-line bg-surface px-4 py-2">
             <span className="text-sm text-fg">{toast.message}</span>
             {toast.actionLabel && (
               <button

@@ -61,6 +61,11 @@
   --color-line: color-mix(in srgb, var(--sb-accent, #6ee7ff) 23%, #0a0d12);
   --color-nav: color-mix(in srgb, var(--sb-accent, #6ee7ff) 21%, #0a0d12);
   --color-nav-strong: color-mix(in srgb, var(--sb-accent, #6ee7ff) 11%, #0a0d12);
+
+  /* 背景氛围：两团极低透明的径向光，主题不同、辅助色不同 */
+  --sb-ambient-a: color-mix(in srgb, var(--sb-accent, #6ee7ff) 32%, transparent);
+  --sb-ambient-b: color-mix(in srgb, #7c3aed 22%, transparent);
+  --sb-ambient-opacity: 0.55;
 }
 
 /* 键盘焦点环：鼠标点不出环，Tab / 方向键走到才出，全站一圈主题色。
@@ -126,6 +131,10 @@
   --shadow-slip: 0 4px 12px rgb(20 30 45 / 14%);
   /* 浅色模式下纸是纯白，混入比例要低一点，免得变成“染色纸” */
   --color-slip-selected: color-mix(in srgb, var(--color-paper) 93%, var(--color-brand));
+
+  --sb-ambient-a: color-mix(in srgb, var(--sb-accent, #0891b2) 20%, transparent);
+  --sb-ambient-b: color-mix(in srgb, #2563eb 12%, transparent);
+  --sb-ambient-opacity: 0.4;
 }
 
 /* 暮色：暖调深色，像傍晚屋里点灯的那点橘 */
@@ -156,6 +165,10 @@
   --shadow-paper: 0 12px 28px rgb(0 0 0 / 46%);
   --shadow-slip: 0 6px 14px rgb(0 0 0 / 36%);
   --color-slip-selected: color-mix(in srgb, var(--color-paper) 86%, var(--color-brand));
+
+  --sb-ambient-a: color-mix(in srgb, var(--sb-accent, #f0a978) 30%, transparent);
+  --sb-ambient-b: color-mix(in srgb, #ef6c3d 20%, transparent);
+  --sb-ambient-opacity: 0.5;
 }
 
 /* 深夜：近乎纯黑的 AMOLED，光晕只留主题色一点 */
@@ -186,6 +199,10 @@
   --shadow-paper: 0 12px 28px rgb(0 0 0 / 52%);
   --shadow-slip: 0 6px 14px rgb(0 0 0 / 42%);
   --color-slip-selected: color-mix(in srgb, var(--color-paper) 86%, var(--color-brand));
+
+  --sb-ambient-a: color-mix(in srgb, var(--sb-accent, #7cc4ff) 26%, transparent);
+  --sb-ambient-b: color-mix(in srgb, #4f46e5 18%, transparent);
+  --sb-ambient-opacity: 0.42;
 }
 
 /* 纸白：暖米色的亮色，像把日记摊在木桌上写 */
@@ -217,6 +234,10 @@
   --shadow-paper: 0 10px 22px rgb(96 74 44 / 18%);
   --shadow-slip: 0 4px 12px rgb(96 74 44 / 14%);
   --color-slip-selected: color-mix(in srgb, var(--color-paper) 93%, var(--color-brand));
+
+  --sb-ambient-a: color-mix(in srgb, var(--sb-accent, #c08a4a) 22%, transparent);
+  --sb-ambient-b: color-mix(in srgb, #d97706 12%, transparent);
+  --sb-ambient-opacity: 0.42;
 }
 
 /* 薄雾：冷调的柔和亮色，蓝灰打底，长时间看不刺眼 */
@@ -248,6 +269,113 @@
   --shadow-paper: 0 10px 22px rgb(30 50 80 / 16%);
   --shadow-slip: 0 4px 12px rgb(30 50 80 / 12%);
   --color-slip-selected: color-mix(in srgb, var(--color-paper) 93%, var(--color-brand));
+
+  --sb-ambient-a: color-mix(in srgb, var(--sb-accent, #5b8fd6) 20%, transparent);
+  --sb-ambient-b: color-mix(in srgb, #6366f1 12%, transparent);
+  --sb-ambient-opacity: 0.38;
+}
+
+/* 松间：深绿打底，像傍晚坐在林子里，光从叶缝漏下来 */
+:root[data-theme='forest'] {
+  --color-macro-protein: #eab308;
+  --color-macro-carbs: #38bdf8;
+  --color-macro-fat: #f97316;
+
+  --color-bg: color-mix(in srgb, var(--sb-accent, #86efac) 7%, #07110b);
+  --color-surface: color-mix(in srgb, var(--sb-accent, #86efac) 12%, #0d1811);
+  --color-surface-2: color-mix(in srgb, var(--sb-accent, #86efac) 17%, #122019);
+  --color-line: color-mix(in srgb, var(--sb-accent, #86efac) 22%, #1a2a1f);
+  --color-fg: #e9f2e8;
+  --color-muted: #93a894;
+  --color-nav: color-mix(in srgb, var(--sb-accent, #86efac) 20%, #0a150e);
+  --color-nav-strong: color-mix(in srgb, var(--sb-accent, #86efac) 10%, #07110b);
+  --color-danger: #f2555c;
+  --color-success: #46d391;
+  --color-warning: #eab308;
+  --color-on-brand: #06140b;
+
+  --color-paper: #f6f4e8;
+  --color-paper-strong: #eee9d8;
+  --color-ink: #242a1f;
+  --color-ink-muted: rgb(36 42 31 / 62%);
+  --color-rule: rgb(36 42 31 / 16%);
+  --color-binding: rgb(36 42 31 / 22%);
+  --shadow-paper: 0 12px 28px rgb(0 0 0 / 48%);
+  --shadow-slip: 0 6px 14px rgb(0 0 0 / 38%);
+  --color-slip-selected: color-mix(in srgb, var(--color-paper) 86%, var(--color-brand));
+
+  --sb-ambient-a: color-mix(in srgb, var(--sb-accent, #86efac) 30%, transparent);
+  --sb-ambient-b: color-mix(in srgb, #22c55e 18%, transparent);
+  --sb-ambient-opacity: 0.5;
+}
+
+/* 潮汐：深海蓝绿，比深空更沉、更冷 */
+:root[data-theme='tide'] {
+  --color-macro-protein: #eab308;
+  --color-macro-carbs: #38bdf8;
+  --color-macro-fat: #f97316;
+
+  --color-bg: color-mix(in srgb, var(--sb-accent, #7dd3fc) 7%, #04121b);
+  --color-surface: color-mix(in srgb, var(--sb-accent, #7dd3fc) 12%, #081e2b);
+  --color-surface-2: color-mix(in srgb, var(--sb-accent, #7dd3fc) 17%, #0c2230);
+  --color-line: color-mix(in srgb, var(--sb-accent, #7dd3fc) 22%, #123044);
+  --color-fg: #e6f2f8;
+  --color-muted: #8aa3b2;
+  --color-nav: color-mix(in srgb, var(--sb-accent, #7dd3fc) 20%, #061824);
+  --color-nav-strong: color-mix(in srgb, var(--sb-accent, #7dd3fc) 10%, #04121b);
+  --color-danger: #f2555c;
+  --color-success: #46d391;
+  --color-warning: #eab308;
+  --color-on-brand: #04121b;
+
+  --color-paper: #f3f7f8;
+  --color-paper-strong: #e6eef0;
+  --color-ink: #1b2429;
+  --color-ink-muted: rgb(27 36 41 / 62%);
+  --color-rule: rgb(27 36 41 / 15%);
+  --color-binding: rgb(27 36 41 / 21%);
+  --shadow-paper: 0 12px 28px rgb(0 0 0 / 50%);
+  --shadow-slip: 0 6px 14px rgb(0 0 0 / 40%);
+  --color-slip-selected: color-mix(in srgb, var(--color-paper) 86%, var(--color-brand));
+
+  --sb-ambient-a: color-mix(in srgb, var(--sb-accent, #7dd3fc) 28%, transparent);
+  --sb-ambient-b: color-mix(in srgb, #6366f1 18%, transparent);
+  --sb-ambient-opacity: 0.5;
+}
+
+/* 樱雾：浅粉紫的亮色，春天午后的窗边 */
+:root[data-theme='blossom'] {
+  --color-macro-protein: #9d5c12;
+  --color-macro-carbs: #0f6d8a;
+  --color-macro-fat: #b8531c;
+
+  --color-bg: color-mix(in srgb, var(--sb-accent, #ec4899) 6%, #f3e6ee);
+  --color-surface: color-mix(in srgb, var(--sb-accent, #ec4899) 3%, #fffafc);
+  --color-surface-2: color-mix(in srgb, var(--sb-accent, #ec4899) 9%, #f9eef4);
+  --color-line: color-mix(in srgb, var(--sb-accent, #ec4899) 16%, #ecd9e4);
+  --color-fg: #2b1c24;
+  --color-muted: #7a6470;
+  --color-brand: color-mix(in srgb, var(--sb-accent, #ec4899) 45%, #2b0a18);
+  --color-nav: color-mix(in srgb, var(--sb-accent, #ec4899) 18%, #fffafc);
+  --color-nav-strong: color-mix(in srgb, var(--sb-accent, #ec4899) 32%, #ecd6e3);
+  --color-danger: #c0264d;
+  --color-success: #2f7a4f;
+  --color-warning: #96660a;
+  --color-on-brand: #fff7fb;
+
+  --color-paper: #fffdfd;
+  --color-paper-strong: #f6e9f0;
+  --color-ink: #251a20;
+  --color-ink-muted: rgb(37 26 32 / 62%);
+  --color-rule: rgb(37 26 32 / 13%);
+  --color-binding: rgb(37 26 32 / 18%);
+  --shadow-paper: 0 10px 22px rgb(96 44 74 / 16%);
+  --shadow-slip: 0 4px 12px rgb(96 44 74 / 12%);
+  --color-slip-selected: color-mix(in srgb, var(--color-paper) 93%, var(--color-brand));
+
+  --sb-ambient-a: color-mix(in srgb, var(--sb-accent, #ec4899) 16%, transparent);
+  --sb-ambient-b: color-mix(in srgb, #a855f7 10%, transparent);
+  --sb-ambient-opacity: 0.45;
 }
 
 /* 一张纸：直角、投影托起；左侧一条装订线加三个打孔 */
@@ -431,4 +559,176 @@ html.sb-scroll-locked .sb-scroll {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+}
+
+/* ─────────── 氛围与动效 ───────────
+   克制优先：背景只是两团很淡的光，动效集中在进入/反馈，不跟正文抢注意力。 */
+
+@keyframes ambient-drift {
+  from {
+    transform: translate3d(-4%, -3%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(5%, 4%, 0) scale(1.12);
+  }
+}
+
+.sb-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sb-ambient::before,
+.sb-ambient::after {
+  content: '';
+  position: absolute;
+  width: min(78vw, 620px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  opacity: var(--sb-ambient-opacity, 0.5);
+  filter: blur(80px);
+  background: radial-gradient(circle, var(--sb-ambient-a) 0%, transparent 65%);
+  animation: ambient-drift 26s ease-in-out infinite alternate;
+}
+
+.sb-ambient::before {
+  top: -18%;
+  left: -12%;
+}
+
+.sb-ambient::after {
+  right: -16%;
+  bottom: -22%;
+  background-image: radial-gradient(circle, var(--sb-ambient-b) 0%, transparent 65%);
+  animation-delay: -13s;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sb-page {
+  animation: page-in 0.28s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sb-rise > * {
+  animation: rise-in 0.3s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.sb-rise > *:nth-child(2) {
+  animation-delay: 40ms;
+}
+.sb-rise > *:nth-child(3) {
+  animation-delay: 80ms;
+}
+.sb-rise > *:nth-child(4) {
+  animation-delay: 120ms;
+}
+.sb-rise > *:nth-child(5) {
+  animation-delay: 160ms;
+}
+.sb-rise > *:nth-child(6) {
+  animation-delay: 200ms;
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sb-overlay-in {
+  animation: overlay-in 0.18s ease-out both;
+}
+
+.sb-panel-in {
+  animation: panel-in 0.24s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sb-toast-in {
+  animation: toast-in 0.2s ease-out both;
+}
+
+/* 导航图标：悬停轻轻抬起，当前页再亮一点，给底栏一个不看文字也能认出的信号 */
+.nav-icon {
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease;
+}
+
+[aria-current='page'] .nav-icon {
+  transform: translateY(-1px) scale(1.08);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-brand) 45%, transparent));
+}
+
+/* 切换主题时让底色和文字短促地过渡一下，卡片不会硬切 */
+.sb-theme-fading,
+.sb-theme-fading * {
+  transition:
+    background-color 0.28s ease,
+    color 0.28s ease,
+    border-color 0.28s ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-page,
+  .sb-rise > *,
+  .sb-overlay-in,
+  .sb-panel-in,
+  .sb-toast-in,
+  .sb-ambient::before,
+  .sb-ambient::after {
+    animation: none !important;
+  }
+
+  .sb-theme-fading,
+  .sb-theme-fading * {
+    transition: none !important;
+  }
 }

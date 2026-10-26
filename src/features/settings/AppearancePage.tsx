@@ -41,7 +41,7 @@ export default function AppearancePage() {
                   aria-pressed={active}
                   onClick={() => setTheme(item.id)}
                   className={[
-                    'overflow-hidden rounded-xl border text-left transition-all',
+                    'overflow-hidden rounded-xl border text-left transition-all hover:-translate-y-0.5 active:scale-[0.98] motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100',
                     active
                       ? 'border-brand shadow-sm ring-2 ring-brand/30'
                       : 'border-line hover:border-muted hover:shadow-sm',

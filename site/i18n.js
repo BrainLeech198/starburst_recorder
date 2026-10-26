@@ -23,7 +23,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.2.6',
+    'hero.cta': '下载 0.2.7',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -94,11 +94,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.2.6',
+    'open.version': '版本 0.2.7',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.2.6 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.2.7 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -109,14 +109,13 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      'AI 整理可以挑素材：随记、健康摄入、经济收支各自勾选，想写什么就取什么',
+      '手机更新能看见进度：下载时弹出进度面板，已下载多少、总大小多少一目了然',
     'whatsnew.item2':
-      '整理时会翻旧账：默认参考最近 14 天，也能只取前两天或自定义区间；旧记录只用来呼应，不会写成今天的事',
+      '三套新主题：松间、潮汐、樱雾加入，连同原有六套共 9 种底色，各带一层缓慢漂移的氛围光晕',
     'whatsnew.item3':
-      '导出能选范围和内容：选中项 / 当天 / 自定义区间，日记与随记分开勾，天气和时间戳按需带上',
-    'whatsnew.item4':
-      '健康摄入列表默认收起，给后续卡片留出首屏；应用内更新修好安卓下载完成后的提示',
-    'whatsnew.item5': '窄屏日期不再被挤成省略号，右侧入口自动换行',
+      '界面更有生气：换页、弹窗、提示条短促入场，导航图标悬停轻抬、当前页发亮',
+    'whatsnew.item4': '换主题不再硬切：底色、文字和描边一起平滑过渡',
+    'whatsnew.item5': '健康摄入列表完全收起，默认只留标题和「展开全部」按钮',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -125,7 +124,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.2.6',
+    'footer.version': '版本 0.2.7',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -148,7 +147,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.2.6',
+    'hero.cta': 'Download 0.2.7',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -223,12 +222,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.2.6',
+    'open.version': 'Version 0.2.7',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.2.6 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.2.7 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -239,17 +238,15 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.2.6",
+    'whatsnew.title': "What's new in 0.2.7",
     'whatsnew.item1':
-      'AI compose picks its own material: toggle stamps, health intake and finances independently',
+      'Downloads show real progress: bytes received and total size in a panel that stays put until the file is ready',
     'whatsnew.item2':
-      'It also reads back: the last 14 days by default, or two days, today only or a custom range — older records only echo, never pass as today',
+      'Three new themes: Forest, Tide and Blossom bring the total to 9 palettes, each with a slow-drifting ambient glow',
     'whatsnew.item3':
-      'Export now has range and content controls: selection, one day or a custom span, with diary and stamps toggled separately, weather and timestamps optional',
-    'whatsnew.item4':
-      'The health intake list starts collapsed to leave room for upcoming cards; fixed the Android in-app update confirmation',
-    'whatsnew.item5':
-      'Dates survive narrow screens: the full date stays visible and actions wrap below',
+      'A livelier interface: pages, modals and toasts glide in, and nav icons lift and glow on the current page',
+    'whatsnew.item4': 'Theme changes no longer snap — colours ease into the new palette together',
+    'whatsnew.item5': 'The health intake list collapses fully, leaving just the heading and a "Show all" button',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -258,7 +255,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.2.6',
+    'footer.version': 'Version 0.2.7',
     'footer.tagline': 'Data stays on your device',
   },
 };

@@ -13,6 +13,7 @@ import { openExternal } from '@/platform/openExternal'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
+import DownloadProgressPanel from './DownloadProgressPanel'
 import { checkForUpdate, downloadUpdate, onDownloadProgress, shouldPrompt, snooze } from './updateService'
 import type { UpdateInfo } from './updateService'
 
@@ -28,11 +29,6 @@ interface UpdateValue {
 }
 
 const UpdateContext = createContext<UpdateValue | null>(null)
-
-/** 进度条上显示的 MB 数，保留一位小数 */
-function formatMb(bytes: number) {
-  return (bytes / 1024 / 1024).toFixed(1)
-}
 
 export function useUpdate() {
   const value = useContext(UpdateContext)
@@ -135,76 +131,56 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     <UpdateContext.Provider value={value}>
       {children}
       {open && info && (
-        <Modal size="sm" label={t('update.title', { version: info.version })} onClose={close}>
-          <h2 className="text-base font-medium">{t('update.title', { version: info.version })}</h2>
-          <p className="mt-1 text-xs text-muted">
-            {t('update.current', { version: APP_VERSION })}
-          </p>
-          {info.notes && (
+        <Modal
+          size="sm"
+          label={
+            downloading
+              ? t('update.downloadTitle')
+              : t('update.title', { version: info.version })
+          }
+          // 下载中不给关：进度一消失，用户就只能干等；下完或失败会自动收起来
+          onClose={downloading ? undefined : close}
+        >
+          {downloading ? (
+            <DownloadProgressPanel fileName={info.fileName} progress={progress} />
+          ) : (
             <>
-              <p className="mt-4 text-xs font-medium text-muted">{t('update.notes')}</p>
-              <div className="mt-1 max-h-56 overflow-y-auto whitespace-pre-wrap rounded-lg border border-line bg-surface-2 p-3 text-xs leading-relaxed text-fg">
-                {info.notes}
+              <h2 className="text-base font-medium">{t('update.title', { version: info.version })}</h2>
+              <p className="mt-1 text-xs text-muted">
+                {t('update.current', { version: APP_VERSION })}
+              </p>
+              {info.notes && (
+                <>
+                  <p className="mt-4 text-xs font-medium text-muted">{t('update.notes')}</p>
+                  <div className="mt-1 max-h-56 overflow-y-auto whitespace-pre-wrap rounded-lg border border-line bg-surface-2 p-3 text-xs leading-relaxed text-fg">
+                    {info.notes}
+                  </div>
+                </>
+              )}
+
+              <div className="mt-5 flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => void openExternal(SITE_URL)}
+                  className="text-xs text-muted underline-offset-4 transition-colors hover:text-brand hover:underline"
+                >
+                  {t('update.site')}
+                </button>
+                <div className="flex gap-2">
+                  <button type="button" onClick={close} className={GHOST_BUTTON}>
+                    {t('update.later')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void startDownload()}
+                    className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2"
+                  >
+                    {t('update.download')}
+                  </button>
+                </div>
               </div>
             </>
           )}
-          {downloading && (
-            <div className="mt-4">
-              <div className="flex items-center justify-between text-xs text-muted">
-                <span>
-                  {t('update.downloading', { name: info.fileName })}
-                </span>
-                <span className="tabular-nums">
-                  {progress && progress.total > 0
-                    ? t('update.downloadProgress', {
-                        received: formatMb(progress.received),
-                        total: formatMb(progress.total),
-                      })
-                    : t('update.downloadWaiting')}
-                </span>
-              </div>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2">
-                <div
-                  className="h-full rounded-full bg-brand transition-all duration-300"
-                  style={{
-                    width:
-                      progress && progress.total > 0
-                        ? `${Math.min(100, Math.round((progress.received / progress.total) * 100))}%`
-                        : '15%',
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="mt-5 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => void openExternal(SITE_URL)}
-              className="text-xs text-muted underline-offset-4 transition-colors hover:text-brand hover:underline"
-            >
-              {t('update.site')}
-            </button>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={close}
-                className={GHOST_BUTTON}
-              >
-                {t('update.later')}
-              </button>
-              <button
-                type="button"
-                onClick={() => void startDownload()}
-                disabled={downloading}
-                className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2 disabled:opacity-50"
-              >
-                {downloading
-                  ? t('update.downloading', { name: info.fileName })
-                  : t('update.download')}
-              </button>
-            </div>
-          </div>
         </Modal>
       )}
     </UpdateContext.Provider>
