@@ -24,7 +24,7 @@ function Starburst() {
 export default function HomePage() {
   const { t } = useI18n()
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-md flex-col items-center justify-center px-6">
+    <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-6">
       <Starburst />
       <h1 className="mt-7 text-2xl font-medium tracking-wide">{t('app.name')}</h1>
       <p className="mt-2 text-sm text-muted">{t('app.tagline')}</p>

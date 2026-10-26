@@ -849,7 +849,6 @@ export default function IntakeDialog({
         size="lg"
         label={t('intake.title')}
         onClose={onClose}
-        panelClassName="max-h-[85vh] overflow-y-auto"
       >
         <div className="flex items-center gap-2">
           {step !== 'list' && (

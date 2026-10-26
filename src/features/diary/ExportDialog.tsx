@@ -85,7 +85,7 @@ export default function ExportDialog({
   ]
 
   return (
-    <Modal size="sm" label={t('export.title')} onClose={onCancel} panelClassName="max-h-[85vh] overflow-y-auto">
+    <Modal size="sm" label={t('export.title')} onClose={onCancel}>
       <div className="text-sm font-medium">{t('export.title')}</div>
 
       <div className="mt-3 text-xs text-muted">{t('export.range')}</div>

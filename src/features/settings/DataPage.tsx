@@ -302,7 +302,6 @@ function SectionPicker({
       size="sm"
       label={title}
       onClose={onCancel}
-      panelClassName="max-h-[85vh] overflow-y-auto"
     >
       <p className="m-0 text-sm text-fg">{title}</p>
       <p className="m-0 mt-1 text-xs text-muted">{description}</p>

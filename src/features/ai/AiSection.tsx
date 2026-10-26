@@ -468,7 +468,6 @@ export default function AiSection() {
           size="lg"
           label={t('ai.formTitle')}
           onClose={() => setFormOpen(false)}
-          panelClassName="max-h-[80vh] overflow-y-auto"
         >
           <div className="mb-3 text-xs text-fg">{t('ai.formTitle')}</div>
           <ModelForm
@@ -486,7 +485,6 @@ export default function AiSection() {
           size="lg"
           label={t('ai.editTitle')}
           onClose={() => setEditing(null)}
-          panelClassName="max-h-[80vh] overflow-y-auto"
         >
           <div className="mb-3 flex items-center justify-between gap-2">
             <h3 className="text-sm font-medium text-fg">{t('ai.editTitle')}</h3>

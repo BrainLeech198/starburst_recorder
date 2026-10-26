@@ -34,7 +34,7 @@ export default function Modal({
   label: string
   /** 点遮罩 / 按 Esc 时怎么关；不传就关不掉 */
   onClose?: () => void
-  /** 面板上追加的类：限高自滚、特殊排版都写在这儿 */
+  /** 面板上追加的类：特殊排版（例如 flex 布局）写在这儿；限高与滚动由 Modal 自己管 */
   panelClassName?: string
   children: ReactNode
 }) {
@@ -105,7 +105,7 @@ export default function Modal({
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className={`sb-panel-in w-full rounded-2xl border border-line bg-surface p-4 outline-none ${WIDTHS[size]} ${panelClassName}`}
+        className={`sb-panel-in sb-modal-panel w-full rounded-2xl border border-line bg-surface p-4 outline-none ${WIDTHS[size]} ${panelClassName}`}
         onClick={(event) => event.stopPropagation()}
       >
         {children}

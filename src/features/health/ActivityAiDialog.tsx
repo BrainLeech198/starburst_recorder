@@ -209,7 +209,7 @@ export default function ActivityAiDialog({
       size="sm"
       label={t('profile.activityAiTitle')}
       onClose={onClose}
-      panelClassName="max-h-[80vh] flex flex-col"
+      panelClassName="flex flex-col"
     >
       <div className="text-sm font-medium">{t('profile.activityAiTitle')}</div>
       <p className="mt-1 text-xs text-muted">{t('profile.activityAiDesc')}</p>

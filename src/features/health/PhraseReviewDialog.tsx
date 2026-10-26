@@ -55,7 +55,6 @@ export default function PhraseReviewDialog({
       size="lg"
       label={t('phrase.reviewTitle')}
       onClose={onCancel}
-      panelClassName="max-h-[86vh] overflow-y-auto"
     >
       {active === null ? (
         <>

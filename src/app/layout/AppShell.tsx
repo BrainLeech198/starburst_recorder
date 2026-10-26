@@ -198,8 +198,10 @@ export default function AppShell() {
       >
         {/* 页面按路由懒加载，切换时先显示一句「加载中」，避免白屏 */}
         <Suspense fallback={<div className="p-4 text-sm text-muted">{t('common.loading')}</div>}>
-          {/* key=pathname：换页时整层重挂一次，播一遍入场动画（同板块内进出也算换页） */}
-          <div key={pathname} className="sb-page">
+          {/* key=pathname：换页时整层重挂一次，播一遍入场动画（同板块内进出也算换页）。
+              flex + min-h-full 让页面至少铺满可视区：首页靠它做真正的垂直居中，
+              内容比一屏长的页面照样按内容长高、由 main 滚动 */}
+          <div key={pathname} className="sb-page flex min-h-full flex-col">
             <Outlet />
           </div>
         </Suspense>

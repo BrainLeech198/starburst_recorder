@@ -195,8 +195,6 @@ export default function AiComposeDialog({
       size="lg"
       label={t('ai.composeTitle')}
       onClose={onCancel}
-      // 草稿可能比屏幕高，让面板自己滚，遮罩层始终铺满
-      panelClassName="max-h-[85vh] overflow-y-auto"
     >
       <div className="text-sm font-medium">{t('ai.composeTitle')}</div>
       <p className="mt-1 text-xs text-muted">

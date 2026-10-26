@@ -466,7 +466,6 @@ export default function FoodLibraryPage() {
           size="sm"
           label={t('foods.mergeTitle', { name: merging.name })}
           onClose={() => setMerging(null)}
-          panelClassName="max-h-[85vh] overflow-y-auto"
         >
           <h2 className="m-0 text-base font-medium text-fg">
             {t('foods.mergeTitle', { name: merging.name })}
@@ -547,7 +546,6 @@ export default function FoodLibraryPage() {
           size="sm"
           label={t('foods.add')}
           onClose={() => setFormOpen(false)}
-          panelClassName="max-h-[85vh] overflow-y-auto"
         >
           <h2 className="m-0 mb-3 text-base font-medium text-fg">
             {editing ? t('foods.edit') : t('foods.add')}
@@ -561,7 +559,6 @@ export default function FoodLibraryPage() {
           size="lg"
           label={editingMeal ? t('foods.mealEdit') : t('foods.addMeal')}
           onClose={() => setMealFormOpen(false)}
-          panelClassName="max-h-[85vh] overflow-y-auto"
         >
           <h2 className="m-0 mb-3 text-base font-medium text-fg">
             {editingMeal ? t('foods.mealEdit') : t('foods.addMeal')}

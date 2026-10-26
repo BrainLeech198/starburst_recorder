@@ -117,7 +117,6 @@ export default function ConflictDialog({
       <Modal
         size="xl"
         label={detail.label}
-        panelClassName="max-h-[90vh] overflow-y-auto"
         onClose={() => setDetail(null)}
       >
         <div className="flex items-center justify-between gap-2">

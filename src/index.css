@@ -551,6 +551,15 @@ html.sb-scroll-locked .sb-scroll {
 }
 
 /*
+ * 弹窗面板：最高到遮罩的可用高度（100% 取的是遮罩内容盒，已经扣掉 p-4），
+ * 内容再长也在面板里滚，不会顶出屏幕。所有弹窗共用这一道，别在调用处另写 max-h。
+ */
+.sb-modal-panel {
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+/*
  * 壳层根节点固定一屏高。先给 100vh 兜底，再让 100dvh 覆盖：
  * Android 的 WebView 版本随系统更新，个别偏旧的认不得 dvh，兜底能保证"仍然是一屏高"，
  * 而不是退化成 auto（那样整页又会变回滚动）。
