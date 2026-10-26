@@ -154,7 +154,7 @@ DELETE https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files/
 POST   https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files   # multipart: file + access_token
 ```
 
-> 0.2.8 发版时按这条规矩清空了 `0.1.0` 至 `0.2.7` 的全部附件，只留 `0.2.8` 的两个包；各版本 Release 页面与源码归档仍在。
+> 0.2.8 发版时按这条规矩清空了 `0.1.0` 至 `0.2.7` 的全部附件，只留 `0.2.8` 的两个包；各版本 Release 页面与源码归档仍在。`0.2.10` 发版时同样删掉 `0.2.9` 的两个附件，核对结果为：`0.1.0` 至 `0.2.9` 均无附件，仅 `0.2.10` 有 `apk` 与 `-setup.exe`。从 Gitee 重新下载的 APK，SHA-256 与本地归档一致。
 
 ## 5. 凭证与提交约定
 
