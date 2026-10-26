@@ -2,7 +2,7 @@
  * 顶栏按钮的下拉菜单：点按钮在下方浮出小菜单，点别处或 Esc 关闭。
  * 全站第一个下拉组件，目前给日记编辑页的「文件」「插入」「工具」用。
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 export interface DropdownItem {
   label: string
@@ -32,6 +32,41 @@ export default function Dropdown({
 }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  /*
+   * 菜单夹在视口里再显示。
+   *
+   * 手机上顶栏会换行，「插入」可能落在第二行左边；原来写死 right-0 只是右边缘对齐按钮，
+   * 128px 宽的菜单会从屏幕左边伸出去。这里打开时按按钮和菜单的实际尺寸算一次：
+   * 默认右对齐，左边不够就贴边；下方放不下就翻到按钮上方。
+   * useLayoutEffect 在绘制前同步执行，用户看不到中间位置。
+   */
+  useLayoutEffect(() => {
+    if (!open) return
+    const root = rootRef.current
+    const menu = menuRef.current
+    if (!root || !menu) return
+    const place = () => {
+      const button = root.getBoundingClientRect()
+      const box = menu.getBoundingClientRect()
+      const margin = 8
+      const gap = 4
+      let left = button.right - box.width
+      left = Math.max(margin, Math.min(left, window.innerWidth - box.width - margin))
+      let top = button.bottom + gap
+      if (top + box.height > window.innerHeight - margin) {
+        const above = button.top - box.height - gap
+        top = above >= margin ? above : Math.max(margin, window.innerHeight - box.height - margin)
+      }
+      menu.style.left = `${Math.round(left - button.left)}px`
+      menu.style.top = `${Math.round(top - button.top)}px`
+      menu.style.right = 'auto'
+    }
+    place()
+    window.addEventListener('resize', place)
+    return () => window.removeEventListener('resize', place)
+  }, [open])
 
   // 点菜单外任意处关闭
   useEffect(() => {
@@ -65,8 +100,9 @@ export default function Dropdown({
       </button>
       {open && (
         <div
+          ref={menuRef}
           role="menu"
-          className="absolute right-0 z-40 mt-1 min-w-32 rounded-xl border border-line bg-surface p-1 shadow-lg"
+          className="absolute top-0 left-0 z-40 min-w-32 max-w-[calc(100vw-1rem)] rounded-xl border border-line bg-surface p-1 shadow-lg"
         >
           {items.map((item) => (
             <button
