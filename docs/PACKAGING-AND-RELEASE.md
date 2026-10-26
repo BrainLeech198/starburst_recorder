@@ -124,7 +124,7 @@ npm run desktop:installer
 6. **提交**：只提交源码与文档；`git add` 用具体文件名，不用 `git add -A`
 7. **打标签**：`git tag v<version>`
 8. **推送**：`git push origin main --tags`（origin = Gitee 主仓库，GitHub 由镜像自动同步）
-9. **发 Release**：Gitee 与 GitHub 各建一条，上传同名的 `.apk` 与 `-setup.exe`；替换同名资产时先删旧资产再传
+9. **发 Release**：Gitee 与 GitHub 各建一条，上传同名的 `.apk` 与 `-setup.exe`；替换同名资产时先删旧资产再传。**Gitee 只保留最新版本的附件**：免费仓库的发行版附件总量只有 1 GB，每版两个包约 110 MB，发新版前先删掉旧版本 Release 里的附件（Release 与源码归档保留）；旧版本下载只走 GitHub，官网「历史版本」链接也一直指向 GitHub
 10. **验证**：官网 Pages 是否更新、两个平台的下载链接是否可用、APK 指纹是否仍是 §2.2
 
 ## 5. 凭证与提交约定
