@@ -10,6 +10,7 @@ import { formatDateCn, weekdayLabel } from '@/core/utils/dateKey'
 import type { BackupPayload } from '@/features/diary/diaryBackup'
 import {
   buildRecordExport,
+  buildSingleRecordExport,
   emptySelection,
   filterByDate,
   recordsOf,
@@ -282,5 +283,40 @@ describe('buildRecordExport 的纯文本与 JSON', () => {
       'json',
     )
     expect(JSON.parse(file.content).entries).toEqual([])
+  })
+})
+
+describe('buildSingleRecordExport', () => {
+  it('日记单条导出与整库 JSON 同构，并带上当天天气', () => {
+    const row = entry()
+    const file = buildSingleRecordExport('diary', row, day())
+    const data = JSON.parse(file.content)
+
+    expect(file.label).toBe('JSON')
+    expect(file.mime).toBe('application/json')
+    expect(file.filename.endsWith('.json')).toBe(true)
+    expect(file.filename).toContain('日记')
+    expect(data.app).toBe('starburst-recorder')
+    expect(data.kind).toBe('records')
+    expect(data.entries).toEqual([row])
+    expect(data.days).toEqual([day()])
+    expect(data.stamps).toBeUndefined()
+    expect(data.intakes).toBeUndefined()
+    expect(data.finance).toBeUndefined()
+  })
+
+  it('随记带上当天天气；摄入和收支没有 day 字段', () => {
+    const s = buildSingleRecordExport('stamp', stamp(), day())
+    expect(JSON.parse(s.content).stamps).toEqual([stamp()])
+    expect(JSON.parse(s.content).days).toEqual([day()])
+
+    const i = buildSingleRecordExport('intake', intake())
+    expect(JSON.parse(i.content).intakes).toEqual([intake()])
+    expect(JSON.parse(i.content).days).toBeUndefined()
+    expect(i.filename).toContain('健康摄入')
+
+    const f = buildSingleRecordExport('finance', finance())
+    expect(JSON.parse(f.content).finance).toEqual([finance()])
+    expect(f.filename).toContain('收支')
   })
 })

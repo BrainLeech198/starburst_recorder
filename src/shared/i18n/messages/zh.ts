@@ -181,6 +181,8 @@ export const zh = {
   'foods.title': '食物库',
   'foods.description': '营养按每 100g 记，另存一个常用份量，方便按「一个」「一拳」记。',
   'foods.add': '新增食物',
+  'foods.search': '搜食物或套餐…',
+  'foods.searchEmpty': '没有找到，换个词试试。',
   'foods.empty': '还没有食物，先加一个常吃的。',
   'foods.name': '名称',
   'foods.namePlaceholder': '比如：鸡胸肉',
@@ -324,6 +326,7 @@ export const zh = {
 
   'intake.title': '记一笔摄入',
   'intake.addItem': '增加一项食物',
+  'intake.addItemHint': '从食物库挑、新建或图片分析。',
   'intake.itemEmpty': '这一笔还没有食物，点上面加一项。',
   'intake.itemMeta': '{grams} g · 约 {kcal} 千卡 · 蛋白 {protein} g',
   'intake.fromLibrary': '来自食物库',
@@ -332,13 +335,15 @@ export const zh = {
   'intake.newMeal': '新的套餐',
   'intake.newMealHint': '跟食物库的套餐表单一样；保存后会直接进入这一笔的份量页。',
   'intake.fromPhrase': '通过一句话增加一项或多项食物',
+  'intake.fromPhraseHint': 'AI 自动拆成几项，并把「一拳」「一个」换算成克。',
   'intake.phraseTitle': '一句话记一餐',
   'intake.phraseHint':
     '把这一顿直接写出来，AI 会拆成几项、把「一拳」「一个」换算成克。例如「一拳米饭 + 一个卤鸡腿 + 0.8 拳花菜」。',
   'intake.phrasePlaceholder': '比方：一拳米饭，一个卤鸡腿，0.8 拳花菜',
   'intake.phraseAdd': '解析并加入这一笔',
   'intake.phraseBusy': '正在解析…',
-  'intake.phraseAdded': '已加入 {n} 项，核对后保存',
+  'intake.phraseAdded': '已记入 {n} 项',
+  'intake.phrasePartial': '已直接记入 {hit} 项，还有 {miss} 项需要确认',
   'intake.phraseFailed': '没读懂这句话，换个说法再试一次。',
   'intake.phraseEmpty': '先把这一顿写下来。',
   'intake.phraseUnitNote': '按 {count} {unit} ≈ {grams} g 算',
@@ -346,16 +351,20 @@ export const zh = {
 
   // ─────────── 一句话解析的核对窗 ───────────
   'phrase.reviewTitle': '核对这次识别',
-  'phrase.reviewDesc': '命中食物库的会用库里的数据；没命中的点进去决定要不要新建。',
-  'phrase.statusLibrary': '库内',
+  'phrase.reviewDesc': '命中食物库的已经直接记入；下面这些库里没有，逐项决定新建还是跳过。',
   'phrase.statusPending': '待确认',
-  'phrase.statusNew': '待新建',
+  'phrase.statusLogged': '已记入',
   'phrase.statusSkipped': '已跳过',
-  'phrase.pendingLeft': '还有 {n} 项待确认',
+  'phrase.pendingLeft': '还有 {n} 项待处理',
+  'phrase.logFailed': '没记进去，再试一次。',
   'phrase.done': '完成',
+  'phrase.closeTitle': '还有 {n} 项没处理',
+  'phrase.closeDesc': '已经记入的会保留，没处理的不记入这一笔。',
+  'phrase.closeAnyway': '直接关闭',
+  'phrase.keepWorking': '继续处理',
   'phrase.backToList': '返回列表',
   'phrase.detailTitle': '食物库里没有这一项',
-  'phrase.detailDesc': '核对营养和份量后保存：会同时建进食物库，并记到这一笔里。',
+  'phrase.detailDesc': '核对营养和份量后保存：会立即建进食物库，并记到这一笔里。',
   'phrase.grams': '这次吃了多少',
   'phrase.totalPreview': '这一份约 {kcal} kcal · 蛋白 {protein} g',
   'phrase.createAndLog': '新建食物并记入',
@@ -475,6 +484,13 @@ export const zh = {
   'language.current': '当前：{name}',
   'language.zh': '简体中文',
   'language.en': 'English',
+  'language.zhTW': '繁體中文',
+  'language.ja': '日本語',
+  'language.ko': '한국어',
+  'language.de': 'Deutsch',
+  'language.fr': 'Français',
+  'language.ru': 'Русский',
+  'language.es': 'Español',
 
   'agent.description': '星芒助手长什么样、用哪个模型，都在这里。',
   'agent.ball': '悬浮球',
@@ -1198,6 +1214,7 @@ export const zh = {
 
   'common.confirm': '确定',
   'common.cancel': '取消',
+  'common.close': '关闭',
   'common.delete': '删除',
   'common.reading': '读取中…',
   'common.undo': '撤销',
@@ -1242,6 +1259,68 @@ export const zh = {
   'error.title': '这个页面出问题了',
   'error.hint': '可以先刷新重试；如果一直这样，记录不会丢，数据还在本机。',
   'error.reload': '刷新重试',
+
+  // 服务层 / 纯函数里的提示：组件外部通过 translate() 取词
+  'ai.err.localConnect': '连不上 {baseUrl}{why}。本机模型要先启动，还要确认模型已经下载完。',
+  'ai.err.openaiConnect':
+    '连不上 api.openai.com{why}。国内直连这个地址多半要挂代理，先确认代理开着，或者换一家国内的服务商。',
+  'ai.err.genericConnect':
+    '连不上 {baseUrl}{why}。按顺序查三件事：地址有没有写错、这台机器能不能上外网、这家服务商是否需要代理。',
+  'ai.err.rawBody': '{fallback}原始返回：{raw}',
+  'ai.err.badKey': '服务商不认这把 key（{status}）。去「设置 → AI 模型」重新复制一次 key。',
+  'ai.err.rateLimited': '被限流或者额度不够了（{status}），等一会儿再试。',
+  'ai.err.badRequest':
+    '服务商说这个请求它不认（多半是模型名不对）。去「设置 → AI 模型」核对一下模型名。',
+  'ai.err.serverError': '服务商那边自己出错了（{status}），过一会儿再试。',
+  'ai.err.requestFailed': '请求没成功（{status}）。',
+  'ai.err.modelsNoPermission':
+    '这家不认这把 key，或者 key 没有查看模型的权限（{status}）。不影响手填模型名。',
+  'ai.err.modelsNoEndpoint': '这家没开放模型列表接口（{status}），模型名在控制台复制后手填就行。',
+  'ai.err.modelsRateLimited': '被限流或者额度不够了（{status}），等一会儿再刷新。',
+  'ai.err.modelsServerError': '服务商那边自己出错了（{status}），过一会儿再刷新。',
+  'ai.err.modelsFailed': '没拉到模型列表（{status}）。',
+  'ai.err.modelsEmpty': '服务商返回里没有可用的模型名，可以自己填。',
+  'ai.step.fill': '第 1 步 · 填写',
+  'ai.step.connect': '第 2 步 · 连接',
+  'ai.step.key': '第 3 步 · 密钥',
+  'ai.step.model': '第 4 步 · 模型',
+  'ai.step.vision': '第 5 步 · 看图',
+
+  'weather.err.placeRequired': '先填一个地点，比如 杭州、洛杉矶、京都。',
+  'weather.err.placeNotFound': '没找到「{place}」，换个写法再试，比如只写城市名。',
+  'weather.err.network': '连不上天气服务，检查一下网络再试。',
+  'weather.err.http': '天气服务出错了（{status}），过一会儿再试。',
+  'weather.err.tooFar': '预报最多只能看到今天起 {days} 天，这一天太远了，先手动选一下天气。',
+  'weather.err.notFound':
+    '没查到这一天的天气，可能日期太早或太新。可以手动点天气，或者换个地点再试。',
+  'weather.err.codeUnknown': '查到了天气码 {code}，但认不出对应哪种天气，先手动选一下。',
+  'weather.err.badDate': '日期格式不对，查不了天气。',
+
+  'health.err.phraseNotRecognized':
+    '没从这句话里认出食物。把吃的东西和份量写具体些，再试一次。',
+  'health.err.mealPhotoNotRecognized': '没认出这张照片里的食物。拍全一点、亮一点再试一次。',
+  'health.err.labelNotRead': '没读出这张营养成分表的数字。避开反光、拍正一点再试一次。',
+  'health.err.foodPhotoNotRecognized': '没认出这张照片里的食物。换个角度、拍清楚一点再试一次。',
+  'health.aiActivitySuggestion': '我建议选「{label}」。{reason}',
+  'health.aiActivitySuggestionShort': '我建议选「{label}」。',
+  'health.aiActivityUnreadable': 'AI 的回复没读懂，可以再试一次。',
+  'foods.copySuffix': '副本',
+
+  'data.backupFileBase': '备份',
+  'data.snapshotFileBase': '导入前快照',
+  'update.noUrl': '没有可用的下载地址',
+
+  'records.exportFileBase': '星芒记录者-挑选导出',
+  'records.singleFileBase': '星芒记录者',
+  'records.exportDocTitle': '星芒记录者 导出',
+  'records.exportedAtLine': '导出时间：{time}',
+  'records.weatherLine': '天气：{weather}',
+  'records.plainTextLabel': '纯文本',
+  'records.intakeDetail': '{kcal} kcal · 蛋白质 {protein} g',
+
+  'diary.err.imageUnsupported': '这台设备画不出图片，换个浏览器或者用桌面版试试。',
+  'diary.err.handwritingNotRecognized':
+    '这张照片里没认出字。拍清楚一点、让纸占满画面，再试一次。',
 } as const
 
 export type MessageKey = keyof typeof zh

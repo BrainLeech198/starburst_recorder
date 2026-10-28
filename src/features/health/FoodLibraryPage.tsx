@@ -44,8 +44,8 @@ function byName(a: { name: string }, b: { name: string }) {
 }
 
 /** 复制出来的名字：默认「原名 副本」，撞名就往后加序号 */
-function copyName(base: string, foods: HealthFood[]): string {
-  const name = `${base} 副本`
+function copyName(base: string, foods: HealthFood[], suffix: string): string {
+  const name = `${base} ${suffix}`
   if (!foods.some((food) => food.name === name)) return name
   let index = 2
   while (foods.some((food) => food.name === `${name} ${index}`)) index += 1
@@ -62,6 +62,7 @@ export default function FoodLibraryPage() {
   const foods = useLiveQuery(() => healthFoods(), [])
   const meals = useLiveQuery(() => healthMeals(), [])
   const [tab, setTab] = useState<Tab>('foods')
+  const [query, setQuery] = useState('')
 
   const [detailFood, setDetailFood] = useState<HealthFood | null>(null)
   const [editing, setEditing] = useState<HealthFood | null>(null)
@@ -139,7 +140,7 @@ export default function FoodLibraryPage() {
       ...food,
       id: newId(),
       code: newCode(),
-      name: copyName(food.name, foods ?? []),
+      name: copyName(food.name, foods ?? [], t('foods.copySuffix')),
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -244,8 +245,15 @@ export default function FoodLibraryPage() {
 
   /** 可选的合并目标：除自己以外、按搜索词过滤 */
   const mergeKeyword = mergeQuery.trim().toLowerCase()
+  const keyword = query.trim().toLowerCase()
   const sortedFoods = [...(foods ?? [])].sort(byName)
   const sortedMeals = [...(meals ?? [])].sort(byName)
+  const visibleFoods = keyword
+    ? sortedFoods.filter((food) => food.name.toLowerCase().includes(keyword))
+    : sortedFoods
+  const visibleMeals = keyword
+    ? sortedMeals.filter((meal) => meal.name.toLowerCase().includes(keyword))
+    : sortedMeals
 
   const mergeList = (foods ?? [])
     .filter((food) => food.id !== merging?.id && food.name.toLowerCase().includes(mergeKeyword))
@@ -269,7 +277,7 @@ export default function FoodLibraryPage() {
       backLabel={t('nav.health')}
       actions={
         <div className="flex items-center gap-2">
-          <Link to="/health/foods/trash" className={SOLID_BUTTON}>
+          <Link to="/health/foods/trash" className={OUTLINE_BUTTON}>
             {t('foods.trash')}
           </Link>
           {!batch.active && (
@@ -287,7 +295,7 @@ export default function FoodLibraryPage() {
                 type="button"
                 onClick={() => batch.enter()}
                 disabled={tabEmpty}
-                className={`${SOLID_BUTTON} disabled:opacity-40`}
+                className={`${OUTLINE_BUTTON} disabled:opacity-40`}
               >
                 {t('foods.batch')}
               </button>
@@ -313,12 +321,24 @@ export default function FoodLibraryPage() {
         </button>
       </div>
 
+      {!tabEmpty && !batch.active && (
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t('foods.search')}
+          aria-label={t('foods.search')}
+          className={`${INPUT} mb-3`}
+        />
+      )}
+
       {tab === 'foods' &&
         (foods === undefined ? null : foods.length === 0 ? (
           <EmptyState icon="🍎" text={t('foods.empty')} />
+        ) : visibleFoods.length === 0 ? (
+          <EmptyState icon="🔍" text={t('foods.searchEmpty')} />
         ) : (
           <ul className="m-0 list-none space-y-2 p-0">
-            {sortedFoods.map((food) => {
+            {visibleFoods.map((food) => {
               const selected = batch.isSelected(food.id)
               return (
                 <li
@@ -379,9 +399,11 @@ export default function FoodLibraryPage() {
       {tab === 'meals' &&
         (meals === undefined ? null : meals.length === 0 ? (
           <EmptyState icon="🍱" text={t('foods.mealEmpty')} />
+        ) : visibleMeals.length === 0 ? (
+          <EmptyState icon="🔍" text={t('foods.searchEmpty')} />
         ) : (
           <ul className="m-0 list-none space-y-2 p-0">
-            {sortedMeals.map((meal) => {
+            {visibleMeals.map((meal) => {
               const totals = mealTotals(meal.items, foods ?? [])
               const selected = batch.isSelected(meal.id)
               return (

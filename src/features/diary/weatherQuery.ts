@@ -10,6 +10,7 @@
  */
 import { chat, pickReply } from '@/features/ai/aiClient'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
+import { translate } from '@/shared/i18n/context'
 import { normalizeWeather } from './weather'
 
 const PLACE_KEY = 'sb_weather_place'
@@ -85,7 +86,7 @@ export function stateFromWeatherCode(code: number): string {
 /** 日期拆成「年月日」，让 AI 不用自己猜格式 */
 function dateParts(dateKey: string) {
   const [year, month, day] = dateKey.split('-').map(Number)
-  if (!year || !month || !day) throw new Error('日期格式不对，查不了天气。')
+  if (!year || !month || !day) throw new Error(translate('weather.err.badDate'))
   return { year, month, day }
 }
 
@@ -199,10 +200,10 @@ async function searchPlaces(keyword: string): Promise<WeatherPlace[]> {
         '&count=6&language=zh&format=json',
     )
   } catch {
-    throw new Error('连不上天气服务，检查一下网络再试。')
+    throw new Error(translate('weather.err.network'))
   }
   if (!response.ok) {
-    throw new Error(`天气服务出错了（${response.status}），过一会儿再试。`)
+    throw new Error(translate('weather.err.http', { status: response.status }))
   }
 
   const data = (await response.json()) as { results?: GeoResult[] }
@@ -230,13 +231,13 @@ async function searchPlaces(keyword: string): Promise<WeatherPlace[]> {
 /** 自由输入的地名 → 一个确定的地点；几种写法都查不到才报错 */
 export async function findWeatherPlace(input: string): Promise<WeatherPlace> {
   const target = input.trim()
-  if (target === '') throw new Error('先填一个地点，比如 杭州、洛杉矶、京都。')
+  if (target === '') throw new Error(translate('weather.err.placeRequired'))
 
   for (const keyword of placeCandidates(target)) {
     const results = await searchPlaces(keyword)
     if (results.length > 0) return results[0]
   }
-  throw new Error(`没找到「${target}」，换个写法再试，比如只写城市名。`)
+  throw new Error(translate('weather.err.placeNotFound', { place: target }))
 }
 
 /** 和今天差几天：负数表示过去 */
@@ -253,10 +254,10 @@ async function readWeatherCode(url: string): Promise<number | null> {
   try {
     response = await fetch(url)
   } catch {
-    throw new Error('连不上天气服务，检查一下网络再试。')
+    throw new Error(translate('weather.err.network'))
   }
   if (!response.ok) {
-    throw new Error(`天气服务出错了（${response.status}），过一会儿再试。`)
+    throw new Error(translate('weather.err.http', { status: response.status }))
   }
   const data = (await response.json()) as {
     daily?: { weather_code?: (number | null)[] }
@@ -270,9 +271,7 @@ async function fetchProgramWeather(dateKey: string, place: WeatherPlace): Promis
   const offset = daysFromToday(dateKey)
   // 预报接口只往后看 16 天，超了会直接 400；与其让用户等一次必失败的请求，不如先说清楚
   if (offset > FORECAST_MAX_FUTURE_DAYS) {
-    throw new Error(
-      `预报最多只能看到今天起 ${FORECAST_MAX_FUTURE_DAYS} 天，这一天太远了，先手动选一下天气。`,
-    )
+    throw new Error(translate('weather.err.tooFar', { days: FORECAST_MAX_FUTURE_DAYS }))
   }
 
   const query =
@@ -287,12 +286,12 @@ async function fetchProgramWeather(dateKey: string, place: WeatherPlace): Promis
   // 预报接口回查不到时（日期太靠前、太久远，或这一刻接口抽风），再试历史接口
   if (code === null && offset <= 0) code = await readWeatherCode(archive)
   if (code === null) {
-    throw new Error('没查到这一天的天气，可能日期太早或太新。可以手动点天气，或者换个地点再试。')
+    throw new Error(translate('weather.err.notFound'))
   }
 
   const state = stateFromWeatherCode(code)
   if (state === '') {
-    throw new Error(`查到了天气码 ${code}，但认不出对应哪种天气，先手动选一下。`)
+    throw new Error(translate('weather.err.codeUnknown', { code }))
   }
   return state
 }
@@ -303,7 +302,7 @@ async function fetchProgramWeather(dateKey: string, place: WeatherPlace): Promis
  */
 export async function askWeather(place: string, dateKey: string): Promise<DayWeather> {
   const target = place.trim()
-  if (target === '') throw new Error('先填一个地点，比如 杭州、洛杉矶、京都。')
+  if (target === '') throw new Error(translate('weather.err.placeRequired'))
 
   const aiState = await askAi(target, dateKey)
   if (aiState !== '') return { state: aiState, source: 'ai' }

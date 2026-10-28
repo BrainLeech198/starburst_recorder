@@ -43,8 +43,7 @@ import { analyzeFoodPhoto } from './foodVision'
 import { analyzeMealPhrase } from './mealPhrase'
 import type { PhraseItem } from './mealPhrase'
 import PhraseReviewDialog from './PhraseReviewDialog'
-import type { PhraseResolution } from './PhraseReviewDialog'
-import { matchFood, matchPhrase } from './phraseMatch'
+import { matchFood, splitPhrase } from './phraseMatch'
 import { normalizeFoodName } from './intakeDraft'
 import { asDraft } from './intakeDraft'
 import type { DraftFood } from './intakeDraft'
@@ -85,6 +84,10 @@ interface DraftMealPart {
 }
 
 type Step = 'list' | 'source' | 'picker' | 'newFood' | 'newMeal' | 'image' | 'meal' | 'phrase'
+
+/** 加食物的两种入口：标题 + 一行说明，避免两个实心按钮并列时不知道先点哪个 */
+const ENTRY_CARD =
+  'block w-full rounded-xl border border-line px-3 py-2.5 text-left transition-colors hover:border-brand'
 
 /** 只接受大于 0 的克数；空串和不认识的字都算没填 */
 function parseGrams(text: string): number | null {
@@ -531,18 +534,18 @@ export default function IntakeDialog({
     chooseMeal(created)
   }
 
+  /** 口语份量的换算说明，例如「按 1 拳 ≈ 150 g 算」；直接说克或毫升就不写 */
+  function unitNoteOf(item: { unit: string; count: number }, grams: number): string | undefined {
+    if (['克', '毫升', 'g', 'ml'].includes(item.unit.toLowerCase())) return undefined
+    return t('intake.phraseUnitNote', {
+      count: item.count,
+      unit: item.unit || t('intake.phraseUnitFallback'),
+      grams,
+    })
+  }
+
   /** 一句话拆出来的一项：命中食物库的直接用库里的名字和数值，没命中的当临时食物 */
-  function phraseToItem(entry: {
-    name: string
-    unit: string
-    count: number
-    grams: number
-    kcal: number
-    protein: number
-    carbs: number
-    fat: number
-    matched: string
-  }): DraftItem {
+  function phraseToItem(entry: PhraseItem): DraftItem {
     const existing = matchFood(entry.name, foods ?? [])
     const base: DraftFood = existing
       ? asDraft(existing)
@@ -556,13 +559,6 @@ export default function IntakeDialog({
           servingName: null,
           servingGrams: null,
         }
-    const spoken = ['克', '毫升', 'g', 'ml'].includes(entry.unit.toLowerCase())
-      ? ''
-      : t('intake.phraseUnitNote', {
-          count: entry.count,
-          unit: entry.unit || t('intake.phraseUnitFallback'),
-          grams: entry.grams,
-        })
     return {
       key: newId(),
       food: base,
@@ -571,11 +567,11 @@ export default function IntakeDialog({
       source: existing ? 'library' : 'manual',
       mealId: null,
       components: [],
-      unitNote: spoken === '' ? undefined : spoken,
+      unitNote: unitNoteOf(entry, entry.grams),
     }
   }
 
-  /** 一句话 → 多项食物，全部先放进这一笔，回列表页核对 */
+  /** 一句话 → 多项食物：命中库的直接记入，没命中的开核对窗逐条处理 */
   async function parsePhrase() {
     const text = phrase.trim()
     if (text === '') {
@@ -590,17 +586,22 @@ export default function IntakeDialog({
         setPhraseError(result.error || t('intake.phraseFailed'))
         return
       }
-      const matched = matchPhrase(result.items, foods ?? [])
-      if (matched.every((entry) => entry.food)) {
-        // 全部命中：和老流程一样直接塞进这一笔，不打扰
-        setItems((current) => [...current, ...result.items.map(phraseToItem)])
-        showToast({ message: t('intake.phraseAdded', { n: result.items.length }) })
-        setPhrase('')
+      const { hits, misses } = splitPhrase(result.items, foods ?? [])
+      if (hits.length > 0) {
+        setItems((current) => [...current, ...hits.map(phraseToItem)])
+      }
+      setPhrase('')
+      if (misses.length === 0) {
+        showToast({ message: t('intake.phraseAdded', { n: hits.length }) })
         backToList()
         return
       }
-      // 有没命中的：先让用户逐条决定，确认后再落库
-      setPhraseReview(result.items)
+      // 先回列表再开核对窗：核对完关掉窗口，已经记入的项就在眼前
+      backToList()
+      setPhraseReview(misses)
+      if (hits.length > 0) {
+        showToast({ message: t('intake.phrasePartial', { hit: hits.length, miss: misses.length }) })
+      }
     } catch (error) {
       setPhraseError((error as Error).message || t('intake.phraseFailed'))
     } finally {
@@ -608,44 +609,22 @@ export default function IntakeDialog({
     }
   }
 
-  /** 核对窗点了「完成」：命中的直接用，新建的先落库，再并进这一笔 */
-  async function applyPhraseReview(resolutions: PhraseResolution[]) {
-    const next: DraftItem[] = []
-    /** 同一批里两条同名的新建（用户分别确认过），只写一次库 */
-    const created = new Map<string, DraftFood>()
-    for (const resolution of resolutions) {
-      let food: DraftFood
-      if (resolution.food) {
-        food = asDraft(resolution.food)
-      } else {
-        const draft = resolution.draft as FoodDraft
-        const key = normalizeFoodName(draft.name)
-        food = created.get(key) ?? (await ensureFood(draft))
-        created.set(key, food)
-      }
-      const spoken = ['克', '毫升', 'g', 'ml'].includes(resolution.item.unit.toLowerCase())
-        ? ''
-        : t('intake.phraseUnitNote', {
-            count: resolution.item.count,
-            unit: resolution.item.unit || t('intake.phraseUnitFallback'),
-            grams: resolution.grams,
-          })
-      next.push({
+  /** 核对窗里确认了一项：立即建库（同名复用）并记进这一笔 */
+  async function logReviewedItem(item: PhraseItem, draft: FoodDraft, grams: number) {
+    const food = await ensureFood(draft)
+    setItems((current) => [
+      ...current,
+      {
         key: newId(),
         food,
         name: food.name,
-        grams: resolution.grams,
-        source: resolution.food ? 'library' : 'manual',
+        grams,
+        source: 'library',
         mealId: null,
         components: [],
-        unitNote: spoken === '' ? undefined : spoken,
-      })
-    }
-    setPhraseReview(null)
-    setItems((current) => [...current, ...next])
-    showToast({ message: t('intake.phraseAdded', { n: next.length }) })
-    setPhrase('')
-    backToList()
+        unitNote: unitNoteOf(item, grams),
+      },
+    ])
   }
 
   async function analyze(file: File) {
@@ -849,6 +828,7 @@ export default function IntakeDialog({
         size="lg"
         label={t('intake.title')}
         onClose={onClose}
+        resetKey={step}
       >
         <div className="flex items-center gap-2">
           {step !== 'list' && (
@@ -892,10 +872,11 @@ export default function IntakeDialog({
               />
             </label>
 
-            {/* 两个入口同级：都可以直接往这一笔里加食物 */}
+            {/* 两种加法和底部的「确定」抢主次，所以都做成带说明的选项卡片 */}
             <div className="space-y-2">
-              <button type="button" onClick={openSource} className={`${SOLID_BUTTON} w-full`}>
-                {t('intake.addItem')}
+              <button type="button" onClick={openSource} className={ENTRY_CARD}>
+                <span className="block text-sm text-fg">{t('intake.addItem')}</span>
+                <span className="mt-0.5 block text-xs text-muted">{t('intake.addItemHint')}</span>
               </button>
               <button
                 type="button"
@@ -903,9 +884,10 @@ export default function IntakeDialog({
                   setPhraseError('')
                   setStep('phrase')
                 }}
-                className={`${SOLID_BUTTON} w-full`}
+                className={ENTRY_CARD}
               >
-                {t('intake.fromPhrase')}
+                <span className="block text-sm text-fg">{t('intake.fromPhrase')}</span>
+                <span className="mt-0.5 block text-xs text-muted">{t('intake.fromPhraseHint')}</span>
               </button>
             </div>
 
@@ -1073,7 +1055,7 @@ export default function IntakeDialog({
                   key={option.label}
                   type="button"
                   onClick={option.onClick}
-                  className={`${SOLID_BUTTON} w-full px-2 py-2 text-xs leading-snug`}
+                  className={`${OUTLINE_BUTTON} w-full px-2 py-2 text-xs leading-snug`}
                 >
                   {option.label}
                 </button>
@@ -1586,8 +1568,8 @@ export default function IntakeDialog({
         <PhraseReviewDialog
           items={phraseReview}
           foods={foods ?? []}
-          onCancel={() => setPhraseReview(null)}
-          onDone={(resolutions) => void applyPhraseReview(resolutions)}
+          onClose={() => setPhraseReview(null)}
+          onLog={(item, draft, grams) => logReviewedItem(item, draft, grams)}
         />
       )}
     </>

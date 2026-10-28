@@ -36,11 +36,16 @@ Android：`npm run build && npx cap sync android`，再到 `android/` 执行 `gr
 - 不要提交构建产物或大体积二进制文件。
 - **清理缓存只碰临时文件**：WebView / Chromium 的 HTTP 缓存与已下载的安装包；日记、随记、健康、收支、AI 配置和 `localStorage` 一律不许动。
 
+## 多个 AI 并行时
+
+- 仓库里可能同时有别的 AI（例如 CodeBuddy）在改同一份工作区：动手前先 `git status`，只改自己需要的文件，不跑全量格式化，不覆盖看不出用途的未提交改动。
+- 工作区里不认识的未提交改动，当作他人进行中的工作；不回滚、不清理、不顺手一起提交。
+
 ## 技术底线
 
 - 一套 React 源码同时进 Electron 与 Capacitor；桌面用 SQLite，浏览器 / Android 用 Dexie + IndexedDB。
 - 壳层固定一屏高，只有内容区滚动；禁止整页视口滚动。
-- 用户可见文案必须走 `src/shared/i18n`，中文与英文两份消息表保持同步。
+- 用户可见文案必须走 `src/shared/i18n`：`zh.ts` 是 key 真源，`en / zhTW / ja / ko / de / fr / ru / es` 八份消息表要同步补齐（`{name}` 占位符保持一致）；组件外用 `translate()`，别在模块里写死中文。
 - 动画与氛围效果必须尊重 `prefers-reduced-motion`。
 - 单元测试只测纯逻辑（Node 环境），通过 `node package/run-tests.cjs` 运行。
 

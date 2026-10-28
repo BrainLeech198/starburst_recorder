@@ -11,6 +11,7 @@
 import type { ChatContentPart } from '@/platform/desktop'
 import { toDateKey } from '@/core/utils/dateKey'
 import { normalizeWeather } from '@/features/diary/weather'
+import { translate } from '@/shared/i18n/context'
 import { chat, explainFailure, pickReply } from './aiClient'
 import type { AiConfig } from './aiConfig'
 
@@ -49,7 +50,7 @@ export async function compressImage(file: File): Promise<string> {
   canvas.width = width
   canvas.height = height
   const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('这台设备画不出图片，换个浏览器或者用桌面版试试。')
+  if (!ctx) throw new Error(translate('diary.err.imageUnsupported'))
   ctx.fillStyle = '#ffffff'
   ctx.fillRect(0, 0, width, height)
   ctx.drawImage(image, 0, 0, width, height)
@@ -209,7 +210,7 @@ ${places.length > 0 ? `常用地名：${places.join('、')}` : ''}`.trim()
     return {
       ok: false,
       transcript: null,
-      error: '这张照片里没认出字。拍清楚一点、让纸占满画面，再试一次。',
+      error: translate('diary.err.handwritingNotRecognized'),
       ms: result.ms,
     }
   }

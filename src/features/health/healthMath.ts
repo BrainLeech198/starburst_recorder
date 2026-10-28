@@ -173,8 +173,10 @@ export interface DayTargets {
 }
 
 /**
- * 每天的目标口径按「当天第一笔摄入时的身体档案」为准。
- * 第一笔没有快照（旧记录）就整段回退到当前档案，保证线总能画出来。
+ * 每天的目标口径：
+ * - 今天用当前档案——档案随时改，今天的线就跟着改；
+ * - 过去的日子按「当天第一笔摄入时的档案」快照，改档案不倒改历史；
+ * - 今天档案缺项、或旧记录没有快照，回退到能拿到的那一份，保证线总能画出来。
  */
 export function dayTargets(
   intakes: Pick<
@@ -182,6 +184,7 @@ export function dayTargets(
     'time' | 'createdAt' | 'tdeeSnapshot' | 'targetKcalSnapshot' | 'proteinTargetSnapshot'
   >[],
   profile: HealthProfile | undefined,
+  isToday = false,
 ): DayTargets {
   const fallback: DayTargets = {
     tdee: profile?.tdee ?? null,
@@ -192,6 +195,13 @@ export function dayTargets(
   const first = [...intakes].sort(
     (a, b) => a.time.localeCompare(b.time) || a.createdAt - b.createdAt,
   )[0]
+  if (isToday) {
+    return {
+      tdee: profile?.tdee ?? first.tdeeSnapshot ?? null,
+      targetKcal: profile?.targetKcal ?? first.targetKcalSnapshot ?? null,
+      proteinTarget: profile?.proteinTarget ?? first.proteinTargetSnapshot ?? null,
+    }
+  }
   return {
     tdee: first.tdeeSnapshot ?? fallback.tdee,
     targetKcal: first.targetKcalSnapshot ?? fallback.targetKcal,

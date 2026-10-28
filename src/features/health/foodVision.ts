@@ -11,6 +11,7 @@
 import type { ChatContentPart } from '@/platform/desktop'
 import { chat, explainFailure, pickReply } from '@/features/ai/aiClient'
 import type { AiConfig } from '@/features/ai/aiConfig'
+import { translate } from '@/shared/i18n/context'
 
 /** 模型给出来的一份食物 */
 export interface FoodGuess {
@@ -206,8 +207,8 @@ export async function analyzeFoodPhoto(
       guess: null,
       error:
         mode === 'label'
-          ? '没读出这张营养成分表的数字。避开反光、拍正一点再试一次。'
-          : '没认出这张照片里的食物。换个角度、拍清楚一点再试一次。',
+          ? translate('health.err.labelNotRead')
+          : translate('health.err.foodPhotoNotRecognized'),
       ms: result.ms,
     }
   }

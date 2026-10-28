@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { HealthFood } from '@/core/db/schema'
 import type { PhraseItem } from './mealPhrase'
-import { matchFood, matchPhrase, resolvePhrase } from './phraseMatch'
-import type { FoodDraft } from './FoodForm'
+import { matchFood, splitPhrase } from './phraseMatch'
 
 function food(id: string, name: string): HealthFood {
   return {
@@ -41,60 +40,12 @@ describe('一句话结果与食物库匹配', () => {
     expect(matchFood('   ', foods)).toBeNull()
   })
 
-  it('没命中返回 null，逐项结果保持原顺序', () => {
-    const result = matchPhrase([item('香蕉'), item('不存在'), item('BANANA')], foods)
-    expect(result.map((entry) => entry.food?.id ?? null)).toEqual(['3', null, '2'])
-  })
-})
-
-describe('核对结果折算', () => {
-  const foods = [food('1', '鸡胸肉')]
-  const draft: FoodDraft = {
-    name: '烤南瓜',
-    kcal: 40,
-    protein: 1,
-    carbs: 9,
-    fat: 0.2,
-    servingName: null,
-    servingGrams: null,
-  }
-
-  it('命中的自动带上库里的数据，克数缺失按 100 算', () => {
-    const items = [{ ...item('鸡胸肉'), grams: 0 }]
-    const { resolutions, pending } = resolvePhrase(items, matchPhrase(items, foods), {})
-    expect(pending).toBe(0)
-    expect(resolutions).toHaveLength(1)
-    expect(resolutions[0].food?.id).toBe('1')
-    expect(resolutions[0].grams).toBe(100)
-  })
-
-  it('没决定过的算待确认，不产出条目', () => {
-    const items = [item('烤南瓜')]
-    const { resolutions, pending } = resolvePhrase(items, matchPhrase(items, foods), {})
-    expect(pending).toBe(1)
-    expect(resolutions).toHaveLength(0)
-  })
-
-  it('跳过的不记；新建的按用户改过的克数记', () => {
-    const items = [item('烤南瓜'), item('藜麦')]
-    const matches = matchPhrase(items, foods)
-    const { resolutions, pending } = resolvePhrase(items, matches, {
-      0: { kind: 'skipped' },
-      1: { kind: 'new', draft, grams: 120 },
-    })
-    expect(pending).toBe(0)
-    expect(resolutions).toHaveLength(1)
-    expect(resolutions[0].item.name).toBe('藜麦')
-    expect(resolutions[0].grams).toBe(120)
-    expect(resolutions[0].draft?.name).toBe('烤南瓜')
-  })
-
-  it('保持原话顺序', () => {
-    const items = [item('香蕉'), item('烤南瓜'), item('鸡胸肉')]
-    const matches = matchPhrase(items, [...foods, food('3', '香蕉')])
-    const { resolutions } = resolvePhrase(items, matches, {
-      1: { kind: 'new', draft, grams: 150 },
-    })
-    expect(resolutions.map((entry) => entry.item.name)).toEqual(['香蕉', '烤南瓜', '鸡胸肉'])
+  it('按命中与否拆成两拨，各自保持原顺序', () => {
+    const { hits, misses } = splitPhrase(
+      [item('香蕉'), item('烤南瓜'), item('BANANA'), item('藜麦')],
+      foods,
+    )
+    expect(hits.map((entry) => entry.name)).toEqual(['香蕉', 'BANANA'])
+    expect(misses.map((entry) => entry.name)).toEqual(['烤南瓜', '藜麦'])
   })
 })

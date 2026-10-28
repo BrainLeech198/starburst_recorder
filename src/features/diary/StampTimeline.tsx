@@ -11,6 +11,8 @@ import { formatClock, todayKey } from '@/core/utils/dateKey'
 import WeatherDialog from './WeatherDialog'
 import TimeMeta from '@/shared/ui/TimeMeta'
 import CommonPresetDialog from './CommonPresetDialog'
+import { buildSingleRecordExport } from '@/features/records/recordExport'
+import { describeSave, saveTextFile } from '@/platform/saveFile'
 
 /** 一笔随记：时间一行（可点改）、内容默认只读，双击进入编辑态；整笔挂在左侧时间轴上 */
 function StampRow({
@@ -22,6 +24,7 @@ function StampRow({
   onCancelEdit,
   onSaveEdit,
   onDelete,
+  onExportJson,
   selectable,
   selected,
   onToggle,
@@ -35,6 +38,8 @@ function StampRow({
   onCancelEdit: () => void
   onSaveEdit: () => void
   onDelete: (stamp: DiaryStamp) => void
+  /** 单条导出 JSON：时间和天气由时间轴统一取 */
+  onExportJson: () => void
   /** 批量多选：整笔变成可点选的，不再能编辑内容与时间 */
   selectable: boolean
   selected: boolean
@@ -220,18 +225,32 @@ function StampRow({
         </span>
       ) : (
         !editing && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              onDelete(stamp)
-            }}
-            title={t('stamp.deleteHint')}
-            className="stamp-delete absolute top-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-ink-muted transition-colors hover:text-danger"
-          >
-            <span aria-hidden="true">✕</span>
-            <span className="sr-only">{t('stamp.deleteHint')}</span>
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onExportJson()
+              }}
+              title={t('records.export')}
+              className="absolute top-0 right-9 inline-flex h-8 items-center justify-center rounded-lg px-1.5 font-mono text-[10px] text-ink-muted transition-colors hover:text-brand"
+            >
+              JSON
+              <span className="sr-only">{t('records.export')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete(stamp)
+              }}
+              title={t('stamp.deleteHint')}
+              className="stamp-delete absolute top-0 right-0 inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-ink-muted transition-colors hover:text-danger"
+            >
+              <span aria-hidden="true">✕</span>
+              <span className="sr-only">{t('stamp.deleteHint')}</span>
+            </button>
+          </>
         )
       )}
     </li>
@@ -359,6 +378,7 @@ export default function StampTimeline({
           onCancelEdit={cancelEdit}
           onSaveEdit={() => void saveEdit(stamp)}
           onDelete={setPendingDelete}
+          onExportJson={() => void handleExportJson(stamp)}
           selectable={selectMode}
           selected={selected.includes(stamp.id)}
           onToggle={() => onToggleSelect(stamp.id)}
@@ -366,6 +386,15 @@ export default function StampTimeline({
       )
     })
     if (markerAt === stamps.length) items.push(<NowRow key="now-tail" clock={now.clock} />)
+  }
+
+  /** 单条随记导出：结构和「挑选记录导出」的 JSON 一样，带上当天天气 */
+  async function handleExportJson(stamp: DiaryStamp) {
+    const file = buildSingleRecordExport('stamp', stamp, day ?? null)
+    const outcome = await saveTextFile(file)
+    showToast({
+      message: describeSave(outcome, t('records.exported', { count: 1, label: file.label }), t),
+    })
   }
 
   async function handleDelete() {

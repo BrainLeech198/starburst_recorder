@@ -84,7 +84,7 @@ export interface DesktopBridge {
   }
   /** 检查更新与下载安装包：走主进程，避开 CORS 和渲染进程的网络栈 */
   update: {
-    check: (locale: 'zh' | 'en') => Promise<DesktopUpdateInfo | null>
+    check: (locale: string) => Promise<DesktopUpdateInfo | null>
     download: (url: string, fileName: string) => Promise<DesktopUpdateResult>
     open: (filePath: string) => Promise<boolean>
     /** 下载进度（主进程按秒推），返回退订函数 */

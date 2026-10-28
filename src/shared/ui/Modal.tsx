@@ -27,6 +27,7 @@ export default function Modal({
   label,
   onClose,
   panelClassName = '',
+  resetKey,
   children,
 }: {
   size?: keyof typeof WIDTHS
@@ -36,12 +37,18 @@ export default function Modal({
   onClose?: () => void
   /** 面板上追加的类：特殊排版（例如 flex 布局）写在这儿；限高与滚动由 Modal 自己管 */
   panelClassName?: string
+  /** 步骤切换时传它（例如 step）：内容换了一屏就把面板滚回顶部 */
+  resetKey?: unknown
   children: ReactNode
 }) {
   const panelRef = useRef<HTMLDivElement>(null)
   const backdrop = useBackdropClose(onClose)
   useScrollLock()
   useOverlayEntry(onClose ?? null)
+
+  useEffect(() => {
+    panelRef.current?.scrollTo({ top: 0 })
+  }, [resetKey])
 
   // 打开时把焦点收进弹窗，Tab 只在弹窗里转，关闭后还给原来的元素。
   // 否则键盘和读屏用户会继续在背后的页面上走，根本不知道弹出了什么。

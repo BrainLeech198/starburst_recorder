@@ -12,6 +12,7 @@ import type { HealthFood } from '@/core/db/schema'
 import type { ChatContentPart } from '@/platform/desktop'
 import { chat, explainFailure, pickReply } from '@/features/ai/aiClient'
 import type { AiConfig } from '@/features/ai/aiConfig'
+import { translate } from '@/shared/i18n/context'
 
 /** 一句话里拆出来的一项 */
 export interface PhraseItem {
@@ -186,7 +187,7 @@ export async function analyzeMealPhrase(
     return {
       ok: false,
       items: [],
-      error: '没从这句话里认出食物。把吃的东西和份量写具体些，再试一次。',
+      error: translate('health.err.phraseNotRecognized'),
       ms: result.ms,
     }
   }
@@ -253,7 +254,7 @@ export async function analyzeMealPhoto(
     return {
       ok: false,
       items: [],
-      error: '没认出这张照片里的食物。拍全一点、亮一点再试一次。',
+      error: translate('health.err.mealPhotoNotRecognized'),
       ms: result.ms,
     }
   }

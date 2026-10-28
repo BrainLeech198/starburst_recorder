@@ -11,7 +11,7 @@ import { useLiveQuery } from '@/core/db/live'
 import { useTheme } from '@/app/providers/ThemeProvider'
 import { useToast } from '@/app/providers/ToastProvider'
 import { accentLabelKey } from '@/app/theme'
-import { useI18n } from '@/shared/i18n/context'
+import { LOCALE_LABEL_KEYS, useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import SettingRow from '@/shared/ui/SettingRow'
 import PageShell from '@/shared/ui/PageShell'
@@ -77,7 +77,7 @@ export default function SettingsPage() {
         emoji="🌐"
         title={t('settings.language')}
         hint={t('settings.languageHint')}
-        value={<SettingBadge>{t(locale === 'zh' ? 'language.zh' : 'language.en')}</SettingBadge>}
+        value={<SettingBadge>{t(LOCALE_LABEL_KEYS[locale])}</SettingBadge>}
       />
       <SettingRow
         to="/me/settings/theme"

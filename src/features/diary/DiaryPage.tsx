@@ -14,6 +14,7 @@ import ToolbarRow from '@/shared/ui/ToolbarRow'
 import { BAR_BUTTON, BAR_DANGER, GHOST_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import {
   addStamp,
+  dayInfo,
   entriesOfDay,
   everyDay,
   everyEntry,
@@ -28,6 +29,7 @@ import {
   restoreStamps,
   stampsOfDay,
 } from './diaryRepo'
+import { buildSingleRecordExport } from '@/features/records/recordExport'
 import {
   formatClock,
   formatDate,
@@ -237,6 +239,16 @@ export default function DiaryPage() {
       onAction: () => {
         void (mode === 'diary' ? restoreEntries(ids) : restoreStamps(ids))
       },
+    })
+  }
+
+  /** 单篇日记导出：结构和「挑选记录导出」的 JSON 一样，带上当天天气 */
+  async function handleExportEntry(entry: DiaryEntry) {
+    const day = await dayInfo(entry.dateKey)
+    const file = buildSingleRecordExport('diary', entry, day ?? null)
+    const outcome = await saveTextFile(file)
+    showToast({
+      message: describeSave(outcome, t('records.exported', { count: 1, label: file.label }), t),
     })
   }
 
@@ -504,15 +516,26 @@ export default function DiaryPage() {
                     {isSelected ? '✓' : ''}
                   </span>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setPendingDelete(entry)}
-                    title={t('diary.deleteHint')}
-                    className="absolute top-1.5 right-1.5 inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-ink-muted opacity-70 transition-colors hover:text-danger hover:opacity-100"
-                  >
-                    <span aria-hidden="true">✕</span>
-                    <span className="sr-only">{t('diary.delete')}</span>
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => void handleExportEntry(entry)}
+                      title={t('records.export')}
+                      className="absolute top-1.5 right-10 inline-flex h-8 items-center justify-center rounded-lg px-1.5 font-mono text-[10px] text-ink-muted opacity-70 transition-colors hover:text-brand hover:opacity-100"
+                    >
+                      JSON
+                      <span className="sr-only">{t('records.export')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPendingDelete(entry)}
+                      title={t('diary.deleteHint')}
+                      className="absolute top-1.5 right-1.5 inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-ink-muted opacity-70 transition-colors hover:text-danger hover:opacity-100"
+                    >
+                      <span aria-hidden="true">✕</span>
+                      <span className="sr-only">{t('diary.delete')}</span>
+                    </button>
+                  </>
                 )}
               </li>
             )

@@ -36,6 +36,8 @@ import {
 import type { BackupData } from './healthRepo'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
 import RecordExportDialog from '@/features/records/RecordExportDialog'
+import { buildSingleRecordExport } from '@/features/records/recordExport'
+import { describeSave, saveTextFile } from '@/platform/saveFile'
 
 const FIELD_LABELS = {
   sex: 'profile.fieldSex',
@@ -90,8 +92,8 @@ export default function HealthPage() {
   const totals = sumMacros(intakes ?? [])
   // 默认一条不露；进批量多选或手动展开才显示，不然勾不到藏起来的行
   const shownIntakes = listOpen || batch.active ? (intakes ?? []) : []
-  // 每天按第一笔摄入时定下的目标线走；旧记录没快照就用当前档案
-  const targets = dayTargets(intakes ?? [], profile)
+  // 今天跟着当前档案走（改了档案今天的线立刻改）；过去的日子按当天第一笔的快照
+  const targets = dayTargets(intakes ?? [], profile, isToday)
   const remaining = remainingKcal(targets.targetKcal, totals.kcal)
   const fieldNames = missing
     .map((key) => t(FIELD_LABELS[key as keyof typeof FIELD_LABELS]))
@@ -113,6 +115,15 @@ export default function HealthPage() {
 
   async function handleBatchExport() {
     setExportData(await exportAllData())
+  }
+
+  /** 单条摄入导出：结构和「挑选记录导出」的 JSON 一样 */
+  async function handleExportIntake(intake: HealthIntake) {
+    const file = buildSingleRecordExport('intake', intake)
+    const outcome = await saveTextFile(file)
+    showToast({
+      message: describeSave(outcome, t('records.exported', { count: 1, label: file.label }), t),
+    })
   }
 
   async function handleBatchDelete() {
@@ -341,14 +352,25 @@ export default function HealthPage() {
                         )}
                       </div>
                       {!batch.active && (
-                        <button
-                          type="button"
-                          onClick={() => setPendingDelete(intake)}
-                          aria-label={t('health.deleteIntake')}
-                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-danger"
-                        >
-                          ✕
-                        </button>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => void handleExportIntake(intake)}
+                            title={t('records.export')}
+                            className="inline-flex h-8 items-center justify-center rounded-lg px-1.5 font-mono text-[10px] text-muted transition-colors hover:text-brand"
+                          >
+                            JSON
+                            <span className="sr-only">{t('records.export')}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPendingDelete(intake)}
+                            aria-label={t('health.deleteIntake')}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-danger"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       )}
                     </li>
                   )

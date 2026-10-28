@@ -1,76 +1,82 @@
 /**
  * 一句话解析的核对窗。
  *
- * 命中食物库的项直接用库里的数据，不需要用户操心；没命中的逐条问：
- * 补全营养就新建一条食物并记进这次摄入，不想建就跳过（这一项不记）。
+ * 命中食物库的项在解析时就已直接记入，不会出现在这里；这里只处理库里没有的：
+ * 补全营养就立即新建一条食物并记进这次摄入，不想建就跳过（这一项不记）。
  *
- * 新建只在这里收集草稿，点「完成」才真正写入：中途关掉窗口不会留下半个食物。
+ * 每一项都是点一下就落库：关掉窗口不会撤销已经记入的项，也不会留下半个食物。
  */
 import ErrorNote from '@/shared/ui/ErrorNote'
-import { useMemo, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { HealthFood } from '@/core/db/schema'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
+import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { GHOST_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { INPUT } from '@/shared/ui/inputStyles'
 import FoodForm from './FoodForm'
 import type { FoodDraft } from './FoodForm'
 import { normalizeFoodName } from './intakeDraft'
 import type { PhraseItem } from './mealPhrase'
-import { matchPhrase, resolvePhrase } from './phraseMatch'
-import type { PhraseDecision, PhraseResolution } from './phraseMatch'
 
-export type { PhraseResolution } from './phraseMatch'
-
-type Decision = PhraseDecision
+/** 单项处理结果；没有记录就是还没处理 */
+type Handled = 'logged' | 'skipped'
 
 const BADGE = 'shrink-0 rounded-full border px-2 py-0.5 text-[11px] leading-none'
 
 export default function PhraseReviewDialog({
   items,
   foods,
-  onCancel,
-  onDone,
+  onClose,
+  onLog,
 }: {
   items: PhraseItem[]
   foods: HealthFood[]
-  onCancel: () => void
-  /** 只返回要记的项，跳过的已经在里面过滤掉 */
-  onDone: (resolutions: PhraseResolution[]) => void
+  onClose: () => void
+  /** 立即建进食物库并记进这一笔；失败时抛错，表单会停在本项 */
+  onLog: (item: PhraseItem, draft: FoodDraft, grams: number) => Promise<void>
 }) {
   const { t } = useI18n()
-  const [decisions, setDecisions] = useState<Record<number, Decision>>({})
+  const [handled, setHandled] = useState<Record<number, Handled>>({})
   const [active, setActive] = useState<number | null>(null)
+  const [confirmClose, setConfirmClose] = useState(false)
+  /** 确认框已弹出时，底层的 Esc / 遮罩 / 关闭别再叠一层；用 ref 是因为同一次按键里还会走到底层的监听 */
+  const confirmOpen = useRef(false)
 
-  const matches = useMemo(() => matchPhrase(items, foods), [items, foods])
-  const resolved = useMemo(() => resolvePhrase(items, matches, decisions), [items, matches, decisions])
-  const pendingCount = resolved.pending
+  const pendingCount = items.filter((_, index) => !handled[index]).length
 
-  function finish() {
-    onDone(resolved.resolutions)
+  /** 还有没处理的项就先问一句，别让用户以为点了关闭就等于都记好了 */
+  function requestClose() {
+    if (confirmOpen.current) return
+    if (pendingCount > 0) {
+      confirmOpen.current = true
+      setConfirmClose(true)
+      return
+    }
+    onClose()
+  }
+
+  function cancelClose() {
+    confirmOpen.current = false
+    setConfirmClose(false)
   }
 
   return (
-    <Modal
-      size="lg"
-      label={t('phrase.reviewTitle')}
-      onClose={onCancel}
-    >
-      {active === null ? (
+    <>
+      <Modal size="lg" label={t('phrase.reviewTitle')} onClose={requestClose} resetKey={active}>
+        {active === null ? (
         <>
           <h2 className="m-0 text-base font-medium text-fg">{t('phrase.reviewTitle')}</h2>
           <p className="mt-1 text-xs text-muted">{t('phrase.reviewDesc')}</p>
 
           <ul className="m-0 mt-4 list-none space-y-2 p-0">
             {items.map((item, index) => {
-              const match = matches[index].food
-              const decision = decisions[index]
-              const status = match ? 'library' : decision ? decision.kind : 'pending'
+              const state = handled[index]
               return (
                 <li key={`${item.name}-${index}`}>
                   <button
                     type="button"
-                    disabled={Boolean(match)}
+                    disabled={state === 'logged'}
                     onClick={() => setActive(index)}
                     className="flex w-full items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5 text-left transition-colors hover:border-brand disabled:cursor-default disabled:hover:border-line"
                   >
@@ -82,27 +88,22 @@ export default function PhraseReviewDialog({
                           ` · ${item.count} ${item.unit}`}
                       </span>
                     </span>
-                    {status === 'library' && (
-                      <span className={`${BADGE} border-brand/40 text-brand`}>
-                        {t('phrase.statusLibrary')}
-                      </span>
-                    )}
-                    {status === 'pending' && (
+                    {!state && (
                       <span className={`${BADGE} border-warning/40 text-warning`}>
                         {t('phrase.statusPending')}
                       </span>
                     )}
-                    {status === 'new' && (
+                    {state === 'logged' && (
                       <span className={`${BADGE} border-success/40 text-success`}>
-                        {t('phrase.statusNew')}
+                        {t('phrase.statusLogged')}
                       </span>
                     )}
-                    {status === 'skipped' && (
+                    {state === 'skipped' && (
                       <span className={`${BADGE} border-line text-muted`}>
                         {t('phrase.statusSkipped')}
                       </span>
                     )}
-                    {!match && <span aria-hidden="true" className="text-muted">›</span>}
+                    {state !== 'logged' && <span aria-hidden="true" className="text-muted">›</span>}
                   </button>
                 </li>
               )
@@ -110,12 +111,8 @@ export default function PhraseReviewDialog({
           </ul>
 
           <div className="mt-5 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className={GHOST_BUTTON}
-            >
-              {t('common.cancel')}
+            <button type="button" onClick={requestClose} className={GHOST_BUTTON}>
+              {t('common.close')}
             </button>
             <div className="flex items-center gap-2">
               {pendingCount > 0 && (
@@ -124,7 +121,7 @@ export default function PhraseReviewDialog({
               <button
                 type="button"
                 disabled={pendingCount > 0}
-                onClick={finish}
+                onClick={onClose}
                 className={`${SOLID_BUTTON} disabled:opacity-40`}
               >
                 {t('phrase.done')}
@@ -136,51 +133,64 @@ export default function PhraseReviewDialog({
         <Detail
           key={active}
           item={items[active]}
-          existing={decisions[active]}
           foods={foods}
           onBack={() => setActive(null)}
           onSkip={() => {
-            setDecisions((current) => ({ ...current, [active]: { kind: 'skipped' } }))
+            setHandled((current) => ({ ...current, [active]: 'skipped' }))
             setActive(null)
           }}
-          onApply={(decision) => {
-            setDecisions((current) => ({ ...current, [active]: decision }))
+          onLog={async (draft, grams) => {
+            await onLog(items[active], draft, grams)
+            setHandled((current) => ({ ...current, [active]: 'logged' }))
             setActive(null)
           }}
         />
       )}
-    </Modal>
+      </Modal>
+
+      {confirmClose && (
+        <ConfirmDialog
+          title={t('phrase.closeTitle', { n: pendingCount })}
+          description={t('phrase.closeDesc')}
+          confirmLabel={t('phrase.closeAnyway')}
+          cancelLabel={t('phrase.keepWorking')}
+          onConfirm={() => {
+            confirmOpen.current = false
+            onClose()
+          }}
+          onCancel={cancelClose}
+        />
+      )}
+    </>
   )
 }
 
-/** 单条未命中的处理页：份量 + 营养表单，提交前先挡住重名 */
+/** 单条未命中的处理页：份量 + 营养表单，提交即落库，重名先挡住 */
 function Detail({
   item,
-  existing,
   foods,
   onBack,
   onSkip,
-  onApply,
+  onLog,
 }: {
   item: PhraseItem
-  existing?: Decision
   foods: HealthFood[]
   onBack: () => void
   onSkip: () => void
-  onApply: (decision: Decision) => void
+  onLog: (draft: FoodDraft, grams: number) => Promise<void>
 }) {
   const { t } = useI18n()
-  const [grams, setGrams] = useState(
-    String(existing?.kind === 'new' ? existing.grams : item.grams > 0 ? Math.round(item.grams) : 100),
-  )
+  const [grams, setGrams] = useState(String(item.grams > 0 ? Math.round(item.grams) : 100))
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
 
   const amount = Number(grams)
   const valid = Number.isFinite(amount) && amount > 0
   const kcal = valid ? Math.round((item.kcal * amount) / 100) : 0
   const protein = valid ? Math.round((item.protein * amount) / 10) / 10 : 0
 
-  function submit(draft: FoodDraft) {
+  async function submit(draft: FoodDraft) {
+    if (busy) return
     const name = draft.name.trim()
     if (name === '') {
       setError(t('foods.nameRequired'))
@@ -195,7 +205,13 @@ function Detail({
       return
     }
     setError('')
-    onApply({ kind: 'new', draft: { ...draft, name }, grams: amount })
+    setBusy(true)
+    try {
+      await onLog({ ...draft, name }, amount)
+    } catch {
+      setBusy(false)
+      setError(t('phrase.logFailed'))
+    }
   }
 
   return (
@@ -242,7 +258,7 @@ function Detail({
       <div className="mt-4">
         <FoodForm
           initial={{
-            name: (existing?.kind === 'new' ? existing.draft.name : item.name) ?? '',
+            name: item.name,
             kcal: item.kcal,
             protein: item.protein,
             carbs: item.carbs,
@@ -254,7 +270,6 @@ function Detail({
           onSubmit={submit}
         />
       </div>
-
     </>
   )
 }

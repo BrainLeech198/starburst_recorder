@@ -465,7 +465,7 @@ export default function DataPage() {
   async function handleExportConfirm() {
     if (!exportData || exportSelected.size === 0) return
     const sections = ALL_SECTIONS.filter((section) => exportSelected.has(section))
-    const file = buildBackup(asPayload(exportData), '备份', sections)
+    const file = buildBackup(asPayload(exportData), t('data.backupFileBase'), sections)
     setExportData(null)
     // 安卓上这一步会把文件交给系统分享面板，用户不点保存就什么都没留下，
     // 所以提示条要按实际结果说话（见 describeSave）
@@ -659,7 +659,9 @@ export default function DataPage() {
       )
       const hasLocal = ALL_SECTIONS.some((section) => sectionSize(snapshot, section) > 0)
       if (hasLocal) {
-        const outcome = await saveTextFile(buildBackup(snapshot, '导入前快照', [...target.selected]))
+        const outcome = await saveTextFile(
+          buildBackup(snapshot, t('data.snapshotFileBase'), [...target.selected]),
+        )
         // 快照没存下来就别导了：用户选了「要备份」，这个前提没满足
         if (outcome.kind === 'canceled') {
           setError(t('data.snapshotCanceled'))

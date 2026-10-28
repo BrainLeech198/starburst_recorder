@@ -9,6 +9,7 @@
  * 和 diaryBackup.ts 的区别：备份是整库的快照（带版本、可恢复），这里只是可读文本 / 原始记录。
  */
 import type {
+  DiaryDay,
   DiaryEntry,
   DiaryStamp,
   FinanceEntry,
@@ -18,6 +19,8 @@ import { formatClock, formatDateCn, formatShortStamp, weekdayLabel } from '@/cor
 import { parseWeather, weatherLabel } from '@/features/diary/weather'
 import type { BackupPayload } from '@/features/diary/diaryBackup'
 import type { ExportFile, ExportFormat } from '@/features/diary/diaryExport'
+import { translate } from '@/shared/i18n/context'
+import type { MessageKey } from '@/shared/i18n/messages/zh'
 
 export type RecordKind = 'diary' | 'stamp' | 'intake' | 'finance'
 
@@ -110,7 +113,10 @@ function intakeItems(intakes: HealthIntake[]): RecordItem[] {
       time: intake.time,
       createdAt: intake.createdAt,
       text: intake.name,
-      detail: `${Math.round(intake.kcal)} kcal · 蛋白质 ${intake.protein} g`,
+      detail: translate('records.intakeDetail', {
+        kcal: Math.round(intake.kcal),
+        protein: intake.protein,
+      }),
     }))
 }
 
@@ -154,18 +160,20 @@ export function filterByDate(items: RecordItem[], from: string, to: string): Rec
   return items.filter((item) => item.dateKey >= from && item.dateKey <= to)
 }
 
-const KIND_TITLE: Record<RecordKind, string> = {
-  diary: '日记',
-  stamp: '随记',
-  intake: '健康摄入',
-  finance: '收支',
+const KIND_TITLE_KEY: Record<RecordKind, MessageKey> = {
+  diary: 'records.kindDiary',
+  stamp: 'records.kindStamp',
+  intake: 'records.kindIntake',
+  finance: 'records.kindFinance',
 }
 
-/** 空白日记 / 随记写进文件时的占位，和日记页导出口径一致 */
-const EMPTY_TEXT = '（没有写内容）'
+function kindTitle(kind: RecordKind): string {
+  return translate(KIND_TITLE_KEY[kind])
+}
 
 function lineOf(item: RecordItem): string {
-  const body = item.text || (item.kind === 'diary' || item.kind === 'stamp' ? EMPTY_TEXT : '')
+  const body =
+    item.text || (item.kind === 'diary' || item.kind === 'stamp' ? translate('records.previewEmpty') : '')
   if (item.kind === 'finance') return item.detail ? `${body} · ${item.detail}` : body
   const detail = item.detail ? ` · ${item.detail}` : ''
   return `${item.time} ${body}${detail}`
@@ -173,6 +181,13 @@ function lineOf(item: RecordItem): string {
 
 function pad(value: number) {
   return String(value).padStart(2, '0')
+}
+
+/** 文件名里的时间戳：YYYYMMDD-HHmm */
+function exportStamp(now: Date): string {
+  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(
+    now.getHours(),
+  )}${pad(now.getMinutes())}`
 }
 
 export interface RecordExportOptions {
@@ -194,10 +209,7 @@ export function buildRecordExport(
   options: RecordExportOptions = {},
 ): ExportFile {
   const now = new Date()
-  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(
-    now.getHours(),
-  )}${pad(now.getMinutes())}`
-  const base = `星芒记录者-挑选导出-${stamp}`
+  const base = `${translate('records.exportFileBase')}-${exportStamp(now)}`
   const picked = selectedRecords(payload, selection)
   const includeWeather = options.includeWeather !== false
   // 天气只跟日记 / 随记走：只勾摄入和收支时，日子本身不算这次导出的一部分
@@ -246,11 +258,11 @@ export function buildRecordExport(
   const markdown = format === 'markdown'
 
   if (markdown) {
-    lines.push('# 星芒记录者 导出', '')
+    lines.push(`# ${translate('records.exportDocTitle')}`, '')
   } else {
-    lines.push('星芒记录者 导出', '==============================', '')
+    lines.push(translate('records.exportDocTitle'), '==============================', '')
   }
-  lines.push(`导出时间：${formatShortStamp(now.getTime())}`, '')
+  lines.push(translate('records.exportedAtLine', { time: formatShortStamp(now.getTime()) }), '')
 
   for (const date of dates) {
     if (markdown) {
@@ -260,26 +272,32 @@ export function buildRecordExport(
     }
 
     const states = parseWeather(weatherByDay.get(date))
-    if (states.length > 0) lines.push(`天气：${weatherLabel(states)}`, '')
+    if (states.length > 0) {
+      lines.push(translate('records.weatherLine', { weather: weatherLabel(states) }), '')
+    }
 
     for (const kind of RECORD_KINDS) {
       const items = picked.filter((item) => item.kind === kind && item.dateKey === date)
       if (items.length === 0) continue
 
       if (markdown) {
-        lines.push(`### ${KIND_TITLE[kind]}`, '')
+        lines.push(`### ${kindTitle(kind)}`, '')
         for (const item of items) {
           if (item.kind === 'diary') {
-            lines.push(item.text || EMPTY_TEXT, '')
+            lines.push(item.text || translate('records.previewEmpty'), '')
           } else {
             lines.push(`- ${lineOf(item)}`)
           }
         }
         lines.push('')
       } else {
-        lines.push(`[${KIND_TITLE[kind]}]`)
+        lines.push(`[${kindTitle(kind)}]`)
         for (const item of items) {
-          lines.push(item.kind === 'diary' ? item.text || EMPTY_TEXT : lineOf(item))
+          lines.push(
+            item.kind === 'diary'
+              ? item.text || translate('records.previewEmpty')
+              : lineOf(item),
+          )
         }
         lines.push('')
       }
@@ -287,9 +305,45 @@ export function buildRecordExport(
   }
 
   return {
-    label: markdown ? 'Markdown' : '纯文本',
+    label: markdown ? 'Markdown' : translate('records.plainTextLabel'),
     filename: `${base}.${markdown ? 'md' : 'txt'}`,
     mime: 'text/plain;charset=utf-8',
     content: lines.join('\n'),
+  }
+}
+
+/** JSON 里四类记录各自的字段名，与整库挑选导出保持一致 */
+const KIND_FIELD: Record<RecordKind, 'entries' | 'stamps' | 'intakes' | 'finance'> = {
+  diary: 'entries',
+  stamp: 'stamps',
+  intake: 'intakes',
+  finance: 'finance',
+}
+
+/**
+ * 单条导出：JSON 结构与「挑选记录导出」完全一致，只装这一条。
+ * 日记 / 随记把当天的天气一并带上；摄入和收支没有天气，不带 days。
+ */
+export function buildSingleRecordExport(
+  kind: RecordKind,
+  row: DiaryEntry | DiaryStamp | HealthIntake | FinanceEntry,
+  day?: DiaryDay | null,
+): ExportFile {
+  const now = new Date()
+  return {
+    label: 'JSON',
+    filename: `${translate('records.singleFileBase')}-${kindTitle(kind)}-${exportStamp(now)}.json`,
+    mime: 'application/json',
+    content: JSON.stringify(
+      {
+        app: 'starburst-recorder',
+        kind: 'records',
+        exportedAt: now.toISOString(),
+        [KIND_FIELD[kind]]: [row],
+        ...(day && (kind === 'diary' || kind === 'stamp') ? { days: [day] } : {}),
+      },
+      null,
+      2,
+    ),
   }
 }

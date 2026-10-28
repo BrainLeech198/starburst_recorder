@@ -187,6 +187,8 @@ export const en: Record<MessageKey, string> = {
   'foods.description':
     'Nutrition is stored per 100 g, plus one usual serving so “one piece” works too.',
   'foods.add': 'New food',
+  'foods.search': 'Search foods or meals…',
+  'foods.searchEmpty': 'Nothing matched. Try another word.',
   'foods.empty': 'No foods yet. Add something you eat often.',
   'foods.name': 'Name',
   'foods.namePlaceholder': 'e.g. chicken breast',
@@ -340,6 +342,7 @@ export const en: Record<MessageKey, string> = {
 
   'intake.title': 'Log food',
   'intake.addItem': 'Add a food',
+  'intake.addItemHint': 'Pick from the library, create one, or analyse a photo.',
   'intake.itemEmpty': 'Nothing in this entry yet. Add one above.',
   'intake.itemMeta': '{grams} g · about {kcal} kcal · protein {protein} g',
   'intake.fromLibrary': 'From library',
@@ -349,6 +352,7 @@ export const en: Record<MessageKey, string> = {
   'intake.newMealHint':
     "Same form as the meal library; after saving you go straight to this entry's portion page.",
   'intake.fromPhrase': 'Add one or more foods from a sentence',
+  'intake.fromPhraseHint': 'AI splits it into items and turns “a fist” or “one piece” into grams.',
   'intake.phraseTitle': 'Log a meal in one sentence',
   'intake.phraseHint':
     'Write the whole meal; AI splits it into items and converts “a fist”, “one piece” into grams. e.g. “a fist of rice + one braised chicken leg + 0.8 fist of cauliflower”.',
@@ -356,7 +360,8 @@ export const en: Record<MessageKey, string> = {
     'e.g. a fist of rice, one braised chicken leg, 0.8 fist of cauliflower',
   'intake.phraseAdd': 'Parse and add to this entry',
   'intake.phraseBusy': 'Parsing…',
-  'intake.phraseAdded': '{n} item(s) added, check them before saving',
+  'intake.phraseAdded': '{n} item(s) logged',
+  'intake.phrasePartial': '{hit} logged from your library; {miss} still need a decision',
   'intake.phraseFailed': 'Could not read that sentence. Try phrasing it differently.',
   'intake.phraseEmpty': 'Write the meal down first.',
   'intake.phraseUnitNote': 'counted as {count} {unit} ≈ {grams} g',
@@ -365,17 +370,21 @@ export const en: Record<MessageKey, string> = {
   // ─────────── 一句话解析的核对窗 ───────────
   'phrase.reviewTitle': 'Review what we found',
   'phrase.reviewDesc':
-    'Anything in your food library uses the saved numbers; tap the rest to decide.',
-  'phrase.statusLibrary': 'In library',
+    'Anything already in your food library was logged; tap the rest to decide.',
   'phrase.statusPending': 'Needs review',
-  'phrase.statusNew': 'New food',
+  'phrase.statusLogged': 'Logged',
   'phrase.statusSkipped': 'Skipped',
-  'phrase.pendingLeft': '{n} left to review',
+  'phrase.pendingLeft': '{n} left to process',
+  'phrase.logFailed': 'Could not log that. Try again.',
   'phrase.done': 'Done',
+  'phrase.closeTitle': '{n} item(s) still unhandled',
+  'phrase.closeDesc': 'What is already logged stays; the rest will not be added to this entry.',
+  'phrase.closeAnyway': 'Close anyway',
+  'phrase.keepWorking': 'Keep going',
   'phrase.backToList': 'Back to list',
   'phrase.detailTitle': 'Not in your food library',
   'phrase.detailDesc':
-    'Check the numbers and portion, then save: this creates the food and logs it to this intake.',
+    'Check the numbers and portion, then save: it creates the food right away and logs it to this intake.',
   'phrase.grams': 'How much you had',
   'phrase.totalPreview': 'About {kcal} kcal · {protein} g protein',
   'phrase.createAndLog': 'Create food and log it',
@@ -498,6 +507,13 @@ export const en: Record<MessageKey, string> = {
   'language.current': 'Current: {name}',
   'language.zh': '简体中文',
   'language.en': 'English',
+  'language.zhTW': '繁體中文',
+  'language.ja': '日本語',
+  'language.ko': '한국어',
+  'language.de': 'Deutsch',
+  'language.fr': 'Français',
+  'language.ru': 'Русский',
+  'language.es': 'Español',
 
   'agent.description': 'How the assistant looks and which model it uses — all set here.',
   'agent.ball': 'Floating ball',
@@ -1246,6 +1262,7 @@ export const en: Record<MessageKey, string> = {
 
   'common.confirm': 'OK',
   'common.cancel': 'Cancel',
+  'common.close': 'Close',
   'common.delete': 'Delete',
   'common.reading': 'Loading…',
   'common.undo': 'Undo',
@@ -1291,4 +1308,76 @@ export const en: Record<MessageKey, string> = {
   'error.title': 'Something went wrong on this page',
   'error.hint': 'Try refreshing first; if it persists, your records are safe on this device.',
   'error.reload': 'Refresh',
+
+  'ai.err.localConnect':
+    'Cannot reach {baseUrl}{why}. Start the local model first, and make sure it has finished downloading.',
+  'ai.err.openaiConnect':
+    'Cannot reach api.openai.com{why}. Direct access from this region usually needs a proxy — check that it is on, or switch to a provider that works locally.',
+  'ai.err.genericConnect':
+    'Cannot reach {baseUrl}{why}. Check three things in order: the address, whether this machine can reach the internet, and whether this provider needs a proxy.',
+  'ai.err.rawBody': '{fallback} Raw response: {raw}',
+  'ai.err.badKey':
+    'The provider rejected this key ({status}). Copy the key again from Settings → AI models.',
+  'ai.err.rateLimited': 'Rate limited or out of quota ({status}). Try again shortly.',
+  'ai.err.badRequest':
+    'The provider does not recognize this request (usually a wrong model name). Check the model name in Settings → AI models.',
+  'ai.err.serverError': 'The provider hit an internal error ({status}). Try again shortly.',
+  'ai.err.requestFailed': 'The request failed ({status}).',
+  'ai.err.modelsNoPermission':
+    'This provider rejected the key, or the key cannot list models ({status}). You can still type the model name.',
+  'ai.err.modelsNoEndpoint':
+    'This provider does not expose a model list ({status}). Copy the model name from its console and type it in.',
+  'ai.err.modelsRateLimited': 'Rate limited or out of quota ({status}). Refresh again shortly.',
+  'ai.err.modelsServerError':
+    'The provider hit an internal error ({status}). Refresh again shortly.',
+  'ai.err.modelsFailed': 'Could not fetch the model list ({status}).',
+  'ai.err.modelsEmpty': 'The provider returned no usable model names — you can type one in.',
+  'ai.step.fill': 'Step 1 · Details',
+  'ai.step.connect': 'Step 2 · Connection',
+  'ai.step.key': 'Step 3 · API key',
+  'ai.step.model': 'Step 4 · Model',
+  'ai.step.vision': 'Step 5 · Vision',
+
+  'weather.err.placeRequired': 'Enter a place first, e.g. Hangzhou, Los Angeles, Kyoto.',
+  'weather.err.placeNotFound':
+    'Could not find “{place}”. Try another spelling, e.g. just the city name.',
+  'weather.err.network': 'Cannot reach the weather service. Check your connection and try again.',
+  'weather.err.http': 'The weather service errored ({status}). Try again shortly.',
+  'weather.err.tooFar':
+    'Forecasts only go {days} days past today, and this date is too far out. Pick the weather manually.',
+  'weather.err.notFound':
+    'No weather found for this day — the date may be too old or too new. Pick the weather manually or try another place.',
+  'weather.err.codeUnknown':
+    'Got weather code {code}, but it does not map to a known condition. Pick the weather manually.',
+  'weather.err.badDate': 'The date format is invalid, so the weather cannot be looked up.',
+
+  'health.err.phraseNotRecognized':
+    'No food was recognized in that phrase. Name what you ate and the portion more specifically, then try again.',
+  'health.err.mealPhotoNotRecognized':
+    'No food was recognized in this photo. Fit the whole meal in frame, brighten it, and try again.',
+  'health.err.labelNotRead':
+    'Could not read the numbers on this nutrition label. Avoid glare, shoot straight on, and try again.',
+  'health.err.foodPhotoNotRecognized':
+    'No food was recognized in this photo. Try another angle and a clearer shot.',
+  'health.aiActivitySuggestion': 'I would pick “{label}”. {reason}',
+  'health.aiActivitySuggestionShort': 'I would pick “{label}”.',
+  'health.aiActivityUnreadable': 'Could not understand the AI reply. Try again.',
+  'foods.copySuffix': 'copy',
+
+  'data.backupFileBase': 'backup',
+  'data.snapshotFileBase': 'pre-import-snapshot',
+  'update.noUrl': 'No download URL is available',
+
+  'records.exportFileBase': 'Starburst-Recorder-selected-export',
+  'records.singleFileBase': 'Starburst-Recorder',
+  'records.exportDocTitle': 'Starburst Recorder export',
+  'records.exportedAtLine': 'Exported at: {time}',
+  'records.weatherLine': 'Weather: {weather}',
+  'records.plainTextLabel': 'Plain text',
+  'records.intakeDetail': '{kcal} kcal · protein {protein} g',
+
+  'diary.err.imageUnsupported':
+    'This device cannot render the image. Try another browser or the desktop version.',
+  'diary.err.handwritingNotRecognized':
+    'No text was recognized in this photo. Shoot sharper with the page filling the frame, then try again.',
 }

@@ -10,6 +10,7 @@
 import { Capacitor, registerPlugin } from '@capacitor/core'
 import { APP_VERSION } from '@/core/version'
 import { isNewerVersion } from '@/core/utils/versionCompare'
+import { translate } from '@/shared/i18n/context'
 import { desktopBridge } from '@/platform/desktop'
 
 export interface UpdateInfo {
@@ -161,7 +162,7 @@ async function fetchChineseNotes(version: string): Promise<string | null> {
  * 版本号和安装包信息取 GitHub（两个平台的包都传在那儿）；下载时两个源各试一次，
  * 安卓先 Gitee、桌面先 GitHub。中文界面会再取一次 Gitee，把更新说明换成中文那版。
  */
-export async function checkForUpdate(locale: 'zh' | 'en' = 'zh'): Promise<UpdateInfo | null> {
+export async function checkForUpdate(locale: string = 'zh'): Promise<UpdateInfo | null> {
   const android = isAndroid()
 
   // 桌面端交给主进程：不受 CORS 限制，也跟系统代理走
@@ -245,7 +246,7 @@ export async function downloadUpdate(info: UpdateInfo): Promise<DownloadResult> 
 
   const desktop = desktopBridge()
   if (desktop?.update) {
-    let last: DownloadResult = { ok: false, error: '没有可用的下载地址' }
+    let last: DownloadResult = { ok: false, error: translate('update.noUrl') }
     for (const url of urls) {
       last = await desktop.update.download(url, info.fileName)
       if (last.ok) {

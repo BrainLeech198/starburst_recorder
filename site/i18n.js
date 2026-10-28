@@ -23,11 +23,11 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.2.10',
+    'hero.cta': '下载 0.2.11',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
-    'hero.meta.bilingual': '中英双语',
+    'hero.meta.bilingual': '九种语言',
     'hero.meta.platform': 'Windows / Android',
     'hero.slip1': '早上把阳台的花搬进来，晚上沿河跑了三公里，回来煮了碗面。',
     'hero.slip2': '没什么大事，把拖了很久的报销单交了。',
@@ -94,11 +94,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.2.10',
+    'open.version': '版本 0.2.11',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.2.10 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.2.11 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -109,11 +109,13 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '可以只挑几条记录导出：日记、随记、健康摄入、收支混着勾，单独发给 AI 或别人看',
+      '九种界面语言：简体、繁體、English、日本語、한국어、Deutsch、Français、Русский、Español，切换立即生效',
     'whatsnew.item2':
-      '三种格式任选：Markdown 按日期和种类分节，纯文本干净好读，JSON 保留完整字段',
+      '文案全部接入语言键：AI 报错、天气、导出文件名与窗口标题都跟着当前语言走',
     'whatsnew.item3':
-      '入口有两处：设置里的「数据与备份」，以及健康摄入列表的批量条',
+      '一句话记餐逐项记入后不再显示未处理；弹窗内容再长也在面板里滚，输入后自动回顶',
+    'whatsnew.item4':
+      '单条记录可单独导出 JSON；健康目标线按当天第一笔摄入时的档案计算',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -122,7 +124,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.2.10',
+    'footer.version': '版本 0.2.11',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -145,11 +147,11 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.2.10',
+    'hero.cta': 'Download 0.2.11',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
-    'hero.meta.bilingual': 'English & Chinese',
+    'hero.meta.bilingual': 'Nine languages',
     'hero.meta.platform': 'Windows / Android',
     'hero.slip1': 'Moved the balcony plants inside this morning, ran three kilometres by the river, came home and made noodles.',
     'hero.slip2': 'Nothing big today — finally filed that expense report.',
@@ -220,12 +222,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.2.10',
+    'open.version': 'Version 0.2.11',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.2.10 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.2.11 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -236,13 +238,15 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.2.10",
+    'whatsnew.title': "What's new in 0.2.11",
     'whatsnew.item1':
-      'Export only the records you pick: mix diary entries, stamps, intakes and finance records for AI or someone else',
+      'Nine interface languages: Simplified and Traditional Chinese, English, Japanese, Korean, German, French, Russian and Spanish — switching is instant',
     'whatsnew.item2':
-      'Three formats: Markdown grouped by date and type, clean plain text, or JSON with every field kept',
+      'Every string is keyed: AI errors, weather, export file names and the window title all follow the current language',
     'whatsnew.item3':
-      'Two entry points: Data & backup in Settings, and the batch bar in the intake list',
+      'Meal review no longer leaves handled items marked as pending; long dialogs scroll in place and return to the top after input',
+    'whatsnew.item4':
+      'Export a single record as JSON; health targets use the profile captured at the first intake of that day',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -251,7 +255,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.2.10',
+    'footer.version': 'Version 0.2.11',
     'footer.tagline': 'Data stays on your device',
   },
 };

@@ -10,6 +10,7 @@
  */
 import { desktopBridge } from '@/platform/desktop'
 import type { ChatContentPart, ChatRequest, ChatTransportResult } from '@/platform/desktop'
+import { translate } from '@/shared/i18n/context'
 import type { AiConfig } from './aiConfig'
 
 /** 地址可能带结尾斜杠，统一拼成 chat/completions */
@@ -183,7 +184,7 @@ export async function listModels(
   return {
     ok: models.length > 0,
     models,
-    error: models.length > 0 ? '' : '服务商返回里没有可用的模型名，可以自己填。',
+    error: models.length > 0 ? '' : translate('ai.err.modelsEmpty'),
     ms: result.ms,
   }
 }
@@ -214,18 +215,18 @@ export interface DiagnoseResult {
 function networkHint(baseUrl: string, error?: string) {
   const why = error ? `（${error.slice(0, 120)}）` : ''
   if (/localhost|127\.0\.0\.1/i.test(baseUrl)) {
-    return `连不上 ${baseUrl}${why}。本机模型要先启动，还要确认模型已经下载完。`
+    return translate('ai.err.localConnect', { baseUrl, why })
   }
   if (/api\.openai\.com/i.test(baseUrl)) {
-    return `连不上 api.openai.com${why}。国内直连这个地址多半要挂代理，先确认代理开着，或者换一家国内的服务商。`
+    return translate('ai.err.openaiConnect', { why })
   }
-  return `连不上 ${baseUrl}${why}。按顺序查三件事：地址有没有写错、这台机器能不能上外网、这家服务商是否需要代理。`
+  return translate('ai.err.genericConnect', { baseUrl, why })
 }
 
 /** 服务商返回了 4xx/5xx，但页面读不出正文时，把原始返回带上 */
 function bodyHint(body: string, fallback: string) {
   const raw = body.trim().slice(0, 200)
-  return raw ? `${fallback}原始返回：${raw}` : fallback
+  return raw ? translate('ai.err.rawBody', { fallback, raw }) : fallback
 }
 
 /**
@@ -235,17 +236,14 @@ function bodyHint(body: string, fallback: string) {
 export function explainFailure(result: ChatTransportResult, baseUrl: string) {
   if (result.status === 0) return networkHint(baseUrl, result.error)
   if (result.status === 401 || result.status === 403) {
-    return `服务商不认这把 key（${result.status}）。去「设置 → AI 模型」重新复制一次 key。`
+    return translate('ai.err.badKey', { status: result.status })
   }
-  if (result.status === 429) return '被限流或者额度不够了（429），等一会儿再试。'
+  if (result.status === 429) return translate('ai.err.rateLimited', { status: result.status })
   if (result.status === 404 || result.status === 400) {
-    return bodyHint(
-      result.body,
-      '服务商说这个请求它不认（多半是模型名不对）。去「设置 → AI 模型」核对一下模型名。',
-    )
+    return bodyHint(result.body, translate('ai.err.badRequest'))
   }
-  if (result.status >= 500) return `服务商那边自己出错了（${result.status}），过一会儿再试。`
-  return bodyHint(result.body, `请求没成功（${result.status}）。`)
+  if (result.status >= 500) return translate('ai.err.serverError', { status: result.status })
+  return bodyHint(result.body, translate('ai.err.requestFailed', { status: result.status }))
 }
 
 /**
@@ -255,14 +253,14 @@ export function explainFailure(result: ChatTransportResult, baseUrl: string) {
 function modelsHint(result: ChatTransportResult, baseUrl: string) {
   if (result.status === 0) return networkHint(baseUrl, result.error)
   if (result.status === 401 || result.status === 403) {
-    return `这家不认这把 key，或者 key 没有查看模型的权限（${result.status}）。不影响手填模型名。`
+    return translate('ai.err.modelsNoPermission', { status: result.status })
   }
   if (result.status === 404) {
-    return '这家没开放模型列表接口（404），模型名在控制台复制后手填就行。'
+    return translate('ai.err.modelsNoEndpoint', { status: result.status })
   }
-  if (result.status === 429) return '被限流或者额度不够了（429），等一会儿再刷新。'
-  if (result.status >= 500) return `服务商那边自己出错了（${result.status}），过一会儿再刷新。`
-  return bodyHint(result.body, `没拉到模型列表（${result.status}）。`)
+  if (result.status === 429) return translate('ai.err.modelsRateLimited', { status: result.status })
+  if (result.status >= 500) return translate('ai.err.modelsServerError', { status: result.status })
+  return bodyHint(result.body, translate('ai.err.modelsFailed', { status: result.status }))
 }
 
 const TEST_PROMPT = '你好，请用一句话简单回应一下。'
@@ -333,13 +331,13 @@ export async function testConnection(config: AiConfig): Promise<DiagnoseResult> 
       ms: 0,
       vision: 'unknown',
       steps: [
-        { ok: false, title: '第 1 步 · 填写', detail: '服务地址和模型名还没填全，先补上这两样。' },
+        { ok: false, title: translate('ai.step.fill'), detail: '服务地址和模型名还没填全，先补上这两样。' },
       ],
     }
   }
 
   const steps: DiagnoseStep[] = [
-    { ok: true, title: '第 1 步 · 填写', detail: `地址和模型名都有了，这次用「${model}」。` },
+    { ok: true, title: translate('ai.step.fill'), detail: `地址和模型名都有了，这次用「${model}」。` },
   ]
 
   const result = await chat({
@@ -350,20 +348,20 @@ export async function testConnection(config: AiConfig): Promise<DiagnoseResult> 
   })
 
   if (result.status === 0) {
-    steps.push({ ok: false, title: '第 2 步 · 连接', detail: networkHint(baseUrl, result.error) })
+    steps.push({ ok: false, title: translate('ai.step.connect'), detail: networkHint(baseUrl, result.error) })
     return { ok: false, reply: '', ms: result.ms, vision: 'unknown', steps }
   }
 
   steps.push({
     ok: true,
-    title: '第 2 步 · 连接',
+    title: translate('ai.step.connect'),
     detail: `连上服务器了，来回用了 ${result.ms} 毫秒。`,
   })
 
   if (result.status === 401 || result.status === 403) {
     steps.push({
       ok: false,
-      title: '第 3 步 · 密钥',
+      title: translate('ai.step.key'),
       detail: `服务商不认这把 key（${result.status}）。去控制台重新复制一次，注意别漏字符、别把前后的空格一起粘进来。`,
     })
     return { ok: false, reply: '', ms: result.ms, vision: 'unknown', steps }
@@ -372,13 +370,13 @@ export async function testConnection(config: AiConfig): Promise<DiagnoseResult> 
   if (result.status === 429) {
     steps.push({
       ok: false,
-      title: '第 3 步 · 密钥',
+      title: translate('ai.step.key'),
       detail: 'key 是认的，但被限流或者余额不够了（429）。等一会儿再试，或者去控制台看看额度。',
     })
     return { ok: false, reply: '', ms: result.ms, vision: 'unknown', steps }
   }
 
-  steps.push({ ok: true, title: '第 3 步 · 密钥', detail: '服务商认下了这把 key。' })
+  steps.push({ ok: true, title: translate('ai.step.key'), detail: '服务商认下了这把 key。' })
 
   const reply = pickReply(result.body)
 
@@ -389,30 +387,30 @@ export async function testConnection(config: AiConfig): Promise<DiagnoseResult> 
         : result.status >= 500
           ? `服务商那边自己出错了（${result.status}），过一会儿再试。`
           : `请求发出去了，但没拿回能读懂的内容（${result.status}）。`
-    steps.push({ ok: false, title: '第 4 步 · 模型', detail: bodyHint(result.body, hint) })
+    steps.push({ ok: false, title: translate('ai.step.model'), detail: bodyHint(result.body, hint) })
     return { ok: false, reply: '', ms: result.ms, vision: 'unknown', steps }
   }
 
-  steps.push({ ok: true, title: '第 4 步 · 模型', detail: `「${model}」回话了，这条路通了。` })
+  steps.push({ ok: true, title: translate('ai.step.model'), detail: `「${model}」回话了，这条路通了。` })
 
   // 第 5 步单独确认「能不能看图」：文字通不代表手写日记能导进来
   const vision = await probeVision(config)
   if (vision === 'yes') {
     steps.push({
       ok: true,
-      title: '第 5 步 · 看图',
+      title: translate('ai.step.vision'),
       detail: '能看懂图片，手写日记可以拍下来导进来。',
     })
   } else if (vision === 'no') {
     steps.push({
       ok: false,
-      title: '第 5 步 · 看图',
+      title: translate('ai.step.vision'),
       detail: '这个模型看不了图片。图片导入要换一个视觉模型，例如 qwen-vl-plus、gpt-4o-mini、mimo-vl。',
     })
   } else {
     steps.push({
       ok: false,
-      title: '第 5 步 · 看图',
+      title: translate('ai.step.vision'),
       detail: '这次没测出看图能力（网络或额度问题），不影响文字功能；图片导入可以等会儿再试。',
     })
   }

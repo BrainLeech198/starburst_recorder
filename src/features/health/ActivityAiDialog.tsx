@@ -186,14 +186,14 @@ export default function ActivityAiDialog({
         {
           role: 'ai',
           text: reply.reason
-            ? `我建议选「${label}」。${reply.reason}`
-            : `我建议选「${label}」。`,
+            ? t('health.aiActivitySuggestion', { label, reason: reply.reason })
+            : t('health.aiActivitySuggestionShort', { label }),
         },
       ])
     } else if (reply.question) {
       setTurns((current) => [...current, { role: 'ai', text: reply.question! }])
     } else {
-      setError('AI 的回复没读懂，可以再试一次。')
+      setError(t('health.aiActivityUnreadable'))
     }
   }
 

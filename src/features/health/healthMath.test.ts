@@ -199,4 +199,40 @@ describe('每天的目标线', () => {
       proteinTarget: 100,
     })
   })
+
+  it('今天改了档案，今天的线跟着新档案走，而不是第一笔的旧快照', () => {
+    const list = [
+      intake({ time: '08:00', tdeeSnapshot: 2200, targetKcalSnapshot: 1900, proteinTargetSnapshot: 90 }),
+    ]
+    const changed = profile({ tdee: 2400, targetKcal: 2100, proteinTarget: 120 })
+    expect(dayTargets(list, changed, true)).toEqual({
+      tdee: 2400,
+      targetKcal: 2100,
+      proteinTarget: 120,
+    })
+  })
+
+  it('过去的日子仍按当天第一笔的快照，改档案不倒改历史', () => {
+    const list = [
+      intake({ time: '08:00', tdeeSnapshot: 2200, targetKcalSnapshot: 1900, proteinTargetSnapshot: 90 }),
+    ]
+    const changed = profile({ tdee: 2400, targetKcal: 2100, proteinTarget: 120 })
+    expect(dayTargets(list, changed, false)).toEqual({
+      tdee: 2200,
+      targetKcal: 1900,
+      proteinTarget: 90,
+    })
+  })
+
+  it('今天档案缺项时回退到当天第一笔快照', () => {
+    const list = [
+      intake({ time: '08:00', tdeeSnapshot: 2200, targetKcalSnapshot: 1900, proteinTargetSnapshot: 90 }),
+    ]
+    const changed = profile({ tdee: 2400, targetKcal: null, proteinTarget: null })
+    expect(dayTargets(list, changed, true)).toEqual({
+      tdee: 2400,
+      targetKcal: 1900,
+      proteinTarget: 90,
+    })
+  })
 })
