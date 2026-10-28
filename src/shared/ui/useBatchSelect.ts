@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { popOverlay, pushOverlay } from './overlayStack'
 
 /**
  * 批量多选的状态机：日记、随记、回收站、AI 模型列表四处共用。
@@ -27,6 +28,17 @@ export interface BatchSelect {
 export function useBatchSelect(): BatchSelect {
   const [active, setActive] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
+
+  // 批量模式登记成一「层」：安卓实体返回键的口径是「先关最上面那层」，
+  // 所以按返回应该先退出批量，而不是直接离开页面、把选中全丢掉
+  useEffect(() => {
+    if (!active) return
+    const entry = pushOverlay(() => {
+      setActive(false)
+      setSelected([])
+    })
+    return () => popOverlay(entry)
+  }, [active])
 
   return {
     active,

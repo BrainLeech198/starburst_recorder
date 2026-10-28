@@ -1,3 +1,17 @@
+## 0.2.12 · 2026-10-28
+
+### What's new
+
+- **Intake list buttons unified** — Batch and Trash are now small solid buttons matching the rest of the app
+- **Android batch fixed** — Back now exits batch mode instead of leaving the page; changing the date exits batch mode so you can't delete records you can't see; tapping the selection circle works
+- **Dialogs stay on screen** — panel height accounts for the notch and gesture bar, and long content scrolls inside; the viewport shrinks with the keyboard so inputs aren't pushed away
+- **Desktop windows fit the screen** — size presets and restored positions are clamped to the current work area
+
+### Downloads
+
+- Windows 10/11: `starburst-recorder-0.2.12-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.2.12.apk` (~16 MB, release-signed)
+
 ## 0.2.11 · 2026-10-28
 
 ### What's new

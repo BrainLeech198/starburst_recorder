@@ -78,6 +78,8 @@ export default function DiaryPage() {
   const dateKey = isDateKey(dateParam) ? dateParam : todayKey()
   /** 换天：改 ?date=，不要另开一条历史 */
   function setDateKey(next: string) {
+    // 换天要退出批量：选中的 id 属于旧的那天，留着会删到看不见的记录
+    batch.exit()
     setSearchParams({ date: next }, { replace: true })
   }
   const [mode, setMode] = useState<'diary' | 'stamp'>('diary')
@@ -509,8 +511,8 @@ export default function DiaryPage() {
                     aria-hidden="true"
                     className={
                       isSelected
-                        ? 'absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-brand text-xs text-on-brand'
-                        : 'absolute top-2 right-2 h-6 w-6 rounded-full border border-ink-muted opacity-60'
+                        ? 'pointer-events-none absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-brand text-xs text-on-brand'
+                        : 'pointer-events-none absolute top-2 right-2 h-6 w-6 rounded-full border border-ink-muted opacity-60'
                     }
                   >
                     {isSelected ? '✓' : ''}

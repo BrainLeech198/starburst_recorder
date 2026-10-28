@@ -90,13 +90,13 @@ function StampRow({
 
       <div
         className={[
-          '-my-1 -ml-2 rounded-lg py-1 pr-8 pl-2 transition-colors',
+          '-my-1 -ml-2 rounded-lg py-1 pl-2 transition-colors',
           selected ? 'timeline-row-selected' : '',
           editing ? 'bg-brand/5 outline outline-1 outline-brand/25 outline-offset-2' : '',
         ].join(' ')}
       >
         {selectable ? (
-          <button type="button" onClick={onToggle} className="block w-full px-1 text-left">
+          <button type="button" onClick={onToggle} className="block w-full py-1 pr-8 pl-1 text-left">
             <span className="flex items-baseline gap-2">
               <span className="font-hand text-lg text-ink">{stamp.time}</span>
               <span className="font-mono text-[10px] text-ink-muted opacity-70">{stamp.code}</span>
@@ -217,8 +217,8 @@ function StampRow({
           aria-hidden="true"
           className={
             selected
-              ? 'absolute top-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-brand text-xs text-on-brand'
-              : 'absolute top-0 right-0 h-6 w-6 rounded-full border border-ink-muted opacity-60'
+              ? 'pointer-events-none absolute top-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-brand text-xs text-on-brand'
+              : 'pointer-events-none absolute top-0 right-0 h-6 w-6 rounded-full border border-ink-muted opacity-60'
           }
         >
           {selected ? '✓' : ''}

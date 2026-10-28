@@ -141,9 +141,13 @@ function assetPathFor(requestUrl) {
 
 function createWindow() {
   const state = readWindowState()
+  // 默认 1000×760 在 768 高的屏幕上会被任务栏挤出去，开窗前先按可用区域收一收
+  const area = screen.getPrimaryDisplay().workArea
+  const maxWidth = Math.max(MIN_WIDTH, area.width - 40)
+  const maxHeight = Math.max(MIN_HEIGHT, area.height - 40)
   const win = new BrowserWindow({
-    width: state?.width ?? 1000,
-    height: state?.height ?? 760,
+    width: Math.min(state?.width ?? 1000, maxWidth),
+    height: Math.min(state?.height ?? 760, maxHeight),
     ...(state?.x !== undefined ? { x: state.x, y: state.y } : {}),
     minWidth: MIN_WIDTH,
     minHeight: MIN_HEIGHT,
@@ -297,11 +301,21 @@ function createTray() {
 }
 
 // 设置页里的「窗口尺寸」通过这两个通道生效
+/** 当前窗口所在屏幕的可用区域；预设尺寸比屏幕还大时按它收一收 */
+function workAreaFor(win) {
+  const display = screen.getDisplayMatching(win.getBounds())
+  return display.workArea
+}
+
 ipcMain.handle('window:set-size', (event, width, height) => {
   const win = BrowserWindow.fromWebContents(event.sender)
   if (!win) return false
-  const nextWidth = Math.max(MIN_WIDTH, Math.round(Number(width) || 0))
-  const nextHeight = Math.max(MIN_HEIGHT, Math.round(Number(height) || 0))
+  const area = workAreaFor(win)
+  // 上下左右各留一点，别贴着任务栏和屏幕边缘
+  const maxWidth = Math.max(MIN_WIDTH, area.width - 40)
+  const maxHeight = Math.max(MIN_HEIGHT, area.height - 40)
+  const nextWidth = Math.min(maxWidth, Math.max(MIN_WIDTH, Math.round(Number(width) || 0)))
+  const nextHeight = Math.min(maxHeight, Math.max(MIN_HEIGHT, Math.round(Number(height) || 0)))
   win.setSize(nextWidth, nextHeight)
   win.center()
   return true

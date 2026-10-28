@@ -225,7 +225,9 @@ export default function ActivityAiDialog({
         </div>
       ) : (
         <>
-          <div ref={scrollRef} className="mt-3 flex-1 space-y-2 overflow-y-auto pr-1" style={{ minHeight: 220, maxHeight: '50vh' }}>
+          {/* 用 flex 的弹性高度而不是写死 minHeight：小屏/键盘弹出时面板会被
+              max-height 卡住，固定最小高度会把输入框顶到可视区外面 */}
+          <div ref={scrollRef} className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1" style={{ maxHeight: '50vh' }}>
             {turns.map((turn, i) => (
               <div
                 key={i}

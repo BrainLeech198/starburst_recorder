@@ -2,6 +2,10 @@
 export const SOLID_BUTTON =
   'inline-flex min-h-11 items-center justify-center rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-on-brand transition hover:opacity-90 active:scale-[0.97] md:min-h-0'
 
+/** 卡片标题旁的小号实心按钮：样式跟 SOLID_BUTTON 一致，尺寸缩一档 */
+export const SOLID_SMALL_BUTTON =
+  'inline-flex min-h-8 items-center justify-center rounded-lg bg-brand px-2.5 py-1 text-xs font-medium text-on-brand transition hover:opacity-90 active:scale-[0.97]'
+
 /** 危险操作按钮：形状尺寸同上，只换成统一的危险色（删除 / 清空 / 彻底删除） */
 export const SOLID_DANGER =
   'inline-flex min-h-11 items-center justify-center rounded-lg bg-danger px-3 py-1.5 text-sm font-medium text-on-danger transition hover:opacity-90 active:scale-[0.97] md:min-h-0'

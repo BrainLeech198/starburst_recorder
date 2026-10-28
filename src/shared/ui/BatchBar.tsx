@@ -16,13 +16,17 @@ export default function BatchBar({
 }) {
   const { t } = useI18n()
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--sb-nav-h)_+_1.5rem)] z-50 flex justify-center px-4">
-      <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-1 rounded-xl border border-line bg-surface px-3 py-2">
-        <span className="px-2 text-sm text-fg">
-          {t('common.selectedCount', { count, unit })}
-        </span>
-        {children}
+    <>
+      {/* 占位：工具条是 fixed 的，不占文档流。不留这一截，列表最后几行会被它压住点不到 */}
+      <div aria-hidden="true" className="h-24" />
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--sb-nav-h)_+_1.5rem)] z-50 flex justify-center px-4">
+        <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-1 rounded-xl border border-line bg-surface px-3 py-2">
+          <span className="px-2 text-sm text-fg">
+            {t('common.selectedCount', { count, unit })}
+          </span>
+          {children}
+        </div>
       </div>
-    </div>
+    </>
   )
 }

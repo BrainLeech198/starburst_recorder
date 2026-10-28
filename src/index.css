@@ -558,8 +558,12 @@ html.sb-scroll-locked .sb-scroll {
  * 所有弹窗共用这一道，别在调用处另写 max-h。
  */
 .sb-modal-panel {
+  /* 扣掉上下安全区：全面屏上刘海与手势条会吃掉一截可视高度，
+     只按 2rem 算会让面板底部压到系统栏下面。
+     前两行是兜底：认不得 env()/dvh 的老 WebView 要能退回「整屏减 2rem」。 */
   max-height: calc(100vh - 2rem);
-  max-height: calc(100dvh - 2rem);
+  max-height: calc(100vh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  max-height: calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow-y: auto;
   overscroll-behavior: contain;
 }

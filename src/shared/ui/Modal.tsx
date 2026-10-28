@@ -103,7 +103,7 @@ export default function Modal({
 
   return (
     <div
-      className="sb-overlay-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="sb-overlay-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 pt-[calc(env(safe-area-inset-top)_+_1rem)] pb-[calc(env(safe-area-inset-bottom)_+_1rem)]"
       {...backdrop}
     >
       <div

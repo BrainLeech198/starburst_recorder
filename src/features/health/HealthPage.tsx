@@ -16,7 +16,13 @@ import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import BatchActions from '@/shared/ui/BatchActions'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
-import { BAR_BUTTON, BAR_DANGER, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import {
+  BAR_BUTTON,
+  BAR_DANGER,
+  OUTLINE_BUTTON,
+  SOLID_BUTTON,
+  SOLID_SMALL_BUTTON,
+} from '@/shared/ui/buttonStyles'
 import TimeMeta from '@/shared/ui/TimeMeta'
 import IntakeBar, { ProteinBar } from './IntakeBar'
 import IntakeDialog from './IntakeDialog'
@@ -279,11 +285,15 @@ export default function HealthPage() {
                   </span>
                 )}
                 {!batch.active && intakes !== undefined && intakes.length > 0 && (
-                  <button type="button" onClick={() => batch.enter()} className={BAR_BUTTON}>
+                  <button
+                    type="button"
+                    onClick={() => batch.enter()}
+                    className={SOLID_SMALL_BUTTON}
+                  >
                     {t('health.batch')}
                   </button>
                 )}
-                <Link to="/health/intakes/trash" className={BAR_BUTTON}>
+                <Link to="/health/intakes/trash" className={SOLID_SMALL_BUTTON}>
                   {t('health.intakeTrash')}
                 </Link>
               </div>
