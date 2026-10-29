@@ -24,7 +24,9 @@ import type {
   HealthActivity,
   HealthProfile,
   HealthSex,
+  HealthSleep,
   IntakeComponent,
+  WeighIn,
 } from './schema'
 import { newCode } from '@/core/utils/id'
 
@@ -137,6 +139,30 @@ export function pickDay(raw: unknown): DiaryDay | null {
 const SEXES: HealthSex[] = ['male', 'female']
 const ACTIVITIES: HealthActivity[] = ['sedentary', 'light', 'moderate', 'high']
 
+/** 称重历史只认 { dateKey, weightKg, createdAt }，坏项剔掉；新的在前，最多留 120 条 */
+function pickWeighIns(raw: unknown): WeighIn[] {
+  if (!Array.isArray(raw)) return []
+  const valid = raw
+    .map((entry): WeighIn | null => {
+      if (!entry || typeof entry !== 'object') return null
+      const item = entry as Record<string, unknown>
+      const day = dateKey(item.dateKey)
+      const weightKg = Number(item.weightKg)
+      if (!day || !Number.isFinite(weightKg) || weightKg <= 0) return null
+      return { dateKey: day, weightKg, createdAt: number(item.createdAt, Date.now()) }
+    })
+    .filter((item): item is WeighIn => item !== null)
+  valid.sort((a, b) => b.dateKey.localeCompare(a.dateKey) || b.createdAt - a.createdAt)
+  // 同一天只留最新的一条
+  const seen = new Set<string>()
+  const deduped = valid.filter((item) => {
+    if (seen.has(item.dateKey)) return false
+    seen.add(item.dateKey)
+    return true
+  })
+  return deduped.slice(0, 120)
+}
+
 export function pickProfile(raw: unknown): HealthProfile | null {
   if (!raw || typeof raw !== 'object') return null
   const item = raw as Record<string, unknown>
@@ -157,6 +183,9 @@ export function pickProfile(raw: unknown): HealthProfile | null {
     proteinTarget: nullableNumber(item.proteinTarget),
     plan: text(item.plan),
     note: text(item.note),
+    weighDay: nullableNumber(item.weighDay),
+    weighTime: text(item.weighTime) || '07:00',
+    weighIns: pickWeighIns(item.weighIns),
     updatedAt: number(item.updatedAt, Date.now()),
   }
 }
@@ -260,6 +289,31 @@ export function pickIntake(raw: unknown): HealthIntake | null {
     tdeeSnapshot: nullableNumber(item.tdeeSnapshot) ?? null,
     targetKcalSnapshot: nullableNumber(item.targetKcalSnapshot) ?? null,
     proteinTargetSnapshot: nullableNumber(item.proteinTargetSnapshot) ?? null,
+    createdAt: number(item.createdAt, Date.now()),
+    updatedAt: number(item.updatedAt, Date.now()),
+    deletedAt: deletedAt(item.deletedAt),
+  }
+}
+
+export function pickSleep(raw: unknown): HealthSleep | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  const id = text(item.id)
+  const day = dateKey(item.dateKey)
+  if (id === '' || day === null) return null
+  const bedtime = text(item.bedtime)
+  const wakeTime = text(item.wakeTime)
+  const quality = nullableNumber(item.quality)
+  return {
+    id,
+    code: text(item.code) || newCode(),
+    dateKey: day,
+    // 时刻必须是合法 HH:MM，坏的就退回 '00:00'，免得一条脏数据废掉整份备份
+    bedtime: /^([01]\d|2[0-3]):[0-5]\d$/.test(bedtime) ? bedtime : '00:00',
+    wakeTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(wakeTime) ? wakeTime : '00:00',
+    // 只认 1–5，越界或缺失都算没评
+    quality: quality !== null && quality >= 1 && quality <= 5 ? quality : null,
+    note: text(item.note),
     createdAt: number(item.createdAt, Date.now()),
     updatedAt: number(item.updatedAt, Date.now()),
     deletedAt: deletedAt(item.deletedAt),

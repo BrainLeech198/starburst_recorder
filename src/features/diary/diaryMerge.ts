@@ -17,6 +17,7 @@ import type {
   HealthIntake,
   HealthMeal,
   HealthProfile,
+  HealthSleep,
 } from '@/core/db/schema'
 import type { BackupPayload } from './diaryBackup'
 
@@ -28,6 +29,7 @@ export type ConflictKind =
   | 'food'
   | 'meal'
   | 'intake'
+  | 'sleep'
   | 'profile'
 
 export interface MergeConflict {
@@ -219,6 +221,7 @@ export interface HealthPart {
   foods: HealthFood[]
   meals: HealthMeal[]
   intakes: HealthIntake[]
+  sleeps: HealthSleep[]
 }
 
 function foodSummary(food: HealthFood) {
@@ -236,6 +239,24 @@ function foodSummary(food: HealthFood) {
 function mealSummary(meal: HealthMeal) {
   const grams = meal.items.reduce((sum, item) => sum + item.grams, 0)
   return `${meal.name} · ${meal.items.length} items · ${Math.round(grams)} g`
+}
+
+function sleepSummary(sleep: HealthSleep) {
+  const parts = [sleep.dateKey + ' ' + sleep.bedtime + '\u2192' + sleep.wakeTime]
+  if (sleep.quality !== null) parts.push('q' + sleep.quality)
+  if (sleep.note !== '') parts.push(sleep.note)
+  return parts.join(' \u00b7 ')
+}
+
+function sleepDiffers(local: HealthSleep, incoming: HealthSleep) {
+  return (
+    local.dateKey !== incoming.dateKey ||
+    local.bedtime !== incoming.bedtime ||
+    local.wakeTime !== incoming.wakeTime ||
+    (local.quality ?? null) !== (incoming.quality ?? null) ||
+    local.note !== incoming.note ||
+    tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
+  )
 }
 
 function intakeSummary(intake: HealthIntake) {
@@ -396,6 +417,25 @@ export function findHealthConflicts(
     })
   }
 
+  const localSleeps = new Map(local.sleeps.map((item) => [item.id, item]))
+  for (const item of incoming.sleeps) {
+    const mine = localSleeps.get(item.id)
+    if (!mine || !sleepDiffers(mine, item)) continue
+    conflicts.push({
+      kind: 'sleep',
+      key: item.id,
+      label: item.dateKey + ' \u00b7 ' + item.bedtime + '\u2192' + item.wakeTime,
+      localText: snippet(sleepSummary(mine)),
+      incomingText: snippet(sleepSummary(item)),
+      localBody: sleepSummary(mine),
+      incomingBody: sleepSummary(item),
+      localDeleted: isDeleted(mine.deletedAt),
+      incomingDeleted: isDeleted(item.deletedAt),
+      localAt: mine.updatedAt,
+      incomingAt: item.updatedAt,
+    })
+  }
+
   // 身体档案只有一份：两边都在又不一样时也给用户选
   if (
     incoming.profile &&
@@ -439,6 +479,9 @@ export function pickHealth(
     ),
     intakes: incoming.intakes.filter(
       (item) => !keepLocal.has(conflictKey({ kind: 'intake', key: item.id })),
+    ),
+    sleeps: incoming.sleeps.filter(
+      (item) => !keepLocal.has(conflictKey({ kind: 'sleep', key: item.id })),
     ),
   }
 }

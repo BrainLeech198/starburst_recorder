@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import Modal from './Modal'
 import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 import { useI18n } from '@/shared/i18n/context'
+import { useCareMode } from '@/shared/care/careContext'
 
 export default function ConfirmDialog({
   title,
@@ -22,6 +24,10 @@ export default function ConfirmDialog({
   onCancel: () => void
 }) {
   const { t } = useI18n()
+  // 长辈关怀的「防误触」：危险操作要点两次才真删，第一次只是把按钮变成「再点一次确认」
+  const { state } = useCareMode()
+  const [armed, setArmed] = useState(false)
+  const needsArm = state.care && state.guard && tone === 'danger'
 
   return (
     <Modal size="xs" label={title} onClose={onCancel}>
@@ -38,7 +44,13 @@ export default function ConfirmDialog({
         </button>
         <button
           type="button"
-          onClick={onConfirm}
+          onClick={() => {
+            if (needsArm && !armed) {
+              setArmed(true)
+              return
+            }
+            onConfirm()
+          }}
           className={[
             'rounded-lg border px-3 py-1.5 text-sm transition-colors',
             tone === 'danger'
@@ -48,7 +60,7 @@ export default function ConfirmDialog({
                 : 'border-brand text-brand',
           ].join(' ')}
         >
-          {confirmLabel ?? t('common.confirm')}
+          {needsArm && !armed ? t('care.guardConfirmAgain') : (confirmLabel ?? t('common.confirm'))}
         </button>
       </div>
     </Modal>

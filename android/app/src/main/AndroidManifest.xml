@@ -48,4 +48,6 @@
     <!-- 天气自动填会先试着定位；拒绝了也能在弹窗里搜城市 -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- 称重日的本地通知：Android 13+ 需要运行时申请这一项 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

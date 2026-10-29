@@ -9,7 +9,9 @@ import type {
   DiaryStamp,
   FinanceEntry,
   HealthIntake,
+  HealthSleep,
 } from '@/core/db/schema'
+import { sleepMinutes, sleepParts } from '@/features/health/sleepMath'
 import { formatDateCn, weekdayLabel } from '@/core/utils/dateKey'
 import { parseWeather, weatherLabel } from '@/features/diary/weather'
 import { chat, explainFailure, pickReply } from './aiClient'
@@ -25,6 +27,8 @@ export interface ComposeDay {
   weather: string | null
   stamps: DiaryStamp[]
   intakes: HealthIntake[]
+  /** 一夜睡眠（dateKey = 起床那天），一天最多一夜 */
+  sleep: HealthSleep | null
   finance: FinanceEntry[]
   /** 只有历史日才有；当天没有「已经写好的日记」这一项 */
   entries?: DiaryEntry[]
@@ -132,6 +136,7 @@ export function buildHistoryDays(
     stamps: DiaryStamp[]
     days: DiaryDay[]
     intakes: HealthIntake[]
+    sleeps: HealthSleep[]
     finance: FinanceEntry[]
   },
   from: string,
@@ -154,6 +159,7 @@ export function buildHistoryDays(
       entries: [],
       stamps: [],
       intakes: [],
+      sleep: null,
       finance: [],
     }
     buckets.set(dateKey, created)
@@ -172,6 +178,10 @@ export function buildHistoryDays(
     if (item.deletedAt !== null || !inWindow(item.dateKey)) continue
     bucket(item.dateKey).intakes.push(item)
   }
+  for (const item of data.sleeps) {
+    if (item.deletedAt !== null || !inWindow(item.dateKey)) continue
+    bucket(item.dateKey).sleep = item
+  }
   for (const item of data.finance) {
     if (item.deletedAt !== null || !inWindow(item.dateKey)) continue
     bucket(item.dateKey).finance.push(item)
@@ -184,6 +194,7 @@ export function buildHistoryDays(
         (day.entries?.length ?? 0) > 0 ||
         day.stamps.length > 0 ||
         day.intakes.length > 0 ||
+        day.sleep !== null ||
         day.finance.length > 0,
     )
     .sort((a, b) => (a.dateKey < b.dateKey ? 1 : a.dateKey > b.dateKey ? -1 : 0))
@@ -228,6 +239,34 @@ function historyDayLines(day: ComposeDay, sources: ComposeSource[]): string[] {
     const total = Math.round(day.intakes.reduce((sum, item) => sum + item.kcal, 0))
     const names = day.intakes.map((item) => item.name).slice(0, 6).join('、')
     lines.push(`  摄入：合计 ${total} 千卡（${names}）`)
+  }
+  if (sources.includes('health') && day.sleep) {
+    const parts = sleepParts(sleepMinutes(day.sleep.bedtime, day.sleep.wakeTime))
+    lines.push(
+      '  睡眠：' +
+        day.sleep.bedtime +
+        '→' +
+        day.sleep.wakeTime +
+        '，约 ' +
+        parts.h +
+        ' 小时 ' +
+        parts.m +
+        ' 分',
+    )
+  }
+  if (sources.includes('health') && day.sleep) {
+    const parts = sleepParts(sleepMinutes(day.sleep.bedtime, day.sleep.wakeTime))
+    lines.push(
+      '  睡眠：' +
+        day.sleep.bedtime +
+        '→' +
+        day.sleep.wakeTime +
+        '，约 ' +
+        parts.h +
+        ' 小时 ' +
+        parts.m +
+        ' 分',
+    )
   }
   if (sources.includes('finance') && day.finance.length > 0) {
     lines.push(`  收支：${day.finance.map(formatFinance).slice(0, 6).join('；')}`)
@@ -276,6 +315,22 @@ export function buildComposeUserPrompt(context: ComposeContext): string {
         `${item.time} ${item.name} ${Math.round(item.grams)}g ${Math.round(item.kcal)} 千卡`,
       )
     }
+  }
+
+  if (sources.includes('health') && today.sleep) {
+    const parts = sleepParts(sleepMinutes(today.sleep.bedtime, today.sleep.wakeTime))
+    lines.push(
+      '',
+      '昨晚的睡眠（就寝 → 起床）：',
+      today.sleep.bedtime +
+        ' → ' +
+        today.sleep.wakeTime +
+        '，约 ' +
+        parts.h +
+        ' 小时 ' +
+        parts.m +
+        ' 分',
+    )
   }
 
   if (sources.includes('finance')) {

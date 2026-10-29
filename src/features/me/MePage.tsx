@@ -35,6 +35,7 @@ export default function MePage() {
           hint={t('me.settingsHint')}
         />
         <SettingRow to="/me/agent" emoji="✨" title={t('me.agent')} hint={t('me.agentHint')} />
+        <SettingRow to="/me/older" emoji="💐" title={t('me.care')} hint={t('me.careHint')} />
         <SettingRow
           to="/me/version"
           emoji="🏷️"

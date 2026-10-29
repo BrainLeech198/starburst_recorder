@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bag, pickDay, pickEntry, pickIntake, pickMeal, pickStamp, rows } from './normalize'
+import { bag, pickDay, pickEntry, pickIntake, pickMeal, pickSleep, pickStamp, rows } from './normalize'
 
 describe('行级校验：必填缺失就丢行', () => {
   it('日记缺 id 就丢', () => {
@@ -108,5 +108,25 @@ describe('不可信容器', () => {
     expect(bag([1])).toEqual({})
     expect(bag('x')).toEqual({})
     expect(bag(null)).toEqual({})
+  })
+})
+
+describe('睡眠行：时刻坏了退回 00:00，评分只认 1–5', () => {
+  const base = { id: 's1', dateKey: '2026-10-26', bedtime: '23:10', wakeTime: '07:00' }
+
+  it('坏时刻退回 00:00，缺 code 补一个', () => {
+    const row = pickSleep({ ...base, bedtime: '25:99', wakeTime: 7 })
+    expect(row).toMatchObject({ bedtime: '00:00', wakeTime: '00:00' })
+    expect(row?.code).not.toBe('')
+  })
+
+  it('评分越界或缺失都算没评', () => {
+    expect(pickSleep({ ...base, quality: 9 })?.quality).toBeNull()
+    expect(pickSleep({ ...base, quality: 3 })?.quality).toBe(3)
+  })
+
+  it('id 或日期缺失整行丢掉', () => {
+    expect(pickSleep({ ...base, id: '' })).toBeNull()
+    expect(pickSleep({ ...base, dateKey: '2026-13-40' })).toBeNull()
   })
 })

@@ -219,12 +219,15 @@ const profile = (extra: Partial<HealthProfile> = {}): HealthProfile => ({
   proteinTarget: 100,
   plan: '',
   note: '',
+  weighDay: null,
+  weighTime: '07:00',
+  weighIns: [],
   updatedAt: 100,
   ...extra,
 })
 
 function health(part: Partial<HealthPart> = {}): HealthPart {
-  return { profile: null, foods: [], meals: [], intakes: [], ...part }
+  return { profile: null, foods: [], meals: [], intakes: [], sleeps: [], ...part }
 }
 
 describe('健康块的导入冲突', () => {

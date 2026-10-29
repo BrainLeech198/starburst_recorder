@@ -750,3 +750,41 @@ html.sb-scroll-locked .sb-scroll {
     transition: none !important;
   }
 }
+
+/* ─────────── 长辈关怀（me/older） ───────────
+   状态由 CareModeProvider 挂在 <html> 的 data-* 上（见 src/shared/care/careMode.ts）。
+   Tailwind 的尺寸全是 rem，所以放大根字号 = 整套界面等比放大，
+   页面代码一行都不用改；浏览器自身的字体偏好（百分比基准）也仍然算数。 */
+
+html[data-font-scale='large'] {
+  font-size: 115%;
+}
+html[data-font-scale='xlarge'] {
+  font-size: 130%;
+}
+html[data-font-scale='xxlarge'] {
+  font-size: 150%;
+}
+
+/* 加大点按区：按钮 / 链接 / 行一律 48px 起（WCAG AAA 是 44px，长辈场景再放宽一档）。
+   桌面端那些 md:min-h-0 的紧凑按钮也一起放大。开关（role=switch）是拖动条样式，不跟着长。 */
+html[data-care-tap='on'] :is(button, a, [role='button'], [role='menuitem'], [role='tab']):not(
+    [role='switch']
+  ) {
+  min-height: 3rem;
+}
+
+/* 高对比：次要文字向正文靠拢、分隔线加重。用各主题自己的 fg/bg 混出来，深浅主题自动适配 */
+html[data-care-contrast='on'] {
+  --color-muted: color-mix(in srgb, var(--color-fg) 75%, var(--color-bg));
+  --color-line: color-mix(in srgb, var(--color-fg) 30%, var(--color-bg));
+}
+
+/* 减少动效：口径跟 prefers-reduced-motion 那段一致，只是改成手动强制 */
+html[data-care-motion='on'] *,
+html[data-care-motion='on'] *::before,
+html[data-care-motion='on'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}

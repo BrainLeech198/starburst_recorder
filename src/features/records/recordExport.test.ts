@@ -29,6 +29,7 @@ function base(overrides: Partial<BackupPayload> = {}): BackupPayload {
     foods: [],
     meals: [],
     intakes: [],
+    sleeps: [],
     finance: [],
     ...overrides,
   }
@@ -155,6 +156,7 @@ describe('勾选', () => {
       diary: ['e2'],
       stamp: [],
       intake: ['i1'],
+      sleep: [],
       finance: [],
     })
     expect(picked.map((item) => item.id)).toEqual(['e2', 'i1'])
@@ -193,6 +195,7 @@ describe('buildRecordExport 的 Markdown', () => {
       diary: ['e1'],
       stamp: [],
       intake: [],
+      sleep: [],
       finance: [],
     }, 'markdown')
 
@@ -207,7 +210,7 @@ describe('buildRecordExport 的 Markdown', () => {
   it('带上随记时刻、摄入营养与收支金额，日期从旧到新', () => {
     const file = buildRecordExport(
       payload,
-      { diary: [], stamp: ['s1'], intake: ['i1'], finance: ['f1'] },
+      { diary: [], stamp: ['s1'], intake: ['i1'], sleep: [], finance: ['f1'] },
       'markdown',
     )
 
@@ -220,12 +223,12 @@ describe('buildRecordExport 的 Markdown', () => {
   })
 
   it('天气跟着日记所在日期走，关掉时一个字都不写', () => {
-    const on = buildRecordExport(payload, { diary: ['e1'], stamp: [], intake: [], finance: [] }, 'markdown')
+    const on = buildRecordExport(payload, { diary: ['e1'], stamp: [], intake: [], sleep: [], finance: [] }, 'markdown')
     expect(on.content).toContain('天气：晴')
 
     const off = buildRecordExport(
       payload,
-      { diary: ['e1'], stamp: [], intake: [], finance: [] },
+      { diary: ['e1'], stamp: [], intake: [], sleep: [], finance: [] },
       'markdown',
       { includeWeather: false },
     )
@@ -235,7 +238,7 @@ describe('buildRecordExport 的 Markdown', () => {
   it('只勾摄入时不写天气', () => {
     const file = buildRecordExport(
       payload,
-      { diary: [], stamp: [], intake: ['i1'], finance: [] },
+      { diary: [], stamp: [], intake: ['i1'], sleep: [], finance: [] },
       'markdown',
     )
     expect(file.content).not.toContain('天气：')
@@ -249,7 +252,7 @@ describe('buildRecordExport 的纯文本与 JSON', () => {
     intakes: [intake()],
     days: [day()],
   })
-  const all = { diary: ['e1'], stamp: ['s1'], intake: ['i1'], finance: [] }
+  const all = { diary: ['e1'], stamp: ['s1'], intake: ['i1'], sleep: [], finance: [] }
 
   it('纯文本不带 Markdown 标记，种类用方括号标出', () => {
     const file = buildRecordExport(payload, all, 'text')
@@ -279,7 +282,7 @@ describe('buildRecordExport 的纯文本与 JSON', () => {
     const buried = base({ entries: [entry({ id: 'gone', deletedAt: 1 })] })
     const file = buildRecordExport(
       buried,
-      { diary: ['gone'], stamp: [], intake: [], finance: [] },
+      { diary: ['gone'], stamp: [], intake: [], sleep: [], finance: [] },
       'json',
     )
     expect(JSON.parse(file.content).entries).toEqual([])

@@ -49,6 +49,7 @@ const KIND_LABEL: Record<RecordKind, MessageKey> = {
   diary: 'records.kindDiary',
   stamp: 'records.kindStamp',
   intake: 'records.kindIntake',
+  sleep: 'records.kindSleep',
   finance: 'records.kindFinance',
 }
 
@@ -78,6 +79,7 @@ export default function RecordExportDialog({
     diary: [...(initial?.diary ?? [])],
     stamp: [...(initial?.stamp ?? [])],
     intake: [...(initial?.intake ?? [])],
+    sleep: [...(initial?.sleep ?? [])],
     finance: [...(initial?.finance ?? [])],
   }))
   // 列表页带着预选进来时，预选可能不在最近 7 天里，直接铺开全部

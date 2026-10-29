@@ -5,13 +5,16 @@ import {
   barScale,
   bmr,
   dayTargets,
+  derivedTdee,
   estimateTdee,
   foodMacros,
+  isWeighDay,
   macroKcal,
   missingProfileFields,
   remainingKcal,
   suggestProteinForPlan,
   sumMacros,
+  weekdayOf,
 } from './healthMath'
 import type { HealthProfile } from '@/core/db/schema'
 
@@ -29,6 +32,9 @@ function profile(overrides: Partial<HealthProfile> = {}): HealthProfile {
     proteinTarget: 100,
     plan: '',
     note: '',
+    weighDay: null,
+    weighTime: '07:00',
+    weighIns: [],
     updatedAt: 1,
     ...overrides,
   }
@@ -234,5 +240,101 @@ describe('每天的目标线', () => {
       targetKcal: 1900,
       proteinTarget: 90,
     })
+  })
+})
+
+describe('推算 TDEE（能量收支法）', () => {
+  const days = (start: string, count: number) => {
+    const out: string[] = []
+    const base = new Date(start + 'T00:00:00Z').getTime()
+    for (let i = 0; i < count; i += 1) {
+      out.push(new Date(base + i * 86400000).toISOString().slice(0, 10))
+    }
+    return out
+  }
+  const intakeFull = (start: string, count: number, kcal: number) =>
+    Object.fromEntries(days(start, count).map((d) => [d, kcal]))
+
+  it('体重稳定时约等于日均摄入', () => {
+    const result = derivedTdee({
+      weighIns: [
+        { dateKey: '2026-10-01', weightKg: 62 },
+        { dateKey: '2026-10-15', weightKg: 62 },
+      ],
+      intakeKcalByDay: intakeFull('2026-10-01', 15, 2000),
+    })
+    expect(result).toBe(2000)
+  })
+
+  it('掉秤就把消耗算高', () => {
+    // 14 天掉 1kg ≈ 每天多耗 550，TDEE ≈ 2000 + 550
+    const result = derivedTdee({
+      weighIns: [
+        { dateKey: '2026-10-01', weightKg: 63 },
+        { dateKey: '2026-10-15', weightKg: 62 },
+      ],
+      intakeKcalByDay: intakeFull('2026-10-01', 15, 2000),
+    })
+    expect(result).toBe(2550)
+  })
+
+  it('长秤就把消耗算低', () => {
+    const result = derivedTdee({
+      weighIns: [
+        { dateKey: '2026-10-01', weightKg: 61 },
+        { dateKey: '2026-10-15', weightKg: 62 },
+      ],
+      intakeKcalByDay: intakeFull('2026-10-01', 15, 2000),
+    })
+    expect(result).toBe(1450)
+  })
+
+  it('称重少于两次、跨度太短、摄入太少都不算', () => {
+    const intake = intakeFull('2026-10-01', 15, 2000)
+    expect(derivedTdee({ weighIns: [{ dateKey: '2026-10-01', weightKg: 62 }], intakeKcalByDay: intake })).toBeNull()
+    expect(
+      derivedTdee({
+        weighIns: [
+          { dateKey: '2026-10-01', weightKg: 62 },
+          { dateKey: '2026-10-03', weightKg: 62 },
+        ],
+        intakeKcalByDay: intake,
+      }),
+    ).toBeNull()
+    expect(
+      derivedTdee({
+        weighIns: [
+          { dateKey: '2026-10-01', weightKg: 62 },
+          { dateKey: '2026-10-15', weightKg: 62 },
+        ],
+        intakeKcalByDay: intakeFull('2026-10-01', 3, 2000),
+      }),
+    ).toBeNull()
+  })
+
+  it('窗口外的旧称重不算', () => {
+    const result = derivedTdee({
+      weighIns: [
+        { dateKey: '2026-09-01', weightKg: 70 },
+        { dateKey: '2026-10-01', weightKg: 62 },
+        { dateKey: '2026-10-15', weightKg: 62 },
+      ],
+      intakeKcalByDay: intakeFull('2026-10-01', 15, 2000),
+    })
+    expect(result).toBe(2000)
+  })
+})
+
+describe('称重日判断', () => {
+  it('weekdayOf：周一=1、周日=7', () => {
+    expect(weekdayOf('2026-10-26')).toBe(1) // 周一
+    expect(weekdayOf('2026-11-01')).toBe(7) // 周日
+    expect(weekdayOf('bad')).toBeNull()
+  })
+
+  it('isWeighDay 只在设好的那天为真', () => {
+    expect(isWeighDay('2026-10-26', 1)).toBe(true)
+    expect(isWeighDay('2026-10-27', 1)).toBe(false)
+    expect(isWeighDay('2026-10-26', null)).toBe(false)
   })
 })

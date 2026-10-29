@@ -86,6 +86,11 @@ const WRITE_METHODS = new Set([
   'removeIntakes',
   'restoreIntake',
   'restoreIntakes',
+  'saveHealthSleep',
+  'removeHealthSleep',
+  'restoreHealthSleep',
+  'purgeHealthSleep',
+  'purgeTrashedHealthSleeps',
 ])
 
 /** 给存储实现套一层：写成功后自动广播变化，读操作原样透传 */

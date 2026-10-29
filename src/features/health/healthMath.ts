@@ -254,3 +254,80 @@ export function activityFromQuestions(
   }
   return 'high'
 }
+
+/** 一个称重点（推算 TDEE 用） */
+export interface WeighPoint {
+  dateKey: string
+  weightKg: number
+}
+
+/** 首末称重至少隔一周左右，太密的点算出来只是水分波动 */
+export const DERIVED_TDEE_MIN_SPAN_DAYS = 6
+/** 窗口里至少要有几天真实摄入记录，不然均值没意义 */
+export const DERIVED_TDEE_MIN_INTAKE_DAYS = 5
+
+/** 'YYYY-MM-DD' → 天序号（UTC，避免时区把日期推偏一天） */
+function dayNumber(dateKey: string): number {
+  const matched = dateKey.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!matched) return NaN
+  return Date.UTC(Number(matched[1]), Number(matched[2]) - 1, Number(matched[3])) / 86400000
+}
+
+/** 这天是星期几：1=周一 … 7=周日；认不出返回 null */
+export function weekdayOf(dateKey: string): number | null {
+  const n = dayNumber(dateKey)
+  if (!Number.isFinite(n)) return null
+  return ((n + 3) % 7) + 1
+}
+
+/** 今天是不是设好的每周称重日 */
+export function isWeighDay(dateKey: string, weighDay: number | null): boolean {
+  if (!weighDay) return false
+  return weekdayOf(dateKey) === weighDay
+}
+
+/**
+ * 「推算 TDEE」：不用公式，用真实数据反推。
+ * 口径是能量收支：TDEE ≈ 窗口内日均摄入 − 体重日变化 × 7700（每公斤脂肪约 7700 千卡）。
+ * 少了 1kg 就是每天多消耗了 7700/跨度；涨了则反过来。
+ *
+ * 数据不够（称重少于两次、跨度太短、摄入记录太少）一律返回 null——
+ * 宁可不画这条线，也不拿三两天的水分波动当代谢。
+ */
+export function derivedTdee(params: {
+  weighIns: WeighPoint[]
+  /** 每天摄入热量，'YYYY-MM-DD' → kcal；没记的那天不存在这个键 */
+  intakeKcalByDay: Record<string, number>
+  /** 回看窗口（天），默认两周——每周称重一次刚好两三个点 */
+  windowDays?: number
+}): number | null {
+  const windowDays = params.windowDays ?? 14
+  const points = [...params.weighIns].sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+  if (points.length < 2) return null
+  const endN = dayNumber(points[points.length - 1].dateKey)
+  if (!Number.isFinite(endN)) return null
+  const inWindow = points.filter((p) => endN - dayNumber(p.dateKey) <= windowDays)
+  if (inWindow.length < 2) return null
+
+  const first = inWindow[0]
+  const last = inWindow[inWindow.length - 1]
+  const firstN = dayNumber(first.dateKey)
+  const spanDays = endN - firstN
+  if (spanDays < DERIVED_TDEE_MIN_SPAN_DAYS) return null
+
+  let sum = 0
+  let recorded = 0
+  for (let n = firstN; n <= endN; n += 1) {
+    const day = new Date(n * 86400000).toISOString().slice(0, 10)
+    const kcal = params.intakeKcalByDay[day]
+    if (typeof kcal === 'number' && kcal > 0) {
+      sum += kcal
+      recorded += 1
+    }
+  }
+  if (recorded < DERIVED_TDEE_MIN_INTAKE_DAYS) return null
+
+  const avgIntake = sum / recorded
+  const deltaPerDay = (last.weightKg - first.weightKg) / spanDays
+  return Math.round((avgIntake - deltaPerDay * 7700) / 10) * 10
+}

@@ -14,7 +14,9 @@ import type {
   DiaryStamp,
   FinanceEntry,
   HealthIntake,
+  HealthSleep,
 } from '@/core/db/schema'
+import { sleepMinutes, sleepParts } from '@/features/health/sleepMath'
 import { formatClock, formatDateCn, formatShortStamp, weekdayLabel } from '@/core/utils/dateKey'
 import { parseWeather, weatherLabel } from '@/features/diary/weather'
 import type { BackupPayload } from '@/features/diary/diaryBackup'
@@ -22,17 +24,17 @@ import type { ExportFile, ExportFormat } from '@/features/diary/diaryExport'
 import { translate } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 
-export type RecordKind = 'diary' | 'stamp' | 'intake' | 'finance'
+export type RecordKind = 'diary' | 'stamp' | 'intake' | 'sleep' | 'finance'
 
 /** 固定顺序：文件里按这个顺序分组，勾选面板也按这个顺序排 */
-export const RECORD_KINDS: RecordKind[] = ['diary', 'stamp', 'intake', 'finance']
+export const RECORD_KINDS: RecordKind[] = ['diary', 'stamp', 'intake', 'sleep', 'finance']
 
 /** 四种记录各自勾了哪些 id；四种可以混在同一份文件里 */
 export type RecordSelection = Record<RecordKind, string[]>
 
 /** 空文件、空勾选都从这份开始，免得各处手写四个空数组 */
 export function emptySelection(): RecordSelection {
-  return { diary: [], stamp: [], intake: [], finance: [] }
+  return { diary: [], stamp: [], intake: [], sleep: [], finance: [] }
 }
 
 export function selectionSize(selection: RecordSelection): number {
@@ -120,6 +122,26 @@ function intakeItems(intakes: HealthIntake[]): RecordItem[] {
     }))
 }
 
+function sleepItems(sleeps: HealthSleep[]): RecordItem[] {
+  return sleeps
+    .filter((sleep) => sleep.deletedAt === null)
+    .map((sleep) => {
+      const parts = sleepParts(sleepMinutes(sleep.bedtime, sleep.wakeTime))
+      return {
+        kind: 'sleep' as const,
+        id: sleep.id,
+        code: sleep.code,
+        dateKey: sleep.dateKey,
+        time: sleep.wakeTime,
+        createdAt: sleep.createdAt,
+        text: sleep.bedtime + ' \u2192 ' + sleep.wakeTime,
+        detail:
+          translate('records.sleepDetail', { h: parts.h, m: parts.m }) +
+          (sleep.quality !== null ? ' \u00b7 ' + '\u2605'.repeat(sleep.quality) : ''),
+      }
+    })
+}
+
 function financeItems(entries: FinanceEntry[]): RecordItem[] {
   return entries
     .filter((entry) => entry.deletedAt === null)
@@ -141,6 +163,7 @@ export function recordsOf(payload: BackupPayload, kind: RecordKind): RecordItem[
   if (kind === 'diary') return diaryItems(payload.entries).sort(byTime)
   if (kind === 'stamp') return stampItems(payload.stamps).sort(byTime)
   if (kind === 'intake') return intakeItems(payload.intakes).sort(byTime)
+  if (kind === 'sleep') return sleepItems(payload.sleeps).sort(byTime)
   return financeItems(payload.finance).sort(byTime)
 }
 
@@ -164,6 +187,7 @@ const KIND_TITLE_KEY: Record<RecordKind, MessageKey> = {
   diary: 'records.kindDiary',
   stamp: 'records.kindStamp',
   intake: 'records.kindIntake',
+  sleep: 'records.kindSleep',
   finance: 'records.kindFinance',
 }
 
@@ -239,6 +263,9 @@ export function buildRecordExport(
           ...(kept.has('intake')
             ? { intakes: payload.intakes.filter((row) => selection.intake.includes(row.id) && row.deletedAt === null) }
             : {}),
+          ...(kept.has('sleep')
+            ? { sleeps: payload.sleeps.filter((row) => selection.sleep.includes(row.id) && row.deletedAt === null) }
+            : {}),
           ...(kept.has('finance')
             ? { finance: payload.finance.filter((row) => selection.finance.includes(row.id) && row.deletedAt === null) }
             : {}),
@@ -313,10 +340,11 @@ export function buildRecordExport(
 }
 
 /** JSON 里四类记录各自的字段名，与整库挑选导出保持一致 */
-const KIND_FIELD: Record<RecordKind, 'entries' | 'stamps' | 'intakes' | 'finance'> = {
+const KIND_FIELD: Record<RecordKind, 'entries' | 'stamps' | 'intakes' | 'sleeps' | 'finance'> = {
   diary: 'entries',
   stamp: 'stamps',
   intake: 'intakes',
+  sleep: 'sleeps',
   finance: 'finance',
 }
 
@@ -326,7 +354,7 @@ const KIND_FIELD: Record<RecordKind, 'entries' | 'stamps' | 'intakes' | 'finance
  */
 export function buildSingleRecordExport(
   kind: RecordKind,
-  row: DiaryEntry | DiaryStamp | HealthIntake | FinanceEntry,
+  row: DiaryEntry | DiaryStamp | HealthIntake | HealthSleep | FinanceEntry,
   day?: DiaryDay | null,
 ): ExportFile {
   const now = new Date()

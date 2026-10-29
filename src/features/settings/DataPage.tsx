@@ -293,6 +293,7 @@ function SectionPicker({
         foods: payload.foods.length,
         meals: payload.meals.length,
         intakes: payload.intakes.length,
+        sleeps: payload.sleeps.length,
         profile: payload.profile ? t('data.sectionProfileYes') : t('data.sectionProfileNo'),
       }),
     },
@@ -392,6 +393,7 @@ function describePayload(
         foods: payload.foods.length,
         meals: payload.meals.length,
         intakes: payload.intakes.length,
+        sleeps: payload.sleeps.length,
         profile: payload.profile ? t('data.sectionProfileYes') : t('data.sectionProfileNo'),
       }),
     )
@@ -573,6 +575,7 @@ export default function DataPage() {
         foods: local.foods,
         meals: local.meals,
         intakes: local.intakes,
+        sleeps: local.sleeps,
       }
 
       const conflicts: MergeConflict[] = []
@@ -585,6 +588,7 @@ export default function DataPage() {
           foods: scoped.foods,
           meals: scoped.meals,
           intakes: scoped.intakes,
+          sleeps: scoped.sleeps,
         }
         conflicts.push(...findHealthConflicts(health, localHealth))
       }
@@ -627,6 +631,7 @@ export default function DataPage() {
             foods: target.payload.foods,
             meals: target.payload.meals,
             intakes: target.payload.intakes,
+            sleeps: target.payload.sleeps,
           }
         }
         if (target.selected.has('finance')) {
@@ -704,12 +709,15 @@ export default function DataPage() {
             : t('data.importProfile', { overwritten: stats.profile.overwritten }),
       })
     }
-    if (stats.foods.total + stats.meals.total + stats.intakes.total > 0) {
+    if (stats.foods.total + stats.meals.total + stats.intakes.total + stats.sleeps.total > 0) {
       rows.push(
         { key: 'foods', text: t('data.importFoods', { added: added(stats.foods), overwritten: stats.foods.overwritten }) },
         { key: 'meals', text: t('data.importMeals', { added: added(stats.meals), overwritten: stats.meals.overwritten }) },
         { key: 'intakes', text: t('data.importIntakes', { added: added(stats.intakes), overwritten: stats.intakes.overwritten }) },
       )
+      if (stats.sleeps.total > 0) {
+        rows.push({ key: 'sleeps', text: t('data.importSleeps', { added: added(stats.sleeps), overwritten: stats.sleeps.overwritten }) })
+      }
     }
     if (stats.finance.total > 0) {
       rows.push({

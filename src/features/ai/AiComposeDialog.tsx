@@ -148,6 +148,8 @@ export default function AiComposeDialog({
         finance: data.finance.filter(
           (item) => item.dateKey === dateKey && item.deletedAt === null,
         ),
+        sleep:
+          data.sleeps.find((item) => item.dateKey === dateKey && item.deletedAt === null) ?? null,
       },
       sources,
       history: window ? buildHistoryDays(data, window.from, window.to, dateKey) : [],

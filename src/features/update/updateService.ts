@@ -1,7 +1,8 @@
 /**
  * 检查更新。
  *
- * 两个源：GitHub 优先，失败退 Gitee（国内网络更稳）。桌面端由主进程代取（没有 CORS，
+ * 下载源用户可选（「版本」页，默认 Gitee），选中的先试、失败换另一个兜底。
+ * 桌面端由主进程代取（没有 CORS，
  * 也走系统代理）；浏览器和安卓走 fetch，拿不到就安静地放弃，不打扰用户。
  *
  * 版本号比较只看三段数字：'v0.2.0' 与 '0.2.0-beta' 都算 0.2.0，
@@ -28,6 +29,39 @@ export interface UpdateInfo {
 const GITHUB_REPO = 'BrainLeech198/starburst_recorder'
 const GITEE_REPO = 'Mr_brainleech/starburst_recorder'
 const SNOOZE_KEY = 'sb.update.snoozed'
+const SOURCE_KEY = 'sb_update_source'
+
+/** 用户选的下载源：选中的先试，失败再换另一个（默认 Gitee，国内网络更稳） */
+export type DownloadSource = 'gitee' | 'github'
+
+export function getDownloadSource(): DownloadSource {
+  try {
+    return localStorage.getItem(SOURCE_KEY) === 'github' ? 'github' : 'gitee'
+  } catch {
+    return 'gitee'
+  }
+}
+
+export function setDownloadSource(source: DownloadSource) {
+  try {
+    localStorage.setItem(SOURCE_KEY, source)
+  } catch {
+    // 存不了就只在本次会话生效
+  }
+}
+
+function sourceOf(url: string): DownloadSource {
+  return url.includes('gitee.com') ? 'gitee' : 'github'
+}
+
+/** 按下载源排序：选中的排前面，同一源内部保持原来的相对顺序，去掉重复 */
+export function orderUrlsBySource(urls: (string | undefined | null)[], source: DownloadSource): string[] {
+  const list = [...new Set(urls.filter((url): url is string => typeof url === 'string' && url !== ''))]
+  return [
+    ...list.filter((url) => sourceOf(url) === source),
+    ...list.filter((url) => sourceOf(url) !== source),
+  ]
+}
 
 export function isAndroid(): boolean {
   return /Android/i.test(navigator.userAgent)
@@ -77,21 +111,23 @@ function pickAsset(assets: RawRelease['assets'], android: boolean): { url: strin
 }
 
 /**
- * 下载地址的尝试顺序：两个源都试一次。
+ * 下载地址的尝试顺序：候选凑齐后按用户选的下载源排序（默认 Gitee 先走），
+ * 选中的源失败再换另一个，全失败才报错。
  *
- * 国内手机上 GitHub 的 API 往往还通，下载 CDN 却超时；Gitee 反过来偶尔限流。
- * 所以安卓先走 Gitee、桌面先走 Release 里挑出的资产（通常是 GitHub），失败再换另一个。
+ * 国内手机上 GitHub 的 API 往往还通，下载 CDN 却超时；Gitee 反过来偶尔限流，
+ * 所以两个源都要留着兜底，先后次序由用户在「版本」页自己定。
  */
 export function downloadUrlsFor(
   version: string,
   fileName: string,
   android: boolean,
   assetUrl: string,
+  source: DownloadSource = getDownloadSource(),
 ): string[] {
   const gitee = `https://gitee.com/${GITEE_REPO}/releases/download/v${version}/${fileName}`
   const github = `https://github.com/${GITHUB_REPO}/releases/download/v${version}/${fileName}`
-  const ordered = android ? [gitee, assetUrl || github, github] : [assetUrl || github, gitee]
-  return [...new Set(ordered.filter((url) => url !== ''))]
+  const candidates = android ? [gitee, assetUrl || github, github] : [assetUrl || github, gitee]
+  return orderUrlsBySource(candidates, source)
 }
 
 function normalize(raw: RawRelease | null, pageUrl: string, android: boolean): UpdateInfo | null {
@@ -159,8 +195,8 @@ async function fetchChineseNotes(version: string): Promise<string | null> {
 /**
  * 检查一次；没有新版、两个源都失败、或当前平台没有对应安装包时返回 null。
  *
- * 版本号和安装包信息取 GitHub（两个平台的包都传在那儿）；下载时两个源各试一次，
- * 安卓先 Gitee、桌面先 GitHub。中文界面会再取一次 Gitee，把更新说明换成中文那版。
+ * 版本号和安装包信息取 GitHub（两个平台的包都传在那儿）；下载时按用户选的源先试，
+ * 失败换另一个。中文界面会再取一次 Gitee，把更新说明换成中文那版。
  */
 export async function checkForUpdate(locale: string = 'zh'): Promise<UpdateInfo | null> {
   const android = isAndroid()
@@ -240,9 +276,9 @@ export function onDownloadProgress(listener: (progress: DownloadProgress) => voi
  * 所以别在中途收掉；失败会 reject，换下一个源再试。
  */
 export async function downloadUpdate(info: UpdateInfo): Promise<DownloadResult> {
-  const urls = [info.downloadUrl, info.fallbackUrl].filter(
-    (url): url is string => typeof url === 'string' && url !== '',
-  )
+  // 按当前设置再排一次序：检查到下载之间用户可能改过下载源，
+  // 桌面端主进程给的顺序也不是按用户偏好来的
+  const urls = orderUrlsBySource([info.downloadUrl, info.fallbackUrl], getDownloadSource())
 
   const desktop = desktopBridge()
   if (desktop?.update) {
@@ -272,7 +308,7 @@ export async function downloadUpdate(info: UpdateInfo): Promise<DownloadResult> 
   }
 
   // 浏览器调试：交给浏览器的下载管理，没法在这里换源重试
-  window.open(info.downloadUrl, '_blank', 'noopener')
+  window.open(urls[0], '_blank', 'noopener')
   return { ok: true }
 }
 

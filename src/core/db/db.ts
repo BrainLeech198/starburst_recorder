@@ -11,6 +11,7 @@ import type {
   HealthIntake,
   HealthMeal,
   HealthProfile,
+  HealthSleep,
 } from './schema'
 
 export const db = new Dexie('starburst') as Dexie & {
@@ -22,6 +23,7 @@ export const db = new Dexie('starburst') as Dexie & {
   healthFoods: EntityTable<HealthFood, 'id'>
   healthIntakes: EntityTable<HealthIntake, 'id'>
   healthMeals: EntityTable<HealthMeal, 'id'>
+  healthSleeps: EntityTable<HealthSleep, 'id'>
   financeEntries: EntityTable<FinanceEntry, 'id'>
 }
 
@@ -90,3 +92,8 @@ db.version(8)
       })
       .then(() => undefined),
   )
+
+// 睡眠：一夜一行，按起床那天查
+db.version(9).stores({
+  healthSleeps: 'id, dateKey, deletedAt',
+})

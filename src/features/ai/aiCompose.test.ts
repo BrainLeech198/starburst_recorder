@@ -91,6 +91,7 @@ function backup(overrides: Partial<BackupData> = {}): BackupData {
     foods: [],
     meals: [],
     intakes: [],
+    sleeps: [],
     finance: [],
     ...overrides,
   }
@@ -146,6 +147,7 @@ describe('buildComposeUserPrompt', () => {
     weather: '晴',
     stamps: [stamp({ dateKey: '2026-10-26', time: '08:30', content: '早起跑步。' })],
     intakes: [intake()],
+    sleep: null,
     finance: [finance()],
   }
 
@@ -198,6 +200,7 @@ describe('buildComposeUserPrompt', () => {
           entries: [entry()],
           stamps: [stamp()],
           intakes: [],
+          sleep: null,
           finance: [],
         },
       ],
@@ -221,6 +224,7 @@ describe('buildComposeUserPrompt', () => {
           entries: [],
           stamps: [],
           intakes: [intake({ dateKey: '2026-10-25' })],
+          sleep: null,
           finance: [finance({ dateKey: '2026-10-25' })],
         },
       ],
@@ -253,6 +257,7 @@ describe('buildHistoryBlock', () => {
         entries: [entry({ dateKey, content: `第${index}天`.repeat(200) })],
         stamps: [],
         intakes: [],
+        sleep: null,
         finance: [],
       }
     })

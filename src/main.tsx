@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router'
 import { ThemeProvider } from './app/providers/ThemeProvider'
+import { CareModeProvider } from './shared/care/CareModeProvider'
 import { BallProvider } from './app/providers/BallProvider'
 import { ToastProvider } from './app/providers/ToastProvider'
 import { UpdateProvider } from './features/update/UpdateProvider'
@@ -18,13 +19,15 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <I18nProvider>
       <ThemeProvider>
-        <BallProvider>
-          <ToastProvider>
-            <UpdateProvider>
-              <RouterProvider router={router} />
-            </UpdateProvider>
-          </ToastProvider>
-        </BallProvider>
+        <CareModeProvider>
+          <BallProvider>
+            <ToastProvider>
+              <UpdateProvider>
+                <RouterProvider router={router} />
+              </UpdateProvider>
+            </ToastProvider>
+          </BallProvider>
+        </CareModeProvider>
       </ThemeProvider>
     </I18nProvider>
   </StrictMode>,

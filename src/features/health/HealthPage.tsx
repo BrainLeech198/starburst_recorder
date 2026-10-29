@@ -1,5 +1,5 @@
 import RowCheckbox from '@/shared/ui/RowCheckbox'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { HealthIntake } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
@@ -25,6 +25,12 @@ import {
 } from '@/shared/ui/buttonStyles'
 import TimeMeta from '@/shared/ui/TimeMeta'
 import IntakeBar, { ProteinBar } from './IntakeBar'
+import WeighInCard from './WeighInCard'
+import AskAiDialog from './AskAiDialog'
+import { useDerivedTdee } from './useDerivedTdee'
+import { maybeNotifyWeighDay, syncWeighReminder } from './weighNotify'
+import SleepDialog from './SleepDialog'
+import { sleepMinutes, sleepParts } from './sleepMath'
 import IntakeDialog from './IntakeDialog'
 import IntakeDetailDialog from './IntakeDetailDialog'
 import MealParts from './MealParts'
@@ -36,8 +42,12 @@ import {
   intakesOfDay,
   removeIntake,
   removeIntakes,
+  removeHealthSleep,
   restoreIntake,
   restoreIntakes,
+  restoreHealthSleep,
+  sleepDays,
+  sleepOfDay,
 } from './healthRepo'
 import type { BackupData } from './healthRepo'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
@@ -79,17 +89,28 @@ export default function HealthPage() {
   const profile = useLiveQuery(() => healthProfile(), [])
   const intakes = useLiveQuery(() => intakesOfDay(dayKey), [dayKey])
   const [dialogOpen, setDialogOpen] = useState(false)
+  /** 这一夜的睡眠；null = 没记，undefined = 还在查 */
+  const sleep = useLiveQuery(async () => (await sleepOfDay(dayKey)) ?? null, [dayKey])
+  const derivedTdee = useDerivedTdee(profile)
+  // 称重日提醒：应用内横幅由 WeighInCard 负责，这里补系统通知（桌面到点弹、安卓排本地通知）
+  useEffect(() => {
+    maybeNotifyWeighDay(profile)
+    void syncWeighReminder(profile)
+  }, [profile])
+  const [askAiOpen, setAskAiOpen] = useState(false)
+  const [sleepDialogOpen, setSleepDialogOpen] = useState(false)
+  const [pendingDeleteSleep, setPendingDeleteSleep] = useState(false)
   /** 摄入列表默认收起：下面还要接别的健康卡片，一屏不该全被记录占掉 */
   const [listOpen, setListOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<HealthIntake | null>(null)
   /** 点开某一笔看完整营养成分 */
   const [detailIntake, setDetailIntake] = useState<HealthIntake | null>(null)
-  /** 日历打开时标亮的日期：只有「记过摄入」的那几天 */
+  /** 日历打开时标亮的日期：记过摄入或睡眠的那些天 */
   const [pickerOpen, setPickerOpen] = useState(false)
   const [writtenDays, setWrittenDays] = useState<Set<string>>(new Set())
 
   async function openPicker() {
-    setWrittenDays(new Set(await intakeDays()))
+    setWrittenDays(new Set([...(await intakeDays()), ...(await sleepDays())]))
     setPickerOpen(true)
   }
 
@@ -115,6 +136,20 @@ export default function HealthPage() {
       actionLabel: t('diary.undo'),
       onAction: () => {
         void restoreIntake(target.id)
+      },
+    })
+  }
+
+  async function handleDeleteSleep() {
+    if (!sleep) return
+    const target = sleep
+    setPendingDeleteSleep(false)
+    await removeHealthSleep(target.id)
+    showToast({
+      message: t('health.sleepDeleted'),
+      actionLabel: t('diary.undo'),
+      onAction: () => {
+        void restoreHealthSleep(target.id)
       },
     })
   }
@@ -259,7 +294,12 @@ export default function HealthPage() {
             </div>
           </div>
 
-          <IntakeBar totals={totals} tdee={targets.tdee} target={targets.targetKcal} />
+          <IntakeBar
+            totals={totals}
+            tdee={targets.tdee}
+            target={targets.targetKcal}
+            derived={derivedTdee ?? null}
+          />
           <ProteinBar value={totals.protein} target={targets.proteinTarget} />
 
           <button
@@ -268,6 +308,13 @@ export default function HealthPage() {
             className={`${SOLID_BUTTON} mt-3 w-full`}
           >
             {t('health.addIntake')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setAskAiOpen(true)}
+            className={OUTLINE_BUTTON + ' mt-2 w-full'}
+          >
+            {t('health.askAi')}
           </button>
 
           {/* 今日记录内嵌在同一张卡里，逐条用小卡片，和食物库列表保持同一套样式 */}
@@ -403,6 +450,82 @@ export default function HealthPage() {
         </section>
       )}
 
+      {/* 每周空腹称重：设称重日、记体重、看推算 TDEE */}
+      <div className="mt-4">
+        <WeighInCard profile={profile} derived={derivedTdee} />
+      </div>
+
+      {askAiOpen && (
+        <AskAiDialog
+          onClose={() => setAskAiOpen(false)}
+          dayKey={dayKey}
+          intakes={intakes ?? []}
+          totals={totals}
+          targets={targets}
+          derived={derivedTdee}
+          remaining={remaining}
+          profile={profile}
+        />
+      )}
+
+      {/* 睡眠：一夜一行，dateKey = 起床那天；跟摄入互不相干，档案没填也能记 */}
+      <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="m-0 text-xs text-muted">{t('health.sleepTitle')}</h2>
+          <div className="flex items-center gap-1">
+            <Link to="/health/sleeps/trash" className={SOLID_SMALL_BUTTON}>
+              {t('health.sleepTrash')}
+            </Link>
+            {sleep && (
+              <button
+                type="button"
+                onClick={() => setPendingDeleteSleep(true)}
+                aria-label={t('health.sleepDelete')}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-danger"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+        {sleep === undefined ? null : sleep === null ? (
+          <>
+            <p className="m-0 mt-2 text-xs text-muted">
+              {isToday
+                ? t('health.sleepEmpty')
+                : t('health.sleepEmptyDay', { date: formatDate(dayKey, t) })}
+            </p>
+            <button
+              type="button"
+              onClick={() => setSleepDialogOpen(true)}
+              className={SOLID_BUTTON + ' mt-3 w-full'}
+            >
+              {t('health.sleepAdd')}
+            </button>
+          </>
+        ) : (
+          <div className="mt-2">
+            <p className="m-0 text-3xl font-medium tabular-nums text-fg">
+              {t('health.sleepDuration', sleepParts(sleepMinutes(sleep.bedtime, sleep.wakeTime)))}
+            </p>
+            <p className="m-0 mt-1 text-xs tabular-nums text-muted">
+              {sleep.bedtime} → {sleep.wakeTime}
+              {sleep.quality !== null && (
+                <span className="ml-2 text-warning">{'★'.repeat(sleep.quality)}</span>
+              )}
+            </p>
+            {sleep.note !== '' && <p className="m-0 mt-2 text-xs text-fg">{sleep.note}</p>}
+            <button
+              type="button"
+              onClick={() => setSleepDialogOpen(true)}
+              className={OUTLINE_BUTTON + ' mt-3 w-full'}
+            >
+              {t('health.sleepEdit')}
+            </button>
+          </div>
+        )}
+      </section>
+
       {batch.active && (
         <BatchActions
           select={batch}
@@ -455,6 +578,24 @@ export default function HealthPage() {
           dateKey={dayKey}
           intakes={intakes ?? []}
           onClose={() => setDialogOpen(false)}
+        />
+      )}
+
+      {sleepDialogOpen && (
+        <SleepDialog
+          dateKey={dayKey}
+          sleep={sleep ?? null}
+          onClose={() => setSleepDialogOpen(false)}
+        />
+      )}
+
+      {pendingDeleteSleep && (
+        <ConfirmDialog
+          title={t('health.sleepDeleteTitle')}
+          description={t('health.sleepDeleteDesc')}
+          confirmLabel={t('health.sleepDelete')}
+          onConfirm={() => void handleDeleteSleep()}
+          onCancel={() => setPendingDeleteSleep(false)}
         />
       )}
 

@@ -28,13 +28,20 @@ export type HealthSex = 'male' | 'female'
 /** 日常活动量：Mifflin-St Jeor 的活动系数，档位少一点更好选 */
 export type HealthActivity = 'sedentary' | 'light' | 'moderate' | 'high'
 
+/** 一次空腹称重：dateKey 是称重那天，'YYYY-MM-DD' */
+export interface WeighIn {
+  dateKey: string
+  weightKg: number
+  createdAt: number
+}
+
 /** 身体档案：整个应用只有一行，id 固定为 'me' */
 export interface HealthProfile {
   id: 'me'
   sex: HealthSex | null
   age: number | null
   heightCm: number | null
-  /** 最新一次体重；周一空腹称重的历史序列以后再加 */
+  /** 最新一次体重；空腹称重的历史序列在 weighIns */
   weightKg: number | null
   /** 上面那个体重是什么时候称的 */
   weightAt: number | null
@@ -48,6 +55,12 @@ export interface HealthProfile {
   plan: string
   /** 一段自我评价 / 计划说明 */
   note: string
+  /** 每周空腹称重日：1=周一 … 7=周日；null 表示没设 */
+  weighDay: number | null
+  /** 称重提醒时刻，'HH:MM' */
+  weighTime: string
+  /** 空腹称重历史，新的在前，只留最近 120 条 */
+  weighIns: WeighIn[]
   updatedAt: number
 }
 
@@ -129,6 +142,28 @@ export interface HealthIntake {
   tdeeSnapshot?: number | null
   targetKcalSnapshot?: number | null
   proteinTargetSnapshot?: number | null
+  createdAt: number
+  updatedAt: number
+  deletedAt: number | null
+}
+
+/**
+ * 一夜睡眠：一行一夜，dateKey = 起床那天（周五晚睡周六起 → 记周六）。
+ * 时长是派生值不存（跨零点自动 +24h），以后要加入睡耗时/夜醒次数直接补可选字段。
+ */
+export interface HealthSleep {
+  id: string
+  /** 7 位十六进制短编号，跟日记一样用来指代某一夜 */
+  code: string
+  /** 起床那天，'YYYY-MM-DD' */
+  dateKey: string
+  /** 就寝时刻，'HH:MM' */
+  bedtime: string
+  /** 起床时刻，'HH:MM' */
+  wakeTime: string
+  /** 睡得怎么样，1–5；没评就是 null */
+  quality: number | null
+  note: string
   createdAt: number
   updatedAt: number
   deletedAt: number | null

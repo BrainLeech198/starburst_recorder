@@ -124,6 +124,22 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_meals_name ON healthMeals(name);
   CREATE INDEX IF NOT EXISTS idx_meals_trash ON healthMeals(deletedAt);
 
+  -- 睡眠：一夜一行，dateKey 是起床那天
+  CREATE TABLE IF NOT EXISTS healthSleeps (
+    id TEXT PRIMARY KEY,
+    code TEXT,
+    dateKey TEXT NOT NULL,
+    bedtime TEXT NOT NULL,
+    wakeTime TEXT NOT NULL,
+    quality INTEGER,
+    note TEXT NOT NULL DEFAULT '',
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    deletedAt INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_sleeps_day ON healthSleeps(dateKey);
+  CREATE INDEX IF NOT EXISTS idx_sleeps_trash ON healthSleeps(deletedAt);
+
   -- 经济：占位表，真正的记账模型以后再加
   CREATE TABLE IF NOT EXISTS financeEntries (
     id TEXT PRIMARY KEY,
@@ -257,6 +273,22 @@ function intakeRow(row) {
     tdeeSnapshot: num(row.tdeeSnapshot),
     targetKcalSnapshot: num(row.targetKcalSnapshot),
     proteinTargetSnapshot: num(row.proteinTargetSnapshot),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    deletedAt: row.deletedAt ?? null,
+  }
+}
+
+function sleepRow(row) {
+  if (!row) return undefined
+  return {
+    id: row.id,
+    code: row.code ?? '',
+    dateKey: row.dateKey,
+    bedtime: row.bedtime,
+    wakeTime: row.wakeTime,
+    quality: num(row.quality),
+    note: row.note ?? '',
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
@@ -532,6 +564,32 @@ function createDatabase(file) {
     ),
     purgeIntake: db.prepare('DELETE FROM healthIntakes WHERE id = ?'),
     purgeTrashedIntakes: db.prepare('DELETE FROM healthIntakes WHERE deletedAt IS NOT NULL'),
+    sleepOfDay: db.prepare(
+      'SELECT * FROM healthSleeps WHERE dateKey = ? AND deletedAt IS NULL LIMIT 1',
+    ),
+    sleepDays: db.prepare('SELECT DISTINCT dateKey FROM healthSleeps WHERE deletedAt IS NULL'),
+    upsertSleep: db.prepare(
+      `INSERT INTO healthSleeps
+         (id, code, dateKey, bedtime, wakeTime, quality, note, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         code = excluded.code,
+         dateKey = excluded.dateKey,
+         bedtime = excluded.bedtime,
+         wakeTime = excluded.wakeTime,
+         quality = excluded.quality,
+         note = excluded.note,
+         createdAt = excluded.createdAt,
+         updatedAt = excluded.updatedAt,
+         deletedAt = excluded.deletedAt`,
+    ),
+    removeSleep: db.prepare('UPDATE healthSleeps SET deletedAt = ? WHERE id = ?'),
+    restoreSleep: db.prepare('UPDATE healthSleeps SET deletedAt = NULL WHERE id = ?'),
+    trashedSleeps: db.prepare(
+      'SELECT * FROM healthSleeps WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC',
+    ),
+    purgeSleep: db.prepare('DELETE FROM healthSleeps WHERE id = ?'),
+    purgeTrashedSleeps: db.prepare('DELETE FROM healthSleeps WHERE deletedAt IS NOT NULL'),
     healthMeals: db.prepare('SELECT * FROM healthMeals WHERE deletedAt IS NULL ORDER BY name ASC'),
     trashedMeals: db.prepare(
       'SELECT * FROM healthMeals WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC',
@@ -555,10 +613,12 @@ function createDatabase(file) {
     everyFood: db.prepare('SELECT * FROM healthFoods'),
     everyMeal: db.prepare('SELECT * FROM healthMeals'),
     everyIntake: db.prepare('SELECT * FROM healthIntakes'),
+    everySleep: db.prepare('SELECT * FROM healthSleeps'),
     everyFinance: db.prepare('SELECT * FROM financeEntries'),
     allFoodIds: db.prepare('SELECT id FROM healthFoods'),
     allMealIds: db.prepare('SELECT id FROM healthMeals'),
     allIntakeIds: db.prepare('SELECT id FROM healthIntakes'),
+    allSleepIds: db.prepare('SELECT id FROM healthSleeps'),
     allFinanceIds: db.prepare('SELECT id FROM financeEntries'),
 
     // ─────────── 经济（占位） ───────────
@@ -651,6 +711,22 @@ function createDatabase(file) {
       food.deletedAt ?? null,
     )
     return foodRow({ ...food, deletedAt: food.deletedAt ?? null })
+  }
+
+  function saveSleep(sleep) {
+    q.upsertSleep.run(
+      sleep.id,
+      sleep.code ?? '',
+      sleep.dateKey,
+      sleep.bedtime,
+      sleep.wakeTime,
+      num(sleep.quality),
+      sleep.note ?? '',
+      num(sleep.createdAt) ?? Date.now(),
+      num(sleep.updatedAt) ?? Date.now(),
+      num(sleep.deletedAt),
+    )
+    return sleep
   }
 
   function insertIntake(intake) {
@@ -823,6 +899,7 @@ function createDatabase(file) {
       foods: q.everyFood.all().map(foodRow),
       meals: q.everyMeal.all().map(mealRow),
       intakes: q.everyIntake.all().map(intakeRow),
+      sleeps: q.everySleep.all().map(sleepRow),
       finance: q.everyFinance.all().map(financeRow),
     }
   }
@@ -844,6 +921,7 @@ function createDatabase(file) {
     const foods = Array.isArray(health && health.foods) ? health.foods : []
     const meals = Array.isArray(health && health.meals) ? health.meals : []
     const intakes = Array.isArray(health && health.intakes) ? health.intakes : []
+    const sleeps = Array.isArray(health && health.sleeps) ? health.sleeps : []
     const finances = Array.isArray(finance && finance.entries) ? finance.entries : []
     const profile = health && health.profile ? health.profile : null
 
@@ -854,6 +932,7 @@ function createDatabase(file) {
     const oldFoods = replace ? new Set() : new Set(q.allFoodIds.all().map((row) => row.id))
     const oldMeals = replace ? new Set() : new Set(q.allMealIds.all().map((row) => row.id))
     const oldIntakes = replace ? new Set() : new Set(q.allIntakeIds.all().map((row) => row.id))
+    const oldSleeps = replace ? new Set() : new Set(q.allSleepIds.all().map((row) => row.id))
     const oldFinance = replace ? new Set() : new Set(q.allFinanceIds.all().map((row) => row.id))
     const hadProfile = replace ? false : Boolean(q.healthProfile.get())
 
@@ -871,6 +950,7 @@ function createDatabase(file) {
           db.exec('DELETE FROM healthFoods')
           db.exec('DELETE FROM healthMeals')
           db.exec('DELETE FROM healthIntakes')
+          db.exec('DELETE FROM healthSleeps')
         }
         if (finance) db.exec('DELETE FROM financeEntries')
       }
@@ -909,6 +989,7 @@ function createDatabase(file) {
         for (const food of foods) saveFood(food)
         for (const meal of meals) saveMeal(meal)
         for (const intake of intakes) insertIntake(intake)
+        for (const sleep of sleeps) saveSleep(sleep)
       }
       if (finance) {
         for (const item of finances) {
@@ -939,6 +1020,7 @@ function createDatabase(file) {
       foods: { total: foods.length, overwritten: foods.filter((item) => oldFoods.has(item.id)).length },
       meals: { total: meals.length, overwritten: meals.filter((item) => oldMeals.has(item.id)).length },
       intakes: { total: intakes.length, overwritten: intakes.filter((item) => oldIntakes.has(item.id)).length },
+      sleeps: { total: sleeps.length, overwritten: sleeps.filter((item) => oldSleeps.has(item.id)).length },
       finance: { total: finances.length, overwritten: finances.filter((item) => oldFinance.has(item.id)).length },
     }
   }
@@ -1116,10 +1198,10 @@ function createDatabase(file) {
     clearDiaryData: () =>
       runClear(['diaryEntries', 'diaryStamps', 'diaryDays', 'diaryPresets']),
     clearHealthData: () =>
-      runClear(['healthProfile', 'healthFoods', 'healthMeals', 'healthIntakes']),
+      runClear(['healthProfile', 'healthFoods', 'healthMeals', 'healthIntakes', 'healthSleeps']),
     clearFinanceData: () => runClear(['financeEntries']),
     trashDiaryData: () => runTrash(['diaryEntries', 'diaryStamps', 'diaryPresets']),
-    trashHealthData: () => runTrash(['healthFoods', 'healthMeals', 'healthIntakes']),
+    trashHealthData: () => runTrash(['healthFoods', 'healthMeals', 'healthIntakes', 'healthSleeps']),
     trashFinanceData: () => runTrash(['financeEntries']),
 
     // ─────────── 健康 ───────────
@@ -1162,6 +1244,22 @@ function createDatabase(file) {
     },
     purgeTrashedIntakes: () => {
       q.purgeTrashedIntakes.run()
+    },
+    sleepOfDay: (dateKey) => sleepRow(q.sleepOfDay.get(dateKey)),
+    sleepDays: () => q.sleepDays.all().map((row) => row.dateKey),
+    saveHealthSleep: (sleep) => saveSleep(sleep),
+    removeHealthSleep: (id) => {
+      q.removeSleep.run(Date.now(), id)
+    },
+    restoreHealthSleep: (id) => {
+      q.restoreSleep.run(id)
+    },
+    trashedHealthSleeps: () => q.trashedSleeps.all().map(sleepRow),
+    purgeHealthSleep: (id) => {
+      q.purgeSleep.run(id)
+    },
+    purgeTrashedHealthSleeps: () => {
+      q.purgeTrashedSleeps.run()
     },
     healthMeals: () => q.healthMeals.all().map(mealRow),
     saveHealthMeal: (meal) => saveMeal(meal),

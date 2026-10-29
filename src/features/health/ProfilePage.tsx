@@ -247,6 +247,10 @@ export default function ProfilePage() {
       proteinTarget: parseNumber(draft.protein),
       plan: draft.plan,
       note: draft.note.trim(),
+      // 称重设置与历史不在这张表单里（在「每周空腹称重」卡片），保存时原样带着
+      weighDay: profile?.weighDay ?? null,
+      weighTime: profile?.weighTime ?? '07:00',
+      weighIns: profile?.weighIns ?? [],
       // eslint-disable-next-line react-hooks/purity -- 在保存回调里取时间，不在渲染期
       updatedAt: Date.now(),
     }

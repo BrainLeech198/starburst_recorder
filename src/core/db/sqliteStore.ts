@@ -15,6 +15,7 @@ import type {
   HealthFood,
   HealthMeal,
   HealthProfile,
+  HealthSleep,
 } from './schema'
 import type { DiaryStore } from './store'
 
@@ -219,5 +220,25 @@ export const sqliteStore: DiaryStore = {
   },
   purgeTrashedIntakes: async () => {
     await call('purgeTrashedIntakes')
+  },
+  sleepOfDay: (dateKey) => call('sleepOfDay', dateKey),
+  sleepDays: () => call('sleepDays'),
+  saveHealthSleep: async (sleep) => {
+    const next: HealthSleep = { ...sleep, updatedAt: Date.now() }
+    await call('saveHealthSleep', next)
+    return next
+  },
+  removeHealthSleep: async (id) => {
+    await call('removeHealthSleep', id)
+  },
+  restoreHealthSleep: async (id) => {
+    await call('restoreHealthSleep', id)
+  },
+  trashedHealthSleeps: () => call('trashedHealthSleeps'),
+  purgeHealthSleep: async (id) => {
+    await call('purgeHealthSleep', id)
+  },
+  purgeTrashedHealthSleeps: async () => {
+    await call('purgeTrashedHealthSleeps')
   },
 }

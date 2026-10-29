@@ -17,10 +17,13 @@ export default function IntakeBar({
   totals,
   tdee,
   target,
+  derived,
 }: {
   totals: Macros
   tdee: number | null
   target: number | null
+  /** 推算 TDEE：真实数据反推出来的那条线，数据不够就是 null */
+  derived: number | null
 }) {
   const { t } = useI18n()
   const scale = barScale(tdee)
@@ -28,6 +31,7 @@ export default function IntakeBar({
 
   const eatenPct = barPercent(totals.kcal, scale)
   const targetPct = target && target > 0 ? barPercent(target, scale) : 0
+  const derivedPct = derived && derived > 0 ? barPercent(derived, scale) : 0
   const tdeePct = barPercent(scale / 1.35, scale)
 
   const macroTotal = macroKcal(totals.protein, totals.carbs, totals.fat)
@@ -74,6 +78,9 @@ export default function IntakeBar({
           />
         )}
         <span className="absolute inset-y-0 w-0.5 bg-fg" style={{ left: `${tdeePct}%` }} />
+        {derived && derived > 0 && (
+          <span className="absolute inset-y-0 w-px bg-brand" style={{ left: `${derivedPct}%` }} />
+        )}
       </div>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
@@ -102,6 +109,12 @@ export default function IntakeBar({
           <i aria-hidden="true" className="h-2.5 w-0.5 bg-fg" />
           {t('health.tdeeLine', { value: Math.round(scale / 1.35) })}
         </span>
+        {derived && derived > 0 && (
+          <span className="inline-flex items-center gap-1">
+            <i aria-hidden="true" className="h-2.5 w-px bg-brand" />
+            {t('health.derivedLine', { value: Math.round(derived) })}
+          </span>
+        )}
       </div>
     </div>
   )

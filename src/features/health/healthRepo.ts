@@ -36,6 +36,14 @@ export const {
   trashedIntakes,
   purgeIntake,
   purgeTrashedIntakes,
+  sleepOfDay,
+  sleepDays,
+  saveHealthSleep,
+  removeHealthSleep,
+  restoreHealthSleep,
+  trashedHealthSleeps,
+  purgeHealthSleep,
+  purgeTrashedHealthSleeps,
   // 整库取数：健康页的「导出」要把所选摄入放进四类记录里一起挑
   exportAllData,
 } = store

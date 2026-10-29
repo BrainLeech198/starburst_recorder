@@ -18,6 +18,7 @@ import type {
   HealthIntake,
   HealthMeal,
   HealthProfile,
+  HealthSleep,
 } from './schema'
 
 /** 一块数据的导入结果：一共多少条、其中多少条覆盖了库里已有的 */
@@ -35,6 +36,7 @@ export interface ImportStats {
   foods: SectionCount
   meals: SectionCount
   intakes: SectionCount
+  sleeps: SectionCount
   finance: SectionCount
 }
 
@@ -48,6 +50,7 @@ export interface BackupData {
   foods: HealthFood[]
   meals: HealthMeal[]
   intakes: HealthIntake[]
+  sleeps: HealthSleep[]
   finance: FinanceEntry[]
 }
 
@@ -69,6 +72,8 @@ export interface BackupSections {
     foods: HealthFood[]
     meals: HealthMeal[]
     intakes: HealthIntake[]
+    /** 旧备份没有这个字段 */
+    sleeps: HealthSleep[]
   }
   finance?: { entries: FinanceEntry[] }
 }
@@ -85,6 +90,7 @@ export function zeroStats(): ImportStats {
     foods: zero(),
     meals: zero(),
     intakes: zero(),
+    sleeps: zero(),
     finance: zero(),
   }
 }
@@ -249,4 +255,17 @@ export interface DiaryStore {
   trashedIntakes(): Promise<HealthIntake[]>
   purgeIntake(id: string): Promise<void>
   purgeTrashedIntakes(): Promise<void>
+  /** 某一天的一夜睡眠（dateKey = 起床那天）；没记就是 undefined */
+  sleepOfDay(dateKey: string): Promise<HealthSleep | undefined>
+  /** 有睡眠记录的所有日期，日历上用来标「这天记过」 */
+  sleepDays(): Promise<string[]>
+  /** 新增或整行覆盖；返回存进去的那一条 */
+  saveHealthSleep(sleep: HealthSleep): Promise<HealthSleep>
+  /** 软删除：只打标记，可撤销 */
+  removeHealthSleep(id: string): Promise<void>
+  restoreHealthSleep(id: string): Promise<void>
+  /** 回收站里的睡眠记录，按删除时间倒序 */
+  trashedHealthSleeps(): Promise<HealthSleep[]>
+  purgeHealthSleep(id: string): Promise<void>
+  purgeTrashedHealthSleeps(): Promise<void>
 }
