@@ -15,7 +15,6 @@ import IntakeBar, { ProteinBar } from './IntakeBar'
 import WeighInCard from './WeighInCard'
 import SleepBar from './SleepBar'
 import { intakeReviewKey, sleepReviewKey } from './healthViz'
-import AskAiDialog from './AskAiDialog'
 import { useDerivedTdee } from './useDerivedTdee'
 import { maybeNotifyWeighDay, syncWeighReminder } from './weighNotify'
 import SleepDialog from './SleepDialog'
@@ -58,7 +57,6 @@ export default function HealthPage() {
     maybeNotifyWeighDay(profile)
     void syncWeighReminder(profile)
   }, [profile])
-  const [askAiOpen, setAskAiOpen] = useState(false)
   const [sleepDialogOpen, setSleepDialogOpen] = useState(false)
   /** 日历打开时标亮的日期：记过摄入或睡眠的那些天 */
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -227,14 +225,6 @@ export default function HealthPage() {
             >
               {t('health.addIntake')}
             </button>
-            <button
-              type="button"
-              onClick={() => setAskAiOpen(true)}
-              className={OUTLINE_BUTTON + ' w-full'}
-            >
-              {t('health.askAi')}
-            </button>
-
             {/* 明细、批量、回收站都在「摄入记录」页，卡片只留概览和入口 */}
             <Link to={`/health/intakes?date=${dayKey}`} className={OUTLINE_BUTTON + ' w-full'}>
               {t('health.viewRecords')}
@@ -250,19 +240,6 @@ export default function HealthPage() {
       <div className="mt-4">
         <WeighInCard profile={profile} derived={derivedTdee} />
       </div>
-
-      {askAiOpen && (
-        <AskAiDialog
-          onClose={() => setAskAiOpen(false)}
-          dayKey={dayKey}
-          intakes={intakes ?? []}
-          totals={totals}
-          targets={targets}
-          derived={derivedTdee}
-          remaining={remaining}
-          profile={profile}
-        />
-      )}
 
       {/* 睡眠：一夜一行，dateKey = 起床那天；跟摄入互不相干，档案没填也能记 */}
       <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
@@ -338,6 +315,7 @@ export default function HealthPage() {
         <IntakeDialog
           dateKey={dayKey}
           intakes={intakes ?? []}
+          derived={derivedTdee ?? null}
           onClose={() => setDialogOpen(false)}
         />
       )}

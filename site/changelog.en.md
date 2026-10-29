@@ -1,3 +1,15 @@
+## 0.3.1 · 2026-10-29
+
+### What's new
+
+- **Ask AI before you log it** — while adding a food, pick the dish and grams and ask right away whether this portion works; AI sees this portion's macros, what you have eaten today and what is left. Once an item is in the intake list, it is no longer offered for questions
+- **Window resets after the keyboard closes** — on Android the interface no longer stays pushed up after typing and dismissing the keyboard; the fix lives in the app shell and covers every input
+
+### Downloads
+
+- Windows 10/11: `starburst-recorder-0.3.1-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.3.1.apk` (~16 MB, release-signed)
+
 ## 0.3.0 · 2026-10-29
 
 ### What's new

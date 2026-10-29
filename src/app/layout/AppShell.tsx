@@ -98,6 +98,37 @@ export default function AppShell() {
     if (contentRef.current) contentRef.current.scrollTop = 0
   }, [section])
 
+  // 安卓软键盘：聚焦输入框时系统会把整个 WebView 顶上来，收起键盘后并不会替我们复位，
+  // 于是整页停在上抬的位置。这里记住最大可视高度，等高度恢复（键盘收起）再把文档滚动清零。
+  // 放在壳层里，全站所有输入框都走这一道，不用每个弹窗各修一遍。
+  useEffect(() => {
+    const viewport = window.visualViewport
+    if (!viewport) return
+    let maxHeight = viewport.height
+    let timer = 0
+    const reset = () => {
+      maxHeight = Math.max(maxHeight, viewport.height)
+      // 键盘还开着（可视高度明显小于最大值）时不动，免得把正在输入的框顶出去
+      if (viewport.height < maxHeight - 80) return
+      window.scrollTo(0, 0)
+      document.scrollingElement?.scrollTo(0, 0)
+    }
+    const scheduleReset = () => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(reset, 250)
+    }
+    viewport.addEventListener('resize', scheduleReset)
+    window.addEventListener('resize', scheduleReset)
+    // 失焦后键盘收起的动画还要走一会儿，等它落定再判断
+    window.addEventListener('focusout', scheduleReset)
+    return () => {
+      window.clearTimeout(timer)
+      viewport.removeEventListener('resize', scheduleReset)
+      window.removeEventListener('resize', scheduleReset)
+      window.removeEventListener('focusout', scheduleReset)
+    }
+  }, [])
+
   // 手机上底栏高度会随「记录」展开而变化。批量工具条按 --sb-nav-h 把自己抬到底栏上方，
   // 不必在 BatchBar 里写死一个「大概够高」的 bottom；桌面侧栏不参与，置 0。
   useEffect(() => {

@@ -543,6 +543,12 @@ html,
 body {
   background-color: var(--color-bg);
   color: var(--color-fg);
+  /* 整页永远不滚：滚动只交给 .sb-scroll / 弹窗面板。
+     安卓软键盘弹出时浏览器会为了露出光标去滚文档，键盘收起后又不复位，
+     锁住文档滚动就不会出现「窗口停在上抬位置」。 */
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /* 壳层：内容区（.sb-scroll）是唯一滚动容器；弹窗打开时把它锁住，消掉滚动穿透（见 useScrollLock） */

@@ -23,7 +23,7 @@ import type {
 } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
 import { newCode, newId } from '@/core/utils/id'
-import { formatClock } from '@/core/utils/dateKey'
+import { formatClock, todayKey } from '@/core/utils/dateKey'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import { compressImage } from '@/features/ai/aiVision'
 import { useToast } from '@/app/providers/ToastProvider'
@@ -38,6 +38,7 @@ import FoodForm from './FoodForm'
 import type { FoodDraft } from './FoodForm'
 import MealForm from './MealForm'
 import MealParts from './MealParts'
+import IntakeAiReview from './IntakeAiReview'
 import { dayTargets, foodMacros, formatNum, mealTotals, round2, sumMacros } from './healthMath'
 import { analyzeFoodPhoto } from './foodVision'
 import { analyzeMealPhrase } from './mealPhrase'
@@ -147,11 +148,14 @@ function GramsInput({
 export default function IntakeDialog({
   dateKey,
   intakes,
+  derived,
   onClose,
 }: {
   dateKey: string
   /** 当天已经记下的，用来做重复提示 */
   intakes: HealthIntake[]
+  /** 推算 TDEE，问 AI 时作为参考线 */
+  derived?: number | null
   onClose: () => void
 }) {
   const { t } = useI18n()
@@ -194,6 +198,9 @@ export default function IntakeDialog({
   /** 浏览器端拍照用的 input（带 capture）；原生端走 Capacitor 相机 */
   const cameraRef = useRef<HTMLInputElement>(null)
 
+  /** 正在配份量的这一份，问 AI 看合不合适；进了摄入列表就不再提供入口 */
+  const [aiReviewOpen, setAiReviewOpen] = useState(false)
+
   /** 「一句话记一餐」的原文与进度 */
   const [phrase, setPhrase] = useState('')
   const [phraseBusy, setPhraseBusy] = useState(false)
@@ -214,6 +221,10 @@ export default function IntakeDialog({
   const mealList = (meals ?? []).filter((item) => item.name.toLowerCase().includes(keyword))
   const picked = (foods ?? []).find((item) => item.id === pickedId) ?? null
   const pickedMeal = (meals ?? []).find((item) => item.id === pickedMealId) ?? null
+
+  // 问 AI 时带上当天已记的量与目标线；过去的日子按当天第一笔的快照
+  const dayTotals = sumMacros(intakes)
+  const dayTargetValues = dayTargets(intakes, profile, dateKey === todayKey())
 
   const mealFound = mealParts.map((part) => ({
     part,
@@ -242,6 +253,7 @@ export default function IntakeDialog({
   function backToList() {
     setStep('list')
     setFood(null)
+    setAiReviewOpen(false)
     setQuery('')
     setPickedId(null)
     setPickedMealId(null)
@@ -253,6 +265,7 @@ export default function IntakeDialog({
   /** 进「增加一份食物」，三个来源按钮都是从这里出发 */
   function openSource() {
     setFood(null)
+    setAiReviewOpen(false)
     setGrams('100')
     setServings('')
     setQuery('')
@@ -291,6 +304,7 @@ export default function IntakeDialog({
   /** 选定一条食物库的菜，带出它自己的常用份量 */
   function chooseLibrary(item: HealthFood) {
     setFood(asDraft(item))
+    setAiReviewOpen(false)
     setGrams(item.servingGrams ? String(item.servingGrams) : '100')
     setServings(item.servingGrams ? '1' : '')
     setStep('source')
@@ -1127,6 +1141,16 @@ export default function IntakeDialog({
                   })}
                 </p>
 
+                {!aiReviewOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setAiReviewOpen(true)}
+                    className={`${OUTLINE_BUTTON} w-full`}
+                  >
+                    {t('health.askAi')}
+                  </button>
+                )}
+
                 <div className="flex justify-end gap-2 pt-1">
                   <button type="button" onClick={openSource} className={OUTLINE_BUTTON}>
                     {t('intake.cancelAdd')}
@@ -1157,6 +1181,15 @@ export default function IntakeDialog({
                     protein: foodMacros(food, Number(grams) || 0).protein,
                   })}
                 </p>
+                {!aiReviewOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setAiReviewOpen(true)}
+                    className={`${OUTLINE_BUTTON} w-full`}
+                  >
+                    {t('health.askAi')}
+                  </button>
+                )}
                 <FoodForm
                   key={food.name}
                   initial={food}
@@ -1167,6 +1200,24 @@ export default function IntakeDialog({
                   {t('intake.cancelAdd')}
                 </button>
               </div>
+            )}
+
+            {food && aiReviewOpen && (
+              <IntakeAiReview
+                key={food.name}
+                onClose={() => setAiReviewOpen(false)}
+                dayKey={dateKey}
+                intakes={intakes}
+                totals={dayTotals}
+                targets={dayTargetValues}
+                derived={derived}
+                profile={profile}
+                candidate={{
+                  name: food.name,
+                  grams: Number(grams) || 0,
+                  ...foodMacros(food, Number(grams) || 0),
+                }}
+              />
             )}
           </div>
         )}
