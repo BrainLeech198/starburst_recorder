@@ -394,6 +394,11 @@ ipcMain.handle('ai:chat', async (_event, request) => {
     // 采样参数有就透传：换 seed 是「每次写法不一样」的关键，别在主进程这里被吞掉
     if (request?.temperature !== undefined) requestBody.temperature = request.temperature
     if (request?.seed !== undefined) requestBody.seed = request.seed
+    // AI 助手的 function calling：原样透传，主进程不关心工具具体是什么
+    if (Array.isArray(request?.tools) && request.tools.length > 0) {
+      requestBody.tools = request.tools
+      requestBody.tool_choice = request?.tool_choice ?? 'auto'
+    }
 
     const response = await net.fetch(chatUrl(baseUrl), {
       method: 'POST',
@@ -601,9 +606,16 @@ ipcMain.handle('app:open-external', async (_event, url) => {
   return true
 })
 
-ipcMain.handle('update:open', async (_event, filePath) => {
+/**
+ * 下载完成后直接拉起安装程序并退出当前应用。
+ * 不退出的话，Inno Setup 会一直等旧进程释放文件，用户得自己再关一次。
+ */
+ipcMain.handle('update:install', async (_event, filePath) => {
   const failure = await shell.openPath(String(filePath))
-  return failure === ''
+  if (failure !== '') return false
+  // 给安装程序一点启动时间，再退出，避免刚拉起就被结束
+  setTimeout(() => app.quit(), 1200)
+  return true
 })
 
 /** 只删我们自己下载的安装包，别碰用户下载目录里的其它东西 */

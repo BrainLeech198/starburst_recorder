@@ -15,6 +15,9 @@ const PresetsPage = lazy(() => import('@/features/diary/PresetsPage'))
 const PresetTrashPage = lazy(() => import('@/features/diary/PresetTrashPage'))
 const HealthPage = lazy(() => import('@/features/health/HealthPage'))
 const HealthProfilePage = lazy(() => import('@/features/health/ProfilePage'))
+const IntakesPage = lazy(() => import('@/features/health/IntakesPage'))
+const SleepsPage = lazy(() => import('@/features/health/SleepsPage'))
+const WeightsPage = lazy(() => import('@/features/health/WeightsPage'))
 const FoodLibraryPage = lazy(() => import('@/features/health/FoodLibraryPage'))
 const FoodTrashPage = lazy(() => import('@/features/health/FoodTrashPage'))
 const IntakeTrashPage = lazy(() => import('@/features/health/IntakeTrashPage'))
@@ -55,8 +58,11 @@ export const router = createHashRouter([
       { path: 'health/profile', element: <HealthProfilePage /> },
       { path: 'health/foods', element: <FoodLibraryPage /> },
       { path: 'health/foods/trash', element: <FoodTrashPage /> },
+      { path: 'health/intakes', element: <IntakesPage /> },
       { path: 'health/intakes/trash', element: <IntakeTrashPage /> },
+      { path: 'health/sleeps', element: <SleepsPage /> },
       { path: 'health/sleeps/trash', element: <SleepTrashPage /> },
+      { path: 'health/weights', element: <WeightsPage /> },
       { path: 'finance', element: <FinancePage /> },
       { path: 'assistant', element: <AssistantPage /> },
       { path: 'calendar', element: <CalendarPage /> },

@@ -9,6 +9,7 @@ import { compressImage } from '@/features/ai/aiVision'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
 import FoodAiChat from './FoodAiChat'
+import { compressFoodPhoto } from './foodPhoto'
 import { analyzeFoodPhoto, type PhotoMode } from './foodVision'
 import { parseAmount } from './parseAmount'
 
@@ -21,6 +22,8 @@ export interface FoodDraft {
   fat: number
   servingName: string | null
   servingGrams: number | null
+  /** 食物照片的 data URL；没上传就是 null */
+  photo: string | null
 }
 
 function asText(value: number | null | undefined) {
@@ -44,6 +47,11 @@ export default function FoodForm({
   const [fat, setFat] = useState(asText(initial?.fat))
   const [servingName, setServingName] = useState(initial?.servingName ?? '')
   const [servingGrams, setServingGrams] = useState(asText(initial?.servingGrams))
+  /** 食物照片；压缩后直接是 data URL，跟其它字段一起提交 */
+  const [photo, setPhoto] = useState<string | null>(initial?.photo ?? null)
+  const [photoPicking, setPhotoPicking] = useState(false)
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoUploadError, setPhotoUploadError] = useState('')
   const [aiOpen, setAiOpen] = useState(false)
   // 第一次打开后就不再卸载对话面板：收起只是藏起来，记录和进行中的请求都留着
   const [aiMounted, setAiMounted] = useState(false)
@@ -59,6 +67,9 @@ export default function FoodForm({
   const photoModeRef = useRef<PhotoMode | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
+  /** 食物照片自己的选图 input，别和上面「拍照识别营养」混用 */
+  const photoFileRef = useRef<HTMLInputElement>(null)
+  const photoCameraRef = useRef<HTMLInputElement>(null)
 
   const aiReady = isConfigured(loadAiConfig())
 
@@ -67,8 +78,8 @@ export default function FoodForm({
     setAiOpen(true)
   }
 
-  /** 只改营养和份量这几格，名字一起带上 */
-  function fill(draft: FoodDraft) {
+  /** 只改营养和份量这几格，名字一起带上；照片不跟着 AI 结果走 */
+  function fill(draft: Omit<FoodDraft, 'photo'>) {
     setName(draft.name)
     setKcal(asText(draft.kcal))
     setProtein(asText(draft.protein))
@@ -143,6 +154,29 @@ export default function FoodForm({
     if (file && mode) void importPhoto(file, mode)
   }
 
+  /** 只压图、不识别：照片只是列表和详情里的参考图 */
+  async function uploadFoodPhoto(file: File | undefined) {
+    if (!file) return
+    setPhotoUploading(true)
+    setPhotoUploadError('')
+    try {
+      setPhoto(await compressFoodPhoto(file))
+    } catch (failure) {
+      setPhotoUploadError((failure as Error).message || t('foods.photoFailed'))
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  async function takeFoodPhoto() {
+    if (!usesNativeCamera()) {
+      photoCameraRef.current?.click()
+      return
+    }
+    const shot = await takeNativePhoto()
+    if (shot) void uploadFoodPhoto(shot)
+  }
+
   function submit() {
     const trimmed = name.trim()
     if (!trimmed) {
@@ -168,6 +202,7 @@ export default function FoodForm({
       fat: numbers[3] as number,
       servingName: servingName.trim() === '' ? null : servingName.trim(),
       servingGrams: grams > 0 ? grams : null,
+      photo,
     })
   }
 
@@ -182,6 +217,78 @@ export default function FoodForm({
           className={`${INPUT} mt-1`}
         />
       </label>
+
+      <div className="flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-2.5">
+        {photo ? (
+          <img
+            src={photo}
+            alt={t('foods.photoField')}
+            className="h-16 w-16 shrink-0 rounded-lg object-cover"
+          />
+        ) : (
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-line px-1 text-center text-[11px] text-muted">
+            {t('foods.photoField')}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="m-0 text-[11px] text-muted">{t('foods.photoHint')}</p>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={photoUploading}
+              onClick={() => setPhotoPicking(true)}
+              className={`${OUTLINE_BUTTON} px-2 py-1 text-xs`}
+            >
+              {photoUploading
+                ? t('foods.photoUploading')
+                : photo
+                  ? t('foods.photoReplace')
+                  : t('foods.photoAdd')}
+            </button>
+            {photo && (
+              <button
+                type="button"
+                onClick={() => setPhoto(null)}
+                className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-danger"
+              >
+                {t('foods.photoRemove')}
+              </button>
+            )}
+          </div>
+          {photoUploadError !== '' && <ErrorNote>{photoUploadError}</ErrorNote>}
+        </div>
+      </div>
+
+      <input
+        ref={photoFileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          void uploadFoodPhoto(file)
+        }}
+      />
+      <input
+        ref={photoCameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          void uploadFoodPhoto(file)
+        }}
+      />
+      {photoPicking && (
+        <ImageSourceDialog
+          onTakePhoto={() => void takeFoodPhoto()}
+          onPickFile={() => photoFileRef.current?.click()}
+          onClose={() => setPhotoPicking(false)}
+        />
+      )}
 
       {!aiOpen && (
         <button type="button" onClick={openAi} className={`${OUTLINE_BUTTON} w-full`}>

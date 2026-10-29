@@ -303,6 +303,7 @@ function foodDiffers(local: HealthFood, incoming: HealthFood) {
     local.fat !== incoming.fat ||
     (local.servingName ?? null) !== (incoming.servingName ?? null) ||
     (local.servingGrams ?? null) !== (incoming.servingGrams ?? null) ||
+    (local.photo ?? null) !== (incoming.photo ?? null) ||
     tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
   )
 }

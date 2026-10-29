@@ -67,6 +67,11 @@ const SCHEMA = `
     proteinTarget REAL,
     plan TEXT NOT NULL DEFAULT '',
     note TEXT NOT NULL DEFAULT '',
+    weighDay INTEGER,
+    weighTime TEXT NOT NULL DEFAULT '07:00',
+    weighIns TEXT NOT NULL DEFAULT '[]',
+    idealBedtime TEXT NOT NULL DEFAULT '23:00',
+    idealWakeTime TEXT NOT NULL DEFAULT '07:00',
     updatedAt INTEGER NOT NULL
   );
 
@@ -80,6 +85,7 @@ const SCHEMA = `
     fat REAL NOT NULL DEFAULT 0,
     servingName TEXT,
     servingGrams REAL,
+    photo TEXT,
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER NOT NULL,
     deletedAt INTEGER
@@ -231,7 +237,36 @@ function profileRow(row) {
     proteinTarget: num(row.proteinTarget),
     plan: row.plan ?? '',
     note: row.note ?? '',
+    weighDay: num(row.weighDay),
+    weighTime: row.weighTime ?? '07:00',
+    idealBedtime: row.idealBedtime ?? '23:00',
+    idealWakeTime: row.idealWakeTime ?? '07:00',
+    weighIns: weighInsFromDb(row.weighIns),
     updatedAt: row.updatedAt,
+  }
+}
+
+/** 称重历史以 JSON 文本存：坏数据当空数组，字段不对的条目剔掉 */
+function weighInsFromDb(text) {
+  if (typeof text !== 'string' || text.trim() === '') return []
+  try {
+    const list = JSON.parse(text)
+    if (!Array.isArray(list)) return []
+    return list
+      .filter(
+        (item) =>
+          item &&
+          typeof item.dateKey === 'string' &&
+          Number.isFinite(Number(item.weightKg)),
+      )
+      .map((item) => ({
+        dateKey: item.dateKey,
+        weightKg: Number(item.weightKg),
+        createdAt: num(item.createdAt) ?? 0,
+      }))
+      .slice(0, 120)
+  } catch {
+    return []
   }
 }
 
@@ -247,6 +282,7 @@ function foodRow(row) {
     fat: num(row.fat) ?? 0,
     servingName: row.servingName ?? null,
     servingGrams: num(row.servingGrams),
+    photo: row.photo ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
@@ -378,10 +414,24 @@ function createDatabase(file) {
     db.exec('ALTER TABLE healthIntakes ADD COLUMN targetKcalSnapshot REAL')
   if (!intakeColumns.has('proteinTargetSnapshot'))
     db.exec('ALTER TABLE healthIntakes ADD COLUMN proteinTargetSnapshot REAL')
+  const profileColumns = new Set(
+    db.prepare('PRAGMA table_info(healthProfile)').all().map((row) => row.name),
+  )
+  if (!profileColumns.has('weighDay'))
+    db.exec('ALTER TABLE healthProfile ADD COLUMN weighDay INTEGER')
+  if (!profileColumns.has('weighTime'))
+    db.exec("ALTER TABLE healthProfile ADD COLUMN weighTime TEXT NOT NULL DEFAULT '07:00'")
+  if (!profileColumns.has('weighIns'))
+    db.exec("ALTER TABLE healthProfile ADD COLUMN weighIns TEXT NOT NULL DEFAULT '[]'")
+  if (!profileColumns.has('idealBedtime'))
+    db.exec("ALTER TABLE healthProfile ADD COLUMN idealBedtime TEXT NOT NULL DEFAULT '23:00'")
+  if (!profileColumns.has('idealWakeTime'))
+    db.exec("ALTER TABLE healthProfile ADD COLUMN idealWakeTime TEXT NOT NULL DEFAULT '07:00'")
   const foodColumns = new Set(
     db.prepare('PRAGMA table_info(healthFoods)').all().map((row) => row.name),
   )
   if (!foodColumns.has('code')) db.exec('ALTER TABLE healthFoods ADD COLUMN code TEXT')
+  if (!foodColumns.has('photo')) db.exec('ALTER TABLE healthFoods ADD COLUMN photo TEXT')
   if (!intakeColumns.has('code')) db.exec('ALTER TABLE healthIntakes ADD COLUMN code TEXT')
   const stampColumns = new Set(
     db.prepare('PRAGMA table_info(diaryStamps)').all().map((row) => row.name),
@@ -484,8 +534,9 @@ function createDatabase(file) {
     healthProfile: db.prepare("SELECT * FROM healthProfile WHERE id = 'me'"),
     upsertProfile: db.prepare(
       `INSERT INTO healthProfile
-         (id, sex, age, heightCm, weightKg, weightAt, activity, tdee, targetKcal, proteinTarget, plan, note, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (id, sex, age, heightCm, weightKg, weightAt, activity, tdee, targetKcal, proteinTarget, plan, note,
+          weighDay, weighTime, weighIns, idealBedtime, idealWakeTime, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          sex = excluded.sex,
          age = excluded.age,
@@ -498,14 +549,19 @@ function createDatabase(file) {
          proteinTarget = excluded.proteinTarget,
          plan = excluded.plan,
          note = excluded.note,
+         weighDay = excluded.weighDay,
+         weighTime = excluded.weighTime,
+         weighIns = excluded.weighIns,
+         idealBedtime = excluded.idealBedtime,
+         idealWakeTime = excluded.idealWakeTime,
          updatedAt = excluded.updatedAt`,
     ),
     healthFoods: db.prepare('SELECT * FROM healthFoods WHERE deletedAt IS NULL ORDER BY name ASC'),
     foodById: db.prepare('SELECT * FROM healthFoods WHERE id = ?'),
     upsertFood: db.prepare(
       `INSERT INTO healthFoods
-         (id, code, name, kcal, protein, carbs, fat, servingName, servingGrams, createdAt, updatedAt, deletedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (id, code, name, kcal, protein, carbs, fat, servingName, servingGrams, photo, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          code = excluded.code,
          name = excluded.name,
@@ -515,6 +571,7 @@ function createDatabase(file) {
          fat = excluded.fat,
          servingName = excluded.servingName,
          servingGrams = excluded.servingGrams,
+         photo = excluded.photo,
          createdAt = excluded.createdAt,
          updatedAt = excluded.updatedAt,
          deletedAt = excluded.deletedAt`,
@@ -690,6 +747,11 @@ function createDatabase(file) {
       num(profile.proteinTarget),
       profile.plan ?? '',
       profile.note ?? '',
+      num(profile.weighDay),
+      profile.weighTime ?? '07:00',
+      JSON.stringify(Array.isArray(profile.weighIns) ? profile.weighIns : []),
+      profile.idealBedtime ?? '23:00',
+      profile.idealWakeTime ?? '07:00',
       profile.updatedAt ?? Date.now(),
     )
     return profileRow(q.healthProfile.get())
@@ -706,6 +768,7 @@ function createDatabase(file) {
       num(food.fat) ?? 0,
       food.servingName ?? null,
       num(food.servingGrams),
+      food.photo ?? null,
       food.createdAt,
       food.updatedAt,
       food.deletedAt ?? null,

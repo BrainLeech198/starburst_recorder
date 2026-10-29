@@ -5,20 +5,22 @@
  * 改完即存，免得跟档案表单的未保存状态搅在一起。
  */
 import { useState } from 'react'
+import { Link } from 'react-router'
 import type { HealthProfile } from '@/core/db/schema'
 import { saveHealthProfile } from './healthRepo'
-import { isWeighDay } from './healthMath'
-import { todayKey, weekdayKey } from '@/core/utils/dateKey'
+import { formatNum, isWeighDay, round2 } from './healthMath'
+import { todayKey } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
-import type { MessageKey } from '@/shared/i18n/messages/zh'
 import { useToast } from '@/app/providers/ToastProvider'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
-
-/** 1=周一 … 7=周日；date.weekdayShortN 的编号是 JS 的 0=周日，取个模对上 */
-function weighDayLabelKey(day: number): MessageKey {
-  return ('date.weekdayShort' + (day % 7)) as MessageKey
-}
+import {
+  TREND_RANGES,
+  trendWeighIns,
+  weightReviewKey,
+  type TrendRange,
+} from './healthViz'
+import WeightTrendChart from './WeightTrendChart'
 
 export default function WeighInCard({
   profile,
@@ -30,17 +32,14 @@ export default function WeighInCard({
   const { t } = useI18n()
   const { showToast } = useToast()
   const [weightText, setWeightText] = useState('')
-
-  async function saveSettings(patch: Partial<HealthProfile>) {
-    if (!profile) return
-    await saveHealthProfile({ ...profile, ...patch })
-  }
+  /** 趋势图区间，默认看最近一周 */
+  const [range, setRange] = useState<TrendRange>(7)
 
   async function recordWeight() {
     const kg = Number(weightText)
     if (!profile || !Number.isFinite(kg) || kg <= 0) return
     const day = todayKey()
-    const rounded = Math.round(kg * 10) / 10
+    const rounded = round2(kg)
     const weighIns = [
       { dateKey: day, weightKg: rounded, createdAt: Date.now() },
       ...(profile.weighIns ?? []).filter((item) => item.dateKey !== day),
@@ -52,53 +51,42 @@ export default function WeighInCard({
       weightAt: Date.now(),
     })
     setWeightText('')
-    showToast({ message: t('health.weighSaved', { value: rounded }) })
+    showToast({ message: t('health.weighSaved', { value: formatNum(rounded) }) })
   }
 
   const weighIns = profile?.weighIns ?? []
   const todayIsWeighDay = isWeighDay(todayKey(), profile?.weighDay ?? null)
+  const review = weightReviewKey(weighIns)
+  const trend = trendWeighIns(weighIns, range, todayKey())
 
   return (
     <div className="rounded-2xl border border-line bg-surface p-4">
-      <h2 className="text-sm font-medium text-fg">{t('health.weighTitle')}</h2>
-      <p className="mt-1 text-xs text-muted">{t('health.weighHint')}</p>
+      <div className="flex items-start justify-between gap-3 border-b border-line pb-3">
+        <div className="flex min-w-0 items-start gap-2.5">
+          <span aria-hidden="true" className="mt-1 h-4 w-1 shrink-0 rounded-full bg-brand" />
+          <div className="min-w-0">
+            <h2 className="m-0 text-base font-semibold leading-tight text-fg">
+              {t('health.weighTitle')}
+            </h2>
+            <p className="m-0 mt-1 text-xs leading-relaxed text-muted">{t('health.weighHint')}</p>
+          </div>
+        </div>
+        <Link
+          to="/health/weights"
+          className="shrink-0 text-xs text-muted transition-colors hover:text-brand"
+        >
+          {t('health.viewRecords')} ›
+        </Link>
+      </div>
+      {review && (
+        <p className="mt-3 rounded-lg bg-brand/10 px-2.5 py-1.5 text-xs text-brand">{t(review)}</p>
+      )}
 
       {todayIsWeighDay && (
         <p className="mt-2 rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 text-xs text-brand">
           {t('health.weighToday')}
         </p>
       )}
-
-      <div className="mt-3">
-        <div className="text-xs text-muted">{t('health.weighDayLabel')}</div>
-        <div className="mt-2 grid grid-cols-7 gap-1.5">
-          {[1, 2, 3, 4, 5, 6, 7].map((day) => {
-            const active = profile?.weighDay === day
-            return (
-              <button
-                key={day}
-                type="button"
-                aria-pressed={active}
-                disabled={!profile}
-                onClick={() => void saveSettings({ weighDay: active ? null : day })}
-                className={choiceTile(active, 'px-1 py-2 text-center text-xs')}
-              >
-                {t(weighDayLabelKey(day))}
-              </button>
-            )
-          })}
-        </div>
-        <div className="mt-3 flex items-center gap-3">
-          <span className="text-xs text-muted">{t('health.weighTimeLabel')}</span>
-          <input
-            type="time"
-            value={profile?.weighTime ?? '07:00'}
-            disabled={!profile}
-            onChange={(event) => void saveSettings({ weighTime: event.target.value || '07:00' })}
-            className={INPUT + ' w-36'}
-          />
-        </div>
-      </div>
 
       <div className="mt-4 border-t border-line pt-4">
         <div className="flex items-center gap-2">
@@ -121,6 +109,28 @@ export default function WeighInCard({
         </div>
       </div>
 
+      {weighIns.length > 0 && (
+        <div className="mt-4 border-t border-line pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs text-muted">{t('health.trendTitle')}</span>
+            <div className="flex items-center gap-1">
+              {TREND_RANGES.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  aria-pressed={range === item}
+                  onClick={() => setRange(item)}
+                  className={choiceTile(range === item, 'px-2 py-1 text-[11px]')}
+                >
+                  {t('health.trendDays', { n: item })}
+                </button>
+              ))}
+            </div>
+          </div>
+          <WeightTrendChart items={trend} />
+        </div>
+      )}
+
       <div className="mt-4 border-t border-line pt-4">
         <div className="text-xs text-muted">{t('health.derivedTitle')}</div>
         <div className="mt-1 text-xl font-medium tabular-nums text-fg">
@@ -128,22 +138,6 @@ export default function WeighInCard({
         </div>
         <p className="mt-1 text-xs text-muted">{t('health.derivedHint')}</p>
       </div>
-
-      {weighIns.length > 0 && (
-        <div className="mt-4 border-t border-line pt-4">
-          <div className="text-xs text-muted">{t('health.weighHistory')}</div>
-          <ul className="mt-2 space-y-1 text-xs text-muted">
-            {weighIns.slice(0, 5).map((item) => (
-              <li key={item.dateKey} className="flex items-center justify-between">
-                <span>
-                  {item.dateKey} · {t(weekdayKey(item.dateKey))}
-                </span>
-                <span className="tabular-nums text-fg">{item.weightKg} kg</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   )
 }

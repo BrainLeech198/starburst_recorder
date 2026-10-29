@@ -2,6 +2,7 @@ import type { HealthIntake } from '@/core/db/schema'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import { OUTLINE_BUTTON } from '@/shared/ui/buttonStyles'
+import { formatNum } from './healthMath'
 
 /** 一笔摄入的营养成分表：总量 + 每 100g + 套餐的成分明细 */
 export default function IntakeDetailDialog({
@@ -34,7 +35,7 @@ export default function IntakeDetailDialog({
             <span className="shrink-0 font-mono text-[10px] text-muted">{intake.code}</span>
           </p>
           <p className="m-0 mt-1 text-xs text-muted">
-            {intake.dateKey} {intake.time} · {intake.grams} g ·{' '}
+            {intake.dateKey} {intake.time} · {formatNum(intake.grams)} g ·{' '}
             {intake.source === 'library'
               ? t('health.detailSourceLibrary')
               : t('health.detailSourceManual')}
@@ -55,12 +56,8 @@ export default function IntakeDetailDialog({
           {rows.map((row) => (
             <tr key={row.key} className="border-t border-line/60">
               <td className="py-1.5 text-fg">{row.label}</td>
-              <td className="py-1.5 text-right text-fg">
-                {row.key === 'kcal' ? Math.round(row.total) : row.total.toFixed(1)}
-              </td>
-              <td className="py-1.5 text-right text-muted">
-                {row.key === 'kcal' ? Math.round(row.scaled) : row.scaled.toFixed(1)}
-              </td>
+              <td className="py-1.5 text-right text-fg">{formatNum(row.total)}</td>
+              <td className="py-1.5 text-right text-muted">{formatNum(row.scaled)}</td>
             </tr>
           ))}
         </tbody>
@@ -77,8 +74,8 @@ export default function IntakeDetailDialog({
               >
                 <span className="min-w-0 truncate text-fg">{part.name}</span>
                 <span className="shrink-0 tabular-nums text-muted">
-                  {part.grams} g · {Math.round(part.kcal)} {t('health.kcalUnit')} ·{' '}
-                  {t('health.legendProtein')} {part.protein.toFixed(1)} g
+                  {formatNum(part.grams)} g · {formatNum(part.kcal)} {t('health.kcalUnit')} ·{' '}
+                  {t('health.legendProtein')} {formatNum(part.protein)} g
                 </span>
               </li>
             ))}
@@ -89,9 +86,9 @@ export default function IntakeDetailDialog({
       {(intake.tdeeSnapshot || intake.targetKcalSnapshot || intake.proteinTargetSnapshot) && (
         <p className="m-0 mt-4 rounded-lg bg-surface-2 px-2 py-1.5 text-[11px] text-muted">
           {t('health.detailTargets', {
-            tdee: intake.tdeeSnapshot ?? '—',
-            target: intake.targetKcalSnapshot ?? '—',
-            protein: intake.proteinTargetSnapshot ?? '—',
+            tdee: formatNum(intake.tdeeSnapshot),
+            target: formatNum(intake.targetKcalSnapshot),
+            protein: formatNum(intake.proteinTargetSnapshot),
           })}
         </p>
       )}

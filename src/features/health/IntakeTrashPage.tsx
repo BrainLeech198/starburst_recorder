@@ -15,6 +15,7 @@ import PageShell from '@/shared/ui/PageShell'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { BAR_BUTTON, BAR_DANGER, SOLID_DANGER } from '@/shared/ui/buttonStyles'
 import { purgeIntake, purgeTrashedIntakes, restoreIntake, trashedIntakes } from './healthRepo'
+import { formatNum } from './healthMath'
 
 type Pending = { kind: 'one'; intake: HealthIntake } | { kind: 'all' }
 
@@ -92,8 +93,8 @@ export default function IntakeTrashPage() {
                       time: intake.time,
                     })}
                     {' · '}
-                    {Math.round(intake.kcal)} {t('health.kcalUnit')} · {t('health.legendProtein')}{' '}
-                    {intake.protein} g
+                    {formatNum(intake.kcal)} {t('health.kcalUnit')} · {t('health.legendProtein')}{' '}
+                    {formatNum(intake.protein)} g
                   </p>
                   <p className="m-0 mt-0.5 text-xs text-muted">
                     {t('intakeTrash.deletedAt', { at: formatStamp(intake.deletedAt ?? 0) })}

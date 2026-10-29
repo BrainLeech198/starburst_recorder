@@ -38,7 +38,7 @@ import FoodForm from './FoodForm'
 import type { FoodDraft } from './FoodForm'
 import MealForm from './MealForm'
 import MealParts from './MealParts'
-import { dayTargets, foodMacros, mealTotals, sumMacros } from './healthMath'
+import { dayTargets, foodMacros, formatNum, mealTotals, round2, sumMacros } from './healthMath'
 import { analyzeFoodPhoto } from './foodVision'
 import { analyzeMealPhrase } from './mealPhrase'
 import type { PhraseItem } from './mealPhrase'
@@ -93,10 +93,6 @@ const ENTRY_CARD =
 function parseGrams(text: string): number | null {
   const value = Number(text)
   return Number.isFinite(value) && value > 0 ? value : null
-}
-
-function round1(value: number) {
-  return Math.round(value * 10) / 10
 }
 
 
@@ -229,7 +225,7 @@ export default function IntakeDialog({
       .filter((entry) => entry.food !== null)
       .map((entry) => foodMacros(entry.food!, Number(entry.part.grams) || 0)),
   )
-  const mealGramsTotal = round1(
+  const mealGramsTotal = round2(
     mealFound
       .filter((entry) => entry.food !== null)
       .reduce((total, entry) => total + (Number(entry.part.grams) || 0), 0),
@@ -319,7 +315,7 @@ export default function IntakeDialog({
     setServings(text)
     const count = Number(text)
     if (food?.servingGrams && Number.isFinite(count) && count > 0) {
-      setGrams(String(round1(count * food.servingGrams)))
+      setGrams(String(round2(count * food.servingGrams)))
     }
   }
 
@@ -346,7 +342,7 @@ export default function IntakeDialog({
     setMealParts((current) =>
       current.map((part) => ({
         ...part,
-        grams: String(round1((Number(part.grams) || 0) * factor)),
+        grams: String(round2((Number(part.grams) || 0) * factor)),
       })),
     )
   }
@@ -378,16 +374,16 @@ export default function IntakeDialog({
           return {
             ...part,
             grams,
-            kcal: Math.round(part.kcal * ratio),
-            protein: round1(part.protein * ratio),
-            carbs: round1(part.carbs * ratio),
-            fat: round1(part.fat * ratio),
+            kcal: round2(part.kcal * ratio),
+            protein: round2(part.protein * ratio),
+            carbs: round2(part.carbs * ratio),
+            fat: round2(part.fat * ratio),
           }
         })
         return {
           ...item,
           components,
-          grams: round1(components.reduce((total, part) => total + part.grams, 0)),
+          grams: round2(components.reduce((total, part) => total + part.grams, 0)),
         }
       }),
     )
@@ -457,7 +453,7 @@ export default function IntakeDialog({
         ...foodMacros(entry.food!, amount),
       })
     }
-    const totalGrams = round1(components.reduce((total, part) => total + part.grams, 0))
+    const totalGrams = round2(components.reduce((total, part) => total + part.grams, 0))
     setItems((current) => [
       ...current,
       {
@@ -558,6 +554,7 @@ export default function IntakeDialog({
           fat: entry.fat,
           servingName: null,
           servingGrams: null,
+          photo: null,
         }
     return {
       key: newId(),
@@ -660,6 +657,7 @@ export default function IntakeDialog({
         fat: guess.fat,
         servingName: guess.servingName,
         servingGrams: guess.servingGrams,
+        photo: null,
       })
       setGrams(String(guess.grams))
       setServings(guess.servingGrams ? '1' : '')
@@ -1072,7 +1070,7 @@ export default function IntakeDialog({
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-sm text-fg">{food.name}</span>
                   <span className="text-xs text-muted">
-                    {t('intake.per100', { kcal: Math.round(food.kcal) })}
+                    {t('intake.per100', { kcal: formatNum(food.kcal) })}
                   </span>
                 </div>
 
@@ -1089,7 +1087,7 @@ export default function IntakeDialog({
                         type="button"
                         onClick={() => {
                           setServings(String(ratio))
-                          setGrams(String(round1(food.servingGrams! * ratio)))
+                          setGrams(String(round2(food.servingGrams! * ratio)))
                         }}
                         className={BAR_BUTTON}
                       >
@@ -1288,9 +1286,9 @@ export default function IntakeDialog({
                     >
                       <span className="block text-sm text-fg">{item.name}</span>
                       <span className="mt-0.5 block text-xs text-muted">
-                        {t('intake.per100', { kcal: Math.round(item.kcal) })}
+                        {t('intake.per100', { kcal: formatNum(item.kcal) })}
                         {item.servingName && item.servingGrams
-                          ? ` · ${item.servingName} · ${item.servingGrams} g`
+                          ? ` · ${item.servingName} · ${formatNum(item.servingGrams)} g`
                           : ''}
                       </span>
                     </button>

@@ -19,7 +19,7 @@ import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
 import type { FoodDraft } from './FoodForm'
 import { analyzeMealPhrase, analyzeMealPhoto } from './mealPhrase'
 import type { PhraseItem } from './mealPhrase'
-import { foodMacros, mealTotals } from './healthMath'
+import { foodMacros, formatNum, mealTotals } from './healthMath'
 
 interface Part {
   key: string
@@ -112,6 +112,7 @@ export default function MealForm({
           fat: item.fat,
           servingName: null,
           servingGrams: null,
+          photo: null,
         })
         pool = [...pool, food]
         const created = food
@@ -441,9 +442,9 @@ export default function MealForm({
                 >
                   <span className="block text-sm text-fg">{food.name}</span>
                   <span className="mt-0.5 block text-xs text-muted">
-                    {t('intake.per100', { kcal: Math.round(food.kcal) })}
+                    {t('intake.per100', { kcal: formatNum(food.kcal) })}
                     {food.servingName && food.servingGrams
-                      ? ` · ${food.servingName} · ${food.servingGrams} g`
+                      ? ` · ${food.servingName} · ${formatNum(food.servingGrams)} g`
                       : ''}
                   </span>
                 </button>

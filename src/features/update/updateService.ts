@@ -232,7 +232,7 @@ export interface DownloadResult {
   ok: boolean
   /** 桌面端落到磁盘的位置 */
   path?: string | null
-  /** 安卓：下载完并拉起安装器才算完；浏览器直下没有这个阶段 */
+  /** 桌面端已拉起安装器并准备退出；安卓下载完并拉起安装器 */
   finished?: boolean
   error?: string
 }
@@ -286,7 +286,11 @@ export async function downloadUpdate(info: UpdateInfo): Promise<DownloadResult> 
     for (const url of urls) {
       last = await desktop.update.download(url, info.fileName)
       if (last.ok) {
-        if (last.path) await desktop.update.open(last.path)
+        if (last.path) {
+          // 桌面端下载完直接拉起安装器并退出应用；拉不起来就保留「已保存到…」的提示
+          const installing = await desktop.update.install(last.path)
+          return installing ? { ...last, finished: true } : last
+        }
         return last
       }
     }

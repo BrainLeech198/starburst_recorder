@@ -6,6 +6,7 @@
  */
 import { useState } from 'react'
 import { useI18n } from '@/shared/i18n/context'
+import { formatNum } from './healthMath'
 
 export interface MealPart {
   name: string
@@ -38,9 +39,9 @@ export default function MealParts({ label, parts }: { label: string; parts: Meal
               <span className="text-fg">{part.name}</span>
               {' · '}
               {t('intake.itemMeta', {
-                grams: part.grams,
-                kcal: Math.round(part.kcal),
-                protein: part.protein,
+                grams: formatNum(part.grams),
+                kcal: formatNum(part.kcal),
+                protein: formatNum(part.protein),
               })}
             </li>
           ))}

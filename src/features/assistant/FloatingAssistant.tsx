@@ -8,6 +8,7 @@ import { useScrollLock } from '@/shared/ui/useScrollLock'
 import { useOverlayEntry } from '@/shared/ui/useOverlayEntry'
 import { useBackdropClose } from '@/shared/ui/useBackdropClose'
 import { Mascot } from './Mascot'
+import AssistantChat from './AssistantChat'
 
 const POS_KEY = 'starburst.ball.pos'
 const EDGE = 8
@@ -238,23 +239,7 @@ function AssistantSheet({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-6">
-          <p className="text-sm">{t('assistant.notConnected')}</p>
-          <p className="mt-2 text-xs text-muted">{t('assistant.hint')}</p>
-        </div>
-
-        <div className="border-t border-line p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-          <div className="flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-3 py-2">
-            <input
-              disabled
-              placeholder={t('assistant.inputPlaceholder')}
-              className="flex-1 bg-transparent text-sm text-fg outline-none placeholder:text-muted"
-            />
-            <button type="button" disabled className="rounded-lg px-3 py-1 text-xs text-muted">
-              {t('assistant.send')}
-            </button>
-          </div>
-        </div>
+        <AssistantChat compact />
       </div>
     </>
   )

@@ -15,6 +15,7 @@ import type {
   FinanceEntry,
   HealthIntake,
   HealthSleep,
+  WeighIn,
 } from '@/core/db/schema'
 import { sleepMinutes, sleepParts } from '@/features/health/sleepMath'
 import { formatClock, formatDateCn, formatShortStamp, weekdayLabel } from '@/core/utils/dateKey'
@@ -24,17 +25,17 @@ import type { ExportFile, ExportFormat } from '@/features/diary/diaryExport'
 import { translate } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 
-export type RecordKind = 'diary' | 'stamp' | 'intake' | 'sleep' | 'finance'
+export type RecordKind = 'diary' | 'stamp' | 'intake' | 'sleep' | 'weight' | 'finance'
 
 /** 固定顺序：文件里按这个顺序分组，勾选面板也按这个顺序排 */
-export const RECORD_KINDS: RecordKind[] = ['diary', 'stamp', 'intake', 'sleep', 'finance']
+export const RECORD_KINDS: RecordKind[] = ['diary', 'stamp', 'intake', 'sleep', 'weight', 'finance']
 
-/** 四种记录各自勾了哪些 id；四种可以混在同一份文件里 */
+/** 各类记录各自勾了哪些 id；可以混在同一份文件里 */
 export type RecordSelection = Record<RecordKind, string[]>
 
-/** 空文件、空勾选都从这份开始，免得各处手写四个空数组 */
+/** 空文件、空勾选都从这份开始，免得各处手写一串空数组 */
 export function emptySelection(): RecordSelection {
-  return { diary: [], stamp: [], intake: [], sleep: [], finance: [] }
+  return { diary: [], stamp: [], intake: [], sleep: [], weight: [], finance: [] }
 }
 
 export function selectionSize(selection: RecordSelection): number {
@@ -116,8 +117,8 @@ function intakeItems(intakes: HealthIntake[]): RecordItem[] {
       createdAt: intake.createdAt,
       text: intake.name,
       detail: translate('records.intakeDetail', {
-        kcal: Math.round(intake.kcal),
-        protein: intake.protein,
+        kcal: Math.round(intake.kcal * 100) / 100,
+        protein: Math.round(intake.protein * 100) / 100,
       }),
     }))
 }
@@ -142,6 +143,20 @@ function sleepItems(sleeps: HealthSleep[]): RecordItem[] {
     })
 }
 
+function weightItems(weighIns: WeighIn[]): RecordItem[] {
+  return weighIns.map((item) => ({
+    kind: 'weight' as const,
+    // 称重一天最多一条，没有库里的 id，就拿日期当导出用的 id
+    id: 'weight:' + item.dateKey,
+    code: '',
+    dateKey: item.dateKey,
+    time: formatClock(item.createdAt),
+    createdAt: item.createdAt,
+    text: item.weightKg + ' ' + translate('health.weighUnit'),
+    detail: '',
+  }))
+}
+
 function financeItems(entries: FinanceEntry[]): RecordItem[] {
   return entries
     .filter((entry) => entry.deletedAt === null)
@@ -164,6 +179,7 @@ export function recordsOf(payload: BackupPayload, kind: RecordKind): RecordItem[
   if (kind === 'stamp') return stampItems(payload.stamps).sort(byTime)
   if (kind === 'intake') return intakeItems(payload.intakes).sort(byTime)
   if (kind === 'sleep') return sleepItems(payload.sleeps).sort(byTime)
+  if (kind === 'weight') return weightItems(payload.profile?.weighIns ?? []).sort(byTime)
   return financeItems(payload.finance).sort(byTime)
 }
 
@@ -188,6 +204,7 @@ const KIND_TITLE_KEY: Record<RecordKind, MessageKey> = {
   stamp: 'records.kindStamp',
   intake: 'records.kindIntake',
   sleep: 'records.kindSleep',
+  weight: 'records.kindWeight',
   finance: 'records.kindFinance',
 }
 
@@ -266,6 +283,13 @@ export function buildRecordExport(
           ...(kept.has('sleep')
             ? { sleeps: payload.sleeps.filter((row) => selection.sleep.includes(row.id) && row.deletedAt === null) }
             : {}),
+          ...(kept.has('weight')
+            ? {
+                weights: (payload.profile?.weighIns ?? []).filter((row) =>
+                  selection.weight.includes('weight:' + row.dateKey),
+                ),
+              }
+            : {}),
           ...(kept.has('finance')
             ? { finance: payload.finance.filter((row) => selection.finance.includes(row.id) && row.deletedAt === null) }
             : {}),
@@ -339,12 +363,16 @@ export function buildRecordExport(
   }
 }
 
-/** JSON 里四类记录各自的字段名，与整库挑选导出保持一致 */
-const KIND_FIELD: Record<RecordKind, 'entries' | 'stamps' | 'intakes' | 'sleeps' | 'finance'> = {
+/** JSON 里各类记录各自的字段名，与整库挑选导出保持一致 */
+const KIND_FIELD: Record<
+  RecordKind,
+  'entries' | 'stamps' | 'intakes' | 'sleeps' | 'weights' | 'finance'
+> = {
   diary: 'entries',
   stamp: 'stamps',
   intake: 'intakes',
   sleep: 'sleeps',
+  weight: 'weights',
   finance: 'finance',
 }
 
@@ -354,7 +382,7 @@ const KIND_FIELD: Record<RecordKind, 'entries' | 'stamps' | 'intakes' | 'sleeps'
  */
 export function buildSingleRecordExport(
   kind: RecordKind,
-  row: DiaryEntry | DiaryStamp | HealthIntake | HealthSleep | FinanceEntry,
+  row: DiaryEntry | DiaryStamp | HealthIntake | HealthSleep | WeighIn | FinanceEntry,
   day?: DiaryDay | null,
 ): ExportFile {
   const now = new Date()

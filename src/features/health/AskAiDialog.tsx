@@ -14,6 +14,7 @@ import Modal from '@/shared/ui/Modal'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { GHOST_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import type { DayTargets, Macros } from './healthMath'
+import { formatNum } from './healthMath'
 
 interface Turn {
   role: 'user' | 'ai'
@@ -30,7 +31,7 @@ const PRESETS = [
 ] as const
 
 function line(value: number | null | undefined) {
-  return value === null || value === undefined ? '暂无' : String(Math.round(value))
+  return value === null || value === undefined ? '暂无' : formatNum(value)
 }
 
 /** 当天数据拼成一段中文摘要，塞进用户消息里——AI 不用自己来查库 */
@@ -58,20 +59,20 @@ function buildContext(input: {
           ' ' +
           item.grams +
           'g ' +
-          item.kcal +
+          formatNum(item.kcal) +
           '千卡 蛋白' +
-          item.protein +
+          formatNum(item.protein) +
           'g',
       )
     }
   }
   parts.push(
     '合计：' +
-      Math.round(input.totals.kcal) +
+      formatNum(input.totals.kcal) +
       '千卡，蛋白' +
-      input.totals.protein +
+      formatNum(input.totals.protein) +
       'g，碳水' +
-      input.totals.carbs +
+      formatNum(input.totals.carbs) +
       'g，脂肪' +
       input.totals.fat +
       'g',

@@ -19,7 +19,7 @@ import FoodForm from './FoodForm'
 import type { FoodDraft } from './FoodForm'
 import MealForm from './MealForm'
 import FoodInfoDialog from './FoodInfoDialog'
-import { mealTotals } from './healthMath'
+import { formatNum, mealTotals } from './healthMath'
 import {
   healthFoods,
   healthMeals,
@@ -354,6 +354,15 @@ export default function FoodLibraryPage() {
                       onToggle={() => batch.toggle(food.id)}
                     />
                   )}
+                  {food.photo && (
+                    <img
+                      src={food.photo}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="h-11 w-11 shrink-0 rounded-lg border border-line object-cover"
+                    />
+                  )}
                   <button
                     type="button"
                     disabled={batch.active}
@@ -366,8 +375,8 @@ export default function FoodLibraryPage() {
                       <span className="shrink-0 font-mono text-[10px] text-muted">{food.code}</span>
                     </p>
                     <p className="m-0 mt-0.5 text-xs text-muted">
-                      {Math.round(food.kcal)} kcal / 100g · {t('foods.protein')} {food.protein} ·{' '}
-                      {t('foods.carbs')} {food.carbs} · {t('foods.fat')} {food.fat}
+                      {formatNum(food.kcal)} kcal / 100g · {t('foods.protein')} {formatNum(food.protein)} ·{' '}
+                      {t('foods.carbs')} {formatNum(food.carbs)} · {t('foods.fat')} {formatNum(food.fat)}
                     </p>
                     {food.servingName && food.servingGrams && (
                       <p className="m-0 mt-0.5 text-xs text-muted">
@@ -517,8 +526,8 @@ export default function FoodLibraryPage() {
                   >
                     <span className="block text-sm text-fg">{food.name}</span>
                     <span className="mt-0.5 block text-xs text-muted">
-                      {Math.round(food.kcal)} kcal / 100g · {t('foods.protein')} {food.protein} ·{' '}
-                      {t('foods.carbs')} {food.carbs} · {t('foods.fat')} {food.fat}
+                      {formatNum(food.kcal)} kcal / 100g · {t('foods.protein')} {formatNum(food.protein)} ·{' '}
+                      {t('foods.carbs')} {formatNum(food.carbs)} · {t('foods.fat')} {formatNum(food.fat)}
                     </span>
                   </button>
                 </li>

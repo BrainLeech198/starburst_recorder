@@ -18,6 +18,7 @@ import FoodForm from './FoodForm'
 import type { FoodDraft } from './FoodForm'
 import { normalizeFoodName } from './intakeDraft'
 import type { PhraseItem } from './mealPhrase'
+import { formatNum, round2 } from './healthMath'
 
 /** 单项处理结果；没有记录就是还没处理 */
 type Handled = 'logged' | 'skipped'
@@ -83,7 +84,7 @@ export default function PhraseReviewDialog({
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm text-fg">{item.name}</span>
                       <span className="mt-0.5 block text-xs text-muted">
-                        {Math.round(item.grams > 0 ? item.grams : 100)} g
+                        {formatNum(item.grams > 0 ? item.grams : 100)} g
                         {item.unit && !['克', 'g', '毫升', 'ml'].includes(item.unit) &&
                           ` · ${item.count} ${item.unit}`}
                       </span>
@@ -180,14 +181,14 @@ function Detail({
   onLog: (draft: FoodDraft, grams: number) => Promise<void>
 }) {
   const { t } = useI18n()
-  const [grams, setGrams] = useState(String(item.grams > 0 ? Math.round(item.grams) : 100))
+  const [grams, setGrams] = useState(String(item.grams > 0 ? round2(item.grams) : 100))
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
   const amount = Number(grams)
   const valid = Number.isFinite(amount) && amount > 0
-  const kcal = valid ? Math.round((item.kcal * amount) / 100) : 0
-  const protein = valid ? Math.round((item.protein * amount) / 10) / 10 : 0
+  const kcal = valid ? round2((item.kcal * amount) / 100) : 0
+  const protein = valid ? round2((item.protein * amount) / 100) : 0
 
   async function submit(draft: FoodDraft) {
     if (busy) return

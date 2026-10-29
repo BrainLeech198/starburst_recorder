@@ -8,6 +8,7 @@ import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 import type { HealthFood } from '@/core/db/schema'
 import Modal from '@/shared/ui/Modal'
 import { useI18n } from '@/shared/i18n/context'
+import { formatNum } from './healthMath'
 
 export default function FoodInfoDialog({
   food,
@@ -19,10 +20,10 @@ export default function FoodInfoDialog({
   const { t } = useI18n()
 
   const facts = [
-    { label: t('foods.kcal'), value: Math.round(food.kcal), unit: 'kcal' },
-    { label: t('foods.protein'), value: food.protein, unit: 'g' },
-    { label: t('foods.carbs'), value: food.carbs, unit: 'g' },
-    { label: t('foods.fat'), value: food.fat, unit: 'g' },
+    { label: t('foods.kcal'), value: formatNum(food.kcal), unit: 'kcal' },
+    { label: t('foods.protein'), value: formatNum(food.protein), unit: 'g' },
+    { label: t('foods.carbs'), value: formatNum(food.carbs), unit: 'g' },
+    { label: t('foods.fat'), value: formatNum(food.fat), unit: 'g' },
   ]
 
   return (
@@ -31,6 +32,16 @@ export default function FoodInfoDialog({
         {food.name}
         <span className="font-mono text-[10px] text-muted">{food.code}</span>
       </h2>
+
+      {food.photo && (
+        <img
+          src={food.photo}
+          alt={food.name}
+          loading="lazy"
+          decoding="async"
+          className="mt-3 aspect-square w-full rounded-xl border border-line object-cover"
+        />
+      )}
 
       <p className="mt-3 text-xs text-muted">{t('foods.per100')}</p>
       <div className="mt-1 grid grid-cols-2 gap-2">

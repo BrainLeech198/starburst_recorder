@@ -4,7 +4,7 @@
  * 一天最多烦一次：点「稍后」会把版本记到今天，明天启动才会再弹；
  * 红点不受这个限制，只要还有新版就一直亮着。
  */
-import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
+import { GHOST_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { APP_VERSION } from '@/core/version'
@@ -14,8 +14,8 @@ import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import DownloadProgressPanel from './DownloadProgressPanel'
-import { checkForUpdate, downloadUpdate, onDownloadProgress, shouldPrompt, snooze } from './updateService'
-import type { UpdateInfo } from './updateService'
+import { checkForUpdate, downloadUpdate, getDownloadSource, onDownloadProgress, setDownloadSource, shouldPrompt, snooze } from './updateService'
+import type { DownloadSource, UpdateInfo } from './updateService'
 
 interface UpdateValue {
   /** 有新版时非空，「我的」用它点红点 */
@@ -44,7 +44,15 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
   const [checking, setChecking] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [progress, setProgress] = useState<{ received: number; total: number } | null>(null)
+  /** 本次弹窗里选的下载源；默认 Gitee */
+  const [source, setSource] = useState<DownloadSource>(getDownloadSource)
   const started = useRef(false)
+
+  /** 每次打开弹窗前从本地设置读一次，「版本」页可能刚改过 */
+  const openWithCurrentSource = useCallback(() => {
+    setSource(getDownloadSource())
+    setOpen(true)
+  }, [])
 
   const runCheck = useCallback(
     async (manual: boolean) => {
@@ -71,9 +79,9 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     started.current = true
     void (async () => {
       const found = await runCheck(false)
-      if (found && shouldPrompt(found)) setOpen(true)
+      if (found && shouldPrompt(found)) openWithCurrentSource()
     })()
-  }, [runCheck])
+  }, [runCheck, openWithCurrentSource])
 
   const close = useCallback(() => {
     setOpen(false)
@@ -89,15 +97,15 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       checking,
       check: () => {
         if (info) {
-          setOpen(true)
+          openWithCurrentSource()
           return
         }
         void runCheck(true)
       },
-      open: () => setOpen(true),
+      open: openWithCurrentSource,
       close,
     }),
-    [checking, close, info, runCheck],
+    [checking, close, info, openWithCurrentSource, runCheck],
   )
 
   async function startDownload() {
@@ -115,10 +123,10 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     }
     if (result.ok) {
       showToast({
-        message: result.path
-          ? t('update.saved', { path: result.path })
-          : result.finished
-            ? t('update.launched')
+        message: result.finished
+          ? t('update.launched')
+          : result.path
+            ? t('update.saved', { path: result.path })
             : t('update.done'),
       })
       setOpen(false)
@@ -157,6 +165,26 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
                   </div>
                 </>
               )}
+
+              <div className="mt-4">
+                <p className="m-0 text-xs font-medium text-muted">{t('version.source')}</p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {(['gitee', 'github'] as DownloadSource[]).map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      aria-pressed={source === item}
+                      onClick={() => {
+                        setDownloadSource(item)
+                        setSource(item)
+                      }}
+                      className={choiceTile(source === item, 'px-3 py-2 text-xs')}
+                    >
+                      {t(item === 'gitee' ? 'version.sourceGitee' : 'version.sourceGithub')}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <div className="mt-5 flex items-center justify-between gap-2">
                 <button

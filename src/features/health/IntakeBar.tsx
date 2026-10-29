@@ -5,6 +5,7 @@ import {
   MACRO_KEYS,
   barPercent,
   barScale,
+  formatNum,
   macroKcal,
 } from './healthMath'
 import type { Macros } from './healthMath'
@@ -42,8 +43,8 @@ export default function IntakeBar({
       className="mt-3"
       role="img"
       aria-label={t('health.barAria', {
-        eaten: Math.round(totals.kcal),
-        target: target ?? 0,
+        eaten: formatNum(totals.kcal),
+        target: formatNum(target ?? 0),
       })}
     >
       <div className="relative h-4 overflow-hidden rounded-full bg-line/40">
@@ -98,21 +99,21 @@ export default function IntakeBar({
                   ? 'health.legendCarbs'
                   : 'health.legendFat',
             )}{' '}
-            {Math.round(totals[key])}g
+            {formatNum(totals[key])}g
           </span>
         ))}
         <span className="inline-flex items-center gap-1">
           <i aria-hidden="true" className="h-2.5 w-px bg-fg/50" />
-          {t('health.targetLine', { value: target ?? 0 })}
+          {t('health.targetLine', { value: formatNum(target ?? 0) })}
         </span>
         <span className="inline-flex items-center gap-1">
           <i aria-hidden="true" className="h-2.5 w-0.5 bg-fg" />
-          {t('health.tdeeLine', { value: Math.round(scale / 1.35) })}
+          {t('health.tdeeLine', { value: formatNum(scale / 1.35) })}
         </span>
         {derived && derived > 0 && (
           <span className="inline-flex items-center gap-1">
             <i aria-hidden="true" className="h-2.5 w-px bg-brand" />
-            {t('health.derivedLine', { value: Math.round(derived) })}
+            {t('health.derivedLine', { value: formatNum(derived) })}
           </span>
         )}
       </div>
@@ -128,13 +129,14 @@ export default function IntakeBar({
  */
 export function ProteinBar({ value, target }: { value: number; target: number | null }) {
   const { t } = useI18n()
-  const eaten = Math.round(value)
-  const goal = target && target > 0 ? Math.round(target) : null
-  const scale = goal !== null ? goal * 1.5 : 0
-  const scalePct = goal !== null ? Math.min(100, Math.max(0, (value / scale) * 100)) : 0
+  const eaten = formatNum(value)
+  const goalValue = target && target > 0 ? target : null
+  const goal = goalValue !== null ? formatNum(goalValue) : null
+  const scale = goalValue !== null ? goalValue * 1.5 : 0
+  const scalePct = goalValue !== null ? Math.min(100, Math.max(0, (value / scale) * 100)) : 0
   const targetPct = 100 / 1.5
-  const ratio = goal !== null ? value / goal : 0
-  const over = goal !== null && value > goal
+  const ratio = goalValue !== null ? value / goalValue : 0
+  const over = goalValue !== null && value > goalValue
   // 0% 红 → 100% 绿；超过目标换成警告色，一眼能看出「超额」
   const fillColor = over ? 'var(--color-warning)' : `hsl(${Math.min(120, ratio * 120)} 70% 42%)`
 

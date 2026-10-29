@@ -20,7 +20,7 @@ const MAX_EDGE = 1600
 const JPEG_QUALITY = 0.82
 
 /** 读出图片的原始尺寸；用完就把 objectURL 放掉 */
-function loadImage(file: File): Promise<HTMLImageElement> {
+export function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file)
     const image = new Image()

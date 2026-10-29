@@ -14,10 +14,22 @@ export type ChatContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string } }
 
+/** 模型要求调用某个工具；形状照抄 OpenAI 的 tool_calls */
+export interface ChatToolCall {
+  id: string
+  type: 'function'
+  function: { name: string; arguments: string }
+}
+
 /** 一条对话消息，形状跟 OpenAI 的 messages 一致 */
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant'
-  content: string | ChatContentPart[]
+  role: 'system' | 'user' | 'assistant' | 'tool'
+  /** 带 tool_calls 的助手消息可以没有正文 */
+  content: string | ChatContentPart[] | null
+  /** 只在 assistant 消息上出现 */
+  tool_calls?: ChatToolCall[]
+  /** 只在 tool 消息上出现，对应哪一次调用 */
+  tool_call_id?: string
 }
 
 export interface ChatRequest {
@@ -28,6 +40,9 @@ export interface ChatRequest {
   /** 可选采样参数：不传就走模型默认；每次请求换 seed 能避免重复模板 */
   temperature?: number
   seed?: number
+  /** function calling 的工具声明；不支持 tool 的模型干脆不发 */
+  tools?: unknown[]
+  tool_choice?: 'auto'
 }
 
 /**
@@ -86,7 +101,8 @@ export interface DesktopBridge {
   update: {
     check: (locale: string) => Promise<DesktopUpdateInfo | null>
     download: (url: string, fileName: string) => Promise<DesktopUpdateResult>
-    open: (filePath: string) => Promise<boolean>
+    /** 下载完成后拉起安装程序并退出应用；成功返回 true */
+    install: (filePath: string) => Promise<boolean>
     /** 下载进度（主进程按秒推），返回退订函数 */
     onProgress: (listener: (progress: DesktopUpdateProgress) => void) => () => void
   }

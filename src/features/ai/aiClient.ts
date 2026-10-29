@@ -54,6 +54,11 @@ export async function chat(request: ChatRequest): Promise<ChatTransportResult> {
   // 有就带上，没有留空让服务商走默认；每次换 seed 能跳出模板重复
   if (request.temperature !== undefined) bodyObj.temperature = request.temperature
   if (request.seed !== undefined) bodyObj.seed = request.seed
+  // 只有调用方明确给了工具才带；普通写日记的请求保持原来的形状
+  if (request.tools && request.tools.length > 0) {
+    bodyObj.tools = request.tools
+    bodyObj.tool_choice = request.tool_choice ?? 'auto'
+  }
   const body = JSON.stringify(bodyObj)
   const started = Date.now()
 

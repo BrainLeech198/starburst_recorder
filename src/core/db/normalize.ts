@@ -42,6 +42,16 @@ function nullableNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
+/** 'HH:MM' 才算数；写坏的（25:99、空串）退回默认时刻 */
+function clockText(value: unknown, fallback: string) {
+  const raw = text(value)
+  const matched = raw.match(/^(\d{1,2}):(\d{2})$/)
+  if (!matched) return fallback
+  const hour = Number(matched[1])
+  const minute = Number(matched[2])
+  return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 ? raw : fallback
+}
+
 function deletedAt(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
@@ -185,6 +195,8 @@ export function pickProfile(raw: unknown): HealthProfile | null {
     note: text(item.note),
     weighDay: nullableNumber(item.weighDay),
     weighTime: text(item.weighTime) || '07:00',
+    idealBedtime: clockText(item.idealBedtime, '23:00'),
+    idealWakeTime: clockText(item.idealWakeTime, '07:00'),
     weighIns: pickWeighIns(item.weighIns),
     updatedAt: number(item.updatedAt, Date.now()),
   }
@@ -206,6 +218,8 @@ export function pickFood(raw: unknown): HealthFood | null {
     fat: number(item.fat, 0),
     servingName: typeof item.servingName === 'string' ? item.servingName : null,
     servingGrams: nullableNumber(item.servingGrams),
+    photo:
+      typeof item.photo === 'string' && item.photo.startsWith('data:image/') ? item.photo : null,
     createdAt: number(item.createdAt, Date.now()),
     updatedAt: number(item.updatedAt, Date.now()),
     deletedAt: deletedAt(item.deletedAt),

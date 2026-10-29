@@ -1,7 +1,7 @@
 /**
  * 「长辈关怀」设置页（/me/older）。
  *
- * 字号档位独立生效（不开总开关字也能调大）；总开关带着四个关怀功能：
+ * 字号档位跟总开关一起生效，关掉总开关就回到标准大小；总开关还带四个关怀功能：
  * 加大点按区 / 高对比 / 减少动效 / 防误触（危险操作二次确认，见 ConfirmDialog）。
  * 状态存在 localStorage，样式挂在 <html> 的 data-* 上（见 src/shared/care/careMode.ts）。
  */
@@ -89,6 +89,7 @@ export default function OlderPage() {
             checked={state.care}
             onToggle={(care) => patch({ care })}
           />
+          {!state.care && <p className="mt-2 text-xs text-muted">{t('care.fontOff')}</p>}
         </SettingGroup>
 
         <SettingGroup label={t('care.fontScale')}>
@@ -100,6 +101,7 @@ export default function OlderPage() {
                   key={item.id}
                   type="button"
                   aria-pressed={active}
+                  disabled={!state.care}
                   onClick={() => setFontScale(item.id)}
                   className={choiceTile(
                     active,

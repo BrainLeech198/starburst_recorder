@@ -17,6 +17,7 @@ import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import type { ChatMessage } from '@/platform/desktop'
 import type { FoodDraft } from './FoodForm'
 import { parseFoodAnalysis } from './foodVision'
+import { round2 } from './healthMath'
 
 /** 最多追问几轮；到点必须给结论，免得用户被一直问下去 */
 const MAX_ROUNDS = 8
@@ -108,8 +109,8 @@ function partsOf(raw: string): ProposalPart[] {
         const kcal = Number(record.kcal)
         return {
           name,
-          grams: Number.isFinite(grams) && grams > 0 ? Math.round(grams) : 0,
-          kcal: Number.isFinite(kcal) && kcal >= 0 ? Math.round(kcal) : 0,
+          grams: Number.isFinite(grams) && grams > 0 ? round2(grams) : 0,
+          kcal: Number.isFinite(kcal) && kcal >= 0 ? round2(kcal) : 0,
         }
       })
       .filter((part) => part.name !== '' && part.grams > 0)
@@ -131,6 +132,7 @@ function parseReply(raw: string): { question?: string; proposal?: Proposal } {
         fat: guess.fat,
         servingName: guess.servingName,
         servingGrams: guess.servingGrams,
+        photo: null,
         note: noteOf(raw),
         parts: partsOf(raw),
       },
@@ -337,8 +339,8 @@ export default function FoodAiChat({
                   {/* 每 100g 容易看错，这里顺手把整份的合计也算出来 */}
                   <p className="m-0 mt-0.5 text-xs text-fg">
                     {t('foods.aiServingTotal', {
-                      kcal: Math.round((proposal.kcal * proposal.servingGrams) / 100),
-                      protein: Math.round(proposal.protein * proposal.servingGrams) / 100,
+                      kcal: round2((proposal.kcal * proposal.servingGrams) / 100),
+                      protein: round2((proposal.protein * proposal.servingGrams) / 100),
                     })}
                   </p>
                 </>
@@ -379,6 +381,7 @@ export default function FoodAiChat({
                       fat: proposal.fat,
                       servingName: proposal.servingName,
                       servingGrams: proposal.servingGrams,
+                      photo: null,
                     })
                   }
                   className={SOLID_BUTTON}

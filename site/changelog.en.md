@@ -1,3 +1,23 @@
+## 0.3.0 · 2026-10-29
+
+### What's new
+
+- **The AI assistant can look things up** — besides chatting, it browses your diary, notes, finance and health records by date or keyword and tells you what it checked; the page and the floating bubble share one conversation UI
+- **Health records get their own pages** — intake (`/health/intakes`), sleep (`/health/sleeps`) and weight (`/health/weights`) each have a detail page with the same day navigation as the journal; the three home cards keep a summary, a quick-add action and a View records link
+- **Weight trend line** — the weigh-in card draws a line, switchable between 3 / 5 / 7 / 30 days; too few points shows a hint instead of a misleading line
+- **Sleep bar** — midnight sits in the centre, the solid block is the night you actually slept and the pale block is your ideal schedule; ideal bedtime and wake time are set on the sleep page
+- **Preset-library notes** — the intake, weight and sleep cards add a one-line comment from your preset library
+- **Photos in the food library** — attach a square thumbnail (512 px long edge) to common foods, visible in the list and detail views and carried with backups
+- **Weight in record export** — weight is now the fifth record kind you can tick; the weight and sleep pages also export a single record as JSON
+- **Desktop updates install themselves** — after the download finishes the installer launches and the old app quits 1.2 seconds later, no manual double-click needed
+- **Care mode text size fixed** — text size only applies while the master switch is on; turning it off restores the standard size and keeps your chosen level
+- **Desktop SQLite profile completed** — ideal schedule, weigh-in history, reminder settings and food photos are now real columns, with automatic migration for existing databases
+
+### Downloads
+
+- Windows 10/11: `starburst-recorder-0.3.0-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.3.0.apk` (~16 MB, release-signed)
+
 ## 0.2.13 · 2026-10-29
 
 ### What's new

@@ -13,6 +13,7 @@ import type { ChatContentPart } from '@/platform/desktop'
 import { chat, explainFailure, pickReply } from '@/features/ai/aiClient'
 import type { AiConfig } from '@/features/ai/aiConfig'
 import { translate } from '@/shared/i18n/context'
+import { formatNum, round2 } from './healthMath'
 
 /** 一句话里拆出来的一项 */
 export interface PhraseItem {
@@ -55,10 +56,6 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
 }
 
-function round1(value: number) {
-  return Math.round(value * 10) / 10
-}
-
 /** 食物库压成一行一条的简表，别把上千行都塞进提示词 */
 function libraryTable(foods: HealthFood[]) {
   return foods
@@ -69,7 +66,7 @@ function libraryTable(foods: HealthFood[]) {
         food.servingName && food.servingGrams
           ? `，${food.servingName}≈${food.servingGrams}g`
           : ''
-      return `${food.name} ${Math.round(food.kcal)}/${round1(food.protein)}/${round1(food.carbs)}/${round1(food.fat)}${serving}`
+      return `${food.name} ${formatNum(food.kcal)}/${formatNum(food.protein)}/${formatNum(food.carbs)}/${formatNum(food.fat)}${serving}`
     })
     .join('\n')
 }
@@ -134,8 +131,8 @@ export function parseMealPhrase(reply: string): PhraseItem[] {
         ? (record.per100g as Record<string, unknown>)
         : record
 
-    const grams = Math.round(clamp(toNumber(record.grams) ?? 100, 1, 5000))
-    const count = round1(clamp(toNumber(record.count) ?? 1, 0.1, 99))
+    const grams = round2(clamp(toNumber(record.grams) ?? 100, 1, 5000))
+    const count = round2(clamp(toNumber(record.count) ?? 1, 0.1, 99))
     const unit = typeof record.unit === 'string' ? record.unit.trim() : ''
     const matched = typeof record.matched === 'string' ? record.matched.trim() : ''
 
@@ -144,10 +141,10 @@ export function parseMealPhrase(reply: string): PhraseItem[] {
       unit,
       count,
       grams,
-      kcal: Math.round(clamp(toNumber(per.kcal) ?? 0, 0, 900)),
-      protein: round1(clamp(toNumber(per.protein) ?? 0, 0, 100)),
-      carbs: round1(clamp(toNumber(per.carbs) ?? 0, 0, 100)),
-      fat: round1(clamp(toNumber(per.fat) ?? 0, 0, 100)),
+      kcal: round2(clamp(toNumber(per.kcal) ?? 0, 0, 900)),
+      protein: round2(clamp(toNumber(per.protein) ?? 0, 0, 100)),
+      carbs: round2(clamp(toNumber(per.carbs) ?? 0, 0, 100)),
+      fat: round2(clamp(toNumber(per.fat) ?? 0, 0, 100)),
       matched,
     })
   }

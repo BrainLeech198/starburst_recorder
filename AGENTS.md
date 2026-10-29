@@ -40,6 +40,8 @@ Android：`npm run build && npx cap sync android`，再到 `android/` 执行 `gr
 
 - 仓库里可能同时有别的 AI（例如 CodeBuddy）在改同一份工作区：动手前先 `git status`，只改自己需要的文件，不跑全量格式化，不覆盖看不出用途的未提交改动。
 - 工作区里不认识的未提交改动，当作他人进行中的工作；不回滚、不清理、不顺手一起提交。
+- **发版期间由发版方临时占用** `package.json`、`package-lock.json`、`site/`、`docs/PACKAGING-AND-RELEASE.md`、`docs/PROJECT-NOTES.md`；另一位 AI 要改这些，先等发版收尾或先和用户确认，避免版本号与更新说明互相覆盖。
+- 发版期间工作区里别人写完的改动会被一起打进安装包；不确定是否完成的改动，先在 `CODEBUDDY.md` 或对话里说明状态，不要半截提交。
 
 ## 技术底线
 

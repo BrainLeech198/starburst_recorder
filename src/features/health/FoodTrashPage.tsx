@@ -14,6 +14,7 @@ import { useI18n } from '@/shared/i18n/context'
 import PageShell from '@/shared/ui/PageShell'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { BAR_BUTTON, BAR_DANGER, SOLID_DANGER } from '@/shared/ui/buttonStyles'
+import { formatNum } from './healthMath'
 import {
   purgeHealthFood,
   purgeHealthMeal,
@@ -116,8 +117,9 @@ export default function FoodTrashPage() {
                   </p>
                   {row.kind === 'food' ? (
                     <p className="m-0 mt-0.5 text-xs text-muted">
-                      {Math.round(row.food.kcal)} kcal / 100g · {t('foods.protein')} {row.food.protein} ·{' '}
-                      {t('foods.carbs')} {row.food.carbs} · {t('foods.fat')} {row.food.fat}
+                      {formatNum(row.food.kcal)} kcal / 100g · {t('foods.protein')}{' '}
+                      {formatNum(row.food.protein)} · {t('foods.carbs')} {formatNum(row.food.carbs)} ·{' '}
+                      {t('foods.fat')} {formatNum(row.food.fat)}
                     </p>
                   ) : (
                     <p className="m-0 mt-0.5 text-xs text-muted">

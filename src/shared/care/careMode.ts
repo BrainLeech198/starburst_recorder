@@ -17,9 +17,9 @@ export const FONT_SCALES: { id: FontScaleId; labelKey: MessageKey; percent: numb
 ]
 
 export interface CareState {
-  /** 字号档位独立于总开关：就算不开长辈关怀，字小也可以单独调大 */
+  /** 字号档位；只在总开关开着时生效，关掉后界面回到标准大小 */
   fontScale: FontScaleId
-  /** 总开关：开着才启用下面四个关怀功能 */
+  /** 总开关：开着才启用字号放大和下面四个关怀功能 */
   care: boolean
   tapTargets: boolean
   contrast: boolean
@@ -65,10 +65,14 @@ export function careFeatureOn(state: CareState, feature: 'tapTargets' | 'contras
   return state.care && state[feature]
 }
 
-/** 把状态挂到 <html> 的 data-* 上，具体样式由 index.css 认这些属性 */
+/**
+ * 把状态挂到 <html> 的 data-* 上，具体样式由 index.css 认这些属性。
+ * 字号也跟着总开关走：关掉长辈关怀就回到标准大小，不会留下一个「关不掉的大字」。
+ * 存下来的档位不丢，重新打开总开关时恢复。
+ */
 export function applyCareState(state: CareState): void {
   const root = document.documentElement
-  root.dataset.fontScale = state.fontScale
+  root.dataset.fontScale = state.care ? state.fontScale : 'standard'
   root.dataset.careTap = careFeatureOn(state, 'tapTargets') ? 'on' : 'off'
   root.dataset.careContrast = careFeatureOn(state, 'contrast') ? 'on' : 'off'
   root.dataset.careMotion = careFeatureOn(state, 'reduceMotion') ? 'on' : 'off'

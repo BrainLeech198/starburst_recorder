@@ -1,7 +1,5 @@
-import RowCheckbox from '@/shared/ui/RowCheckbox'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import type { HealthIntake } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
 import {
   formatDate,
@@ -11,49 +9,21 @@ import {
   todayKey,
   weekdayKey,
 } from '@/core/utils/dateKey'
-import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
-import ConfirmDialog from '@/shared/ui/ConfirmDialog'
-import BatchActions from '@/shared/ui/BatchActions'
-import { useBatchSelect } from '@/shared/ui/useBatchSelect'
-import {
-  BAR_BUTTON,
-  BAR_DANGER,
-  OUTLINE_BUTTON,
-  SOLID_BUTTON,
-  SOLID_SMALL_BUTTON,
-} from '@/shared/ui/buttonStyles'
-import TimeMeta from '@/shared/ui/TimeMeta'
+import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import IntakeBar, { ProteinBar } from './IntakeBar'
 import WeighInCard from './WeighInCard'
+import SleepBar from './SleepBar'
+import { intakeReviewKey, sleepReviewKey } from './healthViz'
 import AskAiDialog from './AskAiDialog'
 import { useDerivedTdee } from './useDerivedTdee'
 import { maybeNotifyWeighDay, syncWeighReminder } from './weighNotify'
 import SleepDialog from './SleepDialog'
 import { sleepMinutes, sleepParts } from './sleepMath'
 import IntakeDialog from './IntakeDialog'
-import IntakeDetailDialog from './IntakeDetailDialog'
-import MealParts from './MealParts'
-import { dayTargets, missingProfileFields, remainingKcal, sumMacros } from './healthMath'
-import {
-  exportAllData,
-  healthProfile,
-  intakeDays,
-  intakesOfDay,
-  removeIntake,
-  removeIntakes,
-  removeHealthSleep,
-  restoreIntake,
-  restoreIntakes,
-  restoreHealthSleep,
-  sleepDays,
-  sleepOfDay,
-} from './healthRepo'
-import type { BackupData } from './healthRepo'
+import { dayTargets, formatNum, missingProfileFields, remainingKcal, sumMacros } from './healthMath'
+import { healthProfile, intakeDays, intakesOfDay, sleepDays, sleepOfDay } from './healthRepo'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
-import RecordExportDialog from '@/features/records/RecordExportDialog'
-import { buildSingleRecordExport } from '@/features/records/recordExport'
-import { describeSave, saveTextFile } from '@/platform/saveFile'
 
 const FIELD_LABELS = {
   sex: 'profile.fieldSex',
@@ -67,22 +37,13 @@ const FIELD_LABELS = {
 /** 健康首页：一条今日摄入进度条 +「记一笔」，其余留白，等训练和体重再接 */
 export default function HealthPage() {
   const { t } = useI18n()
-  const { showToast } = useToast()
   // 跟日记一样把日期放进 URL：刷新、返回都还停在看的这一天
   const [searchParams, setSearchParams] = useSearchParams()
   const dateParam = searchParams.get('date')
   const dayKey = isDateKey(dateParam) ? dateParam : todayKey()
   const isToday = dayKey === todayKey()
 
-  /** 批量多选：只针对当前这一天的摄入 */
-  const batch = useBatchSelect()
-  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
-  /** 批量导出时取来的整库数据；非 null 就打开挑选弹窗，当前勾中的摄入带进去预选 */
-  const [exportData, setExportData] = useState<BackupData | null>(null)
-
   function setDayKey(next: string) {
-    batch.exit()
-    setListOpen(false)
     setSearchParams({ date: next }, { replace: true })
   }
 
@@ -99,12 +60,6 @@ export default function HealthPage() {
   }, [profile])
   const [askAiOpen, setAskAiOpen] = useState(false)
   const [sleepDialogOpen, setSleepDialogOpen] = useState(false)
-  const [pendingDeleteSleep, setPendingDeleteSleep] = useState(false)
-  /** 摄入列表默认收起：下面还要接别的健康卡片，一屏不该全被记录占掉 */
-  const [listOpen, setListOpen] = useState(false)
-  const [pendingDelete, setPendingDelete] = useState<HealthIntake | null>(null)
-  /** 点开某一笔看完整营养成分 */
-  const [detailIntake, setDetailIntake] = useState<HealthIntake | null>(null)
   /** 日历打开时标亮的日期：记过摄入或睡眠的那些天 */
   const [pickerOpen, setPickerOpen] = useState(false)
   const [writtenDays, setWrittenDays] = useState<Set<string>>(new Set())
@@ -117,69 +72,17 @@ export default function HealthPage() {
   const missing = missingProfileFields(profile)
   const ready = missing.length === 0
   const totals = sumMacros(intakes ?? [])
-  // 默认一条不露；进批量多选或手动展开才显示，不然勾不到藏起来的行
-  const shownIntakes = listOpen || batch.active ? (intakes ?? []) : []
   // 今天跟着当前档案走（改了档案今天的线立刻改）；过去的日子按当天第一笔的快照
   const targets = dayTargets(intakes ?? [], profile, isToday)
   const remaining = remainingKcal(targets.targetKcal, totals.kcal)
+  const intakeReview = intakeReviewKey(totals.kcal, targets.targetKcal)
+  const sleepReview =
+    sleep === null || sleep === undefined
+      ? null
+      : sleepReviewKey(sleepMinutes(sleep.bedtime, sleep.wakeTime), sleep.quality)
   const fieldNames = missing
     .map((key) => t(FIELD_LABELS[key as keyof typeof FIELD_LABELS]))
     .join(' / ')
-
-  async function handleDelete() {
-    if (!pendingDelete) return
-    const target = pendingDelete
-    setPendingDelete(null)
-    await removeIntake(target.id)
-    showToast({
-      message: t('health.intakeDeleted'),
-      actionLabel: t('diary.undo'),
-      onAction: () => {
-        void restoreIntake(target.id)
-      },
-    })
-  }
-
-  async function handleDeleteSleep() {
-    if (!sleep) return
-    const target = sleep
-    setPendingDeleteSleep(false)
-    await removeHealthSleep(target.id)
-    showToast({
-      message: t('health.sleepDeleted'),
-      actionLabel: t('diary.undo'),
-      onAction: () => {
-        void restoreHealthSleep(target.id)
-      },
-    })
-  }
-
-  async function handleBatchExport() {
-    setExportData(await exportAllData())
-  }
-
-  /** 单条摄入导出：结构和「挑选记录导出」的 JSON 一样 */
-  async function handleExportIntake(intake: HealthIntake) {
-    const file = buildSingleRecordExport('intake', intake)
-    const outcome = await saveTextFile(file)
-    showToast({
-      message: describeSave(outcome, t('records.exported', { count: 1, label: file.label }), t),
-    })
-  }
-
-  async function handleBatchDelete() {
-    const ids = batch.selected
-    setBatchDeleteOpen(false)
-    await removeIntakes(ids)
-    batch.clear()
-    showToast({
-      message: t('health.batchDeleted', { n: ids.length }),
-      actionLabel: t('diary.undo'),
-      onAction: () => {
-        void restoreIntakes(ids)
-      },
-    })
-  }
 
   return (
     <div className="w-full p-4">
@@ -222,7 +125,6 @@ export default function HealthPage() {
             <button
               type="button"
               onClick={() => {
-                batch.exit()
                 setSearchParams({}, { replace: true })
               }}
               className="ml-1 shrink-0 whitespace-nowrap rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-brand"
@@ -273,13 +175,28 @@ export default function HealthPage() {
 
       {ready && (
         <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
-          <div className="flex items-end justify-between gap-2">
+          <div className="flex items-start justify-between gap-3 border-b border-line pb-3">
+            <div className="flex min-w-0 items-start gap-2.5">
+              <span aria-hidden="true" className="mt-1 h-4 w-1 shrink-0 rounded-full bg-brand" />
+              <div className="min-w-0">
+                <h2 className="m-0 text-base font-semibold leading-tight text-fg">
+                  {t('records.kindIntake')}
+                </h2>
+                <p className="m-0 mt-1 text-xs leading-relaxed text-muted">
+                  {isToday ? t('health.today') : formatDate(dayKey, t)}
+                </p>
+              </div>
+            </div>
+          </div>
+          {intakeReview && (
+            <p className="m-0 mt-3 rounded-lg bg-brand/10 px-2.5 py-1.5 text-xs text-brand">
+              {t(intakeReview)}
+            </p>
+          )}
+          <div className="mt-3 flex items-end justify-between gap-2">
             <div>
-              <p className="m-0 text-xs text-muted">
-                {isToday ? t('health.today') : formatDate(dayKey, t)}
-              </p>
-              <p className="m-0 mt-0.5 text-3xl font-medium tabular-nums text-fg">
-                {Math.round(totals.kcal)}
+              <p className="m-0 text-3xl font-medium tabular-nums text-fg">
+                {formatNum(totals.kcal)}
                 <span className="ml-1 text-xs font-normal text-muted">{t('health.kcalUnit')}</span>
               </p>
             </div>
@@ -287,8 +204,8 @@ export default function HealthPage() {
               {remaining !== null && (
                 <p className={`m-0 ${remaining >= 0 ? 'text-muted' : 'text-danger'}`}>
                   {remaining >= 0
-                    ? t('health.remaining', { value: remaining })
-                    : t('health.over', { value: Math.abs(remaining) })}
+                    ? t('health.remaining', { value: formatNum(remaining) })
+                    : t('health.over', { value: formatNum(Math.abs(remaining)) })}
                 </p>
               )}
             </div>
@@ -302,150 +219,29 @@ export default function HealthPage() {
           />
           <ProteinBar value={totals.protein} target={targets.proteinTarget} />
 
-          <button
-            type="button"
-            onClick={() => setDialogOpen(true)}
-            className={`${SOLID_BUTTON} mt-3 w-full`}
-          >
-            {t('health.addIntake')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setAskAiOpen(true)}
-            className={OUTLINE_BUTTON + ' mt-2 w-full'}
-          >
-            {t('health.askAi')}
-          </button>
+          <div className="mt-3 space-y-2 border-t border-line pt-3">
+            <button
+              type="button"
+              onClick={() => setDialogOpen(true)}
+              className={`${SOLID_BUTTON} w-full`}
+            >
+              {t('health.addIntake')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAskAiOpen(true)}
+              className={OUTLINE_BUTTON + ' w-full'}
+            >
+              {t('health.askAi')}
+            </button>
 
-          {/* 今日记录内嵌在同一张卡里，逐条用小卡片，和食物库列表保持同一套样式 */}
-          <div className="mt-4 border-t border-line pt-3">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="m-0 text-xs text-muted">
-                {isToday
-                  ? t('health.todayTitle')
-                  : t('health.dayTitle', { date: formatDate(dayKey, t) })}
-              </h2>
-              <div className="flex items-center gap-1">
-                {intakes !== undefined && intakes.length > 0 && (
-                  <span className="mr-1 text-xs tabular-nums text-muted">
-                    {t('health.itemCount', { n: intakes.length })}
-                  </span>
-                )}
-                {!batch.active && intakes !== undefined && intakes.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => batch.enter()}
-                    className={SOLID_SMALL_BUTTON}
-                  >
-                    {t('health.batch')}
-                  </button>
-                )}
-                <Link to="/health/intakes/trash" className={SOLID_SMALL_BUTTON}>
-                  {t('health.intakeTrash')}
-                </Link>
-              </div>
-            </div>
-
-            {intakes === undefined ? null : intakes.length === 0 ? (
-              <p className="m-0 mt-2 text-xs text-muted">
-                {isToday
-                  ? t('health.emptyIntake')
-                  : t('health.emptyIntakeDay', { date: formatDate(dayKey, t) })}
-              </p>
-            ) : shownIntakes.length > 0 ? (
-              <ul className="m-0 mt-2 list-none space-y-2 p-0">
-                {shownIntakes.map((intake) => {
-                  const selected = batch.isSelected(intake.id)
-                  return (
-                    <li
-                      key={intake.id}
-                      className={`flex items-start gap-3 rounded-xl border p-3 ${
-                        selected ? 'border-brand bg-brand/10' : 'border-line bg-surface'
-                      }`}
-                    >
-                      {batch.active && (
-                        <RowCheckbox
-                          checked={selected}
-                          label={intake.name}
-                          onToggle={() => batch.toggle(intake.id)}
-                        />
-                      )}
-                      <span className="shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] tabular-nums text-muted">
-                        {intake.time}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <button
-                          type="button"
-                          disabled={batch.active}
-                          onClick={() => setDetailIntake(intake)}
-                          className="block w-full rounded text-left transition-colors hover:text-brand disabled:cursor-default"
-                        >
-                          <p className="m-0 flex items-baseline gap-2 text-sm text-fg">
-                            <span className="truncate">{intake.name}</span>
-                            <span className="shrink-0 font-mono text-[10px] text-muted">
-                              {intake.code}
-                            </span>
-                          </p>
-                          <p className="m-0 mt-0.5 text-xs tabular-nums text-muted">
-                            {Math.round(intake.kcal)} {t('health.kcalUnit')} ·{' '}
-                            {t('health.legendProtein')} {intake.protein} g
-                          </p>
-                        </button>
-                        <TimeMeta
-                          createdAt={intake.createdAt}
-                          updatedAt={intake.updatedAt}
-                        />
-                        {/* 套餐是这一行的一条合计，点开才看成分快照 */}
-                        {intake.components && intake.components.length > 0 && (
-                          <MealParts
-                            label={t('intake.partsLabel', { n: intake.components.length })}
-                            parts={intake.components.map((part) => ({
-                              name: part.name,
-                              grams: part.grams,
-                              kcal: part.kcal,
-                              protein: part.protein,
-                            }))}
-                          />
-                        )}
-                      </div>
-                      {!batch.active && (
-                        <div className="flex shrink-0 items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => void handleExportIntake(intake)}
-                            title={t('records.export')}
-                            className="inline-flex h-8 items-center justify-center rounded-lg px-1.5 font-mono text-[10px] text-muted transition-colors hover:text-brand"
-                          >
-                            JSON
-                            <span className="sr-only">{t('records.export')}</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPendingDelete(intake)}
-                            aria-label={t('health.deleteIntake')}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-danger"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            ) : null}
-            {!batch.active && (intakes?.length ?? 0) > 0 && (
-              <button
-                type="button"
-                aria-expanded={listOpen}
-                onClick={() => setListOpen((value) => !value)}
-                className={BAR_BUTTON + ' mt-2 w-full'}
-              >
-                {listOpen
-                  ? t('health.intakeCollapse')
-                  : t('health.intakeExpand', { n: intakes?.length ?? 0 })}
-              </button>
-            )}
+            {/* 明细、批量、回收站都在「摄入记录」页，卡片只留概览和入口 */}
+            <Link to={`/health/intakes?date=${dayKey}`} className={OUTLINE_BUTTON + ' w-full'}>
+              {t('health.viewRecords')}
+              {intakes !== undefined && intakes.length > 0
+                ? ` · ${t('health.itemCount', { n: intakes.length })}`
+                : ''}
+            </Link>
           </div>
         </section>
       )}
@@ -470,27 +266,29 @@ export default function HealthPage() {
 
       {/* 睡眠：一夜一行，dateKey = 起床那天；跟摄入互不相干，档案没填也能记 */}
       <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="m-0 text-xs text-muted">{t('health.sleepTitle')}</h2>
-          <div className="flex items-center gap-1">
-            <Link to="/health/sleeps/trash" className={SOLID_SMALL_BUTTON}>
-              {t('health.sleepTrash')}
-            </Link>
-            {sleep && (
-              <button
-                type="button"
-                onClick={() => setPendingDeleteSleep(true)}
-                aria-label={t('health.sleepDelete')}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-danger"
-              >
-                ✕
-              </button>
-            )}
+        <div className="flex items-start justify-between gap-3 border-b border-line pb-3">
+          <div className="flex min-w-0 items-start gap-2.5">
+            <span aria-hidden="true" className="mt-1 h-4 w-1 shrink-0 rounded-full bg-brand" />
+            <div className="min-w-0">
+              <h2 className="m-0 text-base font-semibold leading-tight text-fg">
+                {t('health.sleepTitle')}
+              </h2>
+              <p className="m-0 mt-1 text-xs leading-relaxed text-muted">
+                {t('health.sleepDateHint', { date: formatDate(dayKey, t) })}
+              </p>
+            </div>
           </div>
+          {/* 删除、回收站、理想作息都在「睡眠记录」页 */}
+          <Link
+            to={`/health/sleeps?date=${dayKey}`}
+            className="shrink-0 text-xs text-muted transition-colors hover:text-brand"
+          >
+            {t('health.viewRecords')} ›
+          </Link>
         </div>
         {sleep === undefined ? null : sleep === null ? (
           <>
-            <p className="m-0 mt-2 text-xs text-muted">
+            <p className="m-0 mt-3 text-xs text-muted">
               {isToday
                 ? t('health.sleepEmpty')
                 : t('health.sleepEmptyDay', { date: formatDate(dayKey, t) })}
@@ -504,7 +302,12 @@ export default function HealthPage() {
             </button>
           </>
         ) : (
-          <div className="mt-2">
+          <div className="mt-3">
+            {sleepReview && (
+              <p className="m-0 mb-3 rounded-lg bg-brand/10 px-2.5 py-1.5 text-xs text-brand">
+                {t(sleepReview)}
+              </p>
+            )}
             <p className="m-0 text-3xl font-medium tabular-nums text-fg">
               {t('health.sleepDuration', sleepParts(sleepMinutes(sleep.bedtime, sleep.wakeTime)))}
             </p>
@@ -514,6 +317,11 @@ export default function HealthPage() {
                 <span className="ml-2 text-warning">{'★'.repeat(sleep.quality)}</span>
               )}
             </p>
+            <SleepBar
+              sleep={sleep}
+              idealBedtime={profile?.idealBedtime ?? '23:00'}
+              idealWakeTime={profile?.idealWakeTime ?? '07:00'}
+            />
             {sleep.note !== '' && <p className="m-0 mt-2 text-xs text-fg">{sleep.note}</p>}
             <button
               type="button"
@@ -525,53 +333,6 @@ export default function HealthPage() {
           </div>
         )}
       </section>
-
-      {batch.active && (
-        <BatchActions
-          select={batch}
-          ids={(intakes ?? []).map((intake) => intake.id)}
-          unit={t('health.unitIntake')}
-        >
-          <button
-            type="button"
-            onClick={() => void handleBatchExport()}
-            disabled={batch.count === 0}
-            className={BAR_BUTTON}
-          >
-            {t('health.exportIntakes')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setBatchDeleteOpen(true)}
-            disabled={batch.count === 0}
-            className={BAR_DANGER}
-          >
-            {t('health.deleteIntake')}
-          </button>
-        </BatchActions>
-      )}
-
-      {batchDeleteOpen && (
-        <ConfirmDialog
-          title={t('health.batchDeleteTitle', { n: batch.count })}
-          description={t('health.batchDeleteBody')}
-          confirmLabel={t('health.deleteIntake')}
-          onConfirm={() => void handleBatchDelete()}
-          onCancel={() => setBatchDeleteOpen(false)}
-        />
-      )}
-
-      {exportData && (
-        <RecordExportDialog
-          data={exportData}
-          initial={{ intake: batch.selected }}
-          onClose={() => setExportData(null)}
-        />
-      )}
-
-      {detailIntake && (
-        <IntakeDetailDialog intake={detailIntake} onClose={() => setDetailIntake(null)} />
-      )}
 
       {dialogOpen && (
         <IntakeDialog
@@ -589,16 +350,6 @@ export default function HealthPage() {
         />
       )}
 
-      {pendingDeleteSleep && (
-        <ConfirmDialog
-          title={t('health.sleepDeleteTitle')}
-          description={t('health.sleepDeleteDesc')}
-          confirmLabel={t('health.sleepDelete')}
-          onConfirm={() => void handleDeleteSleep()}
-          onCancel={() => setPendingDeleteSleep(false)}
-        />
-      )}
-
       {pickerOpen && (
         <DatePickerDialog
           value={dayKey}
@@ -608,16 +359,6 @@ export default function HealthPage() {
             setDayKey(next)
           }}
           onCancel={() => setPickerOpen(false)}
-        />
-      )}
-
-      {pendingDelete && (
-        <ConfirmDialog
-          title={t('health.deleteIntakeTitle', { name: pendingDelete.name })}
-          description={t('health.deleteIntakeDesc')}
-          confirmLabel={t('health.deleteIntake')}
-          onConfirm={() => void handleDelete()}
-          onCancel={() => setPendingDelete(null)}
         />
       )}
     </div>

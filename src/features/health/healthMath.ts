@@ -46,7 +46,18 @@ export interface Macros {
   fat: number
 }
 
-function round(value: number, digits = 1) {
+/** 数值统一保留两位小数：存储、比较、汇总都用它，别再提前取整 */
+export function round2(value: number): number {
+  return Math.round(value * 100) / 100
+}
+
+/** 展示用：最多两位小数，去掉多余的尾零（120、12.5、12.34） */
+export function formatNum(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—'
+  return String(round2(value))
+}
+
+function round(value: number, digits = 2) {
   const factor = 10 ** digits
   return Math.round(value * factor) / factor
 }
@@ -62,7 +73,7 @@ export function bmr(input: {
   if (!sex || !age || !heightCm || !weightKg) return null
   if (age <= 0 || heightCm <= 0 || weightKg <= 0) return null
   const base = 10 * weightKg + 6.25 * heightCm - 5 * age
-  return Math.round(sex === 'male' ? base + 5 : base - 161)
+  return round2(sex === 'male' ? base + 5 : base - 161)
 }
 
 /** 用公式估一个 TDEE，只作起点；算不出来就返回 null，让页面提示补字段 */
@@ -76,19 +87,19 @@ export function estimateTdee(profile: {
   const base = bmr(profile)
   if (base === null) return null
   const factor = ACTIVITY_FACTORS[profile.activity ?? 'sedentary']
-  return Math.round((base * factor) / 10) * 10
+  return round2(base * factor)
 }
 
 /** 从三大营养素克数反推热量，用来核对食物库里的数字有没有写错 */
 export function macroKcal(protein: number, carbs: number, fat: number) {
-  return Math.round(protein * KCAL_PER_GRAM.protein + carbs * KCAL_PER_GRAM.carbs + fat * KCAL_PER_GRAM.fat)
+  return round2(protein * KCAL_PER_GRAM.protein + carbs * KCAL_PER_GRAM.carbs + fat * KCAL_PER_GRAM.fat)
 }
 
 /** 按克数把一条食物换算成这一次实际吃进去的量 */
 export function foodMacros(food: Pick<HealthFood, 'kcal' | 'protein' | 'carbs' | 'fat'>, grams: number): Macros {
   const ratio = Math.max(0, grams) / 100
   return {
-    kcal: Math.round(food.kcal * ratio),
+    kcal: round2(food.kcal * ratio),
     protein: round(food.protein * ratio),
     carbs: round(food.carbs * ratio),
     fat: round(food.fat * ratio),
@@ -143,7 +154,7 @@ export function mealTotals(
 
 /** 进度条的量程；TDEE 没填就没有刻度 */
 export function barScale(tdee: number | null) {
-  return tdee && tdee > 0 ? Math.round(tdee * BAR_RATIO) : 0
+  return tdee && tdee > 0 ? round2(tdee * BAR_RATIO) : 0
 }
 
 /** 某个值在量程里的位置（0~100）；超出量程就停在 100 */
@@ -212,7 +223,7 @@ export function dayTargets(
 /** 还剩多少可以吃；负数表示已经超了 */
 export function remainingKcal(target: number | null, eaten: number) {
   if (!target || target <= 0) return null
-  return Math.round(target - eaten)
+  return round2(target - eaten)
 }
 
 /** 每个预设对应的蛋白系数（g/kg 体重）：减脂要更高来保肌肉，增肌也要够蛋白合成 */
@@ -228,13 +239,13 @@ export const PROTEIN_FACTORS: Record<string, number> = {
 export function suggestProteinForPlan(weightKg: number | null, plan: string | null | undefined) {
   if (!weightKg || weightKg <= 0) return null
   const factor = plan ? PROTEIN_FACTORS[plan] ?? 1.6 : 1.6
-  return Math.round(weightKg * factor)
+  return round2(weightKg * factor)
 }
 
 /** 蛋白目标按体重给个建议值，用户仍可自己改 */
 export function suggestProteinTarget(weightKg: number | null) {
   if (!weightKg || weightKg <= 0) return null
-  return Math.round(weightKg * 1.6)
+  return round2(weightKg * 1.6)
 }
 
 /**
@@ -329,5 +340,5 @@ export function derivedTdee(params: {
 
   const avgIntake = sum / recorded
   const deltaPerDay = (last.weightKg - first.weightKg) / spanDays
-  return Math.round((avgIntake - deltaPerDay * 7700) / 10) * 10
+  return round2(avgIntake - deltaPerDay * 7700)
 }

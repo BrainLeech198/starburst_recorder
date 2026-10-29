@@ -67,7 +67,7 @@ CN=Starburst Recorder, OU=Personal, O=Mr_brainleech, L=Hangzhou, ST=Zhejiang, C=
 有效期：2026-10-25 → 2059-09-02
 ```
 
-**核验记录（2026-10-26）**：`0.1.0` 至 `0.2.6` 全部 APK 的签名证书 SHA-256 均为上值，且与当前 `.jks` 完全一致。也就是说，历次升级包一直使用同一套密钥。`0.2.7` 出包时同样核对过；`0.2.8` 在发布后从 Gitee 重新下载 APK 复验，哈希与本地归档一致、指纹仍为上值。`0.2.9` 出包后核对：指纹仍为上值，`versionCode=209`、`versionName=0.2.9`。`0.2.10` 出包后核对：指纹仍为上值，`versionCode=210`、`versionName=0.2.10`。`0.2.11` 出包后核对：指纹仍为上值，`versionCode=211`、`versionName=0.2.11`。`0.2.12` 出包后核对：指纹仍为上值，`versionCode=212`、`versionName=0.2.12`。`0.2.13` 出包后核对：指纹仍为上值，`versionCode=213`、`versionName=0.2.13`。
+**核验记录（2026-10-26）**：`0.1.0` 至 `0.2.6` 全部 APK 的签名证书 SHA-256 均为上值，且与当前 `.jks` 完全一致。也就是说，历次升级包一直使用同一套密钥。`0.2.7` 出包时同样核对过；`0.2.8` 在发布后从 Gitee 重新下载 APK 复验，哈希与本地归档一致、指纹仍为上值。`0.2.9` 出包后核对：指纹仍为上值，`versionCode=209`、`versionName=0.2.9`。`0.2.10` 出包后核对：指纹仍为上值，`versionCode=210`、`versionName=0.2.10`。`0.2.11` 出包后核对：指纹仍为上值，`versionCode=211`、`versionName=0.2.11`。`0.2.12` 出包后核对：指纹仍为上值，`versionCode=212`、`versionName=0.2.12`。`0.2.13` 出包后核对：指纹仍为上值，`versionCode=213`、`versionName=0.2.13`。`0.3.0` 出包后核对：指纹仍为上值，`versionCode=300`、`versionName=0.3.0`。
 
 ### 2.3 每次出包必须验签
 
@@ -120,7 +120,7 @@ npm run desktop:installer
 2. **定版本**：改 `package.json` + `package-lock.json`
 3. **写说明**：中文 / 英文更新说明与官网「这一版有什么」、更新日志都要和实际改动一致，不能套模板
 4. **出包**：按 §2、§3 打 Android 与 Windows，各自验签 / 验版本
-5. **归档**：两个产物放 `.local/artifacts/`，文件名带版本号；按用户约定再复制一份到桌面
+5. **归档**：两个产物放 `.local/artifacts/`，文件名带版本号；不再往桌面复制，发布时作为 Release 附件上传（见第 9 步）
 6. **提交**：只提交源码与文档；`git add` 用具体文件名，不用 `git add -A`
 7. **打标签**：`git tag v<version>`
 8. **推送**：`git push origin main --tags`（origin = Gitee 主仓库，GitHub 由镜像自动同步）

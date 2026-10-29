@@ -34,6 +34,8 @@ function profile(overrides: Partial<HealthProfile> = {}): HealthProfile {
     note: '',
     weighDay: null,
     weighTime: '07:00',
+    idealBedtime: '23:00',
+    idealWakeTime: '07:00',
     weighIns: [],
     updatedAt: 1,
     ...overrides,
@@ -52,13 +54,13 @@ describe('健康计算的公式部分', () => {
     expect(estimateTdee({ sex: 'male', age: null, heightCm: 176, weightKg: 63, activity: 'light' })).toBeNull()
   })
 
-  it('活动系数乘完取整到十位', () => {
+  it('活动系数乘完保留两位小数', () => {
     expect(
       estimateTdee({ sex: 'male', age: 20, heightCm: 176, weightKg: 63, activity: 'sedentary' }),
-    ).toBe(1960)
+    ).toBe(1962)
     expect(
       estimateTdee({ sex: 'male', age: 20, heightCm: 176, weightKg: 63, activity: 'moderate' }),
-    ).toBe(2530)
+    ).toBe(2534.25)
   })
 })
 
@@ -78,7 +80,7 @@ describe('食物换算与当日汇总', () => {
   }
 
   it('按克数等比换算', () => {
-    expect(foodMacros(chicken, 120)).toEqual({ kcal: 198, protein: 37.2, carbs: 0, fat: 4.3 })
+    expect(foodMacros(chicken, 120)).toEqual({ kcal: 198, protein: 37.2, carbs: 0, fat: 4.32 })
   })
 
   it('三大营养素反推热量', () => {
@@ -90,7 +92,7 @@ describe('食物换算与当日汇总', () => {
       foodMacros(chicken, 120),
       { kcal: 300, protein: 5, carbs: 60, fat: 2 },
     ])
-    expect(total).toEqual({ kcal: 498, protein: 42.2, carbs: 60, fat: 6.3 })
+    expect(total).toEqual({ kcal: 498, protein: 42.2, carbs: 60, fat: 6.32 })
   })
 
   it('剩余额度可以是负数', () => {
@@ -102,7 +104,7 @@ describe('食物换算与当日汇总', () => {
 
 describe('进度条的比例', () => {
   it('量程固定到 TDEE 的 1.35 倍', () => {
-    expect(barScale(2350)).toBe(3173)
+    expect(barScale(2350)).toBe(3172.5)
     expect(barScale(null)).toBe(0)
   })
 
@@ -128,8 +130,8 @@ describe('档案完整性', () => {
 
 describe('蛋白目标与计划联动', () => {
   it('减脂比维持给更高的蛋白系数', () => {
-    expect(suggestProteinForPlan(63, 'cut')).toBe(113) // 63 × 1.8
-    expect(suggestProteinForPlan(63, 'maintain')).toBe(101) // 63 × 1.6
+    expect(suggestProteinForPlan(63, 'cut')).toBe(113.4) // 63 × 1.8
+    expect(suggestProteinForPlan(63, 'maintain')).toBe(100.8) // 63 × 1.6
   })
 
   it('增肌系数最高', () => {
@@ -138,7 +140,7 @@ describe('蛋白目标与计划联动', () => {
 
   it('没体重或没计划时不给建议', () => {
     expect(suggestProteinForPlan(null, 'cut')).toBeNull()
-    expect(suggestProteinForPlan(63, undefined)).toBe(101)
+    expect(suggestProteinForPlan(63, undefined)).toBe(100.8)
   })
 })
 

@@ -13,7 +13,9 @@ import {
   activityFromQuestions,
   bmr,
   estimateTdee,
+  formatNum,
   missingProfileFields,
+  round2,
   suggestProteinForPlan,
 } from './healthMath'
 import { healthProfile, saveHealthProfile } from './healthRepo'
@@ -203,7 +205,7 @@ export default function ProfilePage() {
       showToast({ message: t('profile.calcMissing') })
       return
     }
-    const target = Math.round((tdee * preset.factor) / 10) * 10
+    const target = round2(tdee * preset.factor)
     const protein = suggestProteinForPlan(weightKg, preset.key)
     patch({
       plan: preset.key,
@@ -220,9 +222,9 @@ export default function ProfilePage() {
       const preset = PRESETS.find((item) => item.key === current.plan)
       const oldTdee = parseNumber(current.tdee)
       if (!value || !preset || !oldTdee) return { ...current, tdee: next }
-      const oldTarget = String(Math.round((oldTdee * preset.factor) / 10) * 10)
+      const oldTarget = String(round2(oldTdee * preset.factor))
       if (current.target.trim() !== oldTarget) return { ...current, tdee: next }
-      return { ...current, tdee: next, target: String(Math.round((value * preset.factor) / 10) * 10) }
+      return { ...current, tdee: next, target: String(round2(value * preset.factor)) }
     })
   }
 
@@ -250,6 +252,8 @@ export default function ProfilePage() {
       // 称重设置与历史不在这张表单里（在「每周空腹称重」卡片），保存时原样带着
       weighDay: profile?.weighDay ?? null,
       weighTime: profile?.weighTime ?? '07:00',
+      idealBedtime: profile?.idealBedtime ?? '23:00',
+      idealWakeTime: profile?.idealWakeTime ?? '07:00',
       weighIns: profile?.weighIns ?? [],
       // eslint-disable-next-line react-hooks/purity -- 在保存回调里取时间，不在渲染期
       updatedAt: Date.now(),
@@ -505,7 +509,7 @@ export default function ProfilePage() {
                 >
                   <span className="block text-sm">{t(preset.label)}</span>
                   <span className="mt-0.5 block text-[11px] opacity-70">
-                    {tdee ? `${Math.round((tdee * preset.factor) / 10) * 10} kcal` : '—'}
+                    {tdee ? `${formatNum(round2(tdee * preset.factor))} kcal` : '—'}
                   </span>
                 </button>
               ))}

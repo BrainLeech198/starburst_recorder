@@ -157,6 +157,57 @@
 
       <article class="ver">
         <div class="ver__head">
+          <span class="ver__tag">0.3.0</span>
+          <span class="ver__date">2026-10-29</span>
+        </div>
+        <div class="lang-zh">
+          <h3>这一版有什么</h3>
+          <ul>
+            <li><strong>AI 助手能查数据了</strong>：不再只是聊天，它可以按日期、关键词翻你的日记、随记、收支和健康记录，回答里会写上查过哪些内容；页面和悬浮球共用同一套对话界面</li>
+            <li><strong>健康记录拆出一级页</strong>：摄入（<code>/health/intakes</code>）、睡眠（<code>/health/sleeps</code>）、体重（<code>/health/weights</code>）各有明细页与日期导航；首页三张卡只留摘要、快捷记录和「查看记录」入口</li>
+            <li><strong>体重趋势折线图</strong>：称重卡上直接画折线，可切 3 / 5 / 7 / 30 天；点太稀时只给一句提示，不画误导性的线</li>
+            <li><strong>睡眠条</strong>：0 点放在正中间，实色是这一夜实际睡了多久，浅色是理想作息窗口；理想入睡与起床时间在睡眠页设置</li>
+            <li><strong>预设库评价</strong>：摄入、体重、睡眠三张卡会按预设库给一句小评价</li>
+            <li><strong>食物库照片</strong>：常用食物可以配一张 1:1 缩略图（长边 512），列表和详情都能看到，照片跟着备份走</li>
+            <li><strong>挑选记录导出新增体重</strong>：体重成为第 5 类可勾选记录；体重页和睡眠页也支持单条 JSON 导出</li>
+            <li><strong>桌面端更新自动安装</strong>：下载完成后直接拉起安装程序，1.2 秒后退出旧版本，不用再手动双击</li>
+            <li><strong>长辈关怀字号修正</strong>：字号只在总开关开着时生效，关掉后界面回到标准大小，已选的档位不会丢</li>
+            <li><strong>桌面 SQLite 档案补齐</strong>：理想作息、称重历史、称重提醒与食物照片字段都补进了数据库，老库自动迁移</li>
+          </ul>
+          <h3>下载</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.3.0-setup.exe</code>（约 95 MB）</dd>
+            <dt>Android 10 以上</dt>
+            <dd><code>starburst-recorder-0.3.0.apk</code>（约 16 MB，正式签名）</dd>
+          </dl>
+        </div>
+        <div class="lang-en">
+          <h3>What's new</h3>
+          <ul>
+            <li><strong>The AI assistant can look things up</strong> — besides chatting, it browses your diary, notes, finance and health records by date or keyword and tells you what it checked; the page and the floating bubble share one conversation UI</li>
+            <li><strong>Health records get their own pages</strong> — intake (<code>/health/intakes</code>), sleep (<code>/health/sleeps</code>) and weight (<code>/health/weights</code>) each have a detail page with day navigation; the home cards keep a summary, a quick-add action and a View records link</li>
+            <li><strong>Weight trend line</strong> — the weigh-in card draws a line, switchable between 3 / 5 / 7 / 30 days; too few points shows a hint instead of a misleading line</li>
+            <li><strong>Sleep bar</strong> — midnight sits in the centre, the solid block is the night you actually slept and the pale block is your ideal schedule; ideal bedtime and wake time are set on the sleep page</li>
+            <li><strong>Preset-library notes</strong> — the intake, weight and sleep cards add a one-line comment from your preset library</li>
+            <li><strong>Photos in the food library</strong> — attach a square thumbnail (512 px long edge) to common foods, visible in the list and detail views and carried with backups</li>
+            <li><strong>Weight in record export</strong> — weight is now the fifth record kind you can tick; the weight and sleep pages also export a single record as JSON</li>
+            <li><strong>Desktop updates install themselves</strong> — after the download finishes the installer launches and the old app quits 1.2 seconds later, no manual double-click needed</li>
+            <li><strong>Care mode text size fixed</strong> — text size only applies while the master switch is on; turning it off restores the standard size and keeps your chosen level</li>
+            <li><strong>Desktop SQLite profile completed</strong> — ideal schedule, weigh-in history, reminder settings and food photos are now real columns, with automatic migration for existing databases</li>
+          </ul>
+          <h3>Downloads</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.3.0-setup.exe</code> (~95 MB)</dd>
+            <dt>Android 10+</dt>
+            <dd><code>starburst-recorder-0.3.0.apk</code> (~16 MB, release-signed)</dd>
+          </dl>
+        </div>
+      </article>
+
+      <article class="ver">
+        <div class="ver__head">
           <span class="ver__tag">0.2.13</span>
           <span class="ver__date">2026-10-29</span>
         </div>
@@ -752,7 +803,7 @@
         <p>
           <span data-i18n="app.name">星芒记录者</span>
           <span class="footer__dot" aria-hidden="true">·</span>
-          <span data-i18n="footer.version">版本 0.2.13</span>
+          <span data-i18n="footer.version">版本 0.3.0</span>
         </p>
         <p data-i18n="footer.tagline">数据只存在你的设备上</p>
       </div>

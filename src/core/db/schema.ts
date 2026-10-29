@@ -59,6 +59,10 @@ export interface HealthProfile {
   weighDay: number | null
   /** 称重提醒时刻，'HH:MM' */
   weighTime: string
+  /** 理想的入睡时刻，'HH:MM'；睡眠条上画成一条「理想窗口」 */
+  idealBedtime: string
+  /** 理想的起床时刻，'HH:MM' */
+  idealWakeTime: string
   /** 空腹称重历史，新的在前，只留最近 120 条 */
   weighIns: WeighIn[]
   updatedAt: number
@@ -81,6 +85,8 @@ export interface HealthFood {
   /** 常用份量的叫法，例如「1 个鸡腿」；可以为空 */
   servingName: string | null
   servingGrams: number | null
+  /** 食物照片，压缩后的 data URL（1:1、长边 ≤512、约 30–50KB）；没有就 null */
+  photo: string | null
   createdAt: number
   updatedAt: number
   deletedAt: number | null

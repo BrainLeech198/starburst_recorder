@@ -30,7 +30,7 @@ contextBridge.exposeInMainWorld('desktop', {
   update: {
     check: (locale) => ipcRenderer.invoke('update:check', locale),
     download: (url, fileName) => ipcRenderer.invoke('update:download', url, fileName),
-    open: (filePath) => ipcRenderer.invoke('update:open', filePath),
+    install: (filePath) => ipcRenderer.invoke('update:install', filePath),
     onProgress: (listener) => {
       const handler = (_event, payload) => listener(payload)
       ipcRenderer.on('update:progress', handler)

@@ -22,6 +22,7 @@ export function asDraft(food: HealthFood): DraftFood {
     fat: food.fat,
     servingName: food.servingName,
     servingGrams: food.servingGrams,
+    photo: food.photo,
   }
 }
 

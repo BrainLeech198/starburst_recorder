@@ -12,6 +12,7 @@ import type { ChatContentPart } from '@/platform/desktop'
 import { chat, explainFailure, pickReply } from '@/features/ai/aiClient'
 import type { AiConfig } from '@/features/ai/aiConfig'
 import { translate } from '@/shared/i18n/context'
+import { round2 } from './healthMath'
 
 /** 模型给出来的一份食物 */
 export interface FoodGuess {
@@ -131,13 +132,13 @@ export function parseFoodAnalysis(reply: string): FoodGuess | null {
   const fat = clamp(toNumber(per.fat) ?? 0, 0, 100)
 
   const rawGrams = toNumber(data.grams) ?? DEFAULT_GRAMS
-  const grams = Math.round(clamp(rawGrams, 1, 5000))
+  const grams = round2(clamp(rawGrams, 1, 5000))
 
   const servingName = typeof data.servingName === 'string' ? data.servingName.trim() : ''
   const rawServing = toNumber(data.servingGrams)
   const servingGrams =
     servingName !== '' && rawServing !== null && rawServing > 0
-      ? Math.round(clamp(rawServing, 1, 5000))
+      ? round2(clamp(rawServing, 1, 5000))
       : null
 
   const matched = typeof data.matched === 'string' ? data.matched.trim() : ''
@@ -145,10 +146,10 @@ export function parseFoodAnalysis(reply: string): FoodGuess | null {
   return {
     name,
     grams,
-    kcal: Math.round(kcal),
-    protein: Math.round(protein * 10) / 10,
-    carbs: Math.round(carbs * 10) / 10,
-    fat: Math.round(fat * 10) / 10,
+    kcal: round2(kcal),
+    protein: round2(protein),
+    carbs: round2(carbs),
+    fat: round2(fat),
     servingName: servingName === '' ? null : servingName,
     servingGrams,
     matched,
