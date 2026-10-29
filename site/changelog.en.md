@@ -1,3 +1,19 @@
+## 0.2.13 · 2026-10-29
+
+### What's new
+
+- **Care mode for elders** — a dedicated page under Me → Care with four text sizes (standard / large / extra large / huge = 100 / 115 / 130 / 150%) scaling the whole interface; larger tap targets, higher contrast and reduced motion; destructive actions need a second tap
+- **Sleep log** — record bedtime, wake time, quality and notes on the Health page, with computed duration; soft delete with undo and a separate trash page; sleep is included in backups, imports, single-record export and AI drafting material
+- **Weekly fasting weigh-in and derived TDEE** — the profile TDEE is now labelled Reference TDEE; set a weekly weigh-in day and reminder time in the weigh-in card, with an in-app banner plus a system notification (local notifications on Android); after logging weight, the intake bar gains a Derived TDEE line based on the last 14 days of real intake and weight change, hidden until there is enough data
+- **Ask AI** — sitting right below Add intake: five preset questions plus free follow-ups, with today's intake, profile, all three calorie lines and the conversation history as context
+- **Choose your download source** — pick Gitee or GitHub on the Version page; the chosen one is tried first and falls back to the other
+- **Sleep in single-record export** — tick Sleep together with diary, notes, intake and finance in one file
+
+### Downloads
+
+- Windows 10/11: `starburst-recorder-0.2.13-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.2.13.apk` (~16 MB, release-signed)
+
 ## 0.2.12 · 2026-10-28
 
 ### What's new

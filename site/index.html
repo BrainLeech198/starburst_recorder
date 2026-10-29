@@ -61,11 +61,11 @@
             </h1>
             <p class="hero__lead" data-i18n="app.tagline">把零散的日子，攒成看得见的自己。</p>
             <p class="hero__sub" data-i18n="hero.sub">
-              随手记下今天，AI 帮你整理成完整的日记。数据只留在这台设备上，Windows 和 Android
-              用的是同一份代码。
+              随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和
+              Android 用的是同一份代码。
             </p>
             <div class="hero__actions">
-              <a class="btn btn--primary" href="#download" data-i18n="hero.cta">下载 0.2.12</a>
+              <a class="btn btn--primary" href="#download" data-i18n="hero.cta">下载 0.2.13</a>
               <a
                 class="btn btn--ghost"
                 href="https://github.com/BrainLeech198/starburst_recorder"
@@ -78,7 +78,7 @@
             <ul class="hero__meta">
               <li data-i18n="hero.meta.local">数据在本地</li>
               <li data-i18n="hero.meta.noAccount">不用注册</li>
-              <li data-i18n="hero.meta.bilingual">中英双语</li>
+              <li data-i18n="hero.meta.bilingual">九种语言</li>
               <li data-i18n="hero.meta.platform">Windows / Android</li>
             </ul>
           </div>
@@ -87,7 +87,7 @@
             <figure class="slip slip--back">
               <p class="slip__date">10 / 21</p>
               <p class="slip__text" data-i18n="hero.slip2">
-                今天没什么大事，只是把拖了很久的报销单交了。
+                没什么大事，把拖了很久的报销单交了。
               </p>
             </figure>
             <figure class="slip slip--front">
@@ -195,7 +195,8 @@
             <h3 data-i18n="ai.stepsTitle">用之前先准备一个模型</h3>
             <ol>
               <li data-i18n="ai.step1">
-                在「设置 → 助手 → AI」里填服务地址和 Key，OpenAI、DeepSeek、通义、本机 Ollama 都行，只要兼容 OpenAI 接口
+                在「设置 → 助手 → AI」里填服务地址和 Key：OpenAI、DeepSeek、通义，或者本机跑的 Ollama 都行，只要兼容
+                OpenAI 接口
               </li>
               <li data-i18n="ai.step2">回到日记，选一条记录点「AI 整理」，挑一种口气</li>
               <li data-i18n="ai.step3">看一眼结果，确认之后才写进正文</li>
@@ -329,7 +330,7 @@
               rel="noreferrer noopener"
               >Gitee</a
             >
-            <span class="open__version" data-i18n="open.version">版本 0.2.12</span>
+            <span class="open__version" data-i18n="open.version">版本 0.2.13</span>
           </div>
         </div>
       </section>
@@ -341,28 +342,31 @@
             <p class="kicker" data-i18n="download.kicker">下载</p>
             <h2 data-i18n="download.title">拿一份回去用</h2>
             <p class="section-head__desc" data-i18n="download.desc">
-              0.2.12 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。
+              0.2.13 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。
             </p>
           </header>
 
           <!-- 这一版有什么：先让人知道值不值得升级，再给下载 -->
           <div class="whatsnew">
             <div class="whatsnew__head">
-              <span class="whatsnew__ver">0.2.12</span>
+              <span class="whatsnew__ver">0.2.13</span>
               <h3 data-i18n="whatsnew.title">这一版有什么</h3>
             </div>
             <ul class="whatsnew__list">
               <li data-i18n="whatsnew.item1">
-                摄入列表的按钮统一了：「批量」「回收站」改成小号实心按钮，和其他按钮同一套样式
+                长辈关怀模式：四档字号把整套界面等比放大，还能加大按钮、提高对比、减少动效
               </li>
               <li data-i18n="whatsnew.item2">
-                安卓批量修好了：返回键先退出批量、换日期自动退出、点选中圆点也能选中
+                睡眠日记：记就寝、起床和睡得怎么样，时长自动算；删了能撤销，备份导入都带上
               </li>
               <li data-i18n="whatsnew.item3">
-                弹窗不再溢出屏幕：限高扣掉刘海和手势条，内容再多也在面板里滚
+                每周空腹称重与推算 TDEE：到点提醒称重，再用真实摄入和体重反推出一条更贴合本人的线
               </li>
               <li data-i18n="whatsnew.item4">
-                桌面窗口不超出屏幕：尺寸预设与恢复位置都按当前屏幕可用区域收一收
+                问 ai 一下：五个预设问题一点就发，AI 会读当天的摄入、档案和三条热量线
+              </li>
+              <li data-i18n="whatsnew.item5">
+                下载源可选：版本页选 Gitee 或 GitHub，选中的先试，失败自动换另一个
               </li>
             </ul>
             <p class="whatsnew__more">
@@ -387,14 +391,14 @@
               <div class="download__links">
                 <a
                   class="btn btn--primary btn--sm"
-                  href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.12/starburst-recorder-0.2.12-setup.exe"
+                  href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.13/starburst-recorder-0.2.13-setup.exe"
                   target="_blank"
                   rel="noreferrer noopener"
                   >GitHub</a
                 >
                 <a
                   class="btn btn--ghost btn--sm"
-                  href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.2.12/starburst-recorder-0.2.12-setup.exe"
+                  href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.2.13/starburst-recorder-0.2.13-setup.exe"
                   target="_blank"
                   rel="noreferrer noopener"
                   >Gitee</a
@@ -413,14 +417,14 @@
               <div class="download__links">
                 <a
                   class="btn btn--primary btn--sm"
-                  href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.12/starburst-recorder-0.2.12.apk"
+                  href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.13/starburst-recorder-0.2.13.apk"
                   target="_blank"
                   rel="noreferrer noopener"
                   >GitHub</a
                 >
                 <a
                   class="btn btn--ghost btn--sm"
-                  href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.2.12/starburst-recorder-0.2.12.apk"
+                  href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.2.13/starburst-recorder-0.2.13.apk"
                   target="_blank"
                   rel="noreferrer noopener"
                   >Gitee</a
@@ -438,8 +442,23 @@
             <summary data-i18n="download.history">历史版本</summary>
             <ul>
               <li>
-                <span class="history__ver">0.2.12</span>
+                <span class="history__ver">0.2.13</span>
                 <span class="history__tag" data-i18n="download.current">当前</span>
+                <a
+                  href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.13/starburst-recorder-0.2.13-setup.exe"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  >Windows</a
+                >
+                <a
+                  href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.13/starburst-recorder-0.2.13.apk"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  >Android</a
+                >
+              </li>
+              <li>
+                <span class="history__ver">0.2.12</span>
                 <a
                   href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.12/starburst-recorder-0.2.12-setup.exe"
                   target="_blank"
@@ -659,7 +678,7 @@
         <p>
           <span data-i18n="app.name">星芒记录者</span>
           <span class="footer__dot" aria-hidden="true">·</span>
-          <span data-i18n="footer.version">版本 0.2.12</span>
+          <span data-i18n="footer.version">版本 0.2.13</span>
         </p>
         <p data-i18n="footer.tagline">数据只存在你的设备上</p>
       </div>

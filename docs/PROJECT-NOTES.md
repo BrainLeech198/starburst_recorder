@@ -39,10 +39,7 @@
 ### 应用内更新与下载源（2026-10-26）
 
 - **检查更新**：以 GitHub API 的 Release 为主，拿不到再问 Gitee；更新说明优先从 GitHub Pages 拉 `notes.zh.md`（`updateService.ts` 与 `electron/main.cjs` 各有一处地址，改的时候两边一起改），拿不到再用 Gitee Release 正文（版本对得上才用），最后退回 GitHub 的英文说明。
-- **下载顺序**（`src/features/update/updateService.ts` 的 `downloadUrlsFor`；桌面端 `electron/main.cjs` 的 `normalizeRelease` 也补 `fallbackUrl`）：
-  - **安卓：先 Gitee，再 GitHub。** 国内直连 GitHub 基本不通，Gitee 是主路径。
-  - **桌面：先 Release 资产直链（GitHub），再 Gitee。** 桌面网络通常能通 GitHub。
-  - 每个源各试一次，全失败才报错；错误信息按源合并，不要只报最后一个。
+- **下载顺序（2026-10-29 改为用户可选）**（`src/features/update/updateService.ts` 的 `downloadUrlsFor` / `orderUrlsBySource`；UI 在「版本」页「下载源」卡片，存 `localStorage` 的 `sb_update_source`）：**下载源由用户自己选（Gitee / GitHub），默认 Gitee**；选中的先试、失败换另一个兜底，全失败才报错；错误信息按源合并，不要只报最后一个。桌面端 `electron/main.cjs` 的 `normalizeRelease` 返回的顺序不跟用户偏好走，渲染层 `downloadUpdate` 按当前设置再排一次（改偏好不用动主进程）。
 - **过渡提醒**：应用内更新逻辑跟着**已安装的版本**走。`0.2.7` 及更早只取一个下载源（GitHub 能查到就用 GitHub），国内手机上会卡住——这些用户必须**手动安装一次** `0.2.8`，之后才有双源回退。以后改下载源或检查接口同理：先发一版让用户手动过渡，不能假设老客户端会自己适应。
 
 ### 明确不做的事
@@ -189,6 +186,39 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 
 所以：**浏览器里攒的日记，打出来的桌面程序里一条也看不到**，搬家只能靠「导出 → 导入」。
 导出与导入都已做（都在设置页的「数据与备份」页里），数据闭环现在是通的。
+
+### 睡眠（2026-10-29 加，最小闭环）
+
+范本调研过 SleepDiaries（MIT，临床共识睡眠日记）、Gadgetbridge、Health Connect 的睡眠模型，取舍如下：
+
+- **一夜一行，`dateKey = 起床那天`**（用户拍板：周五晚睡周六起 → 记周六）。「昨晚睡了几小时」跟日常语感一致；表 `healthSleeps`（Dexie version(9) / SQLite 同名表），跟健康表同构（ULID id、7 位 code、软删除）。
+- **字段只做最小闭环**：就寝 `bedtime` / 起床 `wakeTime`（HH:MM）/ 质量 `quality` 1–5 / 备注。**时长是派生值不落库**，跨零点自动 +24h（`features/health/sleepMath.ts` 纯函数 + 单测）。以后要加入睡耗时、夜醒次数（算睡眠效率）补可选字段即可，不需要数据迁移。
+- **入口是健康页一张「睡眠」卡片**（`HealthPage` + `SleepDialog`），跟着 URL 里那一天走；删除软删 + 撤销，另有回收站页 `/health/sleeps/trash`（`SleepTrashPage`，逐条恢复 / 彻底删除 / 清空）；日历把「睡过觉」的日子和「记过摄入」一起标亮。健康档案没填也能记睡眠。
+- **睡眠跟着整条数据链走**：备份导出/导入（`diaryBackup` 的 health 块加 `sleeps`）、导入冲突逐条抉择（`diaryMerge` 的 `sleep` 类目）、挑选记录导出（第 5 类）、AI 整理原料（历史摘要与当天都带「睡眠」行，没记就不提）。
+- 行级校验 `pickSleep`：时刻必须是合法 HH:MM，坏的退回 '00:00'；评分只认 1–5，越界算没评。
+
+### 长辈关怀模式（2026-10-29 加，me/older）
+
+参考 aging-assist（MIT，Web 端适老化插件）、adaptive_ui_senior 与 WCAG 2.2 后定下的方案：
+
+- **技术底座是「只改根字号」**：全站 Tailwind 都是 rem，在 `<html>` 上按档位设字号（`data-font-scale`，100/115/130/150%）= 整套 UI 等比放大，不动任何页面代码；`prefers-reduced-motion` 之外再给一个手动「减少动效」开关（`html.care-reduce-motion`）。
+- **点按区**用 `html.care-tap` 抬到 48px 最小触控高度；**高对比**用 `html.care-contrast` 提亮正文、压暗次要文字。
+- **字号档位独立于总开关生效**（长辈直接调字号也管用，总开关只管其余关怀项），状态存 `localStorage`，刷新即恢复。
+- **防误触**：`ConfirmDialog` 在「总开关 + 防误触」都开时，危险操作要点两次（按钮变成「再点一次确认」）才执行。
+- 共享逻辑在 `src/shared/care/`（`careMode.ts` 纯函数 + `careContext.ts` / `CareModeProvider.tsx`，按 i18n 的 context/Provider 拆法，避免 Fast Refresh 警告，也避开 shared 反向依赖 app 的 lint 红线）；页面在 `src/features/me/OlderPage.tsx`。
+- **首页简化仍是 TODO 占位**：信息密度收缩没做，等用户明确要简化到什么程度再动。
+
+### 推算 TDEE 与「问 ai 一下」（2026-10-29 加）
+
+- **参考 TDEE**：Mifflin-St Jeor 公式按档案估出来的那个数，只管叫「参考」。公式对高龄、肌肉量流失、甲功/药物影响的误差常在 ±200 千卡以上，不能当真实消耗。
+- **推算 TDEE**（`derivedTdee`，`features/health/healthMath.ts` 纯函数 + 单测）：能量收支法 `近 14 天日均摄入 − 体重变化 × 7700 ÷ 天数`；有效摄入数据不足 7 天或体重记录不足两条就返回 null（界面直接不显示这条线）。每天用自己的真实数据反推，越用越贴合本人。
+- **称重**：档案行 `HealthProfile` 加 `weighDay`（1=周一…7=周日，null=不提醒）、`weighTime`（HH:MM，默认 07:00）、`weighIns`（`{dateKey, weightKg, createdAt}` 数组，最多 120 条，同一天只留最后一次）。**没有建新表**：这是单行档案的附属数据，建表会把并行改动面放大，也没必要。
+- **称重卡**（`WeighInCard`）直接落库、不走档案表单草稿；记一次体重同时把档案里的 `weightKg` / `weightAt` 更新成最新值。
+- **系统通知**：桌面/浏览器走 Web Notification（`weighNotify.maybeNotifyWeighDay`，每次打开应用后每分钟查一次，当天只提醒一次）；安卓走 `@capacitor/local-notifications` 按「每周 + 时刻」排一条（`syncWeighReminder`，改设置就重排）。Manifest 已声明 `POST_NOTIFICATIONS`。应用内横幅由称重卡自己显示。
+- **摄入条三条线**：目标热量（细实线）/ 参考 TDEE（粗实线）/ 推算 TDEE（主题色细线，无数据不画），图例文案分别是「目标热量 / 参考TDEE / 推算TDEE」。
+- **「问 ai 一下」**（`AskAiDialog`，入口在「记一笔摄入」按钮下面）：5 个预设（这一笔合适吗 / 接下来吃什么 / 今天怎么样 / 还剩多少额度 / 你看着说）+ 自由追问；当天数据（摄入明细、三大营养素合计、三条线的数值、档案、剩余额度）拼进用户消息当上下文，并带本会话的对话记忆（`turns` 作为多轮消息回传）。**只读不写库**——写数据要等「AI 助手 + 改动预览确认」那一版。模型输出固定走 `aiClient.chat()`，换 seed 避免套模板。
+
+---
 
 ## 5. 界面与设计约定（最容易丢的部分）
 
@@ -464,6 +494,6 @@ vitest.config.ts               单测配置：node 环境，只测纯逻辑
 
 - **悬浮球默认隐藏（2026-10-21 改）**：它现在是**占位**（点开只会说"AI 还没接入"），摆在右下角既是误导、又容易被当成多出来的鼠标指针（它带 `cursor-grab`，悬停时鼠标变抓取手型），所以平时不渲染。想看它：地址加参数 `?ball=1`（如 `http://localhost:5173/?ball=1#/diary`），或控制台 `localStorage.setItem('starburst.debug.ball','1')` 后刷新；关掉就 `removeItem`。开关都在 `src/app/debugFlags.ts`，**默认全关**——以后再加调试开关往这里放，别散在页面里。
 
-**可以清理但先别急**：旧目录 `D:\File\claude\` + 零宽字符 + `starburst_recorder`、以及临时联接 `D:\sb_probe`——等新路径这套全部收尾、你确认没问题之后再删。
+**旧目录已清理（2026-10-29）**：核对过新路径的 git 历史、`android/`、`capacitor.config.ts`、`src/core/desktop.ts`（已搬到 `src/platform/desktop.ts`）和两份文档，确认无遗漏后执行——旧项目整体挪到 `D:\File\archive\starburst_recorder_20261029`（保留可回退，确认不要了再整个删），临时联接 `D:\sb_probe` 已删除。
 
 

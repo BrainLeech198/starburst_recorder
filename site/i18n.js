@@ -23,7 +23,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.2.12',
+    'hero.cta': '下载 0.2.13',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -94,11 +94,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.2.12',
+    'open.version': '版本 0.2.13',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.2.12 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.2.13 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -108,10 +108,11 @@ window.SITE_I18N = {
     'download.note': '两个仓库放的是同一份安装包，哪个快就用哪个。',
 
     'whatsnew.title': '这一版有什么',
-    'whatsnew.item1': '摄入列表的按钮统一了：「批量」「回收站」改成小号实心按钮，和其他按钮同一套样式',
-    'whatsnew.item2': '安卓批量修好了：返回键先退出批量、换日期自动退出、点选中圆点也能选中',
-    'whatsnew.item3': '弹窗不再溢出屏幕：限高扣掉刘海和手势条，内容再多也在面板里滚',
-    'whatsnew.item4': '桌面窗口不超出屏幕：尺寸预设与恢复位置都按当前屏幕可用区域收一收',
+    'whatsnew.item1': '长辈关怀模式：四档字号把整套界面等比放大，还能加大按钮、提高对比、减少动效',
+    'whatsnew.item2': '睡眠日记：记就寝、起床和睡得怎么样，时长自动算；删了能撤销，备份导入都带上',
+    'whatsnew.item3': '每周空腹称重与推算 TDEE：到点提醒称重，再用真实摄入和体重反推出一条更贴合本人的线',
+    'whatsnew.item4': '问 ai 一下：五个预设问题一点就发，AI 会读当天的摄入、档案和三条热量线',
+    'whatsnew.item5': '下载源可选：版本页选 Gitee 或 GitHub，选中的先试，失败自动换另一个',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -120,7 +121,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.2.12',
+    'footer.version': '版本 0.2.13',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -143,7 +144,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.2.12',
+    'hero.cta': 'Download 0.2.13',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -218,12 +219,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.2.12',
+    'open.version': 'Version 0.2.13',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.2.12 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.2.13 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -234,11 +235,12 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.2.12",
-    'whatsnew.item1': 'Intake list buttons unified: Batch and Trash are now small solid buttons matching the rest of the app',
-    'whatsnew.item2': 'Android batch fixed: Back exits batch mode, changing the date exits it too, and tapping the selection circle works',
-    'whatsnew.item3': 'Dialogs stay on screen: height accounts for the notch and gesture bar, long content scrolls inside',
-    'whatsnew.item4': 'Desktop windows fit the screen: size presets and restored positions are clamped to the work area',
+    'whatsnew.title': "What's new in 0.2.13",
+    'whatsnew.item1': 'Care mode for elders: four text sizes scale the whole interface, plus larger tap targets, higher contrast and reduced motion',
+    'whatsnew.item2': 'Sleep log: record bedtime, wake time and quality; duration is computed, deletions can be undone, and sleep travels with backups and imports',
+    'whatsnew.item3': 'Weekly fasting weigh-in and derived TDEE: a reminder when it is time, then a line derived from your real intake and weight that fits you better',
+    'whatsnew.item4': 'Ask AI: five preset questions sent in one tap, with today\'s intake, profile and all three calorie lines as context',
+    'whatsnew.item5': 'Choose your download source: pick Gitee or GitHub on the Version page; the chosen one is tried first and falls back to the other',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -247,7 +249,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.2.12',
+    'footer.version': 'Version 0.2.13',
     'footer.tagline': 'Data stays on your device',
   },
 };
