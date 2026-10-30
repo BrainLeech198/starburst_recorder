@@ -111,6 +111,7 @@ window.SITE_I18N = {
     'whatsnew.item1':
       '随记和日记能放图片：随记可只发图片（最多 9 张），日记正文插图、阅读时图文混排，图片跟着备份走',
     'whatsnew.item2': '健康首页瘦身与记录级导入：三张卡改成指标卡，睡眠 / 体重记录支持单条 JSON 导入、跨天批量删除和导出',
+    'whatsnew.item3': '弹窗在手机上不再被挡住：对话框、图片查看器、助手抽屉都挂到最外层，不再被底部导航压住',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -238,6 +239,8 @@ window.SITE_I18N = {
       'Photos in notes and diaries: photo-only stamps (up to 9), inline images in diary entries, compressed and stored with backups',
     'whatsnew.item2':
       'Slimmer health home and record-level import: metric cards, single-record JSON import for sleep / weights, cross-day batch delete and export',
+    'whatsnew.item3':
+      'Dialogs no longer cut off on phones: dialogs, the image viewer and the assistant sheet render at the top layer, above the bottom navigation',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',

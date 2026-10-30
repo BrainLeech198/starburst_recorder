@@ -6,6 +6,7 @@ A local-first personal recorder with built-in AI: jot down today and AI turns it
 - **Slimmer health home**: the three cards are now metric cards; the ideal sleep schedule moved into the sleep card (a minimal profile is created automatically if you don't have one)
 - **Record-level import for sleep / weights**: import single-record JSON files (same-day entries are overwritten), plus cross-day batch delete and export; the Data & Backup import recognizes these files too
 - **Cleaner exports**: Markdown / plain-text export and AI polish automatically strip image markers
+- **Dialogs no longer cut off on phones**: every dialog, the image viewer and the assistant sheet now render at the top layer, so the bottom navigation can't cover them and panels are never half-visible
 
 ## Download
 
