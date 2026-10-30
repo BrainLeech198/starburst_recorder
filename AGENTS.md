@@ -47,6 +47,7 @@ Android：`npm run build && npx cap sync android`，再到 `android/` 执行 `gr
 
 - 一套 React 源码同时进 Electron 与 Capacitor；桌面用 SQLite，浏览器 / Android 用 Dexie + IndexedDB。
 - 壳层固定一屏高，只有内容区滚动；禁止整页视口滚动。
+- 覆盖层（弹窗、灯箱、抽屉）一律 `createPortal` 到 `document.body`：挂在内容区里会被 `.sb-scroll` 的堆叠上下文困住，安卓上被底部导航压住。新弹窗走 `shared/ui/Modal.tsx`。
 - 用户可见文案必须走 `src/shared/i18n`：`zh.ts` 是 key 真源，`en / zhTW / ja / ko / de / fr / ru / es` 八份消息表要同步补齐（`{name}` 占位符保持一致）；组件外用 `translate()`，别在模块里写死中文。
 - 动画与氛围效果必须尊重 `prefers-reduced-motion`。
 - 单元测试只测纯逻辑（Node 环境），通过 `node package/run-tests.cjs` 运行。
