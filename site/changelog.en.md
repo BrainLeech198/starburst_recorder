@@ -1,3 +1,15 @@
+## 0.5.1 · 2026-10-30
+
+### What's new
+
+- **Fixed importing backups on Windows desktop**: entries and notes with photos no longer fail on replace-import, and importing only notes no longer writes their photos wrong
+- **Merge import now flags photo differences**: same text but different photos counts as a conflict, with both photo counts shown — a backup can no longer silently overwrite your local photos
+
+### Download
+
+- Windows 10/11: `starburst-recorder-0.5.1-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.5.1.apk` (~16 MB, release-signed)
+
 ## 0.5.0 · 2026-10-30
 
 ### What's new
