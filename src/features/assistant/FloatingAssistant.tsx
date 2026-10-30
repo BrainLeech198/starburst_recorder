@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router'
 import { MASCOT_SIZE_PX, useBall } from '@/app/providers/BallProvider'
 import { useTheme } from '@/app/providers/ThemeProvider'
@@ -215,7 +216,8 @@ function AssistantSheet({ onClose }: { onClose: () => void }) {
   // 登记成一层覆盖层：安卓实体返回键先关它，而不是直接退到上一页
   useOverlayEntry(onClose)
 
-  return (
+  // portal 到 body，理由同 Modal：抽屉不能被内容区的堆叠上下文困住
+  return createPortal(
     <>
       <div className="fixed inset-0 z-40 bg-black/50" {...backdrop} />
       <div className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[75dvh] w-full max-w-md flex-col rounded-t-2xl border-t border-line bg-surface">
@@ -241,6 +243,7 @@ function AssistantSheet({ onClose }: { onClose: () => void }) {
 
         <AssistantChat compact />
       </div>
-    </>
+    </>,
+    document.body,
   )
 }

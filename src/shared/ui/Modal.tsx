@@ -11,6 +11,7 @@
  */
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useScrollLock } from './useScrollLock'
 import { useOverlayEntry } from './useOverlayEntry'
 import { useBackdropClose } from './useBackdropClose'
@@ -101,7 +102,9 @@ export default function Modal({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  return (
+  // portal 到 body：弹窗挂进页面内容区会被 .sb-scroll 的堆叠上下文困住，
+  // z-50 也压不过底部导航（同级 z-10、DOM 靠后），安卓上表现最明显
+  return createPortal(
     <div
       className="sb-overlay-in fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 pt-[calc(env(safe-area-inset-top)_+_1rem)] pb-[calc(env(safe-area-inset-bottom)_+_1rem)]"
       {...backdrop}
@@ -117,6 +120,7 @@ export default function Modal({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

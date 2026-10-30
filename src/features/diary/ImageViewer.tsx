@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { useI18n } from '@/shared/i18n/context'
 import { useBackdropClose } from '@/shared/ui/useBackdropClose'
 
@@ -145,7 +146,8 @@ export default function ImageViewer({
 
   if (!image) return null
 
-  return (
+  // portal 到 body，理由同 Modal：全屏查看器不能被内容区的堆叠上下文困住
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -248,6 +250,7 @@ export default function ImageViewer({
       <p className="pb-3 text-center text-[11px] text-white/50">
         {t('imageImport.viewerHint')}
       </p>
-    </div>
+    </div>,
+    document.body,
   )
 }
