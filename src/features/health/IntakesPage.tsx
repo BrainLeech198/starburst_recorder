@@ -148,10 +148,7 @@ export default function IntakesPage() {
             </button>
           </>
         )}
-        <Link
-          to="/health/intakes/trash"
-          className={`${SOLID_BUTTON} ${batch.active ? 'col-span-2 sm:col-span-1' : ''}`}
-        >
+        <Link to="/health/intakes/trash" className={`${SOLID_BUTTON} col-span-2 sm:col-span-1`}>
           {t('health.intakeTrash')}
         </Link>
       </ToolbarRow>

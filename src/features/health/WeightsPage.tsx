@@ -19,7 +19,7 @@ import { INPUT } from '@/shared/ui/inputStyles'
 import RowCheckbox from '@/shared/ui/RowCheckbox'
 import BatchActions from '@/shared/ui/BatchActions'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
-import { BAR_BUTTON, BAR_DANGER, OUTLINE_BUTTON, SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import { BAR_BUTTON, BAR_DANGER, SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import HealthDayNav from './HealthDayNav'
 import { formatNum, round2 } from './healthMath'
@@ -217,6 +217,7 @@ export default function WeightsPage() {
         </div>
       </div>
 
+      {/* 按钮栏与日记 / 随记同款：等宽 2×2 实心按钮 */}
       {!batch.active && (
         <ToolbarRow className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
           <button
@@ -231,7 +232,7 @@ export default function WeightsPage() {
             type="button"
             onClick={() => void handleOpenExport()}
             disabled={!entry}
-            className={`${OUTLINE_BUTTON} justify-self-start disabled:opacity-40`}
+            className={`${SOLID_BUTTON} disabled:opacity-40`}
           >
             {t('records.export')}
           </button>
@@ -239,14 +240,14 @@ export default function WeightsPage() {
             type="button"
             onClick={batch.enter}
             disabled={weighIns.length === 0}
-            className={`${OUTLINE_BUTTON} justify-self-start disabled:opacity-40`}
+            className={`${SOLID_BUTTON} disabled:opacity-40`}
           >
             {t('health.batch')}
           </button>
           <button
             type="button"
             onClick={() => importInputRef.current?.click()}
-            className={`${OUTLINE_BUTTON} justify-self-start`}
+            className={SOLID_BUTTON}
           >
             {t('records.import')}
           </button>

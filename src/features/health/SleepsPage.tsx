@@ -187,49 +187,45 @@ export default function SleepsPage() {
         </div>
       </div>
 
-      {!batch.active && (
+      {/* 按钮栏与日记 / 随记同款：等宽 2×2 实心按钮，按钮数为奇数时回收站横跨整行 */}
       <ToolbarRow className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
-        <button type="button" onClick={() => setDialogOpen(true)} className={SOLID_BUTTON}>
-          {sleep ? t('health.sleepEdit') : t('health.sleepAdd')}
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleOpenExport()}
-          disabled={!sleep}
-          className={`${OUTLINE_BUTTON} justify-self-start disabled:opacity-40`}
-        >
-          {t('records.export')}
-        </button>
-        <button
-          type="button"
-          onClick={batch.enter}
-          className={`${OUTLINE_BUTTON} justify-self-start`}
-        >
-          {t('health.batch')}
-        </button>
-        <button
-          type="button"
-          onClick={() => importInputRef.current?.click()}
-          className={`${OUTLINE_BUTTON} justify-self-start`}
-        >
-          {t('records.import')}
-        </button>
-        {/* 记录级 JSON 导入的隐藏文件框 */}
-        <input
-          ref={importInputRef}
-          type="file"
-          accept=".json,application/json"
-          className="hidden"
-          onChange={(event) => void handleImportFile(event)}
-        />
-        <Link
-          to="/health/sleeps/trash"
-          className={`${SOLID_BUTTON} justify-self-start sm:ml-auto`}
-        >
+        {!batch.active && (
+          <>
+            <button type="button" onClick={() => setDialogOpen(true)} className={SOLID_BUTTON}>
+              {sleep ? t('health.sleepEdit') : t('health.sleepAdd')}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleOpenExport()}
+              disabled={!sleep}
+              className={`${SOLID_BUTTON} disabled:opacity-40`}
+            >
+              {t('records.export')}
+            </button>
+            <button type="button" onClick={batch.enter} className={SOLID_BUTTON}>
+              {t('health.batch')}
+            </button>
+            <button
+              type="button"
+              onClick={() => importInputRef.current?.click()}
+              className={SOLID_BUTTON}
+            >
+              {t('records.import')}
+            </button>
+            {/* 记录级 JSON 导入的隐藏文件框 */}
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={(event) => void handleImportFile(event)}
+            />
+          </>
+        )}
+        <Link to="/health/sleeps/trash" className={`${SOLID_BUTTON} col-span-2 sm:col-span-1`}>
           {t('health.sleepTrash')}
         </Link>
       </ToolbarRow>
-      )}
 
       {batch.active ? (
         <>
