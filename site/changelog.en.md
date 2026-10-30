@@ -1,3 +1,16 @@
+## 0.5.0 · 2026-10-30
+
+### What's new
+
+- **Food photos while logging intake**: photos from the food library now show up in the picker of "Log intake"; tap a thumbnail to view it full screen and swipe through the batch, with thumbnails also in the portion and meal-component steps
+- **A clearer word on health numbers**: TDEE, estimated TDEE and every food's calories are estimates — the health page explains this once on first visit, and a small note stays beside the intake card, weigh-in card, body profile and AI answers; tap it for the full explanation. Your real metabolism is a matter for a check-up and your doctor
+- **The three health sub-pages now match the diary / notes toolbar**: intake, sleep and weight actions are equal-width filled buttons in two columns; when the count is odd the trash link spans the full row, so narrow phones no longer show ragged rows with an empty slot
+
+### Download
+
+- Windows 10/11: `starburst-recorder-0.5.0-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.5.0.apk` (~16 MB, release-signed)
+
 ## 0.4.0 · 2026-10-30
 
 ### What's new

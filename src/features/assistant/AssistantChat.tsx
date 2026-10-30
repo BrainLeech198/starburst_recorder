@@ -235,6 +235,12 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             : 'sticky bottom-0 border-t border-line bg-bg pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3'
         }
       >
+        <p className="m-0 mb-2 text-[11px] text-muted">
+          <span className="mr-1" aria-hidden="true">
+            ⓘ
+          </span>
+          {t('assistant.healthNote')}
+        </p>
         <div className="flex items-center gap-2">
           <input
             value={input}

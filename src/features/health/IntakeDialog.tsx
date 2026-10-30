@@ -34,6 +34,8 @@ import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
 import { INPUT, INPUT_NARROW, INPUT_NUM } from '@/shared/ui/inputStyles'
 import { SOLID_BUTTON, OUTLINE_BUTTON, BAR_BUTTON } from '@/shared/ui/buttonStyles'
+import ImageViewer from '@/features/diary/ImageViewer'
+import HealthEstimateNote from './HealthDisclaimer'
 import FoodForm from './FoodForm'
 import type { FoodDraft } from './FoodForm'
 import MealForm from './MealForm'
@@ -188,6 +190,8 @@ export default function IntakeDialog({
   const [query, setQuery] = useState('')
   const [pickedId, setPickedId] = useState<string | null>(null)
   const [pickedMealId, setPickedMealId] = useState<string | null>(null)
+  /** 点开的食物照片：同时带上可左右翻的图片列表；null 表示关着 */
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null)
 
   /** image 的进度 */
   const [busy, setBusy] = useState(false)
@@ -218,6 +222,8 @@ export default function IntakeDialog({
   const aiReady = isConfigured(loadAiConfig())
   const keyword = query.trim().toLowerCase()
   const list = (foods ?? []).filter((item) => item.name.toLowerCase().includes(keyword))
+  /** 当前搜索结果里带照片的，点缩略图时按这个顺序左右翻 */
+  const photoFoods = list.filter((item) => item.photo !== null)
   const mealList = (meals ?? []).filter((item) => item.name.toLowerCase().includes(keyword))
   const picked = (foods ?? []).find((item) => item.id === pickedId) ?? null
   const pickedMeal = (meals ?? []).find((item) => item.id === pickedMealId) ?? null
@@ -839,7 +845,8 @@ export default function IntakeDialog({
       <Modal
         size="lg"
         label={t('intake.title')}
-        onClose={onClose}
+        // 灯箱开着时，Esc / 安卓返回先关灯箱，别一步把整个记账弹窗关掉
+        onClose={lightbox ? () => setLightbox(null) : onClose}
         resetKey={step}
       >
         <div className="flex items-center gap-2">
@@ -989,6 +996,8 @@ export default function IntakeDialog({
                 })}
               </ul>
             )}
+
+            {items.length > 0 && <HealthEstimateNote />}
 
             {items.length > 0 && !mealSaveOpen && (
               <button
@@ -1140,6 +1149,7 @@ export default function IntakeDialog({
                     protein: foodMacros(food, Number(grams) || 0).protein,
                   })}
                 </p>
+                <HealthEstimateNote />
 
                 {!aiReviewOpen && (
                   <button
@@ -1181,6 +1191,7 @@ export default function IntakeDialog({
                     protein: foodMacros(food, Number(grams) || 0).protein,
                   })}
                 </p>
+                <HealthEstimateNote />
                 {!aiReviewOpen && (
                   <button
                     type="button"
@@ -1325,24 +1336,49 @@ export default function IntakeDialog({
               <ul className="m-0 max-h-56 list-none space-y-1 overflow-y-auto p-0">
                 {list.map((item) => (
                   <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPickedId(item.id)
-                        setPickedMealId(null)
-                      }}
-                      className={`block w-full rounded-lg border p-2 text-left transition-colors ${
+                    <div
+                      className={`flex items-center gap-2 rounded-lg border p-2 transition-colors ${
                         pickedId === item.id ? 'border-brand' : 'border-line hover:border-brand/50'
                       }`}
                     >
-                      <span className="block text-sm text-fg">{item.name}</span>
-                      <span className="mt-0.5 block text-xs text-muted">
-                        {t('intake.per100', { kcal: formatNum(item.kcal) })}
-                        {item.servingName && item.servingGrams
-                          ? ` · ${item.servingName} · ${formatNum(item.servingGrams)} g`
-                          : ''}
-                      </span>
-                    </button>
+                      {item.photo && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setLightbox({
+                              images: photoFoods.map((entry) => entry.photo!),
+                              index: photoFoods.findIndex((entry) => entry.id === item.id),
+                            })
+                          }
+                          aria-label={t('imageImport.view')}
+                          className="shrink-0 overflow-hidden rounded-md border border-line transition-opacity hover:opacity-80"
+                        >
+                          <img
+                            src={item.photo}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            className="h-10 w-10 object-cover"
+                          />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPickedId(item.id)
+                          setPickedMealId(null)
+                        }}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <span className="block truncate text-sm text-fg">{item.name}</span>
+                        <span className="mt-0.5 block text-xs text-muted">
+                          {t('intake.per100', { kcal: formatNum(item.kcal) })}
+                          {item.servingName && item.servingGrams
+                            ? ` · ${item.servingName} · ${formatNum(item.servingGrams)} g`
+                            : ''}
+                        </span>
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -1457,6 +1493,30 @@ export default function IntakeDialog({
                       className="rounded-lg border border-line px-2 py-1.5"
                     >
                       <div className="flex items-center gap-2">
+                        {found.photo && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const withPhoto = mealFound.filter((each) => each.food?.photo)
+                              setLightbox({
+                                images: withPhoto.map((each) => each.food!.photo!),
+                                index: withPhoto.findIndex(
+                                  (each) => each.food!.id === found.id,
+                                ),
+                              })
+                            }}
+                            aria-label={t('imageImport.view')}
+                            className="shrink-0 overflow-hidden rounded-md border border-line transition-opacity hover:opacity-80"
+                          >
+                            <img
+                              src={found.photo}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              className="h-8 w-8 object-cover"
+                            />
+                          </button>
+                        )}
                         <span className="min-w-0 flex-1 truncate text-sm text-fg">
                           {found.name}
                         </span>
@@ -1497,6 +1557,7 @@ export default function IntakeDialog({
                   grams: mealGramsTotal,
                 })}
               </p>
+              <HealthEstimateNote />
 
               <div className="flex justify-end gap-2 pt-1">
                 <button type="button" onClick={openSource} className={OUTLINE_BUTTON}>
@@ -1619,6 +1680,15 @@ export default function IntakeDialog({
           foods={foods ?? []}
           onClose={() => setPhraseReview(null)}
           onLog={(item, draft, grams) => logReviewedItem(item, draft, grams)}
+        />
+      )}
+
+      {lightbox && (
+        <ImageViewer
+          images={lightbox.images.map((preview) => ({ preview }))}
+          index={lightbox.index}
+          onIndexChange={(index) => setLightbox({ images: lightbox.images, index })}
+          onClose={() => setLightbox(null)}
         />
       )}
     </>

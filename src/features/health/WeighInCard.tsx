@@ -21,6 +21,7 @@ import {
   type TrendRange,
 } from './healthViz'
 import WeightTrendChart from './WeightTrendChart'
+import HealthEstimateNote from './HealthDisclaimer'
 
 export default function WeighInCard({
   profile,
@@ -105,6 +106,8 @@ export default function WeighInCard({
           {derived ? t('health.derivedLine', { value: formatNum(derived) }) : t('health.derivedNone')}
         </span>
       </div>
+
+      <HealthEstimateNote interactive className="mt-1.5" />
 
       {weighIns.length > 0 && (
         <div className="mt-3">

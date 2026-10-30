@@ -17,6 +17,7 @@ import { INPUT } from '@/shared/ui/inputStyles'
 import { GHOST_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import type { DayTargets, Macros } from './healthMath'
 import { formatNum } from './healthMath'
+import HealthEstimateNote from './HealthDisclaimer'
 
 interface Turn {
   role: 'user' | 'ai'
@@ -264,6 +265,8 @@ export default function IntakeAiReview({
             {busy && <div className="text-xs text-muted">{t('askAi.busy')}</div>}
             {error && <div className="text-xs text-danger">{error}</div>}
           </div>
+
+          {turns.some((turn) => turn.role === 'ai') && <HealthEstimateNote />}
 
           <div className="flex items-center gap-2">
             <input

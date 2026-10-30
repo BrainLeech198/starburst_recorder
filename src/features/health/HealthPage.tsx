@@ -22,6 +22,8 @@ import { maybeNotifyWeighDay, syncWeighReminder } from './weighNotify'
 import SleepDialog from './SleepDialog'
 import { sleepMinutes, sleepParts } from './sleepMath'
 import IntakeDialog from './IntakeDialog'
+import HealthEstimateNote, { HealthDisclaimerDialog } from './HealthDisclaimer'
+import { hasAcknowledgedDisclaimer } from './disclaimerAck'
 import { dayTargets, emptyProfile, formatNum, missingProfileFields, remainingKcal, sumMacros } from './healthMath'
 import { healthProfile, intakeDays, intakesOfDay, saveHealthProfile, sleepDays, sleepOfDay } from './healthRepo'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
@@ -51,6 +53,8 @@ export default function HealthPage() {
   const profile = useLiveQuery(() => healthProfile(), [])
   const intakes = useLiveQuery(() => intakesOfDay(dayKey), [dayKey])
   const [dialogOpen, setDialogOpen] = useState(false)
+  // 第一次进健康页先说明「这些数字都是估算」，确认过就不再弹
+  const [disclaimerOpen, setDisclaimerOpen] = useState(() => !hasAcknowledgedDisclaimer())
   /** 这一夜的睡眠；null = 没记，undefined = 还在查 */
   const sleep = useLiveQuery(async () => (await sleepOfDay(dayKey)) ?? null, [dayKey])
   const derivedTdee = useDerivedTdee(profile)
@@ -237,6 +241,7 @@ export default function HealthPage() {
             derived={derivedTdee ?? null}
           />
           <ProteinBar value={totals.protein} target={targets.proteinTarget} />
+          <HealthEstimateNote interactive className="mt-2" />
 
           <button
             type="button"
@@ -384,6 +389,10 @@ export default function HealthPage() {
           }}
           onCancel={() => setPickerOpen(false)}
         />
+      )}
+
+      {disclaimerOpen && (
+        <HealthDisclaimerDialog firstRun onClose={() => setDisclaimerOpen(false)} />
       )}
     </div>
   )

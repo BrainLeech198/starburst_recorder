@@ -20,6 +20,7 @@ import {
 } from './healthMath'
 import { healthProfile, saveHealthProfile } from './healthRepo'
 import ActivityAiDialog from './ActivityAiDialog'
+import HealthEstimateNote from './HealthDisclaimer'
 
 /** 五个计划预设：只改目标热量、蛋白系数和那段说明，TDEE 是身体数据，不跟着计划动 */
 const PRESETS = [
@@ -527,6 +528,7 @@ export default function ProfilePage() {
               />
               <span className="mt-1 block text-[11px] text-muted">{t('profile.tdeeHint')}</span>
             </label>
+            <HealthEstimateNote interactive />
 
             <div className="grid grid-cols-2 gap-2">
               <label className="block">
