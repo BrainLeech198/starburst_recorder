@@ -1,3 +1,17 @@
+## 0.4.0 · 2026-10-30
+
+### What's new
+
+- **Photos in notes and diaries**: stamps can be photo-only (camera or gallery), up to 9 per entry; diary body embeds images with markers and renders mixed text and images; images are compressed and stored inline, and travel with backups
+- **Slimmer health home**: the three cards are now metric cards; the ideal sleep schedule moved into the sleep card (a minimal profile is created automatically if you don't have one)
+- **Record-level import for sleep / weights**: import single-record JSON files (same-day entries are overwritten), plus cross-day batch delete and export; the Data & Backup import recognizes these files too
+- **Cleaner exports**: Markdown / plain-text export and AI polish automatically strip image markers
+
+### Download
+
+- Windows 10/11: `starburst-recorder-0.4.0-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.4.0.apk` (~16 MB, release-signed)
+
 ## 0.3.1 · 2026-10-29
 
 ### What's new
