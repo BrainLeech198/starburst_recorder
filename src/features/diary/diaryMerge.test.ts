@@ -45,6 +45,13 @@ const stamp = (id: string, content: string, extra: Partial<DiaryStamp> = {}): Di
   ...extra,
 })
 
+const photo = (id: string): DiaryEntry['images'][number] => ({
+  id,
+  dataUrl: `data:image/png;base64,${id}`,
+  width: 10,
+  height: 10,
+})
+
 const day = (dateKey: string, weather: string | null): DiaryDay => ({
   dateKey,
   weather,
@@ -89,6 +96,36 @@ describe('findConflicts', () => {
     )
     expect(found).toHaveLength(1)
     expect(found[0]).toMatchObject({ localDeleted: false, incomingDeleted: true })
+  })
+
+  it('正文一样、图片不同也算冲突，摘要里标出张数', () => {
+    const found = conflictsOf(
+      { entries: [entry('a', '一样', { images: [photo('i1')] })] },
+      { entries: [entry('a', '一样')] },
+    )
+    expect(found).toHaveLength(1)
+    expect(found[0].incomingText).toBe('一样 · 🖼 1')
+    expect(found[0].localText).toBe('一样 · 🖼 0')
+    expect(found[0].incomingBody).toBe('一样 · 🖼 1')
+  })
+
+  it('随记的图片不同同样算冲突', () => {
+    const found = conflictsOf(
+      { stamps: [stamp('s1', '一样', { images: [photo('i1'), photo('i2')] })] },
+      { stamps: [stamp('s1', '一样', { images: [photo('i1')] })] },
+    )
+    expect(found).toHaveLength(1)
+    expect(found[0].kind).toBe('stamp')
+    expect(found[0].incomingText).toBe('一样 · 🖼 2')
+    expect(found[0].localText).toBe('一样 · 🖼 1')
+  })
+
+  it('图片 id 完全一样 → 不算冲突', () => {
+    const found = conflictsOf(
+      { entries: [entry('a', '一样', { images: [photo('i1')] })] },
+      { entries: [entry('a', '一样', { images: [photo('i1')] })] },
+    )
+    expect(found).toHaveLength(0)
   })
 
   it('三类表各认一处', () => {

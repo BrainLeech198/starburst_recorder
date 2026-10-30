@@ -1062,6 +1062,7 @@ function createDatabase(file) {
             entry.createdAt,
             entry.updatedAt,
             entry.content ?? '',
+            imagesText(entry.images),
             entry.deletedAt ?? null,
           )
         }
@@ -1072,6 +1073,7 @@ function createDatabase(file) {
             stamp.dateKey,
             stamp.time,
             stamp.content ?? '',
+            imagesText(stamp.images),
             stamp.createdAt,
             stamp.updatedAt,
             stamp.deletedAt ?? null,

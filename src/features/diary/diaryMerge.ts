@@ -75,10 +75,30 @@ function isDeleted(value: number | null) {
   return value !== null && value !== undefined
 }
 
+/** 图片只比 id 序列：dataURL 动辄几百 KB，逐字节比没必要，id 唯一就够 */
+function imagesKey(images: DiaryEntry['images']) {
+  return (images ?? []).map((item) => item.id).join(',')
+}
+
+/**
+ * 有图 / 没图、图不一样，都算两边不一样。
+ * 只比正文的话，备份里那张照片会被当成「内容相同」悄悄盖掉。
+ */
+function imagesDiffer(local: DiaryEntry['images'], incoming: DiaryEntry['images']) {
+  return imagesKey(local) !== imagesKey(incoming)
+}
+
+/** 冲突行补一句图片数：正文一样时，差别就只剩在图上 */
+function withImageCount(text: string, images: DiaryEntry['images']) {
+  const badge = `🖼 ${images.length}`
+  return text === '' ? badge : `${text} · ${badge}`
+}
+
 function entryDiffers(local: DiaryEntry, incoming: DiaryEntry) {
   return (
     local.content !== incoming.content ||
     local.dateKey !== incoming.dateKey ||
+    imagesDiffer(local.images, incoming.images) ||
     tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
   )
 }
@@ -88,6 +108,7 @@ function stampDiffers(local: DiaryStamp, incoming: DiaryStamp) {
     local.content !== incoming.content ||
     local.time !== incoming.time ||
     local.dateKey !== incoming.dateKey ||
+    imagesDiffer(local.images, incoming.images) ||
     tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
   )
 }
@@ -120,14 +141,15 @@ export function findConflicts(incoming: BackupPayload, local: BackupPayload): Me
   for (const item of incoming.entries) {
     const mine = localEntries.get(item.id)
     if (!mine || !entryDiffers(mine, item)) continue
+    const imageDiff = imagesDiffer(mine.images, item.images)
     conflicts.push({
       kind: 'entry',
       key: item.id,
       label: item.dateKey,
-      localText: snippet(mine.content),
-      incomingText: snippet(item.content),
-      localBody: mine.content,
-      incomingBody: item.content,
+      localText: imageDiff ? withImageCount(snippet(mine.content), mine.images) : snippet(mine.content),
+      incomingText: imageDiff ? withImageCount(snippet(item.content), item.images) : snippet(item.content),
+      localBody: imageDiff ? withImageCount(mine.content, mine.images) : mine.content,
+      incomingBody: imageDiff ? withImageCount(item.content, item.images) : item.content,
       localDeleted: isDeleted(mine.deletedAt),
       incomingDeleted: isDeleted(item.deletedAt),
       localAt: mine.updatedAt,
@@ -139,14 +161,15 @@ export function findConflicts(incoming: BackupPayload, local: BackupPayload): Me
   for (const item of incoming.stamps) {
     const mine = localStamps.get(item.id)
     if (!mine || !stampDiffers(mine, item)) continue
+    const imageDiff = imagesDiffer(mine.images, item.images)
     conflicts.push({
       kind: 'stamp',
       key: item.id,
       label: `${item.dateKey} · ${item.time}`,
-      localText: snippet(mine.content),
-      incomingText: snippet(item.content),
-      localBody: mine.content,
-      incomingBody: item.content,
+      localText: imageDiff ? withImageCount(snippet(mine.content), mine.images) : snippet(mine.content),
+      incomingText: imageDiff ? withImageCount(snippet(item.content), item.images) : snippet(item.content),
+      localBody: imageDiff ? withImageCount(mine.content, mine.images) : mine.content,
+      incomingBody: imageDiff ? withImageCount(item.content, item.images) : item.content,
       localDeleted: isDeleted(mine.deletedAt),
       incomingDeleted: isDeleted(item.deletedAt),
       localAt: mine.updatedAt,

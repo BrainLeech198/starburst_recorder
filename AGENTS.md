@@ -52,6 +52,12 @@ Android：`npm run build && npx cap sync android`，再到 `android/` 执行 `gr
 - 动画与氛围效果必须尊重 `prefers-reduced-motion`。
 - 单元测试只测纯逻辑（Node 环境），通过 `node package/run-tests.cjs` 运行。
 
+## 数据导入导出
+
+- 备份里的图片是**内联 dataURL**，跟着记录走：导出、读回、合并冲突都必须带上；改这块先看 `src/core/db/normalize.ts` 的 `pickImages`。
+- `electron/database.cjs` 的 SQL 是手写占位符：给表加列时，`db.prepare` 的列与每个 `.run()` 的参数必须一一对应。0.5.0 之前的替换导入就因为 `writeSections` 漏绑 `images`，直接炸在 `NOT NULL constraint failed`；只导随记时还会把参数整体错位。
+- 改动导入导出至少要跑 `src/core/db/desktopImport.test.ts`（真实 SQLite 导出 → 写回往返）和 `src/features/diary/diaryBackup.test.ts`（备份文件读写）。
+
 ## 改动完成后
 
 至少跑一遍 `npm test`、`npm run typecheck`、`npm run lint`。

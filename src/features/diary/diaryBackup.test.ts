@@ -44,6 +44,30 @@ describe('备份读写的兼容口径', () => {
     expect(read.payload.stamps[0].code).toBe('d4e5f60')
   })
 
+  it('图片跟着备份走：导出再读回，图还是那张图', () => {
+    const payload = sample()
+    const photo = { id: 'img1', dataUrl: 'data:image/png;base64,AAAA', width: 10, height: 10 }
+    payload.entries[0].images = [photo]
+    payload.stamps[0].images = [photo]
+
+    const read = readBackup(buildBackup(payload).content)
+    expect(read.ok).toBe(true)
+    expect(read.payload.entries[0].images).toEqual([photo])
+    expect(read.payload.stamps[0].images).toEqual([photo])
+  })
+
+  it('图片 id 缺失或不是 dataURL 的，剔掉图但保留正文', () => {
+    const payload = sample()
+    payload.entries[0].images = [
+      { id: '', dataUrl: 'data:image/png;base64,AAAA', width: 10, height: 10 },
+      { id: 'img2', dataUrl: 'https://example.com/a.png', width: 10, height: 10 },
+    ]
+    const read = readBackup(buildBackup(payload).content)
+    expect(read.payload.entries).toHaveLength(1)
+    expect(read.payload.entries[0].images).toEqual([])
+    expect(read.skipped).toBe(0)
+  })
+
   it('导出的文件带上两个版本号，方便以后定位', () => {
     const parsed = JSON.parse(buildBackup(sample()).content) as Record<string, unknown>
     expect(parsed.app).toBe('starburst-recorder')
