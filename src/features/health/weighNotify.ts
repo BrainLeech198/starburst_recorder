@@ -8,7 +8,7 @@
  * 每天最多提醒一次（localStorage 记到今天的日期），免得开一次弹一次。
  */
 import { translate } from '@/shared/i18n/context'
-import { isWeighDay, weekdayOf } from './healthMath'
+import { isWeighDay } from './healthMath'
 import { todayKey } from '@/core/utils/dateKey'
 import type { HealthProfile } from '@/core/db/schema'
 
@@ -98,16 +98,3 @@ export async function syncWeighReminder(profile: HealthProfile | undefined): Pro
   }
 }
 
-/** 本地通知权限文案在设置里提一嘴用 */
-export function isNativePlatform(): boolean {
-  try {
-    return typeof window !== 'undefined' && 'Capacitor' in window
-  } catch {
-    return false
-  }
-}
-
-/** 给测试和调用方看的：今天提醒过没有 */
-export function weekdayOfKey(dateKey: string): number | null {
-  return weekdayOf(dateKey)
-}
