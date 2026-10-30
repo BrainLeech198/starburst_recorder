@@ -14,6 +14,7 @@
 import type {
   DiaryDay,
   DiaryEntry,
+  DiaryImage,
   DiaryPreset,
   DiaryStamp,
   FinanceEntry,
@@ -75,6 +76,33 @@ function dateKey(value: unknown) {
     : null
 }
 
+/** 一条记录最多带几张图：随记、日记都按这个上限收，防止手改的备份把库撑爆 */
+const MAX_IMAGES = 9
+
+/**
+ * 记录里内联的图片：只认完整的 dataURL 与正尺寸。
+ * 坏图剔掉但**不整行丢弃**——图没了正文还在，这条日记本身还有价值。
+ */
+export function pickImages(raw: unknown): DiaryImage[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((entry): DiaryImage | null => {
+      if (!entry || typeof entry !== 'object') return null
+      const item = entry as Record<string, unknown>
+      const id = text(item.id)
+      const dataUrl = text(item.dataUrl)
+      const width = Number(item.width)
+      const height = Number(item.height)
+      if (id === '' || !dataUrl.startsWith('data:image/')) return null
+      if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
+        return null
+      }
+      return { id, dataUrl, width, height }
+    })
+    .filter((item): item is DiaryImage => item !== null)
+    .slice(0, MAX_IMAGES)
+}
+
 /**
  * 一条一条挑字段：只留 schema 里认识的，顺手把不合格的剔掉（返回 null）。
  * 已知字段缺失时补默认值，缺失的短编号（code）现场生成一个——老备份可能没有它。
@@ -92,6 +120,7 @@ export function pickEntry(raw: unknown): DiaryEntry | null {
     createdAt: number(item.createdAt, Date.now()),
     updatedAt: number(item.updatedAt, Date.now()),
     content: text(item.content),
+    images: pickImages(item.images),
     deletedAt: deletedAt(item.deletedAt),
   }
 }
@@ -110,6 +139,7 @@ export function pickStamp(raw: unknown): DiaryStamp | null {
     // 时间必须是 HH:MM，坏的就退回 '00:00'，免得一条脏数据废掉整份备份
     time: /^\d{2}:\d{2}$/.test(time) ? time : '00:00',
     content: text(item.content),
+    images: pickImages(item.images),
     createdAt: number(item.createdAt, Date.now()),
     updatedAt: number(item.updatedAt, Date.now()),
     deletedAt: deletedAt(item.deletedAt),
@@ -150,7 +180,7 @@ const SEXES: HealthSex[] = ['male', 'female']
 const ACTIVITIES: HealthActivity[] = ['sedentary', 'light', 'moderate', 'high']
 
 /** 称重历史只认 { dateKey, weightKg, createdAt }，坏项剔掉；新的在前，最多留 120 条 */
-function pickWeighIns(raw: unknown): WeighIn[] {
+export function pickWeighIns(raw: unknown): WeighIn[] {
   if (!Array.isArray(raw)) return []
   const valid = raw
     .map((entry): WeighIn | null => {

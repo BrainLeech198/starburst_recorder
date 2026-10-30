@@ -33,6 +33,7 @@ function entry(dateKey: string, content: string, code = 'a000001'): DiaryEntry {
     createdAt: 0,
     updatedAt: 0,
     content,
+    images: [],
     deletedAt: null,
   }
 }
@@ -44,6 +45,7 @@ function stamp(dateKey: string, time: string, content: string): DiaryStamp {
     dateKey,
     time,
     content,
+    images: [],
     createdAt: 0,
     updatedAt: 0,
     deletedAt: null,

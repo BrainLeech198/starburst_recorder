@@ -1,14 +1,16 @@
 import ErrorNote from '@/shared/ui/ErrorNote'
 import { useEffect, useRef, useState } from 'react'
+import type { ChangeEvent, ReactNode } from 'react'
 import { Link, useBlocker, useLocation, useNavigate, useParams } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
-import type { DiaryEntry } from '@/core/db/schema'
+import type { DiaryEntry, DiaryImage } from '@/core/db/schema'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import Dropdown from '@/shared/ui/Dropdown'
 import Modal from '@/shared/ui/Modal'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
+import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { BACK_BUTTON, GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import {
   createEntry,
@@ -33,6 +35,14 @@ import { POLISH_SYSTEM_PROMPT, polishDiary } from '@/features/ai/aiPolish'
 import { reviseText } from '@/features/ai/aiRevision'
 import type { RevisionTurn } from '@/features/ai/aiRevision'
 import RevisionChat from '@/features/ai/RevisionChat'
+import { MAX_IMAGES, prepareImages } from './imageAssets'
+import {
+  imageToken,
+  insertImageTokens,
+  splitImageTokens,
+  stripImageTokens,
+  usedImageIds,
+} from './imageTokens'
 
 /** 弹窗底部的取消按钮：全站弹窗统一的样子 */
 
@@ -42,6 +52,12 @@ interface DraftNav {
   dateKey?: string
   content?: string
   weather?: string
+  images?: DiaryImage[]
+}
+
+/** 两张图同一批才算没改过：同一个 id 的数据不会变，比 id 顺序就够，别拿几 MB 的 dataURL 去比 */
+function sameImages(a: DiaryImage[], b: DiaryImage[]): boolean {
+  return a.length === b.length && a.every((image, index) => image.id === b[index].id)
 }
 
 /** 自然段开头的两个方格，占两个字宽，同时形成首行缩进两字 */
@@ -50,6 +66,43 @@ function ParagraphMarks() {
     <span aria-hidden="true" className="inline-flex w-[2em] select-none align-[-0.12em]">
       <span className="h-[1em] w-[1em] border-[1.5px] border-ink-muted" />
       <span className="-ml-[1.5px] h-[1em] w-[1em] border-[1.5px] border-ink-muted" />
+    </span>
+  )
+}
+
+/**
+ * 正文里的一张图：按存下来的原始比例铺满纸面。
+ * 编辑态右上角带一个删除按钮，点它会顺手把正文里的标记也摘掉。
+ */
+function ImageBlock({
+  image,
+  onRemove,
+}: {
+  image: DiaryImage
+  onRemove?: () => void
+}) {
+  const { t } = useI18n()
+  return (
+    <span className="relative my-2 block">
+      <img
+        src={image.dataUrl}
+        alt=""
+        loading="lazy"
+        width={image.width}
+        height={image.height}
+        className="block h-auto w-full rounded-lg border border-binding bg-paper-strong"
+      />
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          title={t('diaryEdit.removeImage')}
+          className="absolute top-1 right-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-sm text-white transition-colors hover:bg-black/75"
+        >
+          <span aria-hidden="true">✕</span>
+          <span className="sr-only">{t('diaryEdit.removeImage')}</span>
+        </button>
+      )}
     </span>
   )
 }
@@ -72,8 +125,19 @@ export default function DiaryEditPage() {
   /** null = 还没动过，显示磁盘上的内容；一旦输入就变成草稿 */
   const [contentDraft, setContentDraft] = useState<string | null>(null)
   const [weatherDraft, setWeatherDraft] = useState<string | null>(null)
+  /** 这一轮里插进来的图：null = 跟磁盘一致；改动后整份替换，不做增量 */
+  const [imagesDraft, setImagesDraft] = useState<DiaryImage[] | null>(null)
   /** 这一轮里最后一次写盘的内容：用来判断「改了没有」 */
-  const [saved, setSaved] = useState<{ content: string; weather: string } | null>(null)
+  const [saved, setSaved] = useState<{
+    content: string
+    weather: string
+    images: DiaryImage[]
+  } | null>(null)
+  /** 插图：选来源（相册 / 拍照）→ 读文件 → 转码 → 插标记 */
+  const [imageSourceOpen, setImageSourceOpen] = useState(false)
+  const [imageBusy, setImageBusy] = useState(false)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
 
   const [saveOpen, setSaveOpen] = useState(false)
   const [saveAsOpen, setSaveAsOpen] = useState(false)
@@ -119,16 +183,22 @@ export default function DiaryEditPage() {
 
   const storedContent = isNew ? (navState.content ?? '') : (entry?.content ?? '')
   const storedWeather = isNew ? (navState.weather ?? draftDay?.weather ?? '') : (day?.weather ?? '')
+  const storedImages = isNew ? (navState.images ?? []) : (entry?.images ?? [])
   const baseContent = saved?.content ?? storedContent
   const baseWeather = saved?.weather ?? storedWeather
+  const baseImages = saved?.images ?? storedImages
   const value = contentDraft ?? baseContent
   const weatherValue = weatherDraft ?? baseWeather
+  const imagesValue = imagesDraft ?? baseImages
 
   const shownDate = isNew ? draftDate : (entry?.dateKey ?? draftDate)
   const hasDiskEntry = !isNew && entry != null
-  const changed = value !== baseContent || weatherValue !== baseWeather
+  const changed =
+    value !== baseContent || weatherValue !== baseWeather || !sameImages(imagesValue, baseImages)
   /** 已经落盘的看「改没改」；内存草稿只要有点东西就算没保存 */
-  const hasUnsaved = hasDiskEntry ? changed : isNew && (value.trim() !== '' || weatherValue !== '')
+  const hasUnsaved = hasDiskEntry
+    ? changed
+    : isNew && (value.trim() !== '' || weatherValue !== '' || imagesValue.length > 0)
 
   const bypass = useRef(false)
   const blocker = useBlocker(() => !bypass.current && hasUnsaved)
@@ -179,16 +249,15 @@ export default function DiaryEditPage() {
   }
 
   const weatherStates = parseWeather(weatherValue)
-  const paragraphs = value.split('\n')
 
   /** 把编辑区的内容写回磁盘上这篇日记；草稿没有指向，不给存 */
   async function saveExisting() {
     if (!entry) return
     const nextContent = value
     const nextWeather = weatherValue
-    await updateContent(entry.id, nextContent)
+    await updateContent(entry.id, nextContent, imagesValue)
     if (nextWeather !== (day?.weather ?? '')) await setWeather(entry.dateKey, nextWeather)
-    setSaved({ content: nextContent, weather: nextWeather })
+    setSaved({ content: nextContent, weather: nextWeather, images: imagesValue })
     showToast({ message: t('diaryEdit.saved') })
   }
 
@@ -198,9 +267,9 @@ export default function DiaryEditPage() {
     setBusy(true)
     try {
       const created = await createEntry(dateKey)
-      await updateContent(created.id, value)
+      await updateContent(created.id, value, imagesValue)
       if (weatherValue !== '') await setWeather(dateKey, weatherValue)
-      setSaved({ content: value, weather: weatherValue })
+      setSaved({ content: value, weather: weatherValue, images: imagesValue })
       showToast({ message: t('diaryEdit.savedAs', { date: formatDate(dateKey, t) }) })
       if (saveAsLeave) {
         const target = proceedTarget()
@@ -292,6 +361,99 @@ export default function DiaryEditPage() {
     setEditing(true)
   }
 
+  /**
+   * 选好的照片：转码（压缩或原图，看设置）后插到光标处。
+   * 图片存在记录里，正文只留 [[img:id]] 标记——锁定态渲染成真图。
+   */
+  async function handleImageFiles(files: File[]) {
+    if (files.length === 0 || imageBusy) return
+    setImageBusy(true)
+    try {
+      const prepared = await prepareImages(files)
+      const room = MAX_IMAGES - imagesValue.length
+      const accepted = prepared.slice(0, Math.max(room, 0))
+      if (accepted.length < prepared.length) {
+        showToast({ message: t('diaryEdit.imageLimit', { max: MAX_IMAGES }) })
+      }
+      if (accepted.length === 0) return
+      setImagesDraft([...imagesValue, ...accepted])
+      const caret = editing ? (textareaRef.current?.selectionStart ?? value.length) : value.length
+      const inserted = insertImageTokens(value, caret, accepted.map((image) => image.id))
+      setContentDraft(inserted.text)
+      setEditing(true)
+      requestAnimationFrame(() => {
+        const el = textareaRef.current
+        if (!el) return
+        el.focus()
+        el.setSelectionRange(inserted.caret, inserted.caret)
+      })
+    } catch (error) {
+      showToast({ message: error instanceof Error ? error.message : String(error) })
+    } finally {
+      setImageBusy(false)
+    }
+  }
+
+  function handleImagePick(event: ChangeEvent<HTMLInputElement>) {
+    const files = [...(event.target.files ?? [])]
+    // 清掉 value：同一个文件再选一次也能触发 change
+    event.target.value = ''
+    void handleImageFiles(files)
+  }
+
+  /** 从这张图删掉：正文里的标记一起摘，免得留下认不出的空标记 */
+  function removeImage(id: string) {
+    setImagesDraft(imagesValue.filter((image) => image.id !== id))
+    if (value.includes(imageToken(id))) {
+      setContentDraft(value.split(imageToken(id)).join('').replace(/\n{3,}/g, '\n\n'))
+    }
+  }
+
+  /**
+   * 阅读态把正文摆出来：文字照旧，图片按标记的位置插进去。
+   * 正文里没提到的图（比如 AI 润色把标记弄丢了）排在末尾当「附图」，不至于悄悄消失。
+   */
+  function renderReadBody(): ReactNode[] {
+    const blocks: ReactNode[] = []
+    const used = new Set(usedImageIds(value))
+    value.split('\n').forEach((line, index) => {
+      if (line === '') {
+        blocks.push(
+          <p key={`blank-${index}`} className="m-0">
+            &nbsp;
+          </p>,
+        )
+        return
+      }
+      splitImageTokens(line).forEach((part, partIndex) => {
+        if (part.type === 'text') {
+          if (part.value.trim() === '') return
+          blocks.push(
+            <p key={`text-${index}-${partIndex}`} className="m-0 break-words">
+              <ParagraphMarks />
+              {part.value}
+            </p>,
+          )
+          return
+        }
+        const image = imagesValue.find((item) => item.id === part.id)
+        if (image) blocks.push(<ImageBlock key={`image-${index}-${partIndex}`} image={image} />)
+      })
+    })
+    const leftovers = imagesValue.filter((image) => !used.has(image.id))
+    if (leftovers.length > 0) {
+      blocks.push(
+        <p key="leftover-title" className="mt-3 mb-1 font-hand text-xs text-ink-muted">
+          {t('diaryEdit.attachments')}
+        </p>,
+      )
+      for (const image of leftovers) {
+        blocks.push(<ImageBlock key={`leftover-${image.id}`} image={image} />)
+      }
+    }
+    return blocks
+  }
+
   /** AI 润色：先检查配置和正文，再把结果放进弹窗等用户确认 */
   async function openPolish() {
     if (value.trim() === '') {
@@ -305,13 +467,16 @@ export default function DiaryEditPage() {
     }
     setPolishResult('')
     setPolishError('')
-    setPolishSeed(value)
+    // 润色只处理文字：图片标记先摘掉，免得模型把 [[img:...]] 弄丢或改样。
+    // 图还留在记录里，润色完会以「附图」的形式排在正文末尾。
+    const text = stripImageTokens(value)
+    setPolishSeed(text)
     setPolishTurns([])
     setPolishChatError('')
     setPolishOpen(true)
     setPolishBusy(true)
     try {
-      const result = await polishDiary(config, value)
+      const result = await polishDiary(config, text)
       if (!result.ok) {
         setPolishError(t('diaryEdit.polishFailed', { message: result.error }))
         return
@@ -379,16 +544,17 @@ export default function DiaryEditPage() {
     }
     const content = value
     const weather = weatherValue
+    const images = imagesValue
     const dateKey = shownDate
     // 空草稿没有可留的东西，直接走
-    if (content.trim() === '' && weather === '') {
+    if (content.trim() === '' && weather === '' && images.length === 0) {
       go(`/diary?date=${dateKey}`)
       return
     }
     // 草稿没落过盘，删除时要先写一条再标删，回收站里才找得到
     void (async () => {
       const created = await createEntry(dateKey)
-      await updateContent(created.id, content)
+      await updateContent(created.id, content, images)
       if (weather !== '') await setWeather(dateKey, weather)
       await removeEntry(created.id)
       showToast({
@@ -455,6 +621,7 @@ export default function DiaryEditPage() {
             label={t('diaryEdit.menuInsert')}
             buttonClassName={OUTLINE_BUTTON}
             items={[
+              { label: t('diaryEdit.insertImage'), onSelect: () => setImageSourceOpen(true) },
               { label: t('diaryEdit.appendImage'), onSelect: handleAppendPick },
               { label: t('diaryEdit.menuCommon'), onSelect: () => setCommonOpen(true) },
             ]}
@@ -519,33 +686,47 @@ export default function DiaryEditPage() {
 
         <div className="ruled font-hand mt-4 min-h-[50vh] text-sm">
           {editing ? (
-            <textarea
-              ref={textareaRef}
-              value={value}
-              onChange={(event) => setContentDraft(event.target.value)}
-              placeholder={t('diaryEdit.placeholder')}
-              rows={16}
-              spellCheck={false}
-              // field-sizing-content：输入框跟着内容长高，整页滚动，而不是框内自己滚。
-              // 框内自己滚有三个毛病：横线格与文字对不上、手机上在框里拖动会"卡住"、
-              // 长日记变成两层滚动。rows={16} 留着给不支持的老引擎兜底。
-              className="field-sizing-content block w-full resize-none bg-transparent text-ink outline-none placeholder:text-ink-muted"
-            />
-          ) : value.trim() === '' ? (
+            <>
+              <textarea
+                ref={textareaRef}
+                value={value}
+                onChange={(event) => setContentDraft(event.target.value)}
+                placeholder={t('diaryEdit.placeholder')}
+                rows={16}
+                spellCheck={false}
+                // field-sizing-content：输入框跟着内容长高，整页滚动，而不是框内自己滚。
+                // 框内自己滚有三个毛病：横线格与文字对不上、手机上在框里拖动会"卡住"、
+                // 长日记变成两层滚动。rows={16} 留着给不支持的老引擎兜底。
+                className="field-sizing-content block w-full resize-none bg-transparent text-ink outline-none placeholder:text-ink-muted"
+              />
+              {/* 编辑态正文里显示的是标记，所以图单独列一排缩略图，方便核对和删除 */}
+              {imagesValue.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {imagesValue.map((image) => (
+                    <span key={image.id} className="relative">
+                      <img
+                        src={image.dataUrl}
+                        alt=""
+                        className="h-20 w-20 rounded-lg border border-binding object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(image.id)}
+                        title={t('diaryEdit.removeImage')}
+                        className="absolute -top-1.5 -right-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs text-white transition-colors hover:bg-black/80"
+                      >
+                        <span aria-hidden="true">✕</span>
+                        <span className="sr-only">{t('diaryEdit.removeImage')}</span>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : value.trim() === '' && imagesValue.length === 0 ? (
             <p className="m-0 text-ink-muted">{t('diaryEdit.placeholder')}</p>
           ) : (
-            paragraphs.map((paragraph, index) =>
-              paragraph === '' ? (
-                <p key={index} className="m-0">
-                  &nbsp;
-                </p>
-              ) : (
-                <p key={index} className="m-0 break-words">
-                  <ParagraphMarks />
-                  {paragraph}
-                </p>
-              ),
-            )
+            renderReadBody()
           )}
         </div>
       </div>
@@ -723,6 +904,37 @@ export default function DiaryEditPage() {
           </div>
         </Modal>
       )}
+
+      {imageSourceOpen && (
+        <ImageSourceDialog
+          onPickFile={() => {
+            setImageSourceOpen(false)
+            imageInputRef.current?.click()
+          }}
+          onTakePhoto={() => {
+            setImageSourceOpen(false)
+            cameraInputRef.current?.click()
+          }}
+          onClose={() => setImageSourceOpen(false)}
+        />
+      )}
+      {/* 相册可以多选；拍照一次一张（多按几次就是多张） */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleImagePick}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleImagePick}
+      />
     </div>
   )
 }

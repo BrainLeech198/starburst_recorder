@@ -97,3 +97,24 @@ db.version(8)
 db.version(9).stores({
   healthSleeps: 'id, dateKey, deletedAt',
 })
+
+// 日记与随记可以带图：表结构不变（图片是记录里的一个字段），只给老记录补上空数组
+db.version(10)
+  .stores({})
+  .upgrade((tx) =>
+    tx
+      .table('diaryEntries')
+      .toCollection()
+      .modify((entry: DiaryEntry) => {
+        if (!Array.isArray(entry.images)) entry.images = []
+      })
+      .then(() =>
+        tx
+          .table('diaryStamps')
+          .toCollection()
+          .modify((stamp: DiaryStamp) => {
+            if (!Array.isArray(stamp.images)) stamp.images = []
+          }),
+      )
+      .then(() => undefined),
+  )

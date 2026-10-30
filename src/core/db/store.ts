@@ -11,6 +11,7 @@
 import type {
   DiaryDay,
   DiaryEntry,
+  DiaryImage,
   DiaryPreset,
   DiaryStamp,
   FinanceEntry,
@@ -103,7 +104,7 @@ export interface DiaryStore {
   /** 按短编号找一篇（URL 里用的就是它） */
   entryByCode(code: string): Promise<DiaryEntry | undefined>
   createEntry(dateKey: string): Promise<DiaryEntry>
-  updateContent(id: string, content: string): Promise<void>
+  updateContent(id: string, content: string, images: DiaryImage[]): Promise<void>
   /** 软删除：只打标记，可撤销 */
   removeEntry(id: string): Promise<void>
   removeEntries(ids: string[]): Promise<number>
@@ -122,7 +123,10 @@ export interface DiaryStore {
   /** 某一天的全部随记，按时间正序，已软删除的不算 */
   stampsOfDay(dateKey: string): Promise<DiaryStamp[]>
   addStamp(dateKey: string): Promise<DiaryStamp>
-  updateStamp(id: string, patch: { time?: string; content?: string }): Promise<void>
+  updateStamp(
+    id: string,
+    patch: { time?: string; content?: string; images?: DiaryImage[] },
+  ): Promise<void>
   /** 软删除：只打标记，可撤销 */
   removeStamp(id: string): Promise<void>
   restoreStamp(id: string): Promise<void>

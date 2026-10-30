@@ -39,14 +39,15 @@ export const sqliteStore: DiaryStore = {
       createdAt: now,
       updatedAt: now,
       content: '',
+      images: [],
       deletedAt: null,
     }
     await call('insertEntry', entry)
     return entry
   },
 
-  updateContent: async (id, content) => {
-    await call('updateContent', id, content)
+  updateContent: async (id, content, images) => {
+    await call('updateContent', id, content, images)
   },
   removeEntry: async (id) => {
     await call('removeEntry', id)
@@ -75,6 +76,7 @@ export const sqliteStore: DiaryStore = {
       dateKey,
       time: formatClock(now),
       content: '',
+      images: [],
       createdAt: now,
       updatedAt: now,
       deletedAt: null,

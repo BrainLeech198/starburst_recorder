@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { ChangeEvent, ReactNode } from 'react'
 import { useLiveQuery } from '@/core/db/live'
-import type { DiaryStamp } from '@/core/db/schema'
+import type { DiaryImage, DiaryStamp } from '@/core/db/schema'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
@@ -11,8 +11,77 @@ import { formatClock, todayKey } from '@/core/utils/dateKey'
 import WeatherDialog from './WeatherDialog'
 import TimeMeta from '@/shared/ui/TimeMeta'
 import CommonPresetDialog from './CommonPresetDialog'
+import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
+import ImageViewer from './ImageViewer'
+import { MAX_IMAGES, prepareImages } from './imageAssets'
 import { buildSingleRecordExport } from '@/features/records/recordExport'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
+
+/**
+ * 一笔随记里带的图片：小缩略图铺开，点开是灯箱。
+ * 编辑态右上角带删除按钮，删掉立刻写回。
+ */
+function StampImages({
+  images,
+  editing,
+  onRemove,
+  onOpen,
+}: {
+  images: DiaryImage[]
+  editing: boolean
+  onRemove: (id: string) => void
+  onOpen: (index: number) => void
+}) {
+  const { t } = useI18n()
+  if (images.length === 0) return null
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-1.5">
+      {images.map((image, index) => (
+        <span key={image.id} className="relative">
+          {/* 用 span 而不是 button：批量多选时整体已经包在一个 button 里，按钮不能嵌套 */}
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(event) => {
+              event.stopPropagation()
+              onOpen(index)
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                event.stopPropagation()
+                onOpen(index)
+              }
+            }}
+            className="block cursor-zoom-in"
+            title={t('imageImport.view')}
+          >
+            <img
+              src={image.dataUrl}
+              alt=""
+              loading="lazy"
+              className="h-16 w-16 rounded-lg border border-binding object-cover"
+            />
+          </span>
+          {editing && images.length > 0 && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                onRemove(image.id)
+              }}
+              title={t('stamp.removeImage')}
+              className="absolute -top-1.5 -right-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[10px] text-white transition-colors hover:bg-black/80"
+            >
+              <span aria-hidden="true">✕</span>
+              <span className="sr-only">{t('stamp.removeImage')}</span>
+            </button>
+          )}
+        </span>
+      ))}
+    </div>
+  )
+}
 
 /** 一笔随记：时间一行（可点改）、内容默认只读，双击进入编辑态；整笔挂在左侧时间轴上 */
 function StampRow({
@@ -50,6 +119,37 @@ function StampRow({
   const areaRef = useRef<HTMLTextAreaElement>(null)
   const [presetOpen, setPresetOpen] = useState(false)
   const { t } = useI18n()
+  const { showToast } = useToast()
+  /** 随记配图：选来源 → 转码 → 立刻写回这条随记 */
+  const [sourceOpen, setSourceOpen] = useState(false)
+  const [imageBusy, setImageBusy] = useState(false)
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null)
+  const galleryRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
+
+  async function handleImagePick(event: ChangeEvent<HTMLInputElement>) {
+    const files = [...(event.target.files ?? [])]
+    // 清掉 value：同一个文件再选一次也能触发 change
+    event.target.value = ''
+    if (files.length === 0 || imageBusy) return
+    setImageBusy(true)
+    try {
+      const prepared = await prepareImages(files)
+      if (stamp.images.length + prepared.length > MAX_IMAGES) {
+        showToast({ message: t('stamp.imageLimit', { max: MAX_IMAGES }) })
+      }
+      const next = [...stamp.images, ...prepared].slice(0, MAX_IMAGES)
+      await updateStamp(stamp.id, { images: next })
+    } catch (error) {
+      showToast({ message: error instanceof Error ? error.message : String(error) })
+    } finally {
+      setImageBusy(false)
+    }
+  }
+
+  function removeImage(id: string) {
+    void updateStamp(stamp.id, { images: stamp.images.filter((image) => image.id !== id) })
+  }
 
   /** 把预设名插到光标处；没有焦点时追加到末尾 */
   function insertPreset(name: string) {
@@ -102,8 +202,17 @@ function StampRow({
               <span className="font-mono text-[10px] text-ink-muted opacity-70">{stamp.code}</span>
             </span>
             <span className="font-hand mt-0.5 block min-h-6 text-sm leading-6 text-ink">
-              {stamp.content.trim() || <span className="text-ink-muted">{t('stamp.noContent')}</span>}
+              {stamp.content.trim() ||
+                (stamp.images.length === 0 && (
+                  <span className="text-ink-muted">{t('stamp.noContent')}</span>
+                ))}
             </span>
+            <StampImages
+              images={stamp.images}
+              editing={false}
+              onRemove={removeImage}
+              onOpen={setViewerIndex}
+            />
           </button>
         ) : (
           <>
@@ -155,7 +264,13 @@ function StampRow({
                   }}
                   className="font-hand block w-full resize-none bg-transparent text-sm leading-6 text-ink outline-none placeholder:text-ink-muted"
                 />
-                <div className="mt-1 flex items-center gap-2 text-xs">
+                <StampImages
+                  images={stamp.images}
+                  editing
+                  onRemove={removeImage}
+                  onOpen={setViewerIndex}
+                />
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
                   <button
                     type="button"
                     onClick={onSaveEdit}
@@ -177,6 +292,14 @@ function StampRow({
                   >
                     {t('stamp.insertPreset')}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setSourceOpen(true)}
+                    disabled={imageBusy || stamp.images.length >= MAX_IMAGES}
+                    className="rounded border border-line px-2 py-0.5 text-muted transition-colors hover:text-fg disabled:opacity-40"
+                  >
+                    {t('stamp.addImage')}
+                  </button>
                   {/* 手机上没键盘，这行提示只在能看见键盘的宽度显示 */}
                   <span className="ml-auto hidden text-ink-muted sm:inline">{t('stamp.saveHint')}</span>
                 </div>
@@ -195,11 +318,22 @@ function StampRow({
                 title={t('stamp.tapToEdit')}
                 className="font-hand mt-0.5 block w-full min-h-6 text-left text-sm leading-6 text-ink transition-colors hover:text-brand"
               >
-                {stamp.content.trim() || <span className="text-ink-muted">{t('stamp.noContent')}</span>}
+                {stamp.content.trim() ||
+                  (stamp.images.length === 0 && (
+                    <span className="text-ink-muted">{t('stamp.noContent')}</span>
+                  ))}
               </button>
             )}
             {!editing && (
-              <TimeMeta createdAt={stamp.createdAt} updatedAt={stamp.updatedAt} tone="paper" />
+              <>
+                <StampImages
+                  images={stamp.images}
+                  editing={false}
+                  onRemove={removeImage}
+                  onOpen={setViewerIndex}
+                />
+                <TimeMeta createdAt={stamp.createdAt} updatedAt={stamp.updatedAt} tone="paper" />
+              </>
             )}
           </>
         )}
@@ -253,6 +387,45 @@ function StampRow({
           </>
         )
       )}
+
+      {sourceOpen && (
+        <ImageSourceDialog
+          onPickFile={() => {
+            setSourceOpen(false)
+            galleryRef.current?.click()
+          }}
+          onTakePhoto={() => {
+            setSourceOpen(false)
+            cameraRef.current?.click()
+          }}
+          onClose={() => setSourceOpen(false)}
+        />
+      )}
+      {viewerIndex !== null && viewerIndex < stamp.images.length && (
+        <ImageViewer
+          images={stamp.images.map((image) => ({ preview: image.dataUrl }))}
+          index={viewerIndex}
+          onIndexChange={setViewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
+      )}
+      {/* 相册可以多选；拍照一次一张（多按几次就是多张） */}
+      <input
+        ref={galleryRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleImagePick}
+      />
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleImagePick}
+      />
     </li>
   )
 }

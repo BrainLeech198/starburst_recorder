@@ -5,7 +5,8 @@
  * 不在首页铺「最近称重」列表。称重日 / 提醒时刻这类「管理」也搬到这里。
  */
 import TimeMeta from '@/shared/ui/TimeMeta'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import type { ChangeEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { HealthProfile, WeighIn } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
@@ -15,6 +16,9 @@ import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
 import { INPUT } from '@/shared/ui/inputStyles'
+import RowCheckbox from '@/shared/ui/RowCheckbox'
+import BatchActions from '@/shared/ui/BatchActions'
+import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import { BAR_BUTTON, BAR_DANGER, OUTLINE_BUTTON, SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import HealthDayNav from './HealthDayNav'
@@ -24,6 +28,12 @@ import type { BackupData } from './healthRepo'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
 import RecordExportDialog from '@/features/records/RecordExportDialog'
 import { buildSingleRecordExport } from '@/features/records/recordExport'
+import {
+  importRecords,
+  isRecordsFile,
+  readRecordsFile,
+  recordsCount,
+} from '@/features/records/recordImport'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
 
 /** 1=周一 … 7=周日；date.weekdayShortN 的编号是 JS 的 0=周日，取个模对上 */
@@ -59,6 +69,11 @@ export default function WeightsPage() {
   const [pickerOpen, setPickerOpen] = useState(false)
   /** 勾选导出时取来的整库数据；非 null 就打开挑选弹窗 */
   const [exportData, setExportData] = useState<BackupData | null>(null)
+  /** 批量导出时预选中的那些天 */
+  const [exportInitial, setExportInitial] = useState<{ weight: string[] } | undefined>(undefined)
+  const batch = useBatchSelect()
+  const [batchDeleting, setBatchDeleting] = useState(false)
+  const importInputRef = useRef<HTMLInputElement | null>(null)
 
   const weighIns = profile?.weighIns ?? []
   const entry = weighIns.find((item) => item.dateKey === dayKey) ?? null
@@ -124,13 +139,74 @@ export default function WeightsPage() {
   /** 勾选导出：把这一天的称重带进挑选弹窗 */
   async function handleOpenExport() {
     if (!entry) return
+    setExportInitial({ weight: [`weight:${entry.dateKey}`] })
     setExportData(await exportAllData())
   }
+
+  /** 记录级 JSON 导入：只认称重，同一天已有就覆盖、其余追加 */
+  async function handleImportFile(event: ChangeEvent<HTMLInputElement>) {
+    const picked = event.target.files?.[0]
+    // 清掉 value，同一个文件再选一次也会触发
+    event.target.value = ''
+    if (!picked) return
+    const text = await picked.text()
+    if (!isRecordsFile(text)) {
+      showToast({ message: t('records.importBadFile') })
+      return
+    }
+    const result = readRecordsFile(text)
+    if (!result.ok || recordsCount(result.file, ['weight']) === 0) {
+      showToast({ message: t(result.ok ? 'records.importNone' : 'records.importBadFile') })
+      return
+    }
+    const done = await importRecords(result.file, ['weight'])
+    showToast({
+      message: t('health.importWeightsDone', {
+        total: done.weights.total,
+        overwritten: done.weights.overwritten,
+      }),
+    })
+  }
+
+  /** 批量删除：称重历史是档案里的一条数组，整体换一份；撤销 = 把旧数组写回去 */
+  async function handleBatchDelete() {
+    if (!profile || batch.count === 0) return
+    const base = profile
+    const days = new Set(batch.selected.map((id) => id.slice('weight:'.length)))
+    setBatchDeleting(false)
+    batch.exit()
+    await saveHealthProfile(
+      withWeighIns(base, base.weighIns.filter((item) => !days.has(item.dateKey))),
+    )
+    showToast({
+      message: t('health.batchWeightsDeleted', { n: days.size }),
+      actionLabel: t('diary.undo'),
+      onAction: () => {
+        void (async () => {
+          const current = await healthProfile()
+          if (!current) return
+          await saveHealthProfile(withWeighIns(current, base.weighIns))
+        })()
+      },
+    })
+  }
+
+  /** 批量导出：选中的那些天直接带进挑选弹窗 */
+  async function handleBatchExport() {
+    setExportInitial({ weight: batch.selected })
+    setExportData(await exportAllData())
+    batch.exit()
+  }
+
+  /** 批量模式下列出所有称过重的日子 */
+  const batchRows = weighIns.map((item) => ({ id: `weight:${item.dateKey}`, item }))
 
   return (
     <div className="w-full p-4">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <HealthDayNav dayKey={dayKey} onChange={setDayKey} onPick={() => setPickerOpen(true)} />
+        {!batch.active && (
+          <HealthDayNav dayKey={dayKey} onChange={setDayKey} onPick={() => setPickerOpen(true)} />
+        )}
         <div className="ml-auto flex shrink-0 items-center gap-1">
           <Link
             to="/health"
@@ -141,25 +217,107 @@ export default function WeightsPage() {
         </div>
       </div>
 
-      <ToolbarRow className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
-        <button
-          type="button"
-          onClick={() => setFormOpen((open) => !open)}
-          disabled={!profile}
-          className={`${SOLID_BUTTON} disabled:opacity-40`}
-        >
-          {t('health.weighRecord')}
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleOpenExport()}
-          disabled={!entry}
-          className={`${OUTLINE_BUTTON} justify-self-start disabled:opacity-40`}
-        >
-          {t('records.export')}
-        </button>
-      </ToolbarRow>
+      {!batch.active && (
+        <ToolbarRow className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
+          <button
+            type="button"
+            onClick={() => setFormOpen((open) => !open)}
+            disabled={!profile}
+            className={`${SOLID_BUTTON} disabled:opacity-40`}
+          >
+            {t('health.weighRecord')}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleOpenExport()}
+            disabled={!entry}
+            className={`${OUTLINE_BUTTON} justify-self-start disabled:opacity-40`}
+          >
+            {t('records.export')}
+          </button>
+          <button
+            type="button"
+            onClick={batch.enter}
+            disabled={weighIns.length === 0}
+            className={`${OUTLINE_BUTTON} justify-self-start disabled:opacity-40`}
+          >
+            {t('health.batch')}
+          </button>
+          <button
+            type="button"
+            onClick={() => importInputRef.current?.click()}
+            className={`${OUTLINE_BUTTON} justify-self-start`}
+          >
+            {t('records.import')}
+          </button>
+          {/* 记录级 JSON 导入的隐藏文件框 */}
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={(event) => void handleImportFile(event)}
+          />
+        </ToolbarRow>
+      )}
 
+      {batch.active ? (
+        <>
+          {/* 跨天批量：列出所有称过重的日子，勾选后可批量删除 / 导出 */}
+          <section className="mt-4 overflow-hidden rounded-2xl border border-line bg-surface">
+            {batchRows.length === 0 ? (
+              <p className="m-0 p-4 text-xs text-muted">{t('health.weightBatchEmpty')}</p>
+            ) : (
+              batchRows.map((row, index) => (
+                <button
+                  key={row.id}
+                  type="button"
+                  onClick={() => batch.toggle(row.id)}
+                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-surface-2 ${
+                    index > 0 ? 'border-t border-line' : ''
+                  }`}
+                >
+                  <RowCheckbox
+                    checked={batch.isSelected(row.id)}
+                    label={formatDate(row.item.dateKey, t)}
+                    onToggle={() => batch.toggle(row.id)}
+                  />
+                  <span className="shrink-0 tabular-nums text-fg">
+                    {formatDate(row.item.dateKey, t)}
+                  </span>
+                  <span className="tabular-nums text-muted">
+                    {formatNum(row.item.weightKg)} {t('health.weighUnit')}
+                  </span>
+                  <TimeMeta createdAt={row.item.createdAt} updatedAt={row.item.createdAt} />
+                </button>
+              ))
+            )}
+          </section>
+          <BatchActions
+            select={batch}
+            ids={batchRows.map((row) => row.id)}
+            unit={t('health.unitWeight')}
+          >
+            <button
+              type="button"
+              onClick={() => setBatchDeleting(true)}
+              disabled={batch.count === 0}
+              className={BAR_DANGER}
+            >
+              {t('health.weightDelete')}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleBatchExport()}
+              disabled={batch.count === 0}
+              className={BAR_BUTTON}
+            >
+              {t('health.exportWeights')}
+            </button>
+          </BatchActions>
+        </>
+      ) : (
+        <>
       {formOpen && (
         <div className="mt-2 flex items-center gap-2 rounded-xl border border-line bg-surface p-3">
           <input
@@ -263,11 +421,13 @@ export default function WeightsPage() {
           </Link>
         </section>
       )}
+        </>
+      )}
 
       {exportData && (
         <RecordExportDialog
           data={exportData}
-          initial={{ weight: [`weight:${dayKey}`] }}
+          initial={exportInitial}
           onClose={() => setExportData(null)}
         />
       )}
@@ -291,6 +451,16 @@ export default function WeightsPage() {
           confirmLabel={t('health.weightDelete')}
           onConfirm={() => void handleDelete()}
           onCancel={() => setPendingDelete(false)}
+        />
+      )}
+
+      {batchDeleting && (
+        <ConfirmDialog
+          title={t('health.batchWeightsDeleteTitle', { n: batch.count })}
+          description={t('health.batchWeightsDeleteBody')}
+          confirmLabel={t('health.weightDelete')}
+          onConfirm={() => void handleBatchDelete()}
+          onCancel={() => setBatchDeleting(false)}
         />
       )}
     </div>

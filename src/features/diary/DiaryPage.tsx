@@ -1,5 +1,6 @@
 import EmptyState from '@/shared/ui/EmptyState'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import type { ChangeEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import type { DiaryEntry, DiaryStamp } from '@/core/db/schema'
@@ -11,7 +12,7 @@ import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import Modal from '@/shared/ui/Modal'
 import Tab from '@/shared/ui/Tab'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
-import { BAR_BUTTON, BAR_DANGER, GHOST_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { BAR_BUTTON, BAR_DANGER, GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import {
   addStamp,
   dayInfo,
@@ -28,6 +29,7 @@ import {
   restoreEntry,
   restoreStamps,
   stampsOfDay,
+  updateStamp,
 } from './diaryRepo'
 import { buildSingleRecordExport } from '@/features/records/recordExport'
 import {
@@ -41,6 +43,8 @@ import {
   weekdayKey,
 } from '@/core/utils/dateKey'
 import DatePickerDialog from './DatePickerDialog'
+import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
+import { prepareImages } from './imageAssets'
 import StampTimeline from './StampTimeline'
 import ExportDialog from './ExportDialog'
 import type { ExportRequest } from './ExportDialog'
@@ -50,17 +54,25 @@ import type { AiConfig } from '@/features/ai/aiConfig'
 import ImageImportDialog from './ImageImportDialog'
 import type { ImportSummary } from './importPages'
 import { buildExport, pickInRange } from './diaryExport'
+import { stripImageTokens } from './imageTokens'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
 import TimeMeta from '@/shared/ui/TimeMeta'
 
 /** 纸条上的正文部分，普通模式和批量模式共用 */
 function SlipBody({ entry }: { entry: DiaryEntry }) {
   const { t } = useI18n()
+  // 预览只显示文字：图片标记留给编辑页，正文为空但有图时给个提示
+  const text = stripImageTokens(entry.content).trim()
   return (
     <>
       <div className="font-hand text-sm">{formatMonthDay(entry.dateKey, t)}</div>
       <div className="font-hand mt-1 line-clamp-3 text-sm">
-        {entry.content.trim() || <span className="text-ink-muted">{t('diary.emptyContent')}</span>}
+        {text ||
+          (entry.images.length > 0 ? (
+            <span className="text-ink-muted">{t('diary.imageOnly')}</span>
+          ) : (
+            <span className="text-ink-muted">{t('diary.emptyContent')}</span>
+          ))}
       </div>
       <TimeMeta createdAt={entry.createdAt} updatedAt={entry.updatedAt} tone="paper" />
     </>
@@ -88,6 +100,11 @@ export default function DiaryPage() {
   const [hint, setHint] = useState('')
   /** 刚记下的那一笔，用来把光标直接落到它的内容框 */
   const [focusStampId, setFocusStampId] = useState('')
+  /** 拍一张当随记：选来源 → 读图 → 建一条带图的随记 */
+  const [photoOpen, setPhotoOpen] = useState(false)
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const galleryRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
 
   // 批量多选
   const batch = useBatchSelect()
@@ -136,6 +153,33 @@ export default function DiaryPage() {
     setHint('')
     const stamp = await addStamp(dateKey)
     setFocusStampId(stamp.id)
+  }
+
+  /**
+   * 拍一张就记一笔：先建一条空随记，再把照片写进去。
+   * 写完顺手聚焦到这条，想补一句就直接打字，不想补就算一条纯图片随记。
+   */
+  async function handlePhotoStamp(files: File[]) {
+    if (files.length === 0 || photoBusy) return
+    setHint('')
+    setPhotoBusy(true)
+    try {
+      const prepared = await prepareImages(files)
+      const stamp = await addStamp(dateKey)
+      await updateStamp(stamp.id, { images: prepared })
+      setFocusStampId(stamp.id)
+    } catch (error) {
+      showToast({ message: error instanceof Error ? error.message : String(error) })
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
+
+  function handlePhotoPick(event: ChangeEvent<HTMLInputElement>) {
+    const files = [...(event.target.files ?? [])]
+    // 清掉 value：同一个文件再选一次也能触发 change
+    event.target.value = ''
+    void handlePhotoStamp(files)
   }
 
   /** 点「AI 整理成日记」：没配模型就先领到设置页去，别让人白等一场失败 */
@@ -423,6 +467,14 @@ export default function DiaryPage() {
                 <button type="button" onClick={handleAddStamp} className={SOLID_BUTTON}>
                   {t('diary.addStamp')}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setPhotoOpen(true)}
+                  disabled={photoBusy}
+                  className={`${OUTLINE_BUTTON} disabled:opacity-40`}
+                >
+                  {t('diary.photoStamp')}
+                </button>
                 {/* AI 模型没配好时不亮；这天有没有素材交给弹窗去说（健康/经济也能当来源） */}
                 <button
                   type="button"
@@ -681,6 +733,37 @@ export default function DiaryPage() {
           onCancel={() => setPickerOpen(false)}
         />
       )}
+
+      {photoOpen && (
+        <ImageSourceDialog
+          onPickFile={() => {
+            setPhotoOpen(false)
+            galleryRef.current?.click()
+          }}
+          onTakePhoto={() => {
+            setPhotoOpen(false)
+            cameraRef.current?.click()
+          }}
+          onClose={() => setPhotoOpen(false)}
+        />
+      )}
+      {/* 相册可以一次选多张（一条随记带多图）；拍照一次一张 */}
+      <input
+        ref={galleryRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handlePhotoPick}
+      />
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handlePhotoPick}
+      />
     </div>
   )
 }

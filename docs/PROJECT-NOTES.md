@@ -159,9 +159,9 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 
 | 表 | 一行是什么 | 主键 / 索引要点 |
 |---|---|---|
-| `diaryEntries` | 一条普通日记 | `id` 主键；另有 `code`（7 位短编号，用来拼 URL）、`dateKey`、`createdAt`、`deletedAt` |
+| `diaryEntries` | 一条普通日记 | `id` 主键；另有 `code`（7 位短编号，用来拼 URL）、`dateKey`、`createdAt`、`deletedAt`、`images`（内联图，JSON 文本） |
 | `diaryDays` | 某天的信息（**一天一行**） | `dateKey` 主键；存天气 |
-| `diaryStamps` | 随记的一笔 | `id` 主键；`dateKey` + `time`（'HH:MM'）+ `content` + `deletedAt` |
+| `diaryStamps` | 随记的一笔 | `id` 主键；`dateKey` + `time`（'HH:MM'）+ `content` + `images`（内联图，JSON 文本）+ `deletedAt` |
 
 ### 四个关键设计决定
 
@@ -186,6 +186,14 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 
 所以：**浏览器里攒的日记，打出来的桌面程序里一条也看不到**，搬家只能靠「导出 → 导入」。
 导出与导入都已做（都在设置页的「数据与备份」页里），数据闭环现在是通的。
+
+### 图片：随记配图与日记图文混排（2026-10-30 加）
+
+参考 Memos（资源 + 正文内联引用）、Day One（纯照片条目）、Joplin / Obsidian（附件 + 内联标记）的做法，定下三条：
+
+- **图片直接存在记录里**（`DiaryImage { id, dataUrl, width, height }`，一条最多 9 张），**不另开图片表**：软删除、回收站、备份、跨设备导入天然一致，代价是备份文件变大。Dexie `version(10)` 给老记录补 `images: []`；SQLite 建表带 `images TEXT`，老库用 `ALTER TABLE` 补列（`PRAGMA table_info` 判断）。
+- **日记正文仍是纯文本**，图片用标记 `[[img:ULID]]` 占位（`features/diary/imageTokens.ts`，纯函数 + 单测）。锁定态渲染成真图；编辑态文本框里看到标记，另有缩略图一排可删。正文里没被标记引用的图（例如 AI 润色把标记弄丢）在末尾以「附图」显示，不会悄悄消失。
+- **压缩 / 原图两种存法**：默认长边 1600 + JPEG 0.82（复用 `aiVision.compressImage`），设置页「数据与备份 → 图片怎么存」可切原图（`localStorage: sb_image_quality`，`features/diary/imageAssets.ts`）。导出 Markdown / 纯文本与 AI 润色一律先 `stripImageTokens`；记录级 JSON 导出保留图。随记可以只有图、没有字。
 
 ### 睡眠（2026-10-29 加，最小闭环）
 

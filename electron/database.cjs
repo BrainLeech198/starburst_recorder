@@ -14,6 +14,7 @@ const SCHEMA = `
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER NOT NULL,
     content TEXT NOT NULL DEFAULT '',
+    images TEXT NOT NULL DEFAULT '[]',
     deletedAt INTEGER
   );
   CREATE UNIQUE INDEX IF NOT EXISTS idx_entries_code ON diaryEntries(code);
@@ -32,6 +33,7 @@ const SCHEMA = `
     dateKey TEXT NOT NULL,
     time TEXT NOT NULL,
     content TEXT NOT NULL DEFAULT '',
+    images TEXT NOT NULL DEFAULT '[]',
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER NOT NULL,
     deletedAt INTEGER
@@ -161,6 +163,24 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_finance_trash ON financeEntries(deletedAt);
 `
 
+/**
+ * images 在库里是一个 JSON 文本：读出来还原成数组，坏了就当空数组。
+ * 图片本身是 dataURL，跟记录一起进备份，所以不另开表。
+ */
+function parseImages(value) {
+  if (typeof value !== 'string' || value === '') return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function imagesText(images) {
+  return JSON.stringify(Array.isArray(images) ? images : [])
+}
+
 /** 同一份行数据在 IPC 里保持普通对象：主键字段名原样，deletedAt 统一成 null */
 function entryRow(row) {
   if (!row) return undefined
@@ -171,6 +191,7 @@ function entryRow(row) {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     content: row.content,
+    images: parseImages(row.images),
     deletedAt: row.deletedAt ?? null,
   }
 }
@@ -192,6 +213,7 @@ function stampRow(row) {
     dateKey: row.dateKey,
     time: row.time,
     content: row.content,
+    images: parseImages(row.images),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
@@ -437,19 +459,29 @@ function createDatabase(file) {
     db.prepare('PRAGMA table_info(diaryStamps)').all().map((row) => row.name),
   )
   if (!stampColumns.has('code')) db.exec('ALTER TABLE diaryStamps ADD COLUMN code TEXT')
+  // 日记与随记的图片字段：老库补一个空数组列，新写入直接带上
+  if (!stampColumns.has('images'))
+    db.exec("ALTER TABLE diaryStamps ADD COLUMN images TEXT NOT NULL DEFAULT '[]'")
+  const entryColumns = new Set(
+    db.prepare('PRAGMA table_info(diaryEntries)').all().map((row) => row.name),
+  )
+  if (!entryColumns.has('images'))
+    db.exec("ALTER TABLE diaryEntries ADD COLUMN images TEXT NOT NULL DEFAULT '[]'")
   // 旧记录补上 7 位短编号；新记录写入时自己带
   const fillCode = "substr(lower(hex(randomblob(4))), 1, 7)"
   db.exec(`UPDATE healthFoods SET code = ${fillCode} WHERE code IS NULL OR code = ''`)
   db.exec(`UPDATE healthIntakes SET code = ${fillCode} WHERE code IS NULL OR code = ''`)
   db.exec(`UPDATE diaryStamps SET code = ${fillCode} WHERE code IS NULL OR code = ''`)
-  db.exec('PRAGMA user_version = 8')
+  db.exec('PRAGMA user_version = 9')
 
   const q = {
     entriesOfDay: db.prepare(
       'SELECT * FROM diaryEntries WHERE dateKey = ? AND deletedAt IS NULL ORDER BY createdAt ASC',
     ),
     entryByCode: db.prepare('SELECT * FROM diaryEntries WHERE code = ? LIMIT 1'),
-    updateContent: db.prepare('UPDATE diaryEntries SET content = ?, updatedAt = ? WHERE id = ?'),
+    updateContent: db.prepare(
+      'UPDATE diaryEntries SET content = ?, images = ?, updatedAt = ? WHERE id = ?',
+    ),
     removeEntry: db.prepare('UPDATE diaryEntries SET deletedAt = ? WHERE id = ?'),
     restoreEntry: db.prepare('UPDATE diaryEntries SET deletedAt = NULL WHERE id = ?'),
     dayInfo: db.prepare('SELECT * FROM diaryDays WHERE dateKey = ?'),
@@ -484,24 +516,26 @@ function createDatabase(file) {
     allDayKeys: db.prepare('SELECT dateKey FROM diaryDays'),
     allPresetIds: db.prepare('SELECT id FROM diaryPresets'),
     upsertEntry: db.prepare(
-      `INSERT INTO diaryEntries (id, code, dateKey, createdAt, updatedAt, content, deletedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO diaryEntries (id, code, dateKey, createdAt, updatedAt, content, images, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          code = excluded.code,
          dateKey = excluded.dateKey,
          createdAt = excluded.createdAt,
          updatedAt = excluded.updatedAt,
          content = excluded.content,
+         images = excluded.images,
          deletedAt = excluded.deletedAt`,
     ),
     upsertStamp: db.prepare(
-      `INSERT INTO diaryStamps (id, code, dateKey, time, content, createdAt, updatedAt, deletedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO diaryStamps (id, code, dateKey, time, content, images, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          code = excluded.code,
          dateKey = excluded.dateKey,
          time = excluded.time,
          content = excluded.content,
+         images = excluded.images,
          createdAt = excluded.createdAt,
          updatedAt = excluded.updatedAt,
          deletedAt = excluded.deletedAt`,
@@ -701,6 +735,7 @@ function createDatabase(file) {
       entry.createdAt,
       entry.updatedAt,
       entry.content ?? '',
+      imagesText(entry.images),
       entry.deletedAt ?? null,
     )
     return entryRow({ ...entry, deletedAt: entry.deletedAt ?? null })
@@ -713,6 +748,7 @@ function createDatabase(file) {
       stamp.dateKey,
       stamp.time,
       stamp.content ?? '',
+      imagesText(stamp.images),
       stamp.createdAt,
       stamp.updatedAt,
       stamp.deletedAt ?? null,
@@ -1138,7 +1174,7 @@ function createDatabase(file) {
   function updateStamp(id, patch) {
     const sets = ['updatedAt = ?']
     const values = [Date.now()]
-    // 只认这两个字段，别的一律忽略（渲染进程传来的对象不可全信）
+    // 只认时间、正文、图片这三样，别的一律忽略（渲染进程传来的对象不可全信）
     if (typeof patch?.time === 'string') {
       sets.push('time = ?')
       values.push(patch.time)
@@ -1146,6 +1182,10 @@ function createDatabase(file) {
     if (typeof patch?.content === 'string') {
       sets.push('content = ?')
       values.push(patch.content)
+    }
+    if (Array.isArray(patch?.images)) {
+      sets.push('images = ?')
+      values.push(imagesText(patch.images))
     }
     values.push(id)
     db.prepare(`UPDATE diaryStamps SET ${sets.join(', ')} WHERE id = ?`).run(...values)
@@ -1156,8 +1196,8 @@ function createDatabase(file) {
     entriesOfDay: (dateKey) => q.entriesOfDay.all(dateKey).map(entryRow),
     entryByCode: (code) => entryRow(q.entryByCode.get(code)),
     insertEntry,
-    updateContent: (id, content) => {
-      q.updateContent.run(String(content ?? ''), Date.now(), id)
+    updateContent: (id, content, images) => {
+      q.updateContent.run(String(content ?? ''), imagesText(images), Date.now(), id)
     },
     removeEntry: (id) => {
       q.removeEntry.run(Date.now(), id)

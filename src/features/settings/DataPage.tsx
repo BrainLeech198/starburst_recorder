@@ -23,7 +23,7 @@ import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import Modal from '@/shared/ui/Modal'
 import SettingCard, { SettingBadge, SettingGroup } from '@/shared/ui/SettingCard'
 import PageShell from '@/shared/ui/PageShell'
-import { OUTLINE_BUTTON, SOLID_BUTTON, SOLID_DANGER, SOLID_WARN } from '@/shared/ui/buttonStyles'
+import { OUTLINE_BUTTON, SOLID_BUTTON, SOLID_DANGER, SOLID_WARN, choiceTile } from '@/shared/ui/buttonStyles'
 import { desktopBridge } from '@/platform/desktop'
 import type { DesktopBridge } from '@/platform/desktop'
 import { db } from '@/core/db/db'
@@ -37,6 +37,8 @@ import {
 } from '@/features/diary/diaryBackup'
 import type { BackupPayload, BackupSection } from '@/features/diary/diaryBackup'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
+import { loadImageQuality, saveImageQuality } from '@/features/diary/imageAssets'
+import type { ImageQuality } from '@/features/diary/imageAssets'
 import {
   clearDiaryData,
   clearFinanceData,
@@ -61,6 +63,16 @@ import {
 } from '@/features/diary/diaryMerge'
 import type { HealthPart, MergeConflict } from '@/features/diary/diaryMerge'
 import RecordExportDialog from '@/features/records/RecordExportDialog'
+import {
+  importRecords,
+  isRecordsFile,
+  readRecordsFile,
+  recordsCount,
+} from '@/features/records/recordImport'
+import type { RecordKind } from '@/features/records/recordExport'
+
+/** 记录级导入认的全部种类 */
+const RECORD_KINDS: RecordKind[] = ['diary', 'stamp', 'intake', 'sleep', 'weight', 'finance']
 
 /** 导入方式：融合只补/更新，替换则先把选中的块清空再恢复 */
 type ImportMode = 'merge' | 'replace'
@@ -404,6 +416,54 @@ function describePayload(
   return parts.join('；')
 }
 
+/**
+ * 「图片怎么存」：压缩省空间（默认）还是原图更清晰。
+ * 照片直接进记录，所以这也决定了备份文件会有多大——原图可能让备份翻好几倍。
+ */
+function ImageQualityCard() {
+  const { t } = useI18n()
+  const [quality, setQuality] = useState<ImageQuality>(() => loadImageQuality())
+  const options: { value: ImageQuality; label: string; hint: string }[] = [
+    {
+      value: 'compressed',
+      label: t('data.imageCompressed'),
+      hint: t('data.imageCompressedHint'),
+    },
+    {
+      value: 'original',
+      label: t('data.imageOriginal'),
+      hint: t('data.imageOriginalHint'),
+    },
+  ]
+
+  return (
+    <SettingCard title={t('data.imageTitle')} description={t('data.imageDesc')}>
+      <SettingGroup label={t('data.imageGroup')}>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                setQuality(option.value)
+                saveImageQuality(option.value)
+              }}
+              className={[
+                choiceTile,
+                quality === option.value ? 'border-brand bg-brand/10' : '',
+              ].join(' ')}
+            >
+              <span className="block text-sm text-fg">{option.label}</span>
+              <span className="mt-1 block text-xs text-muted">{option.hint}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-muted">{t('data.imageBackupHint')}</p>
+      </SettingGroup>
+    </SettingCard>
+  )
+}
+
 export default function DataPage() {
   const { showToast } = useToast()
   const { t } = useI18n()
@@ -531,7 +591,43 @@ export default function DataPage() {
     if (!file) return
     setError('')
     setReport(null)
-    const result = readBackup(await file.text())
+    const text = await file.text()
+
+    // 记录级导出文件（记录页里「导出 / 单条 JSON」产的那种）不走备份流程：
+    // 内容本身就是用户挑好的子集，直接按「同 id / 同一天覆盖」并进去
+    if (isRecordsFile(text)) {
+      const records = readRecordsFile(text)
+      if (!records.ok || recordsCount(records.file, RECORD_KINDS) === 0) {
+        setError(t(records.ok ? 'records.importNone' : 'records.importBadFile'))
+        return
+      }
+      setBusy(true)
+      try {
+        const done = await importRecords(records.file, RECORD_KINDS)
+        const total =
+          done.stats.entries.total +
+          done.stats.stamps.total +
+          done.stats.intakes.total +
+          done.sleeps.total +
+          done.weights.total +
+          done.stats.finance.total
+        const overwritten =
+          done.stats.entries.overwritten +
+          done.stats.stamps.overwritten +
+          done.stats.intakes.overwritten +
+          done.sleeps.overwritten +
+          done.weights.overwritten +
+          done.stats.finance.overwritten
+        showToast({ message: t('records.importDone', { total, overwritten }) })
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : String(caught))
+      } finally {
+        setBusy(false)
+      }
+      return
+    }
+
+    const result = readBackup(text)
     if (!result.ok) {
       setError(result.error)
       return
@@ -910,6 +1006,7 @@ export default function DataPage() {
         </SettingGroup>
       </SettingCard>
 
+      <ImageQualityCard />
       <DataFolderCard />
       <LegacyCard />
 

@@ -22,6 +22,7 @@ import { formatClock, formatDateCn, formatShortStamp, weekdayLabel } from '@/cor
 import { parseWeather, weatherLabel } from '@/features/diary/weather'
 import type { BackupPayload } from '@/features/diary/diaryBackup'
 import type { ExportFile, ExportFormat } from '@/features/diary/diaryExport'
+import { stripImageTokens } from '@/features/diary/imageTokens'
 import { translate } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 
@@ -85,7 +86,7 @@ function diaryItems(entries: DiaryEntry[]): RecordItem[] {
       dateKey: entry.dateKey,
       time: formatClock(entry.createdAt),
       createdAt: entry.createdAt,
-      text: entry.content.trim(),
+      text: stripImageTokens(entry.content).trim(),
       detail: '',
     }))
 }
@@ -100,7 +101,7 @@ function stampItems(stamps: DiaryStamp[]): RecordItem[] {
       dateKey: stamp.dateKey,
       time: stamp.time,
       createdAt: stamp.createdAt,
-      text: stamp.content.trim(),
+      text: stripImageTokens(stamp.content).trim(),
       detail: '',
     }))
 }

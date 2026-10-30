@@ -25,6 +25,34 @@ export const KCAL_PER_GRAM = { protein: 4, carbs: 4, fat: 9 } as const
 export const BAR_RATIO = 1.35
 
 /**
+ * 一份只有默认值的身体档案。
+ * 理想作息、导入称重这类「还没填过档案就要往里写」的场景用它打底，
+ * 别在各处手写一整行 null——字段加漏了很难发现。
+ */
+export function emptyProfile(): HealthProfile {
+  return {
+    id: 'me',
+    sex: null,
+    age: null,
+    heightCm: null,
+    weightKg: null,
+    weightAt: null,
+    activity: null,
+    tdee: null,
+    targetKcal: null,
+    proteinTarget: null,
+    plan: '',
+    note: '',
+    weighDay: null,
+    weighTime: '07:00',
+    idealBedtime: '23:00',
+    idealWakeTime: '07:00',
+    weighIns: [],
+    updatedAt: Date.now(),
+  }
+}
+
+/**
  * 三大营养素的颜色：蛋白黄、碳水蓝、脂肪橙。
  * 色相固定（一眼分得出是哪种），但深浅跟主题走——浅色底上要压深才够对比，
  * 所以值是 CSS 变量，由 index.css 按主题给。

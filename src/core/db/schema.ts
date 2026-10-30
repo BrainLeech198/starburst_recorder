@@ -1,3 +1,19 @@
+/**
+ * 记录里内联的一张图片：dataURL 直接躺在记录里，跟着备份 / 导出一起走。
+ *
+ * 不另开图片表：图跟记录同生共死，软删除、回收站、跨设备导入都不用再对账。
+ * 代价是记录会变大，所以插入时默认压缩，设置里可以改成存原图。
+ */
+export interface DiaryImage {
+  /** 内部唯一 id（ULID），日记正文用 [[img:id]] 标记引用它 */
+  id: string
+  /** data:image/...;base64,... */
+  dataUrl: string
+  /** 存下来的像素尺寸，渲染时先按它占位，免得图加载完页面才跳一下 */
+  width: number
+  height: number
+}
+
 /** 一条日记 */
 export interface DiaryEntry {
   /** 内部唯一 id（ULID，天然按时间有序） */
@@ -8,8 +24,10 @@ export interface DiaryEntry {
   dateKey: string
   createdAt: number
   updatedAt: number
-  /** 纯文本正文 */
+  /** 纯文本正文；图片用 [[img:id]] 占位，渲染时换成真图 */
   content: string
+  /** 正文里插的图片；没有就是空数组 */
+  images: DiaryImage[]
   /** 软删除标记 */
   deletedAt: number | null
 }
@@ -202,8 +220,10 @@ export interface DiaryStamp {
   dateKey: string
   /** 时刻标记，'HH:MM' */
   time: string
-  /** 这一笔的内容 */
+  /** 这一笔的内容；可以是空串——只拍一张图也是一条随记 */
   content: string
+  /** 随记带的图片，可以多张；没有就是空数组 */
+  images: DiaryImage[]
   createdAt: number
   updatedAt: number
   /** 软删除标记 */

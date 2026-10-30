@@ -43,14 +43,15 @@ export const dexieStore: DiaryStore = {
       createdAt: now,
       updatedAt: now,
       content: '',
+      images: [],
       deletedAt: null,
     }
     await db.diaryEntries.add(entry)
     return entry
   },
 
-  async updateContent(id, content) {
-    await db.diaryEntries.update(id, { content, updatedAt: Date.now() })
+  async updateContent(id, content, images) {
+    await db.diaryEntries.update(id, { content, images, updatedAt: Date.now() })
   },
 
   async removeEntry(id) {
@@ -100,6 +101,7 @@ export const dexieStore: DiaryStore = {
       dateKey,
       time: formatClock(now),
       content: '',
+      images: [],
       createdAt: now,
       updatedAt: now,
       deletedAt: null,

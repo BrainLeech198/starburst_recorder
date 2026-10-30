@@ -23,6 +23,7 @@ function entry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
     createdAt: 1790000000000,
     updatedAt: 1790000000000,
     content: '昨天去复查了。',
+    images: [],
     deletedAt: null,
     ...overrides,
   }
@@ -35,6 +36,7 @@ function stamp(overrides: Partial<DiaryStamp> = {}): DiaryStamp {
     dateKey: '2026-10-25',
     time: '09:30',
     content: '排队排了很久。',
+    images: [],
     createdAt: 1790000000000,
     updatedAt: 1790000000000,
     deletedAt: null,

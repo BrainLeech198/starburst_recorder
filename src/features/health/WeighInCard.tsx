@@ -13,7 +13,7 @@ import { todayKey } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import { useToast } from '@/app/providers/ToastProvider'
 import { INPUT } from '@/shared/ui/inputStyles'
-import { SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import { SOLID_SMALL_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
 import {
   TREND_RANGES,
   trendWeighIns,
@@ -61,16 +61,9 @@ export default function WeighInCard({
 
   return (
     <div className="rounded-2xl border border-line bg-surface p-4">
-      <div className="flex items-start justify-between gap-3 border-b border-line pb-3">
-        <div className="flex min-w-0 items-start gap-2.5">
-          <span aria-hidden="true" className="mt-1 h-4 w-1 shrink-0 rounded-full bg-brand" />
-          <div className="min-w-0">
-            <h2 className="m-0 text-base font-semibold leading-tight text-fg">
-              {t('health.weighTitle')}
-            </h2>
-            <p className="m-0 mt-1 text-xs leading-relaxed text-muted">{t('health.weighHint')}</p>
-          </div>
-        </div>
+      {/* 指标卡式头部：小标题 + 右上角记录入口；称重日 / 提醒时刻的设置在记录页 */}
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="m-0 text-sm font-medium text-fg">{t('health.weighTitle')}</h2>
         <Link
           to="/health/weights"
           className="shrink-0 text-xs text-muted transition-colors hover:text-brand"
@@ -78,39 +71,43 @@ export default function WeighInCard({
           {t('health.viewRecords')} ›
         </Link>
       </div>
-      {review && (
-        <p className="mt-3 rounded-lg bg-brand/10 px-2.5 py-1.5 text-xs text-brand">{t(review)}</p>
-      )}
 
       {todayIsWeighDay && (
-        <p className="mt-2 rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 text-xs text-brand">
+        <p className="m-0 mt-2 rounded-lg border border-brand/40 bg-brand/10 px-2.5 py-1.5 text-xs text-brand">
           {t('health.weighToday')}
         </p>
       )}
+      {review && (
+        <p className="m-0 mt-2 rounded-lg bg-brand/10 px-2.5 py-1.5 text-xs text-brand">
+          {t(review)}
+        </p>
+      )}
 
-      <div className="mt-4 border-t border-line pt-4">
-        <div className="flex items-center gap-2">
-          <input
-            value={weightText}
-            onChange={(event) => setWeightText(event.target.value)}
-            inputMode="decimal"
-            placeholder={t('health.weighUnit')}
-            aria-label={t('health.weighRecord')}
-            className={INPUT + ' w-32'}
-          />
-          <button
-            type="button"
-            onClick={() => void recordWeight()}
-            disabled={!profile}
-            className={SOLID_BUTTON}
-          >
-            {t('health.weighRecord')}
-          </button>
-        </div>
+      {/* 记体重 + 推算 TDEE 收成一行：大数字留给趋势图，这里只是快捷入口 */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <input
+          value={weightText}
+          onChange={(event) => setWeightText(event.target.value)}
+          inputMode="decimal"
+          placeholder={t('health.weighUnit')}
+          aria-label={t('health.weighRecord')}
+          className={INPUT + ' w-28'}
+        />
+        <button
+          type="button"
+          onClick={() => void recordWeight()}
+          disabled={!profile}
+          className={SOLID_SMALL_BUTTON + ' disabled:opacity-40'}
+        >
+          {t('health.weighRecord')}
+        </button>
+        <span className="ml-auto text-xs tabular-nums text-muted">
+          {derived ? t('health.derivedLine', { value: formatNum(derived) }) : t('health.derivedNone')}
+        </span>
       </div>
 
       {weighIns.length > 0 && (
-        <div className="mt-4 border-t border-line pt-4">
+        <div className="mt-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs text-muted">{t('health.trendTitle')}</span>
             <div className="flex items-center gap-1">
@@ -130,14 +127,6 @@ export default function WeighInCard({
           <WeightTrendChart items={trend} />
         </div>
       )}
-
-      <div className="mt-4 border-t border-line pt-4">
-        <div className="text-xs text-muted">{t('health.derivedTitle')}</div>
-        <div className="mt-1 text-xl font-medium tabular-nums text-fg">
-          {derived ? t('health.derivedValue', { value: derived }) : t('health.derivedNone')}
-        </div>
-        <p className="mt-1 text-xs text-muted">{t('health.derivedHint')}</p>
-      </div>
     </div>
   )
 }

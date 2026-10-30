@@ -1,6 +1,7 @@
 import type { DiaryDay, DiaryEntry, DiaryStamp } from '@/core/db/schema'
 import { formatDateCn, formatShortStamp, weekdayLabel } from '@/core/utils/dateKey'
 import { parseWeather, weatherLabel } from './weather'
+import { stripImageTokens } from './imageTokens'
 
 export type ExportFormat = 'markdown' | 'text' | 'json'
 
@@ -78,7 +79,7 @@ export function buildExport(
       .filter((entry) => entry.dateKey === day)
       .sort((a, b) => a.createdAt - b.createdAt)
     for (const entry of dayEntries) {
-      lines.push(entry.content.trim() || '（没有写内容）', '')
+      lines.push(stripImageTokens(entry.content).trim() || '（没有写内容）', '')
       if (options.includeTimestamps) {
         const created = `创建 ${formatShortStamp(entry.createdAt)}`
         const edited =
@@ -93,7 +94,7 @@ export function buildExport(
     if (dayStamps.length > 0) {
       if (format === 'markdown') lines.push('随记：', '')
       for (const item of dayStamps) {
-        const body = `${item.time} ${item.content.trim()}`
+        const body = `${item.time} ${stripImageTokens(item.content).trim()}`
         lines.push(format === 'markdown' ? `- ${body}` : body)
       }
       lines.push('')
