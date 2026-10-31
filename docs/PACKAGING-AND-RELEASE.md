@@ -213,6 +213,8 @@ POST   https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files 
    - APK 指纹、`versionCode` 与 §2.2 / §1 一致。
 5. 测试版说明写清「这是测试版」、主要验证点、已知问题与退回正式版的方法，不写「稳定版」之类误导。
 
+> 首个测试版 `0.8.0-beta.1` 于 2026-11-01 发布：GitHub Pre-release，资产为 `apk`（16,308,237 字节）与 `-setup.exe`（99,752,057 字节）；核对 `releases/latest` 仍为 `v0.7.0`，测试版没有顶掉正式版。Gitee 只同步了 tag 与源码，没有建 Release、没有传附件；官网与 `notes.zh.md` 保持 `0.7.0`。
+
 ## 5. 凭证与提交约定
 
 - **长期凭证（密钥、密码、Token）由用户决定**：需要新凭证时先给选项（用户提供 / 我生成并写进 gitignore 文件 / 用已有文件），得到确认再动手；已经生成的不要擅自更换。
