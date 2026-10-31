@@ -129,6 +129,13 @@ export const de: Record<MessageKey, string> = {
     'Geänderte Grammzahlen der Bestandteile berechnen Nährwerte und Summe im gleichen Verhältnis neu.',
   'health.intakeEditSave': 'Speichern',
   'health.intakeUpdated': 'Eintrag aktualisiert',
+  'health.intakeEditChoiceTitle': 'Wie möchtest du diesen Eintrag bearbeiten?',
+  'health.intakeEditSingle': 'Nur diesen Eintrag bearbeiten',
+  'health.intakeEditSingleHint':
+    'Nur dieser Verlaufseintrag ändert sich; die Lebensmittelbibliothek bleibt gleich',
+  'health.intakeEditSync': 'Mit Lebensmittelbibliothek bearbeiten',
+  'health.intakeEditSyncHint': 'Aktualisiert auch das passende Lebensmittel in der Bibliothek',
+  'health.intakeUpdatedLibrary': 'Eintrag und Lebensmittelbibliothek aktualisiert',
   'health.legendProtein': 'Protein',
   'health.legendCarbs': 'Kohlenhydrate',
   'health.legendFat': 'Fett',
@@ -314,6 +321,9 @@ export const de: Record<MessageKey, string> = {
   'foods.mealUnknownPart': 'Gelöschtes Lebensmittel',
   'foods.mealSave': 'Menü speichern',
   'foods.mealEdit': 'Menü bearbeiten',
+  'foods.mealCover': 'Menü-Cover',
+  'foods.mealCoverHint':
+    'Nimmt das erste Lebensmittel mit Foto; ändere das Foto dieses Lebensmittels, um es zu wechseln.',
   'foods.mealAiAsk': 'Mit KI diese Mahlzeit aufteilen',
   'foods.mealAiHint': 'Sage z. B. „eine Schale Rindernudeln mit einem marinierten Ei“, die KI teilt es in Lebensmittel und Gramm auf und ergänzt es unten.',
   'foods.mealAiPlaceholder': 'z. B. eine Schale Rindernudeln, ein mariniertes Ei',

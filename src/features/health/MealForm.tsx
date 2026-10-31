@@ -20,6 +20,7 @@ import type { FoodDraft } from './FoodForm'
 import { analyzeMealPhrase, analyzeMealPhoto } from './mealPhrase'
 import type { PhraseItem } from './mealPhrase'
 import { foodMacros, formatNum, mealTotals } from './healthMath'
+import { componentPhoto } from './mealPhoto'
 
 interface Part {
   key: string
@@ -84,6 +85,8 @@ export default function MealForm({
     parts.map((part) => ({ foodId: part.foodId, grams: Number(part.grams) || 0 })),
     allFoods,
   )
+  /** 套餐没有独立封面：跟食物库、摄入列表一样，取第一个有照片的成分 */
+  const cover = componentPhoto(parts, allFoods)
 
   function addPart(food: HealthFood) {
     setParts((current) => [
@@ -223,6 +226,22 @@ export default function MealForm({
           className={`${INPUT} mt-1`}
         />
       </label>
+
+      {/* 套餐封面：成分里第一张有照片的食物，跟列表、选择器保持一致 */}
+      <div className="flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-2.5">
+        {cover ? (
+          <img
+            src={cover}
+            alt={t('foods.mealCover')}
+            className="h-16 w-16 shrink-0 rounded-lg object-cover"
+          />
+        ) : (
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-line px-1 text-center text-[11px] text-muted">
+            {t('foods.mealCover')}
+          </span>
+        )}
+        <p className="m-0 min-w-0 flex-1 text-[11px] text-muted">{t('foods.mealCoverHint')}</p>
+      </div>
 
       {/* 和新增食物同一套入口：AI 聊、图片导入，结果都直接补进「包含的食物」 */}
       {!aiOpen && (
@@ -374,6 +393,15 @@ export default function MealForm({
                   className="rounded-lg border border-line px-2 py-1.5"
                 >
                   <div className="flex items-center gap-2">
+                    {food?.photo && (
+                      <img
+                        src={food.photo}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="h-8 w-8 shrink-0 rounded-md object-cover"
+                      />
+                    )}
                     <span
                       className={`min-w-0 flex-1 truncate text-sm ${
                         food ? 'text-fg' : 'text-danger'
@@ -438,14 +466,25 @@ export default function MealForm({
                 <button
                   type="button"
                   onClick={() => addPart(food)}
-                  className="block w-full rounded-lg border border-line p-2 text-left transition-colors hover:border-brand/50"
+                  className="flex w-full items-center gap-2 rounded-lg border border-line p-2 text-left transition-colors hover:border-brand/50"
                 >
-                  <span className="block text-sm text-fg">{food.name}</span>
-                  <span className="mt-0.5 block text-xs text-muted">
-                    {t('intake.per100', { kcal: formatNum(food.kcal) })}
-                    {food.servingName && food.servingGrams
-                      ? ` · ${food.servingName} · ${formatNum(food.servingGrams)} g`
-                      : ''}
+                  {food.photo && (
+                    <img
+                      src={food.photo}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="h-9 w-9 shrink-0 rounded-md object-cover"
+                    />
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm text-fg">{food.name}</span>
+                    <span className="mt-0.5 block text-xs text-muted">
+                      {t('intake.per100', { kcal: formatNum(food.kcal) })}
+                      {food.servingName && food.servingGrams
+                        ? ` · ${food.servingName} · ${formatNum(food.servingGrams)} g`
+                        : ''}
+                    </span>
                   </span>
                 </button>
               </li>

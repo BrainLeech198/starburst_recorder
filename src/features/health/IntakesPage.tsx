@@ -23,6 +23,7 @@ import MealParts from './MealParts'
 import IntakeDialog from './IntakeDialog'
 import IntakeDetailDialog from './IntakeDetailDialog'
 import IntakeEditDialog from './IntakeEditDialog'
+import IntakeEditChoiceDialog from './IntakeEditChoiceDialog'
 import DayNav from '@/shared/ui/DayNav'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import { formatNum } from './healthMath'
@@ -73,8 +74,13 @@ export default function IntakesPage() {
   const [pendingDelete, setPendingDelete] = useState<HealthIntake | null>(null)
   /** 点开某一笔看完整营养成分 */
   const [detailIntake, setDetailIntake] = useState<HealthIntake | null>(null)
-  /** 正在编辑的那一笔 */
-  const [editingIntake, setEditingIntake] = useState<HealthIntake | null>(null)
+  /** 编辑前先问：只改这条记录，还是连食物库一起改 */
+  const [editChoice, setEditChoice] = useState<HealthIntake | null>(null)
+  /** 正在编辑的那一笔；syncLibrary 表示保存时同时写回食物库 */
+  const [editing, setEditing] = useState<{ intake: HealthIntake; syncLibrary: boolean } | null>(null)
+  /** 同步编辑要写回的那条食物；找不到（已删）就退回单独编辑 */
+  const linkedFood =
+    editing?.intake.foodId ? ((foods ?? []).find((food) => food.id === editing.intake.foodId) ?? null) : null
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
   /** 批量导出时取来的整库数据；非 null 就打开挑选弹窗 */
   const [exportData, setExportData] = useState<BackupData | null>(null)
@@ -91,6 +97,20 @@ export default function IntakesPage() {
     () => setDayKey(shiftDay(dayKey, -1)),
     () => setDayKey(shiftDay(dayKey, 1)),
   )
+
+  /**
+   * 编辑入口：这一笔来自食物库时先问「只改记录」还是「连食物库一起改」；
+   * 手动记录、套餐快照没有对应食物，直接进编辑。
+   */
+  function requestEdit(intake: HealthIntake) {
+    const hasLinkedFood =
+      !!intake.foodId && (foods ?? []).some((food) => food.id === intake.foodId)
+    if (hasLinkedFood) {
+      setEditChoice(intake)
+      return
+    }
+    setEditing({ intake, syncLibrary: false })
+  }
 
   async function openPicker() {
     setWrittenDays(new Set(await intakeDays()))
@@ -286,7 +306,7 @@ export default function IntakesPage() {
                   <div className="flex shrink-0 items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => setEditingIntake(intake)}
+                      onClick={() => requestEdit(intake)}
                       title={t('health.editIntake')}
                       aria-label={t('health.editIntake')}
                       className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm text-muted transition-colors hover:text-brand"
@@ -366,16 +386,34 @@ export default function IntakesPage() {
           intake={detailIntake}
           onClose={() => setDetailIntake(null)}
           onEdit={() => {
-            setEditingIntake(detailIntake)
+            requestEdit(detailIntake)
             setDetailIntake(null)
           }}
         />
       )}
 
-      {editingIntake && (
+      {editChoice && (
+        <IntakeEditChoiceDialog
+          name={editChoice.name}
+          onCancel={() => setEditChoice(null)}
+          onSingle={() => {
+            setEditing({ intake: editChoice, syncLibrary: false })
+            setEditChoice(null)
+          }}
+          onSync={() => {
+            setEditing({ intake: editChoice, syncLibrary: true })
+            setEditChoice(null)
+          }}
+        />
+      )}
+
+      {editing && (
         <IntakeEditDialog
-          intake={editingIntake}
-          onClose={() => setEditingIntake(null)}
+          key={editing.intake.id}
+          intake={editing.intake}
+          linkedFood={linkedFood}
+          syncLibrary={editing.syncLibrary}
+          onClose={() => setEditing(null)}
         />
       )}
 

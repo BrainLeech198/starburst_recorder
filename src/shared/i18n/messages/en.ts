@@ -129,6 +129,12 @@ export const en: Record<MessageKey, string> = {
     'Changing component grams recalculates nutrition and totals proportionally.',
   'health.intakeEditSave': 'Save',
   'health.intakeUpdated': 'Intake updated',
+  'health.intakeEditChoiceTitle': 'How do you want to edit this entry?',
+  'health.intakeEditSingle': 'Edit this entry only',
+  'health.intakeEditSingleHint': 'Only this history entry changes; the food library stays as is',
+  'health.intakeEditSync': 'Edit and update food library',
+  'health.intakeEditSyncHint': 'Also update the matching food in your library',
+  'health.intakeUpdatedLibrary': 'Intake and food library updated',
   'health.legendProtein': 'Protein',
   'health.legendCarbs': 'Carbs',
   'health.legendFat': 'Fat',
@@ -324,6 +330,9 @@ export const en: Record<MessageKey, string> = {
   'foods.mealUnknownPart': 'Deleted food',
   'foods.mealSave': 'Save meal',
   'foods.mealEdit': 'Edit meal',
+  'foods.mealCover': 'Meal cover',
+  'foods.mealCoverHint':
+    'Uses the first component that has a photo; change that food’s photo to update the cover.',
   'foods.mealAiAsk': 'Chat with AI to split this meal',
   'foods.mealAiHint':
     'Say something like “a bowl of beef noodles and a marinated egg”; AI splits it into foods and grams and adds them below.',

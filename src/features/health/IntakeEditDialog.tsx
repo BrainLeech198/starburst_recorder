@@ -5,7 +5,7 @@
  * 这样历史快照不会在编辑后和成分对不上。
  */
 import { useState } from 'react'
-import type { HealthIntake, IntakeComponent } from '@/core/db/schema'
+import type { HealthFood, HealthIntake, IntakeComponent } from '@/core/db/schema'
 import { formatDate } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
@@ -13,7 +13,7 @@ import Modal from '@/shared/ui/Modal'
 import { GHOST_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { round2, sumMacros } from './healthMath'
-import { saveIntake } from './healthRepo'
+import { saveHealthFood, saveIntake } from './healthRepo'
 
 interface ComponentDraft {
   /** 原始成分：克数比例与营养都以它为基准 */
@@ -37,9 +37,15 @@ function macroNumber(text: string) {
 
 export default function IntakeEditDialog({
   intake,
+  linkedFood = null,
+  syncLibrary = false,
   onClose,
 }: {
   intake: HealthIntake
+  /** 这条摄入来自食物库时对应的食物；同步编辑要把数值写回去 */
+  linkedFood?: HealthFood | null
+  /** 用户选了「同时更新食物库」 */
+  syncLibrary?: boolean
   onClose: () => void
 }) {
   const { t } = useI18n()
@@ -119,8 +125,22 @@ export default function IntakeEditDialog({
         carbs: carbs!,
         fat: fat!,
       })
+      // 同步模式把这次的总量折算回每 100g，写回食物库
+      if (syncLibrary && linkedFood && grams! > 0) {
+        const ratio = 100 / grams!
+        await saveHealthFood({
+          ...linkedFood,
+          name: name.trim(),
+          kcal: round2(kcal! * ratio),
+          protein: round2(protein! * ratio),
+          carbs: round2(carbs! * ratio),
+          fat: round2(fat! * ratio),
+        })
+      }
     }
-    showToast({ message: t('health.intakeUpdated') })
+    showToast({
+      message: t(syncLibrary && linkedFood ? 'health.intakeUpdatedLibrary' : 'health.intakeUpdated'),
+    })
     onClose()
   }
 
