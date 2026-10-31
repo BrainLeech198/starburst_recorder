@@ -316,6 +316,7 @@ export const en: Record<MessageKey, string> = {
   'foods.mealNeedOne': 'A meal needs at least one food.',
   'foods.mealDuplicate': 'A meal with this name already exists.',
   'foods.mealSaved': 'Meal saved',
+  'foods.mealCopied': 'Meal copied',
   'foods.mealDeleted': 'Meal removed',
   'foods.mealDeleteTitle': 'Delete meal “{name}”?',
   'foods.mealDeleteDesc': 'Entries you already logged stay as they are.',

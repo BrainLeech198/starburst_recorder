@@ -306,6 +306,7 @@ export const zhTW: Record<MessageKey, string> = {
   'foods.mealNeedOne': '套餐至少要包含一項食物。',
   'foods.mealDuplicate': '已經有同名的套餐了。',
   'foods.mealSaved': '套餐已儲存',
+  'foods.mealCopied': '已複製套餐',
   'foods.mealDeleted': '已刪掉套餐',
   'foods.mealDeleteTitle': '刪掉套餐「{name}」？',
   'foods.mealDeleteDesc': '已經記過的攝取不受影響，只是之後選不到。',

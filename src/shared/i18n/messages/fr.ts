@@ -306,6 +306,7 @@ export const fr: Record<MessageKey, string> = {
   'foods.mealNeedOne': 'Un menu doit contenir au moins un aliment.',
   'foods.mealDuplicate': 'Un menu du même nom existe déjà.',
   'foods.mealSaved': 'Menu enregistré',
+  'foods.mealCopied': 'Menu copié',
   'foods.mealDeleted': 'Menu supprimé',
   'foods.mealDeleteTitle': 'Supprimer le menu « {name} » ?',
   'foods.mealDeleteDesc': "Vos apports déjà notés ne changent pas, le menu ne sera simplement plus proposé.",

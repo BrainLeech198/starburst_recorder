@@ -19,6 +19,7 @@ import FoodForm from './FoodForm'
 import type { FoodDraft } from './FoodForm'
 import MealForm from './MealForm'
 import FoodInfoDialog from './FoodInfoDialog'
+import MealInfoDialog from './MealInfoDialog'
 import { formatNum, mealTotals } from './healthMath'
 import {
   healthFoods,
@@ -44,7 +45,7 @@ function byName(a: { name: string }, b: { name: string }) {
 }
 
 /** 复制出来的名字：默认「原名 副本」，撞名就往后加序号 */
-function copyName(base: string, foods: HealthFood[], suffix: string): string {
+function copyName(base: string, foods: { name: string }[], suffix: string): string {
   const name = `${base} ${suffix}`
   if (!foods.some((food) => food.name === name)) return name
   let index = 2
@@ -79,6 +80,7 @@ export default function FoodLibraryPage() {
 
   const [editingMeal, setEditingMeal] = useState<HealthMeal | null>(null)
   const [mealFormOpen, setMealFormOpen] = useState(false)
+  const [detailMeal, setDetailMeal] = useState<HealthMeal | null>(null)
   const [pendingMealDelete, setPendingMealDelete] = useState<HealthMeal | null>(null)
 
   /** 批量多选：食物和套餐各管各的，换页签就退出 */
@@ -177,6 +179,21 @@ export default function FoodLibraryPage() {
     }
     await saveHealthFood(food)
     return food
+  }
+
+  /** 复制套餐：成分和克数原样带过来，名称加「副本」 */
+  async function handleCopyMeal(meal: HealthMeal) {
+    // eslint-disable-next-line react-hooks/purity -- 在菜单回调里取时间，不在渲染期
+    const now = Date.now()
+    await saveHealthMeal({
+      ...meal,
+      id: newId(),
+      name: copyName(meal.name, meals ?? [], t('foods.copySuffix')),
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    })
+    showToast({ message: t('foods.mealCopied') })
   }
 
   async function handleMealSubmit(draft: { name: string; items: { foodId: string; grams: number }[] }) {
@@ -429,7 +446,12 @@ export default function FoodLibraryPage() {
                       onToggle={() => batch.toggle(meal.id)}
                     />
                   )}
-                  <div className="min-w-0 flex-1">
+                  <button
+                    type="button"
+                    disabled={batch.active}
+                    onClick={() => setDetailMeal(meal)}
+                    className="min-w-0 flex-1 rounded text-left transition-colors hover:text-brand disabled:cursor-default"
+                  >
                     <p className="m-0 text-sm text-fg">{meal.name}</p>
                     <p className="m-0 mt-0.5 text-xs text-muted">
                       {t('foods.mealItemCount', { n: totals.count })}
@@ -446,12 +468,13 @@ export default function FoodLibraryPage() {
                         grams: totals.grams,
                       })}
                     </p>
-                  </div>
+                  </button>
                   {!batch.active && (
                     <RowMenu
                       label={t('common.more')}
                       items={[
                         { label: t('foods.edit'), onSelect: () => openEditMeal(meal) },
+                        { label: t('foods.copy'), onSelect: () => void handleCopyMeal(meal) },
                         {
                           label: t('foods.delete'),
                           danger: true,
@@ -626,6 +649,14 @@ export default function FoodLibraryPage() {
       )}
 
       {detailFood && <FoodInfoDialog food={detailFood} onClose={() => setDetailFood(null)} />}
+
+      {detailMeal && (
+        <MealInfoDialog
+          meal={detailMeal}
+          foods={foods ?? []}
+          onClose={() => setDetailMeal(null)}
+        />
+      )}
     </PageShell>
   )
 }

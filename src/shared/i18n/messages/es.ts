@@ -308,6 +308,7 @@ export const es: Record<MessageKey, string> = {
   'foods.mealNeedOne': 'Un menú necesita al menos un alimento.',
   'foods.mealDuplicate': 'Ya existe un menú con este nombre.',
   'foods.mealSaved': 'Menú guardado',
+  'foods.mealCopied': 'Menú copiado',
   'foods.mealDeleted': 'Menú eliminado',
   'foods.mealDeleteTitle': '¿Eliminar el menú «{name}»?',
   'foods.mealDeleteDesc': 'Los registros que ya hiciste no cambian; solo dejarás de poder elegirlo.',

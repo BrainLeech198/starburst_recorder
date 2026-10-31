@@ -306,6 +306,7 @@ export const ru: Record<MessageKey, string> = {
   'foods.mealNeedOne': 'В наборе должен быть хотя бы один продукт.',
   'foods.mealDuplicate': 'Набор с таким названием уже есть.',
   'foods.mealSaved': 'Набор сохранён',
+  'foods.mealCopied': 'Набор скопирован',
   'foods.mealDeleted': 'Набор удалён',
   'foods.mealDeleteTitle': 'Удалить набор «{name}»?',
   'foods.mealDeleteDesc': 'Уже записанные приёмы пищи не изменятся, просто потом нельзя будет выбрать этот набор.',

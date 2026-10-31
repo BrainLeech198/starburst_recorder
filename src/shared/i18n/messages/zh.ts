@@ -307,6 +307,7 @@ export const zh = {
   'foods.mealNeedOne': '套餐至少要包含一项食物。',
   'foods.mealDuplicate': '已经有同名的套餐了。',
   'foods.mealSaved': '套餐已保存',
+  'foods.mealCopied': '已复制套餐',
   'foods.mealDeleted': '已删掉套餐',
   'foods.mealDeleteTitle': '删掉套餐「{name}」？',
   'foods.mealDeleteDesc': '已经记过的摄入不受影响，只是以后选不到了。',

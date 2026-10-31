@@ -306,6 +306,7 @@ export const ko: Record<MessageKey, string> = {
   'foods.mealNeedOne': '세트에는 음식이 최소 하나 있어야 해요.',
   'foods.mealDuplicate': '같은 이름의 세트가 이미 있어요.',
   'foods.mealSaved': '세트를 저장했어요',
+  'foods.mealCopied': '세트를 복사했어요',
   'foods.mealDeleted': '세트를 삭제했어요',
   'foods.mealDeleteTitle': '세트 「{name}」 삭제할까요?',
   'foods.mealDeleteDesc': '이미 기록한 섭취에는 영향이 없고, 앞으로 선택만 못 해요.',

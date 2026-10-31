@@ -306,6 +306,7 @@ export const ja: Record<MessageKey, string> = {
   'foods.mealNeedOne': 'セットには少なくとも1件の食品が必要です。',
   'foods.mealDuplicate': '同じ名前のセットがすでにあります。',
   'foods.mealSaved': 'セットを保存しました',
+  'foods.mealCopied': 'セットを複製しました',
   'foods.mealDeleted': 'セットを削除しました',
   'foods.mealDeleteTitle': 'セット「{name}」を削除しますか？',
   'foods.mealDeleteDesc': '記録済みの摂取には影響しません。今後選べなくなるだけです。',
