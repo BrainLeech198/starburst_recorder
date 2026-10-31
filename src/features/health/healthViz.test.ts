@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { WeighIn } from '@/core/db/schema'
 import {
+  bmiValue,
+  healthRangeSummary,
   intakeReviewKey,
   midnightPercent,
   offsetFromMidnight,
@@ -10,6 +12,7 @@ import {
   trendPoints,
   trendWeighIns,
   weightReviewKey,
+  weightTrendStats,
 } from './healthViz'
 
 function weight(dateKey: string, value: number): WeighIn {
@@ -44,6 +47,70 @@ describe('体重趋势', () => {
     const { points } = trendPoints([60, 64], 100, 60, 10)
     expect(points[0].y).toBeGreaterThan(points[1].y)
     expect(points[1].x).toBe(90)
+  })
+
+  it('摘要取首尾差、平均与高低，顺序打乱也不影响', () => {
+    const stats = weightTrendStats([
+      weight('2026-10-20', 63),
+      weight('2026-10-01', 64),
+      weight('2026-10-10', 62),
+    ])
+    expect(stats).not.toBeNull()
+    expect(stats!.latest).toBe(63)
+    expect(stats!.first).toBe(64)
+    expect(stats!.delta).toBe(-1)
+    expect(stats!.min).toBe(62)
+    expect(stats!.max).toBe(64)
+    expect(stats!.average).toBe(63)
+    expect(stats!.spanDays).toBe(19)
+    expect(stats!.weekly).toBeLessThan(0)
+  })
+
+  it('只有一个点或同一天多次称重时不给周均', () => {
+    expect(weightTrendStats([weight('2026-10-01', 62)])!.weekly).toBeNull()
+    expect(weightTrendStats([weight('2026-10-01', 62)])!.spanDays).toBe(0)
+  })
+
+  it('空列表没有摘要', () => {
+    expect(weightTrendStats([])).toBeNull()
+  })
+
+  it('BMI 按身高折算，身高缺失时返回 null', () => {
+    expect(bmiValue(63, 170)).toBe(21.8)
+    expect(bmiValue(63, null)).toBeNull()
+    expect(bmiValue(0, 170)).toBeNull()
+  })
+})
+
+describe('区间健康概览', () => {
+  it('按天合并摄入再算日均，蛋白按天判断达标', () => {
+    const summary = healthRangeSummary({
+      intakes: [
+        { dateKey: '2026-10-01', kcal: 800, protein: 60 },
+        { dateKey: '2026-10-01', kcal: 700, protein: 50 },
+        { dateKey: '2026-10-02', kcal: 1800, protein: 90 },
+      ],
+      sleeps: [
+        { bedtime: '23:00', wakeTime: '07:00', wakeEvents: [], wakeCount: null, wakeMinutes: null },
+        { bedtime: '00:30', wakeTime: '06:30', wakeEvents: [], wakeCount: null, wakeMinutes: null },
+      ],
+      proteinTarget: 100,
+    })
+    expect(summary.intakeDays).toBe(2)
+    expect(summary.avgKcal).toBe(1650)
+    expect(summary.proteinDays).toBe(2)
+    expect(summary.proteinHitDays).toBe(1)
+    expect(summary.sleepNights).toBe(2)
+    expect(summary.avgSleepMinutes).toBe(420)
+    expect(summary.wakeNights).toBe(0)
+  })
+
+  it('没有记录时不给平均值，也不虚报蛋白天数', () => {
+    const summary = healthRangeSummary({ intakes: [], sleeps: [], proteinTarget: 100 })
+    expect(summary.avgKcal).toBeNull()
+    expect(summary.avgSleepMinutes).toBeNull()
+    expect(summary.proteinDays).toBe(0)
+    expect(summary.proteinHitDays).toBe(0)
   })
 })
 

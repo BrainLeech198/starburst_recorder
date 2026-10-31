@@ -112,7 +112,12 @@ export default function WeighInCard({
       {weighIns.length > 0 && (
         <div className="mt-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-xs text-muted">{t('health.trendTitle')}</span>
+            <Link
+              to="/health/weights/trend"
+              className="text-xs text-muted transition-colors hover:text-brand"
+            >
+              {t('health.trendTitle')} ›
+            </Link>
             <div className="flex items-center gap-1">
               {TREND_RANGES.map((item) => (
                 <button
@@ -127,7 +132,10 @@ export default function WeighInCard({
               ))}
             </div>
           </div>
-          <WeightTrendChart items={trend} />
+          {/* 整张图都能点开详情页：小卡片只放走势，细节留给趋势页 */}
+          <Link to="/health/weights/trend" className="block">
+            <WeightTrendChart items={trend} />
+          </Link>
         </div>
       )}
     </div>

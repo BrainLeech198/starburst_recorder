@@ -23,6 +23,7 @@ import {
   BAR_BUTTON,
   BAR_DANGER,
   NAV_BACK_BUTTON,
+  OUTLINE_BUTTON,
   SOLID_BUTTON,
   choiceTile,
 } from '@/shared/ui/buttonStyles'
@@ -403,6 +404,13 @@ export default function WeightsPage() {
           </li>
         )}
       </ul>
+
+      {/* 详情都挪到趋势页：这里只留一个入口，避免记录页再堆一张图 */}
+      {weighIns.length > 0 && (
+        <Link to="/health/weights/trend" className={`${OUTLINE_BUTTON} mt-3 w-full`}>
+          {t('health.trendPageTitle')} ›
+        </Link>
+      )}
 
       {profile && (
         <section className="mt-4 rounded-2xl border border-line bg-surface p-4">

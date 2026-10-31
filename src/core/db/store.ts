@@ -247,6 +247,8 @@ export interface DiaryStore {
   purgeTrashedHealthMeals(): Promise<void>
   /** 某一天记下的摄入，按时间正序 */
   intakesOfDay(dateKey: string): Promise<HealthIntake[]>
+  /** 日期区间（含首尾）内的摄入，按日期、时间正序；趋势页做区间统计用 */
+  intakesBetween(from: string, to: string): Promise<HealthIntake[]>
   /** 有摄入记录的所有日期，日历上用来标「这天记过」 */
   intakeDays(): Promise<string[]>
   addIntake(intake: HealthIntake): Promise<HealthIntake>
@@ -263,6 +265,8 @@ export interface DiaryStore {
   purgeTrashedIntakes(): Promise<void>
   /** 某一天的一夜睡眠（dateKey = 起床那天）；没记就是 undefined */
   sleepOfDay(dateKey: string): Promise<HealthSleep | undefined>
+  /** 日期区间（含首尾）内的睡眠，按日期正序；趋势页做区间统计用 */
+  sleepsBetween(from: string, to: string): Promise<HealthSleep[]>
   /** 有睡眠记录的所有日期，日历上用来标「这天记过」 */
   sleepDays(): Promise<string[]>
   /** 新增或整行覆盖；返回存进去的那一条 */

@@ -89,10 +89,6 @@ interface DraftMealPart {
 
 type Step = 'list' | 'source' | 'picker' | 'newFood' | 'newMeal' | 'image' | 'meal' | 'phrase'
 
-/** 加食物的两种入口：标题 + 一行说明，避免两个实心按钮并列时不知道先点哪个 */
-const ENTRY_CARD =
-  'block w-full rounded-xl border border-line px-3 py-2.5 text-left transition-colors hover:border-brand'
-
 /** 只接受大于 0 的克数；空串和不认识的字都算没填 */
 function parseGrams(text: string): number | null {
   const value = Number(text)
@@ -892,11 +888,17 @@ export default function IntakeDialog({
               />
             </label>
 
-            {/* 两种加法和底部的「确定」抢主次，所以都做成带说明的选项卡片 */}
+            {/* 两种加法和底部的「确定」同为主操作，统一成实心按钮 */}
             <div className="space-y-2">
-              <button type="button" onClick={openSource} className={ENTRY_CARD}>
-                <span className="block text-sm text-fg">{t('intake.addItem')}</span>
-                <span className="mt-0.5 block text-xs text-muted">{t('intake.addItemHint')}</span>
+              <button
+                type="button"
+                onClick={openSource}
+                className={`${SOLID_BUTTON} w-full flex-col gap-0`}
+              >
+                <span>{t('intake.addItem')}</span>
+                <span className="text-[11px] font-normal text-on-brand/80">
+                  {t('intake.addItemHint')}
+                </span>
               </button>
               <button
                 type="button"
@@ -904,10 +906,12 @@ export default function IntakeDialog({
                   setPhraseError('')
                   setStep('phrase')
                 }}
-                className={ENTRY_CARD}
+                className={`${SOLID_BUTTON} w-full flex-col gap-0`}
               >
-                <span className="block text-sm text-fg">{t('intake.fromPhrase')}</span>
-                <span className="mt-0.5 block text-xs text-muted">{t('intake.fromPhraseHint')}</span>
+                <span>{t('intake.fromPhrase')}</span>
+                <span className="text-[11px] font-normal text-on-brand/80">
+                  {t('intake.fromPhraseHint')}
+                </span>
               </button>
             </div>
 

@@ -1,3 +1,18 @@
+## 0.7.0 · 2026-10-31
+
+### What's new
+
+- **The weight trend gets its own page**: open it from the chart on the health home, switch between 7 / 30 / 90 days, and tap a point or a record to inspect a day
+- **More health metrics**: average intake, average sleep, protein-goal days and estimated TDEE for the range; the selected day adds energy gap, protein progress, the difference from ideal sleep and BMI
+- **Two ways to edit an intake**: choose "Edit this entry only" or "Edit and update food library"; the latter converts the edited values back to per 100 g
+- **Meal thumbnails**: the meal form shows a cover and component thumbnails; the selected list in "Log an intake" now sits on its own layer, clearly apart from the entries above
+- **Unified buttons**: "Add a food" and "From one sentence" now match Confirm as solid primary buttons
+
+### Download
+
+- Windows 10/11: `starburst-recorder-0.7.0-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.7.0.apk` (~16 MB, release-signed)
+
 ## 0.6.3 · 2026-10-31
 
 ### What's new

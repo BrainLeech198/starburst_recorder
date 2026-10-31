@@ -207,6 +207,7 @@ export const sqliteStore: DiaryStore = {
     await call('purgeTrashedHealthMeals')
   },
   intakesOfDay: (dateKey) => call('intakesOfDay', dateKey),
+  intakesBetween: (from, to) => call('intakesBetween', from, to),
   intakeDays: () => call('intakeDays'),
   addIntake: (intake) => call('insertIntake', intake),
   saveIntake: async (intake) => {
@@ -230,6 +231,7 @@ export const sqliteStore: DiaryStore = {
     await call('purgeTrashedIntakes')
   },
   sleepOfDay: (dateKey) => call('sleepOfDay', dateKey),
+  sleepsBetween: (from, to) => call('sleepsBetween', from, to),
   sleepDays: () => call('sleepDays'),
   saveHealthSleep: async (sleep) => {
     const next: HealthSleep = { ...sleep, updatedAt: Date.now() }

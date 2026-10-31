@@ -675,6 +675,9 @@ function createDatabase(file) {
     intakesOfDay: db.prepare(
       'SELECT * FROM healthIntakes WHERE dateKey = ? AND deletedAt IS NULL ORDER BY time ASC',
     ),
+    intakesBetween: db.prepare(
+      'SELECT * FROM healthIntakes WHERE dateKey >= ? AND dateKey <= ? AND deletedAt IS NULL ORDER BY dateKey ASC, time ASC',
+    ),
     intakeDays: db.prepare(
       'SELECT DISTINCT dateKey FROM healthIntakes WHERE deletedAt IS NULL',
     ),
@@ -712,6 +715,9 @@ function createDatabase(file) {
     purgeTrashedIntakes: db.prepare('DELETE FROM healthIntakes WHERE deletedAt IS NOT NULL'),
     sleepOfDay: db.prepare(
       'SELECT * FROM healthSleeps WHERE dateKey = ? AND deletedAt IS NULL LIMIT 1',
+    ),
+    sleepsBetween: db.prepare(
+      'SELECT * FROM healthSleeps WHERE dateKey >= ? AND dateKey <= ? AND deletedAt IS NULL ORDER BY dateKey ASC',
     ),
     sleepDays: db.prepare('SELECT DISTINCT dateKey FROM healthSleeps WHERE deletedAt IS NULL'),
     upsertSleep: db.prepare(
@@ -1400,6 +1406,7 @@ function createDatabase(file) {
       q.purgeTrashedFoods.run()
     },
     intakesOfDay: (dateKey) => q.intakesOfDay.all(dateKey).map(intakeRow),
+    intakesBetween: (from, to) => q.intakesBetween.all(from, to).map(intakeRow),
     intakeDays: () => q.intakeDays.all().map((row) => row.dateKey),
     insertIntake,
     removeIntake: (id) => {
@@ -1419,6 +1426,7 @@ function createDatabase(file) {
       q.purgeTrashedIntakes.run()
     },
     sleepOfDay: (dateKey) => sleepRow(q.sleepOfDay.get(dateKey)),
+    sleepsBetween: (from, to) => q.sleepsBetween.all(from, to).map(sleepRow),
     sleepDays: () => q.sleepDays.all().map((row) => row.dateKey),
     saveHealthSleep: (sleep) => saveSleep(sleep),
     removeHealthSleep: (id) => {

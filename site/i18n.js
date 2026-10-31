@@ -23,7 +23,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.6.3',
+    'hero.cta': '下载 0.7.0',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -94,11 +94,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.6.3',
+    'open.version': '版本 0.7.0',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.6.3 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.7.0 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -109,11 +109,11 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '套餐可以点开看详情：成分、克数、热量与蛋白合计，以及被删除的缺失成分都会列出来',
+      '体重趋势独立成页：近 7 / 30 / 90 天切换，点曲线或记录就能看某一天的走势与细节',
     'whatsnew.item2':
-      '套餐支持复制：菜单里复制一份，成分和克数原样带过来，名称自动加「副本」',
+      '趋势页补上更多健康指标：日均摄入、日均睡眠、蛋白达标、推算 TDEE，以及选中日的能量差与睡眠差',
     'whatsnew.item3':
-      '套餐和单项食物的操作入口对齐：详情、编辑、复制、删除都能在同一个菜单里找到',
+      '摄入编辑可只改这一条，也可同步写回食物库；套餐表单补上封面与成分缩略图',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -122,7 +122,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.6.3',
+    'footer.version': '版本 0.7.0',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -145,7 +145,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.6.3',
+    'hero.cta': 'Download 0.7.0',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -220,12 +220,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.6.3',
+    'open.version': 'Version 0.7.0',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.6.3 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.7.0 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -236,13 +236,13 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.6.3",
+    'whatsnew.title': "What's new in 0.7.0",
     'whatsnew.item1':
-      'Meals now open a detail view: components, grams, total calories and protein, plus any deleted components are listed',
+      'The weight trend gets its own page: switch between 7 / 30 / 90 days and tap a point or a record to inspect a day',
     'whatsnew.item2':
-      'Meals can be duplicated: copy one from the menu with the same components and grams, and the name gets a copy suffix',
+      'More health metrics: average intake, average sleep, protein-goal days, estimated TDEE, plus energy and sleep gaps for the selected day',
     'whatsnew.item3':
-      'Meals now match single foods: detail, edit, copy and delete all live in the same row menu',
+      'Edit an intake alone or sync it back to the food library; meal forms now show a cover and component thumbnails',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -251,7 +251,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.6.3',
+    'footer.version': 'Version 0.7.0',
     'footer.tagline': 'Data stays on your device',
   },
 };

@@ -517,6 +517,17 @@ export const dexieStore: DiaryStore = {
       .sortBy('time')
   },
 
+  async intakesBetween(from: string, to: string): Promise<HealthIntake[]> {
+    const rows = await db.healthIntakes
+      .where('dateKey')
+      .between(from, to, true, true)
+      .filter((intake) => intake.deletedAt === null)
+      .toArray()
+    return rows.sort(
+      (a, b) => a.dateKey.localeCompare(b.dateKey) || a.time.localeCompare(b.time),
+    )
+  },
+
   async intakeDays(): Promise<string[]> {
     const rows = await db.healthIntakes.filter((intake) => intake.deletedAt === null).toArray()
     return [...new Set(rows.map((intake) => intake.dateKey))]
@@ -570,6 +581,15 @@ export const dexieStore: DiaryStore = {
       .equals(dateKey)
       .filter((sleep) => sleep.deletedAt === null)
       .first()
+  },
+
+  async sleepsBetween(from: string, to: string): Promise<HealthSleep[]> {
+    const rows = await db.healthSleeps
+      .where('dateKey')
+      .between(from, to, true, true)
+      .filter((sleep) => sleep.deletedAt === null)
+      .toArray()
+    return rows.sort((a, b) => a.dateKey.localeCompare(b.dateKey))
   },
 
   async sleepDays(): Promise<string[]> {

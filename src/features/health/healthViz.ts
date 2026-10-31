@@ -4,15 +4,19 @@
  * 全部不碰 React 和存储：页面只管把数据和坐标画出来，
  * 判断「这段曲线怎么走」「这一觉算长算短」这类事都放在这里，好写单测。
  */
-import type { WeighIn } from '@/core/db/schema'
+import type { HealthIntake, HealthSleep, WeighIn } from '@/core/db/schema'
 import { shiftDay } from '@/core/utils/dateKey'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
-import { sleepMinutes } from './sleepMath'
+import { sleepMinutes, sleepWakeStats } from './sleepMath'
 
-/** 体重趋势的四个区间，单位是天（30 天在界面上叫「近一月」） */
-export type TrendRange = 3 | 5 | 7 | 30
+/** 体重趋势的区间，单位是天（30 天在界面上叫「近一月」） */
+export type TrendRange = 3 | 5 | 7 | 30 | 90
 
+/** 健康首页小卡片上只放短区间，详情页再给更长的 90 天 */
 export const TREND_RANGES: TrendRange[] = [3, 5, 7, 30]
+
+/** 趋势详情页的区间：至少一周才看得出走势 */
+export const DETAIL_TREND_RANGES: TrendRange[] = [7, 30, 90]
 
 /** 取区间内（含今天）的称重，按日期从早到晚；区间外的旧记录不画 */
 export function trendWeighIns(
@@ -63,6 +67,135 @@ export function trendPoints(
     y: pad + (1 - (value - bottom) / (top - bottom)) * usable,
   }))
   return { points, min, max }
+}
+
+export interface WeightTrendStats {
+  /** 区间内最后一次称重 */
+  latest: number
+  /** 区间内第一次称重 */
+  first: number
+  /** 首尾之差；正数是涨 */
+  delta: number
+  min: number
+  max: number
+  average: number
+  /** 首尾相隔几天；同一天为 0 */
+  spanDays: number
+  /** 线性回归折出来的每周变化；不到 3 天或点全在同一天时为 null */
+  weekly: number | null
+}
+
+/** 按日期升序排一份副本，称重历史本身的顺序不作数 */
+function ascending(items: WeighIn[]): WeighIn[] {
+  return [...items].sort((a, b) => (a.dateKey < b.dateKey ? -1 : a.dateKey > b.dateKey ? 1 : 0))
+}
+
+/** 每天变化多少公斤；点数不够或横轴跨度为 0 时返回 null */
+function dailySlope(items: WeighIn[]): number | null {
+  if (items.length < 2) return null
+  const first = items[0].dateKey
+  const xs = items.map((item) => daysBetween(first, item.dateKey))
+  const ys = items.map((item) => item.weightKg)
+  const meanX = xs.reduce((sum, value) => sum + value, 0) / xs.length
+  const meanY = ys.reduce((sum, value) => sum + value, 0) / ys.length
+  let numerator = 0
+  let denominator = 0
+  xs.forEach((x, index) => {
+    numerator += (x - meanX) * (ys[index] - meanY)
+    denominator += (x - meanX) ** 2
+  })
+  return denominator === 0 ? null : numerator / denominator
+}
+
+/**
+ * 区间摘要：最新、首尾差、平均、最高最低，以及按线性回归折出来的周均变化。
+ * 用回归而不是「最后两点之差」，是因为每周称重时相邻两点波动很大，回归更接近真实趋势。
+ */
+export function weightTrendStats(items: WeighIn[]): WeightTrendStats | null {
+  if (items.length === 0) return null
+  const sorted = ascending(items)
+  const values = sorted.map((item) => item.weightKg)
+  const first = values[0]
+  const latest = values[values.length - 1]
+  const spanDays = daysBetween(sorted[0].dateKey, sorted[sorted.length - 1].dateKey)
+  const slope = dailySlope(sorted)
+  return {
+    latest,
+    first,
+    delta: Math.round((latest - first) * 100) / 100,
+    min: Math.min(...values),
+    max: Math.max(...values),
+    average: Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 100) / 100,
+    spanDays,
+    // 跨不到 3 天时，一天的波动会被放大成「一周掉几公斤」，不如不给
+    weekly: slope === null || spanDays < 3 ? null : Math.round(slope * 7 * 100) / 100,
+  }
+}
+
+/** BMI：身高没填或数值不合理时返回 null，页面自己决定显不显示 */
+export function bmiValue(weightKg: number, heightCm: number | null | undefined): number | null {
+  if (!heightCm || heightCm <= 0 || !(weightKg > 0)) return null
+  const meters = heightCm / 100
+  return Math.round((weightKg / (meters * meters)) * 10) / 10
+}
+
+/** 区间内摄入与睡眠的汇总；只统计有记录的天 / 夜，不拿空白日拉低平均 */
+export interface HealthRangeSummary {
+  /** 有摄入记录的天数 */
+  intakeDays: number
+  /** 这些天的日均热量 */
+  avgKcal: number | null
+  /** 有蛋白目标、且记过摄入的天数 */
+  proteinDays: number
+  /** 其中蛋白达标的天数 */
+  proteinHitDays: number
+  /** 有睡眠记录的夜数 */
+  sleepNights: number
+  /** 这些夜的平均睡眠分钟数 */
+  avgSleepMinutes: number | null
+  /** 有夜醒的夜数 */
+  wakeNights: number
+}
+
+/**
+ * 摄入 / 睡眠的区间汇总：先按天合并摄入，再算日均；
+ * 睡眠按时长取平均，夜醒次数用逐条事件汇总（旧记录回退到汇总字段）。
+ */
+export function healthRangeSummary(params: {
+  intakes: Pick<HealthIntake, 'dateKey' | 'kcal' | 'protein'>[]
+  sleeps: Pick<
+    HealthSleep,
+    'bedtime' | 'wakeTime' | 'wakeEvents' | 'wakeCount' | 'wakeMinutes'
+  >[]
+  proteinTarget: number | null
+}): HealthRangeSummary {
+  const byDay = new Map<string, { kcal: number; protein: number }>()
+  for (const intake of params.intakes) {
+    const day = byDay.get(intake.dateKey) ?? { kcal: 0, protein: 0 }
+    day.kcal += intake.kcal
+    day.protein += intake.protein
+    byDay.set(intake.dateKey, day)
+  }
+  const days = [...byDay.values()]
+  const target = params.proteinTarget
+  const hasProteinTarget = target !== null && target > 0
+  const totalSleep = params.sleeps.reduce(
+    (sum, sleep) => sum + sleepMinutes(sleep.bedtime, sleep.wakeTime),
+    0,
+  )
+  return {
+    intakeDays: days.length,
+    avgKcal:
+      days.length === 0
+        ? null
+        : Math.round(days.reduce((sum, day) => sum + day.kcal, 0) / days.length),
+    proteinDays: hasProteinTarget ? days.length : 0,
+    proteinHitDays: hasProteinTarget ? days.filter((day) => day.protein >= target).length : 0,
+    sleepNights: params.sleeps.length,
+    avgSleepMinutes:
+      params.sleeps.length === 0 ? null : Math.round(totalSleep / params.sleeps.length),
+    wakeNights: params.sleeps.filter((sleep) => (sleepWakeStats(sleep).count ?? 0) > 0).length,
+  }
 }
 
 /** 时刻相对 0 点的分钟数；12:00 及以后算负（放到零点左边） */
