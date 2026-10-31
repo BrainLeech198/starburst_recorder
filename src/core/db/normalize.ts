@@ -348,6 +348,9 @@ export function pickSleep(raw: unknown): HealthSleep | null {
   const bedtime = text(item.bedtime)
   const wakeTime = text(item.wakeTime)
   const quality = nullableNumber(item.quality)
+  // 夜醒次数 / 累计分钟：只认 0 以上的整数，缺失或坏值当成没记
+  const wakeCount = nullableNumber(item.wakeCount)
+  const wakeMinutes = nullableNumber(item.wakeMinutes)
   return {
     id,
     code: text(item.code) || newCode(),
@@ -357,6 +360,12 @@ export function pickSleep(raw: unknown): HealthSleep | null {
     wakeTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(wakeTime) ? wakeTime : '00:00',
     // 只认 1–5，越界或缺失都算没评
     quality: quality !== null && quality >= 1 && quality <= 5 ? quality : null,
+    wakeCount:
+      wakeCount !== null && wakeCount >= 0 && wakeCount <= 99 ? Math.floor(wakeCount) : null,
+    wakeMinutes:
+      wakeMinutes !== null && wakeMinutes >= 0 && wakeMinutes <= 1440
+        ? Math.floor(wakeMinutes)
+        : null,
     note: text(item.note),
     createdAt: number(item.createdAt, Date.now()),
     updatedAt: number(item.updatedAt, Date.now()),

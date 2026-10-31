@@ -84,28 +84,28 @@ export default function WeighInCard({
         </p>
       )}
 
-      {/* 记体重 + 推算 TDEE 收成一行：大数字留给趋势图，这里只是快捷入口 */}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      {/* 记体重 + 推算 TDEE：输入行只放输入和按钮，推算结果另起一行，窄屏不会把按钮挤掉 */}
+      <div className="mt-3 flex items-center gap-2">
         <input
           value={weightText}
           onChange={(event) => setWeightText(event.target.value)}
           inputMode="decimal"
           placeholder={t('health.weighUnit')}
           aria-label={t('health.weighRecord')}
-          className={INPUT + ' w-28'}
+          className={INPUT + ' w-24 min-w-0 flex-1 sm:w-28 sm:flex-none'}
         />
         <button
           type="button"
           onClick={() => void recordWeight()}
           disabled={!profile}
-          className={SOLID_SMALL_BUTTON + ' disabled:opacity-40'}
+          className={SOLID_SMALL_BUTTON + ' shrink-0 disabled:opacity-40'}
         >
           {t('health.weighRecord')}
         </button>
-        <span className="ml-auto text-xs tabular-nums text-muted">
-          {derived ? t('health.derivedLine', { value: formatNum(derived) }) : t('health.derivedNone')}
-        </span>
       </div>
+      <p className="m-0 mt-1.5 text-xs tabular-nums text-muted">
+        {derived ? t('health.derivedLine', { value: formatNum(derived) }) : t('health.derivedNone')}
+      </p>
 
       <HealthEstimateNote interactive className="mt-1.5" />
 

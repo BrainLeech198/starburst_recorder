@@ -6,6 +6,7 @@ import {
   offsetFromMidnight,
   sleepBarLayout,
   sleepReviewKey,
+  sleepWakeMessage,
   trendPoints,
   trendWeighIns,
   weightReviewKey,
@@ -79,6 +80,10 @@ describe('卡片小评价', () => {
     expect(intakeReviewKey(2500, 2000)).toBe('review.intakeOver')
     expect(intakeReviewKey(3200, 2000)).toBe('review.intakeWayOver')
     expect(intakeReviewKey(1800, null)).toBe('review.intakeGood')
+    // 热量达标时看蛋白：蛋白差太多会单独提醒，蛋白够了给更具体的肯定
+    expect(intakeReviewKey(1900, 2000, 50, 100)).toBe('review.intakeLowProtein')
+    expect(intakeReviewKey(1900, 2000, 110, 100)).toBe('review.intakeProteinHit')
+    expect(intakeReviewKey(2500, 2000, 20, 100)).toBe('review.intakeOver')
   })
 
   it('体重按最近两次的变化分档', () => {
@@ -90,6 +95,9 @@ describe('卡片小评价', () => {
       .toBe('review.weightUp')
     expect(weightReviewKey([weight('2026-10-01', 62), weight('2026-10-08', 62.1)]))
       .toBe('review.weightFlat')
+    // 隔天就波动 0.3 kg 以上：先当成水分，不当作真趋势
+    expect(weightReviewKey([weight('2026-10-07', 62), weight('2026-10-08', 62.4)]))
+      .toBe('review.weightFluctuation')
   })
 
   it('睡眠按时长与质量分档', () => {
@@ -99,5 +107,25 @@ describe('卡片小评价', () => {
     expect(sleepReviewKey(480, 1)).toBe('review.sleepGood')
     expect(sleepReviewKey(480, null)).toBe('review.sleepGood')
     expect(sleepReviewKey(600, null)).toBe('review.sleepLong')
+    // 夜醒优先于时长/质量：频繁夜醒提示被切碎，偶尔醒一次单独提醒
+    expect(sleepReviewKey(480, null, 1, 5)).toBe('review.sleepWoken')
+    expect(sleepReviewKey(480, null, 3, 10)).toBe('review.sleepFragmented')
+    expect(sleepReviewKey(480, null, 1, 40)).toBe('review.sleepFragmented')
+  })
+
+  it('夜醒文案按记了次数还是分钟组合', () => {
+    expect(sleepWakeMessage(null, null)).toBeNull()
+    expect(sleepWakeMessage(2, 15)).toEqual({
+      key: 'health.sleepWakeLine',
+      params: { n: 2, m: 15 },
+    })
+    expect(sleepWakeMessage(1, null)).toEqual({
+      key: 'health.sleepWakeCountLine',
+      params: { n: 1 },
+    })
+    expect(sleepWakeMessage(null, 0)).toEqual({
+      key: 'health.sleepWakeMinutesLine',
+      params: { m: 0 },
+    })
   })
 })

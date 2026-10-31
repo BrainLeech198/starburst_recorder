@@ -2,7 +2,7 @@
   "name": "starburst-recorder",
   "private": true,
   "license": "MIT",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "type": "module",
   "description": "星芒记录者 —— 本地优先的个人记录工具，内置 AI 整理",
   "author": "starburst",

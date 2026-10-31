@@ -125,6 +125,19 @@ describe('睡眠行：时刻坏了退回 00:00，评分只认 1–5', () => {
     expect(pickSleep({ ...base, quality: 3 })?.quality).toBe(3)
   })
 
+  it('夜醒次数与分钟：缺失补 null，坏的整数剔掉', () => {
+    expect(pickSleep(base)).toMatchObject({ wakeCount: null, wakeMinutes: null })
+    expect(pickSleep({ ...base, wakeCount: 2, wakeMinutes: 0 })).toMatchObject({
+      wakeCount: 2,
+      wakeMinutes: 0,
+    })
+    expect(pickSleep({ ...base, wakeCount: -1, wakeMinutes: 5000 })).toMatchObject({
+      wakeCount: null,
+      wakeMinutes: null,
+    })
+    expect(pickSleep({ ...base, wakeCount: 1.5 })?.wakeCount).toBe(1)
+  })
+
   it('id 或日期缺失整行丢掉', () => {
     expect(pickSleep({ ...base, id: '' })).toBeNull()
     expect(pickSleep({ ...base, dateKey: '2026-13-40' })).toBeNull()

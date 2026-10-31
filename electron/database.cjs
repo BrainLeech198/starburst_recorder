@@ -140,6 +140,8 @@ const SCHEMA = `
     bedtime TEXT NOT NULL,
     wakeTime TEXT NOT NULL,
     quality INTEGER,
+    wakeCount INTEGER,
+    wakeMinutes INTEGER,
     note TEXT NOT NULL DEFAULT '',
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER NOT NULL,
@@ -346,6 +348,8 @@ function sleepRow(row) {
     bedtime: row.bedtime,
     wakeTime: row.wakeTime,
     quality: num(row.quality),
+    wakeCount: num(row.wakeCount),
+    wakeMinutes: num(row.wakeMinutes),
     note: row.note ?? '',
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -467,6 +471,14 @@ function createDatabase(file) {
   )
   if (!entryColumns.has('images'))
     db.exec("ALTER TABLE diaryEntries ADD COLUMN images TEXT NOT NULL DEFAULT '[]'")
+  // 睡眠的夜醒次数 / 累计分钟：老库补两列，新库建表时就有
+  const sleepColumns = new Set(
+    db.prepare('PRAGMA table_info(healthSleeps)').all().map((row) => row.name),
+  )
+  if (!sleepColumns.has('wakeCount'))
+    db.exec('ALTER TABLE healthSleeps ADD COLUMN wakeCount INTEGER')
+  if (!sleepColumns.has('wakeMinutes'))
+    db.exec('ALTER TABLE healthSleeps ADD COLUMN wakeMinutes INTEGER')
   // 旧记录补上 7 位短编号；新记录写入时自己带
   const fillCode = "substr(lower(hex(randomblob(4))), 1, 7)"
   db.exec(`UPDATE healthFoods SET code = ${fillCode} WHERE code IS NULL OR code = ''`)
@@ -661,14 +673,16 @@ function createDatabase(file) {
     sleepDays: db.prepare('SELECT DISTINCT dateKey FROM healthSleeps WHERE deletedAt IS NULL'),
     upsertSleep: db.prepare(
       `INSERT INTO healthSleeps
-         (id, code, dateKey, bedtime, wakeTime, quality, note, createdAt, updatedAt, deletedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (id, code, dateKey, bedtime, wakeTime, quality, wakeCount, wakeMinutes, note, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          code = excluded.code,
          dateKey = excluded.dateKey,
          bedtime = excluded.bedtime,
          wakeTime = excluded.wakeTime,
          quality = excluded.quality,
+         wakeCount = excluded.wakeCount,
+         wakeMinutes = excluded.wakeMinutes,
          note = excluded.note,
          createdAt = excluded.createdAt,
          updatedAt = excluded.updatedAt,
@@ -820,6 +834,8 @@ function createDatabase(file) {
       sleep.bedtime,
       sleep.wakeTime,
       num(sleep.quality),
+      num(sleep.wakeCount),
+      num(sleep.wakeMinutes),
       sleep.note ?? '',
       num(sleep.createdAt) ?? Date.now(),
       num(sleep.updatedAt) ?? Date.now(),

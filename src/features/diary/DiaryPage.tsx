@@ -37,11 +37,9 @@ import {
   formatDate,
   formatMonthDay,
   isDateKey,
-  relativeDayKey,
-  shiftDay,
   todayKey,
-  weekdayKey,
 } from '@/core/utils/dateKey'
+import DayNav from '@/shared/ui/DayNav'
 import DatePickerDialog from './DatePickerDialog'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { prepareImages } from './imageAssets'
@@ -123,7 +121,6 @@ export default function DiaryPage() {
 
   const entries = useLiveQuery(() => entriesOfDay(dateKey), [dateKey])
   const stamps = useLiveQuery(() => stampsOfDay(dateKey), [dateKey])
-  const isToday = dateKey === todayKey()
 
   const unit = mode === 'diary' ? t('diary.unitDiary') : t('diary.unitStamp')
   /** 「3 条日记」「2 笔随记」：数量与量词一起由文案决定，方便以后换语言 */
@@ -366,80 +363,39 @@ export default function DiaryPage() {
 
   return (
     <div className="w-full p-4">
-      {/* 日期导航优先：窄屏时右侧入口整体换到下一行，而不是把日期挤成省略号 */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <div className="flex min-w-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setDateKey(shiftDay(dateKey, -1))}
-            aria-label={t('diary.prevDay')}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
-          >
-            ‹
-          </button>
+      {/* 日期与栏目入口吸顶常驻：翻长列表时还能直接换天、切日记 / 随记 */}
+      <DayNav
+        dayKey={dateKey}
+        onChange={setDateKey}
+        onPick={() => {
+          setHint('')
+          setPickerOpen(true)
+        }}
+        labels={{
+          prev: t('diary.prevDay'),
+          next: t('diary.nextDay'),
+          pick: t('common.pickDate'),
+          today: t('diary.today'),
+        }}
+        trailing={
+          <>
+            <Tab active={mode === 'diary'} onClick={() => switchMode('diary')}>
+              {t('diary.tabDiary')}
+            </Tab>
+            <Tab active={mode === 'stamp'} onClick={() => switchMode('stamp')}>
+              {t('diary.tabStamp')}
+            </Tab>
 
-          {/* 日期本身就是日期选择入口 */}
-          <button
-            type="button"
-            onClick={() => {
-              setHint('')
-              setPickerOpen(true)
-            }}
-            className="font-hand flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:text-brand"
-          >
-            {/* 今天绿、其他日期黄：一眼知道列表停在哪一段 */}
-            <span
-              className={[
-                'shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium leading-none',
-                isToday ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning',
-              ].join(' ')}
+            {/* 预设库是资料页，不常点，放在右上角做一个小入口 */}
+            <Link
+              to="/diary/presets"
+              className="ml-1 inline-flex h-8 items-center rounded-lg border border-line px-2 text-xs text-muted transition-colors hover:text-fg"
             >
-              {t(relativeDayKey(dateKey))}
-            </span>
-            <span className="min-w-0 truncate text-sm">{formatDate(dateKey, t)}</span>
-            <span className="hidden shrink-0 text-xs text-muted min-[360px]:inline"
-            >
-              {t(weekdayKey(dateKey))}
-            </span>
-          </button>
-
-          {!isToday && (
-            <button
-              type="button"
-              onClick={() => setDateKey(todayKey())}
-              className="ml-1 shrink-0 whitespace-nowrap rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-brand"
-            >
-              {t('diary.today')}
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setDateKey(shiftDay(dateKey, 1))}
-            aria-label={t('diary.nextDay')}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
-          >
-            ›
-          </button>
-        </div>
-
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          <Tab active={mode === 'diary'} onClick={() => switchMode('diary')}>
-            {t('diary.tabDiary')}
-          </Tab>
-          <Tab active={mode === 'stamp'} onClick={() => switchMode('stamp')}>
-            {t('diary.tabStamp')}
-          </Tab>
-
-          {/* 预设库是资料页，不常点，放在右上角做一个小入口 */}
-          <Link
-            to="/diary/presets"
-            className="ml-1 inline-flex h-8 items-center rounded-lg border border-line px-2 text-xs text-muted transition-colors hover:text-fg"
-          >
-            {t('diary.presets')}
-          </Link>
-        </div>
-      </div>
+              {t('diary.presets')}
+            </Link>
+          </>
+        }
+      />
 
       {/* 整行都是按钮，套一层底色跟下面的内容分开。
           窄屏排 2×2 网格——流式换行会让第 2、3 行各剩一个孤按钮、右边一大片空白；

@@ -1,14 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
-import {
-  formatDate,
-  isDateKey,
-  relativeDayKey,
-  shiftDay,
-  todayKey,
-  weekdayKey,
-} from '@/core/utils/dateKey'
+import { formatDate, isDateKey, todayKey } from '@/core/utils/dateKey'
+import DayNav from '@/shared/ui/DayNav'
 import { useI18n } from '@/shared/i18n/context'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { OUTLINE_BUTTON, SOLID_BUTTON, SOLID_SMALL_BUTTON } from '@/shared/ui/buttonStyles'
@@ -16,7 +10,7 @@ import type { HealthProfile } from '@/core/db/schema'
 import IntakeBar, { ProteinBar } from './IntakeBar'
 import WeighInCard from './WeighInCard'
 import SleepBar from './SleepBar'
-import { intakeReviewKey, sleepReviewKey } from './healthViz'
+import { intakeReviewKey, sleepReviewKey, sleepWakeMessage } from './healthViz'
 import { useDerivedTdee } from './useDerivedTdee'
 import { maybeNotifyWeighDay, syncWeighReminder } from './weighNotify'
 import SleepDialog from './SleepDialog'
@@ -101,91 +95,61 @@ export default function HealthPage() {
   // 今天跟着当前档案走（改了档案今天的线立刻改）；过去的日子按当天第一笔的快照
   const targets = dayTargets(intakes ?? [], profile, isToday)
   const remaining = remainingKcal(targets.targetKcal, totals.kcal)
-  const intakeReview = intakeReviewKey(totals.kcal, targets.targetKcal)
+  const intakeReview = intakeReviewKey(
+    totals.kcal,
+    targets.targetKcal,
+    totals.protein,
+    targets.proteinTarget,
+  )
   const sleepReview =
     sleep === null || sleep === undefined
       ? null
-      : sleepReviewKey(sleepMinutes(sleep.bedtime, sleep.wakeTime), sleep.quality)
+      : sleepReviewKey(
+          sleepMinutes(sleep.bedtime, sleep.wakeTime),
+          sleep.quality,
+          sleep.wakeCount,
+          sleep.wakeMinutes,
+        )
+  const sleepWake =
+    sleep === null || sleep === undefined
+      ? null
+      : sleepWakeMessage(sleep.wakeCount, sleep.wakeMinutes)
   const fieldNames = missing
     .map((key) => t(FIELD_LABELS[key as keyof typeof FIELD_LABELS]))
     .join(' / ')
 
   return (
     <div className="w-full p-4">
-      {/* 第一行只放页面级入口；「记一笔」是当天卡片自己的操作，留在卡片里 */}
-      <header className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        {/* 日期导航优先：窄屏时右侧入口整体换到下一行，而不是把日期挤成省略号 */}
-        <div className="flex min-w-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setDayKey(shiftDay(dayKey, -1))}
-            aria-label={t('health.prevDay')}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
-          >
-            ‹
-          </button>
-
-          {/* 日期本身就是日期选择入口，跟日记一致 */}
-          <button
-            type="button"
-            onClick={() => void openPicker()}
-            aria-label={t('health.pickDate')}
-            className="font-hand flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:text-brand"
-          >
-            {/* 今天绿、其他日期黄：跟日记一致，一眼知道在看哪一天 */}
-            <span
-              className={[
-                'shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium leading-none',
-                isToday ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning',
-              ].join(' ')}
+      {/* 日期与页面级入口（食物库 / 档案）吸顶常驻，跟日记同一条口径 */}
+      <DayNav
+        dayKey={dayKey}
+        onChange={setDayKey}
+        onPick={() => void openPicker()}
+        labels={{
+          prev: t('health.prevDay'),
+          next: t('health.nextDay'),
+          pick: t('health.pickDate'),
+          today: t('health.backToToday'),
+        }}
+        trailing={
+          <>
+            <Link
+              to="/health/foods"
+              className="inline-flex h-8 items-center rounded-lg px-2 text-sm text-muted transition-colors hover:text-fg"
             >
-              {t(relativeDayKey(dayKey))}
-            </span>
-            <span className="min-w-0 truncate text-sm">{formatDate(dayKey, t)}</span>
-            <span className="hidden shrink-0 text-xs text-muted min-[360px]:inline">
-              {t(weekdayKey(dayKey))}
-            </span>
-          </button>
-
-          {!isToday && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchParams({}, { replace: true })
-              }}
-              className="ml-1 shrink-0 whitespace-nowrap rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-brand"
+              {t('health.foods')}
+            </Link>
+            <Link
+              to="/health/profile"
+              aria-label={t('health.profile')}
+              title={t('health.profile')}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-lg text-muted transition-colors hover:text-fg"
             >
-              {t('health.backToToday')}
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setDayKey(shiftDay(dayKey, 1))}
-            aria-label={t('health.nextDay')}
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
-          >
-            ›
-          </button>
-        </div>
-
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          <Link
-            to="/health/foods"
-            className="inline-flex h-10 items-center rounded-lg px-3 text-sm text-muted transition-colors hover:text-fg"
-          >
-            {t('health.foods')}
-          </Link>
-          <Link
-            to="/health/profile"
-            aria-label={t('health.profile')}
-            title={t('health.profile')}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-lg text-muted transition-colors hover:text-fg"
-          >
-            <span aria-hidden="true">⚙</span>
-          </Link>
-        </div>
-      </header>
+              <span aria-hidden="true">⚙</span>
+            </Link>
+          </>
+        }
+      />
 
       {!ready && (
         <section className="mt-4 rounded-2xl border border-warning/40 bg-warning/10 p-4">
@@ -311,6 +275,7 @@ export default function HealthPage() {
               {sleep.quality !== null && (
                 <span className="ml-2 text-warning">{'★'.repeat(sleep.quality)}</span>
               )}
+              {sleepWake && <span className="ml-2">{t(sleepWake.key, sleepWake.params)}</span>}
             </p>
             <SleepBar
               sleep={sleep}

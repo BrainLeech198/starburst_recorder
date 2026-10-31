@@ -267,6 +267,13 @@ function mealSummary(meal: HealthMeal) {
 function sleepSummary(sleep: HealthSleep) {
   const parts = [sleep.dateKey + ' ' + sleep.bedtime + '\u2192' + sleep.wakeTime]
   if (sleep.quality !== null) parts.push('q' + sleep.quality)
+  // 夜醒也算这一夜的内容：次数和累计分钟都要在冲突对比里看得到
+  if (sleep.wakeCount !== null && sleep.wakeCount !== undefined) {
+    parts.push('wake ' + sleep.wakeCount)
+  }
+  if (sleep.wakeMinutes !== null && sleep.wakeMinutes !== undefined) {
+    parts.push('wake ' + sleep.wakeMinutes + 'min')
+  }
   if (sleep.note !== '') parts.push(sleep.note)
   return parts.join(' \u00b7 ')
 }
@@ -277,6 +284,8 @@ function sleepDiffers(local: HealthSleep, incoming: HealthSleep) {
     local.bedtime !== incoming.bedtime ||
     local.wakeTime !== incoming.wakeTime ||
     (local.quality ?? null) !== (incoming.quality ?? null) ||
+    (local.wakeCount ?? null) !== (incoming.wakeCount ?? null) ||
+    (local.wakeMinutes ?? null) !== (incoming.wakeMinutes ?? null) ||
     local.note !== incoming.note ||
     tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
   )
@@ -297,6 +306,8 @@ function intakeSummary(intake: HealthIntake) {
 }
 
 function profileSummary(profile: HealthProfile) {
+  const weighIns = profile.weighIns ?? []
+  const latest = weighIns[0]
   return [
     profile.sex,
     `${profile.age}y`,
@@ -305,7 +316,15 @@ function profileSummary(profile: HealthProfile) {
     `TDEE ${profile.tdee ?? '—'}`,
     `target ${profile.targetKcal ?? '—'}`,
     `protein ${profile.proteinTarget ?? '—'}g`,
+    `weigh-ins ${weighIns.length}${latest ? ` (${latest.weightKg}kg @${latest.dateKey})` : ''}`,
+    `ideal ${profile.idealBedtime}→${profile.idealWakeTime}`,
+    `weigh-day ${profile.weighDay ?? '—'} @${profile.weighTime}`,
   ].join(' · ')
+}
+
+/** 称重历史只比「日期 + 体重」：createdAt/updatedAt 是导入时重写的，拿来比会凭空造冲突 */
+function weighInsKey(weighIns: HealthProfile['weighIns']) {
+  return (weighIns ?? []).map((item) => `${item.dateKey}:${item.weightKg}`).join(',')
 }
 
 /** 套餐只看组成；两份组成完全一样就不算冲突 */
@@ -370,7 +389,13 @@ function profileDiffers(local: HealthProfile, incoming: HealthProfile) {
     (local.targetKcal ?? null) !== (incoming.targetKcal ?? null) ||
     (local.proteinTarget ?? null) !== (incoming.proteinTarget ?? null) ||
     local.plan !== incoming.plan ||
-    local.note !== incoming.note
+    local.note !== incoming.note ||
+    // 下面这几项也住在档案里：漏比就会在融合导入时被备份整份覆盖，本地体重历史和作息设置悄悄丢
+    (local.weighDay ?? null) !== (incoming.weighDay ?? null) ||
+    local.weighTime !== incoming.weighTime ||
+    local.idealBedtime !== incoming.idealBedtime ||
+    local.idealWakeTime !== incoming.idealWakeTime ||
+    weighInsKey(local.weighIns) !== weighInsKey(incoming.weighIns)
   )
 }
 

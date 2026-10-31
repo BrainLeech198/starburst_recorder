@@ -16,11 +16,17 @@ import ToolbarRow from '@/shared/ui/ToolbarRow'
 import RowCheckbox from '@/shared/ui/RowCheckbox'
 import BatchActions from '@/shared/ui/BatchActions'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
-import { BAR_BUTTON, BAR_DANGER, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
-import HealthDayNav from './HealthDayNav'
+import {
+  BAR_BUTTON,
+  BAR_DANGER,
+  NAV_BACK_BUTTON,
+  OUTLINE_BUTTON,
+  SOLID_BUTTON,
+} from '@/shared/ui/buttonStyles'
+import DayNav from '@/shared/ui/DayNav'
 import SleepDialog from './SleepDialog'
 import SleepBar from './SleepBar'
-import { sleepReviewKey } from './healthViz'
+import { sleepReviewKey, sleepWakeMessage } from './healthViz'
 import { sleepMinutes, sleepParts } from './sleepMath'
 import {
   exportAllData,
@@ -165,7 +171,16 @@ export default function SleepsPage() {
   const review =
     sleep === null || sleep === undefined
       ? null
-      : sleepReviewKey(sleepMinutes(sleep.bedtime, sleep.wakeTime), sleep.quality)
+      : sleepReviewKey(
+          sleepMinutes(sleep.bedtime, sleep.wakeTime),
+          sleep.quality,
+          sleep.wakeCount,
+          sleep.wakeMinutes,
+        )
+  const wake =
+    sleep === null || sleep === undefined
+      ? null
+      : sleepWakeMessage(sleep.wakeCount, sleep.wakeMinutes)
   const duration =
     sleep === null || sleep === undefined
       ? null
@@ -173,19 +188,26 @@ export default function SleepsPage() {
 
   return (
     <div className="w-full p-4">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        {!batch.active && (
-          <HealthDayNav dayKey={dayKey} onChange={setDayKey} onPick={() => void openPicker()} />
-        )}
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          <Link
-            to="/health"
-            className="inline-flex h-8 items-center rounded-lg border border-line px-2 text-xs text-muted transition-colors hover:text-fg"
-          >
-            {t('nav.health')}
-          </Link>
-        </div>
-      </div>
+      {/* 日期与返回入口吸顶常驻；批量多选时不占这一条 */}
+      {!batch.active && (
+        <DayNav
+          dayKey={dayKey}
+          onChange={setDayKey}
+          onPick={() => void openPicker()}
+          labels={{
+            prev: t('health.prevDay'),
+            next: t('health.nextDay'),
+            pick: t('health.pickDate'),
+            today: t('health.backToToday'),
+          }}
+          trailing={
+            <Link to="/health" className={NAV_BACK_BUTTON}>
+              <span aria-hidden="true">‹</span>
+              {t('nav.health')}
+            </Link>
+          }
+        />
+      )}
 
       {/* 按钮栏与日记 / 随记同款：等宽 2×2 实心按钮，按钮数为奇数时回收站横跨整行 */}
       <ToolbarRow className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
@@ -338,6 +360,7 @@ export default function SleepsPage() {
               {sleep.quality !== null && (
                 <span className="ml-2 text-warning">{'★'.repeat(sleep.quality)}</span>
               )}
+              {wake && <span className="ml-2">{t(wake.key, wake.params)}</span>}
             </p>
             <SleepBar
               sleep={sleep}

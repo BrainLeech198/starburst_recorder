@@ -31,11 +31,12 @@ export default function WeightTrendChart({ items }: { items: WeighIn[] }) {
 
   return (
     <div className="mt-2">
+      {/* 不锁 height、也不拉伸：viewBox 自带 320:96 比例，窄屏只会整体缩小，
+          点不会被拉成椭圆，线也不会被压扁 */}
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         width="100%"
-        height={HEIGHT}
-        preserveAspectRatio="none"
+        className="mt-1 h-auto w-full"
         role="img"
         aria-label={t('health.trendTitle')}
       >
@@ -73,16 +74,18 @@ export default function WeightTrendChart({ items }: { items: WeighIn[] }) {
           />
         ))}
       </svg>
+      {/* 两行摊开：第一行只放首尾日期，第二行放最新体重和区间，窄屏不会三个数字挤成一团 */}
       <div className="mt-1 flex items-center justify-between text-[10px] tabular-nums text-muted">
-        <span>{formatMonthDay(items[0].dateKey, t)}</span>
-        <span className="text-fg">
+        <span className="whitespace-nowrap">{formatMonthDay(items[0].dateKey, t)}</span>
+        <span className="whitespace-nowrap">{formatMonthDay(items[items.length - 1].dateKey, t)}</span>
+      </div>
+      <div className="mt-0.5 flex items-center justify-between gap-2 text-[10px] tabular-nums">
+        <span className="whitespace-nowrap text-fg">
           {formatNum(items[items.length - 1].weightKg)} {t('health.weighUnit')}
         </span>
-        <span>{formatMonthDay(items[items.length - 1].dateKey, t)}</span>
-      </div>
-      <div className="mt-0.5 flex justify-between text-[10px] tabular-nums text-muted">
-        <span>{t('health.weighUnit')}</span>
-        <span>{max === min ? '' : `${formatNum(min)} – ${formatNum(max)} ${t('health.weighUnit')}`}</span>
+        <span className="whitespace-nowrap text-muted">
+          {max === min ? '' : `${formatNum(min)} – ${formatNum(max)} ${t('health.weighUnit')}`}
+        </span>
       </div>
     </div>
   )

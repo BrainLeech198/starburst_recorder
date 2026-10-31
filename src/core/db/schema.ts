@@ -187,6 +187,10 @@ export interface HealthSleep {
   wakeTime: string
   /** 睡得怎么样，1–5；没评就是 null */
   quality: number | null
+  /** 夜里醒了几次（含「只是醒了一下」）；没记就是 null */
+  wakeCount: number | null
+  /** 夜里醒来累计多少分钟；没记就是 null，0 表示醒了但很快又睡着 */
+  wakeMinutes: number | null
   note: string
   createdAt: number
   updatedAt: number

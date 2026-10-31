@@ -118,3 +118,17 @@ db.version(10)
       )
       .then(() => undefined),
   )
+
+// 睡眠补夜醒次数与累计分钟：表结构不变，只给老记录补 null
+db.version(11)
+  .stores({})
+  .upgrade((tx) =>
+    tx
+      .table('healthSleeps')
+      .toCollection()
+      .modify((sleep: HealthSleep) => {
+        if (typeof sleep.wakeCount !== 'number') sleep.wakeCount = null
+        if (typeof sleep.wakeMinutes !== 'number') sleep.wakeMinutes = null
+      })
+      .then(() => undefined),
+  )

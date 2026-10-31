@@ -24,6 +24,10 @@ export const SOLID_WARN =
  */
 export const BACK_BUTTON = SOLID_DANGER
 
+/** 日期栏里的「返回上一级」：红色实心 + 箭头，高度跟日期栏一致（比 BACK_BUTTON 矮一档） */
+export const NAV_BACK_BUTTON =
+  'inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-danger px-2.5 text-xs font-medium text-on-danger transition hover:opacity-90 active:scale-[0.97]'
+
 /** 底部批量工具条上的小按钮：手机上同样按 44px 触控高度，桌面保持紧凑 */
 export const BAR_BUTTON =
   'inline-flex min-h-11 items-center justify-center rounded-lg px-2.5 py-1 text-xs text-muted transition-colors hover:text-fg disabled:opacity-40 md:min-h-0'

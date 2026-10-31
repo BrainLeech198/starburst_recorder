@@ -10,6 +10,8 @@ const SLEEP: HealthSleep = {
   bedtime: '23:10',
   wakeTime: '07:05',
   quality: 4,
+  wakeCount: null,
+  wakeMinutes: null,
   note: '',
   createdAt: 1,
   updatedAt: 1,

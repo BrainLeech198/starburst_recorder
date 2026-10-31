@@ -121,15 +121,25 @@ export function sleepBarLayout(
   }
 }
 
-/** 今日摄入跟目标比一比：太少吃、正好、超一点、超太多 */
-export function intakeReviewKey(kcal: number, target: number | null): MessageKey | null {
+/** 今日摄入跟目标比一比：太少吃、正好、超一点、超太多；给了蛋白目标时再看蛋白够不够 */
+export function intakeReviewKey(
+  kcal: number,
+  target: number | null,
+  protein: number | null = null,
+  proteinTarget: number | null = null,
+): MessageKey | null {
   if (!(kcal > 0)) return null
   if (target === null || target <= 0) return 'review.intakeGood'
   const ratio = kcal / target
   if (ratio < 0.6) return 'review.intakeLight'
-  if (ratio <= 1.1) return 'review.intakeGood'
-  if (ratio <= 1.35) return 'review.intakeOver'
-  return 'review.intakeWayOver'
+  if (ratio > 1.35) return 'review.intakeWayOver'
+  if (ratio > 1.1) return 'review.intakeOver'
+  // 热量没超标时，蛋白差太多更值得提醒；蛋白够了就给一句更具体的肯定
+  if (proteinTarget !== null && proteinTarget > 0 && protein !== null) {
+    if (protein < proteinTarget * 0.6) return 'review.intakeLowProtein'
+    if (protein >= proteinTarget) return 'review.intakeProteinHit'
+  }
+  return 'review.intakeGood'
 }
 
 /** 最近两次称重比一比；只有一次时给一句「先记着」 */
@@ -142,16 +152,52 @@ export function weightReviewKey(weighIns: WeighIn[]): MessageKey | null {
   const latest = sorted[sorted.length - 1]
   const previous = sorted[sorted.length - 2]
   const diff = latest.weightKg - previous.weightKg
+  // 隔了不到一天就差了 0.3 kg 以上，多半是水分 / 没空腹，别当成真趋势
+  if (daysBetween(previous.dateKey, latest.dateKey) <= 1 && Math.abs(diff) >= 0.3) {
+    return 'review.weightFluctuation'
+  }
   if (diff <= -0.3) return 'review.weightDown'
   if (diff >= 0.3) return 'review.weightUp'
   return 'review.weightFlat'
 }
 
-/** 这一觉算短、算正常、算长；有质量评分时再细一档 */
-export function sleepReviewKey(minutes: number, quality: number | null): MessageKey | null {
+/** 'YYYY-MM-DD' 之间差几天，只用于判断短期波动 */
+function daysBetween(from: string, to: string): number {
+  const start = new Date(from + 'T00:00:00').getTime()
+  const end = new Date(to + 'T00:00:00').getTime()
+  return Math.round((end - start) / 86400000)
+}
+
+/** 这一觉算短、算正常、算长；夜醒频繁时优先提醒，有质量评分时再细一档 */
+export function sleepReviewKey(
+  minutes: number,
+  quality: number | null,
+  wakeCount: number | null = null,
+  wakeMinutes: number | null = null,
+): MessageKey | null {
   if (!Number.isFinite(minutes) || minutes <= 0) return null
   if (minutes < 360) return 'review.sleepShort'
+  const wakes = wakeCount ?? 0
+  const awakeMin = wakeMinutes ?? 0
+  // 醒来 3 次以上或累计醒了半小时，睡眠已经被切碎，比「睡够没」更影响白天状态
+  if (wakes >= 3 || awakeMin >= 30) return 'review.sleepFragmented'
+  if (wakes > 0) return 'review.sleepWoken'
   if (minutes > 540) return 'review.sleepLong'
   if (quality !== null && quality >= 4) return 'review.sleepGreat'
   return 'review.sleepGood'
+}
+
+/** 夜醒文案：次数、分钟都记了就合在一句，只记一项时各说各的 */
+export function sleepWakeMessage(
+  wakeCount: number | null | undefined,
+  wakeMinutes: number | null | undefined,
+): { key: MessageKey; params: Record<string, number> } | null {
+  const count = typeof wakeCount === 'number' ? wakeCount : null
+  const minutes = typeof wakeMinutes === 'number' ? wakeMinutes : null
+  if (count !== null && minutes !== null) {
+    return { key: 'health.sleepWakeLine', params: { n: count, m: minutes } }
+  }
+  if (count !== null) return { key: 'health.sleepWakeCountLine', params: { n: count } }
+  if (minutes !== null) return { key: 'health.sleepWakeMinutesLine', params: { m: minutes } }
+  return null
 }

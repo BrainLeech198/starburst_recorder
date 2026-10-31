@@ -19,9 +19,15 @@ import { INPUT } from '@/shared/ui/inputStyles'
 import RowCheckbox from '@/shared/ui/RowCheckbox'
 import BatchActions from '@/shared/ui/BatchActions'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
-import { BAR_BUTTON, BAR_DANGER, SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import {
+  BAR_BUTTON,
+  BAR_DANGER,
+  NAV_BACK_BUTTON,
+  SOLID_BUTTON,
+  choiceTile,
+} from '@/shared/ui/buttonStyles'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
-import HealthDayNav from './HealthDayNav'
+import DayNav from '@/shared/ui/DayNav'
 import { formatNum, round2 } from './healthMath'
 import { exportAllData, healthProfile, saveHealthProfile } from './healthRepo'
 import type { BackupData } from './healthRepo'
@@ -203,19 +209,26 @@ export default function WeightsPage() {
 
   return (
     <div className="w-full p-4">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        {!batch.active && (
-          <HealthDayNav dayKey={dayKey} onChange={setDayKey} onPick={() => setPickerOpen(true)} />
-        )}
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          <Link
-            to="/health"
-            className="inline-flex h-8 items-center rounded-lg border border-line px-2 text-xs text-muted transition-colors hover:text-fg"
-          >
-            {t('nav.health')}
-          </Link>
-        </div>
-      </div>
+      {/* 日期与返回入口吸顶常驻；批量多选时不占这一条 */}
+      {!batch.active && (
+        <DayNav
+          dayKey={dayKey}
+          onChange={setDayKey}
+          onPick={() => setPickerOpen(true)}
+          labels={{
+            prev: t('health.prevDay'),
+            next: t('health.nextDay'),
+            pick: t('health.pickDate'),
+            today: t('health.backToToday'),
+          }}
+          trailing={
+            <Link to="/health" className={NAV_BACK_BUTTON}>
+              <span aria-hidden="true">‹</span>
+              {t('nav.health')}
+            </Link>
+          }
+        />
+      )}
 
       {/* 按钮栏与日记 / 随记同款：等宽 2×2 实心按钮 */}
       {!batch.active && (

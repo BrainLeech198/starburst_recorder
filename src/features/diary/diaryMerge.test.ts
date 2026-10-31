@@ -307,6 +307,37 @@ describe('健康块的导入冲突', () => {
     expect(found.map((item) => item.kind).sort()).toEqual(['intake', 'meal', 'profile'])
   })
 
+  it('称重历史 / 理想作息 / 称重设置不同也算档案冲突，不会静默覆盖', () => {
+    const local = health({
+      profile: profile({
+        weighIns: [{ dateKey: '2026-10-20', weightKg: 63, createdAt: 100 }],
+        idealBedtime: '23:30',
+        weighDay: 6,
+      }),
+    })
+    const incoming = health({
+      profile: profile({
+        weighIns: [{ dateKey: '2026-10-21', weightKg: 62.5, createdAt: 200 }],
+        idealWakeTime: '06:30',
+        weighTime: '08:00',
+      }),
+    })
+    const found = findHealthConflicts(incoming, local)
+    expect(found.map((item) => item.kind)).toEqual(['profile'])
+    expect(found[0].localBody).toContain('weigh-ins 1')
+    expect(found[0].incomingBody).toContain('62.5kg')
+  })
+
+  it('档案基础字段一样、称重历史也只是创建时间不同 → 不算冲突', () => {
+    const mine = [{ dateKey: '2026-10-20', weightKg: 63, createdAt: 100 }]
+    const theirs = [{ dateKey: '2026-10-20', weightKg: 63, createdAt: 200 }]
+    const found = findHealthConflicts(
+      health({ profile: profile({ weighIns: theirs }) }),
+      health({ profile: profile({ weighIns: mine }) }),
+    )
+    expect(found).toHaveLength(0)
+  })
+
   it('选了保留本地就从备份里剔掉，其余照常导入', () => {
     const incoming = health({
       profile: profile({ tdee: 2200 }),

@@ -18,14 +18,15 @@ import BatchActions from '@/shared/ui/BatchActions'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
 import TimeMeta from '@/shared/ui/TimeMeta'
-import { BAR_BUTTON, BAR_DANGER, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { BAR_BUTTON, BAR_DANGER, NAV_BACK_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import MealParts from './MealParts'
 import IntakeDialog from './IntakeDialog'
 import IntakeDetailDialog from './IntakeDetailDialog'
-import HealthDayNav from './HealthDayNav'
+import DayNav from '@/shared/ui/DayNav'
 import { formatNum } from './healthMath'
 import {
   exportAllData,
+  healthFoods,
   intakeDays,
   intakesOfDay,
   removeIntake,
@@ -50,6 +51,22 @@ export default function IntakesPage() {
 
   const batch = useBatchSelect()
   const intakes = useLiveQuery(() => intakesOfDay(dayKey), [dayKey])
+  // 食物库用来给列表行找缩略图：摄入只存 foodId，照片始终取库里当前那张
+  const foods = useLiveQuery(() => healthFoods(), [])
+  const photoById = new Map((foods ?? []).map((food) => [food.id, food.photo] as const))
+  /** 套餐取第一个有照片的成分，单条直接用自己的 foodId */
+  function photoOf(intake: HealthIntake): string | null {
+    if (intake.foodId) {
+      const own = photoById.get(intake.foodId)
+      if (own) return own
+    }
+    for (const part of intake.components ?? []) {
+      if (!part.foodId) continue
+      const photo = photoById.get(part.foodId)
+      if (photo) return photo
+    }
+    return null
+  }
   const [dialogOpen, setDialogOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<HealthIntake | null>(null)
   /** 点开某一笔看完整营养成分 */
@@ -118,18 +135,32 @@ export default function IntakesPage() {
 
   return (
     <div className="w-full p-4">
-      {/* 第一行只放日期导航，跟日记 / 随记对齐 */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <HealthDayNav dayKey={dayKey} onChange={setDayKey} onPick={() => void openPicker()} />
-        <div className="ml-auto flex shrink-0 items-center gap-1">
-          <Link
-            to="/health"
-            className="inline-flex h-8 items-center rounded-lg border border-line px-2 text-xs text-muted transition-colors hover:text-fg"
-          >
-            {t('nav.health')}
-          </Link>
-        </div>
-      </div>
+      {/* 日期与返回入口吸顶常驻，跟日记 / 健康首页一致 */}
+      <DayNav
+        dayKey={dayKey}
+        onChange={setDayKey}
+        onPick={() => void openPicker()}
+        labels={{
+          prev: t('health.prevDay'),
+          next: t('health.nextDay'),
+          pick: t('health.pickDate'),
+          today: t('health.backToToday'),
+        }}
+        trailing={
+          <>
+            <Link
+              to="/health/foods"
+              className="inline-flex h-8 items-center rounded-lg px-2 text-xs text-muted transition-colors hover:text-fg"
+            >
+              {t('health.foods')}
+            </Link>
+            <Link to="/health" className={NAV_BACK_BUTTON}>
+              <span aria-hidden="true">‹</span>
+              {t('nav.health')}
+            </Link>
+          </>
+        }
+      />
 
       {/* 整行都是按钮，套一层底色跟下面的列表分开；窄屏排 2×2，宽屏一行 */}
       <ToolbarRow className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
@@ -181,6 +212,7 @@ export default function IntakesPage() {
         <ul className="m-0 mt-2 list-none space-y-2 p-0">
           {rows.map((intake) => {
             const selected = batch.isSelected(intake.id)
+            const photo = photoOf(intake)
             return (
               <li
                 key={intake.id}
@@ -193,6 +225,15 @@ export default function IntakesPage() {
                     checked={selected}
                     label={intake.name}
                     onToggle={() => batch.toggle(intake.id)}
+                  />
+                )}
+                {photo && (
+                  <img
+                    src={photo}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="h-11 w-11 shrink-0 rounded-lg border border-line/60 object-cover"
                   />
                 )}
                 <span className="shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] tabular-nums text-muted">

@@ -33,10 +33,31 @@ export default function SleepDialog({
   const [bedtime, setBedtime] = useState(sleep?.bedtime ?? '23:00')
   const [wakeTime, setWakeTime] = useState(sleep?.wakeTime ?? '07:00')
   const [quality, setQuality] = useState<number | null>(sleep?.quality ?? null)
+  const [wakeCountText, setWakeCountText] = useState(
+    sleep?.wakeCount !== null && sleep?.wakeCount !== undefined ? String(sleep.wakeCount) : '',
+  )
+  const [wakeMinutesText, setWakeMinutesText] = useState(
+    sleep?.wakeMinutes !== null && sleep?.wakeMinutes !== undefined
+      ? String(sleep.wakeMinutes)
+      : '',
+  )
   const [note, setNote] = useState(sleep?.note ?? '')
 
+  /** 留空 = 没记；填了就必须是非负整数 */
+  function wakeValue(text: string, max: number): number | null | undefined {
+    if (text.trim() === '') return null
+    const value = Number(text)
+    if (!Number.isInteger(value) || value < 0 || value > max) return undefined
+    return value
+  }
+  const wakeCount = wakeValue(wakeCountText, 99)
+  const wakeMinutes = wakeValue(wakeMinutesText, 1440)
+
   const valid =
-    /^([01]\d|2[0-3]):[0-5]\d$/.test(bedtime) && /^([01]\d|2[0-3]):[0-5]\d$/.test(wakeTime)
+    /^([01]\d|2[0-3]):[0-5]\d$/.test(bedtime) &&
+    /^([01]\d|2[0-3]):[0-5]\d$/.test(wakeTime) &&
+    wakeCount !== undefined &&
+    wakeMinutes !== undefined
   const parts = valid ? sleepParts(sleepMinutes(bedtime, wakeTime)) : null
 
   async function handleSave() {
@@ -44,7 +65,15 @@ export default function SleepDialog({
     const now = Date.now()
     await saveHealthSleep(
       sleep
-        ? { ...sleep, bedtime, wakeTime, quality, note }
+        ? {
+            ...sleep,
+            bedtime,
+            wakeTime,
+            quality,
+            wakeCount: wakeCount ?? null,
+            wakeMinutes: wakeMinutes ?? null,
+            note,
+          }
         : {
             id: newId(),
             code: newCode(),
@@ -52,6 +81,8 @@ export default function SleepDialog({
             bedtime,
             wakeTime,
             quality,
+            wakeCount: wakeCount ?? null,
+            wakeMinutes: wakeMinutes ?? null,
             note,
             createdAt: now,
             updatedAt: now,
@@ -100,6 +131,31 @@ export default function SleepDialog({
           {t('health.sleepDuration', { h: parts.h, m: parts.m })}
         </p>
       )}
+
+      {/* 夜醒：次数 + 累计分钟。只是醒一下就把分钟填 0；没醒就都留空 */}
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <label className="block">
+          <span className="text-xs text-muted">{t('health.sleepWakeCount')}</span>
+          <input
+            value={wakeCountText}
+            onChange={(event) => setWakeCountText(event.target.value)}
+            inputMode="numeric"
+            placeholder="0"
+            className={INPUT + ' mt-1 w-full tabular-nums'}
+          />
+        </label>
+        <label className="block">
+          <span className="text-xs text-muted">{t('health.sleepWakeMinutes')}</span>
+          <input
+            value={wakeMinutesText}
+            onChange={(event) => setWakeMinutesText(event.target.value)}
+            inputMode="numeric"
+            placeholder="0"
+            className={INPUT + ' mt-1 w-full tabular-nums'}
+          />
+        </label>
+      </div>
+      <p className="mt-1 text-[11px] text-muted">{t('health.sleepWakeHint')}</p>
 
       <div className="mt-4">
         <span className="text-xs text-muted">{t('health.sleepQuality')}</span>

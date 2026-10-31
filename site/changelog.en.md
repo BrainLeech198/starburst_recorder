@@ -1,3 +1,17 @@
+## 0.5.2 · 2026-10-31
+
+### What's new
+
+- **Sticky header**: the date bar and entry points stay pinned on diary, health, and the intake / weight / sleep sub-pages as lists scroll
+- **Sleep tracks night waking**: record how many times you woke and the total minutes awake, shown right on the sleep card and detail
+- **Health is easier to use**: food thumbnails in the intake list, a permanent food-library entry on the intake page, a fixed mobile layout for the weight card, and a bold red back button on sub-pages
+- **Safer import/export**: merge import now compares weigh-ins, ideal sleep schedule and weigh-in setting, so these profile differences are no longer silently overwritten
+
+### Download
+
+- Windows 10/11: `starburst-recorder-0.5.2-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.5.2.apk` (~16 MB, release-signed)
+
 ## 0.5.1 · 2026-10-30
 
 ### What's new
