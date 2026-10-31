@@ -132,3 +132,16 @@ db.version(11)
       })
       .then(() => undefined),
   )
+
+// 夜醒改成逐条记时间：表结构不变，老记录补空数组，次数/分钟继续按旧字段展示
+db.version(12)
+  .stores({})
+  .upgrade((tx) =>
+    tx
+      .table('healthSleeps')
+      .toCollection()
+      .modify((sleep: HealthSleep) => {
+        if (!Array.isArray(sleep.wakeEvents)) sleep.wakeEvents = []
+      })
+      .then(() => undefined),
+  )

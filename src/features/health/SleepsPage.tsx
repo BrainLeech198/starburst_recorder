@@ -8,7 +8,7 @@ import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
-import { formatDate, isDateKey, todayKey } from '@/core/utils/dateKey'
+import { formatDate, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
@@ -24,10 +24,11 @@ import {
   SOLID_BUTTON,
 } from '@/shared/ui/buttonStyles'
 import DayNav from '@/shared/ui/DayNav'
+import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import SleepDialog from './SleepDialog'
 import SleepBar from './SleepBar'
 import { sleepReviewKey, sleepWakeMessage } from './healthViz'
-import { sleepMinutes, sleepParts } from './sleepMath'
+import { sleepMinutes, sleepParts, sleepWakeStats, sortWakeEvents } from './sleepMath'
 import {
   exportAllData,
   healthProfile,
@@ -84,6 +85,10 @@ export default function SleepsPage() {
   function setDayKey(next: string) {
     setSearchParams({ date: next }, { replace: true })
   }
+  const swipe = useDaySwipe(
+    () => setDayKey(shiftDay(dayKey, -1)),
+    () => setDayKey(shiftDay(dayKey, 1)),
+  )
 
   async function openPicker() {
     setWrittenDays(new Set(await sleepDays()))
@@ -168,26 +173,26 @@ export default function SleepsPage() {
     batch.exit()
   }
 
+  const wakeSummary = sleep ? sleepWakeStats(sleep) : null
+  const wakeEvents = sleep ? sortWakeEvents(sleep.wakeEvents ?? [], sleep.bedtime) : []
   const review =
     sleep === null || sleep === undefined
       ? null
       : sleepReviewKey(
           sleepMinutes(sleep.bedtime, sleep.wakeTime),
           sleep.quality,
-          sleep.wakeCount,
-          sleep.wakeMinutes,
+          wakeSummary?.count ?? null,
+          wakeSummary?.minutes ?? null,
         )
   const wake =
-    sleep === null || sleep === undefined
-      ? null
-      : sleepWakeMessage(sleep.wakeCount, sleep.wakeMinutes)
+    wakeSummary === null ? null : sleepWakeMessage(wakeSummary.count, wakeSummary.minutes)
   const duration =
     sleep === null || sleep === undefined
       ? null
       : sleepParts(sleepMinutes(sleep.bedtime, sleep.wakeTime))
 
   return (
-    <div className="w-full p-4">
+    <div className="w-full p-4" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
       {/* 日期与返回入口吸顶常驻；批量多选时不占这一条 */}
       {!batch.active && (
         <DayNav
@@ -362,6 +367,15 @@ export default function SleepsPage() {
               )}
               {wake && <span className="ml-2">{t(wake.key, wake.params)}</span>}
             </p>
+            {wakeEvents.length > 0 && (
+              <ul className="m-0 mt-2 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 text-xs tabular-nums text-muted">
+                {wakeEvents.map((event, index) => (
+                  <li key={`${event.time}-${index}`}>
+                    {t('health.sleepWakeRow', { time: event.time, m: event.minutes })}
+                  </li>
+                ))}
+              </ul>
+            )}
             <SleepBar
               sleep={sleep}
               idealBedtime={profile?.idealBedtime ?? '23:00'}

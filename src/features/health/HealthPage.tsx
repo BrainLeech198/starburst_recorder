@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
-import { formatDate, isDateKey, todayKey } from '@/core/utils/dateKey'
+import { formatDate, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
 import DayNav from '@/shared/ui/DayNav'
+import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import { useI18n } from '@/shared/i18n/context'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { OUTLINE_BUTTON, SOLID_BUTTON, SOLID_SMALL_BUTTON } from '@/shared/ui/buttonStyles'
@@ -14,7 +15,7 @@ import { intakeReviewKey, sleepReviewKey, sleepWakeMessage } from './healthViz'
 import { useDerivedTdee } from './useDerivedTdee'
 import { maybeNotifyWeighDay, syncWeighReminder } from './weighNotify'
 import SleepDialog from './SleepDialog'
-import { sleepMinutes, sleepParts } from './sleepMath'
+import { sleepMinutes, sleepParts, sleepWakeStats, sortWakeEvents } from './sleepMath'
 import IntakeDialog from './IntakeDialog'
 import HealthEstimateNote, { HealthDisclaimerDialog } from './HealthDisclaimer'
 import { hasAcknowledgedDisclaimer } from './disclaimerAck'
@@ -43,6 +44,10 @@ export default function HealthPage() {
   function setDayKey(next: string) {
     setSearchParams({ date: next }, { replace: true })
   }
+  const swipe = useDaySwipe(
+    () => setDayKey(shiftDay(dayKey, -1)),
+    () => setDayKey(shiftDay(dayKey, 1)),
+  )
 
   const profile = useLiveQuery(() => healthProfile(), [])
   const intakes = useLiveQuery(() => intakesOfDay(dayKey), [dayKey])
@@ -101,25 +106,27 @@ export default function HealthPage() {
     totals.protein,
     targets.proteinTarget,
   )
+  const sleepWakeSummary = sleep ? sleepWakeStats(sleep) : null
+  const sleepWakeEvents = sleep ? sortWakeEvents(sleep.wakeEvents ?? [], sleep.bedtime) : []
   const sleepReview =
     sleep === null || sleep === undefined
       ? null
       : sleepReviewKey(
           sleepMinutes(sleep.bedtime, sleep.wakeTime),
           sleep.quality,
-          sleep.wakeCount,
-          sleep.wakeMinutes,
+          sleepWakeSummary?.count ?? null,
+          sleepWakeSummary?.minutes ?? null,
         )
   const sleepWake =
-    sleep === null || sleep === undefined
+    sleepWakeSummary === null
       ? null
-      : sleepWakeMessage(sleep.wakeCount, sleep.wakeMinutes)
+      : sleepWakeMessage(sleepWakeSummary.count, sleepWakeSummary.minutes)
   const fieldNames = missing
     .map((key) => t(FIELD_LABELS[key as keyof typeof FIELD_LABELS]))
     .join(' / ')
 
   return (
-    <div className="w-full p-4">
+    <div className="w-full p-4" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
       {/* 日期与页面级入口（食物库 / 档案）吸顶常驻，跟日记同一条口径 */}
       <DayNav
         dayKey={dayKey}
@@ -277,6 +284,15 @@ export default function HealthPage() {
               )}
               {sleepWake && <span className="ml-2">{t(sleepWake.key, sleepWake.params)}</span>}
             </p>
+            {sleepWakeEvents.length > 0 && (
+              <p className="m-0 mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] tabular-nums text-muted">
+                {sleepWakeEvents.map((event, index) => (
+                  <span key={`${event.time}-${index}`}>
+                    {t('health.sleepWakeRow', { time: event.time, m: event.minutes })}
+                  </span>
+                ))}
+              </p>
+            )}
             <SleepBar
               sleep={sleep}
               idealBedtime={profile?.idealBedtime ?? '23:00'}

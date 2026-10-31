@@ -12,7 +12,13 @@ import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import Modal from '@/shared/ui/Modal'
 import Tab from '@/shared/ui/Tab'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
-import { BAR_BUTTON, BAR_DANGER, GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import {
+  BAR_BUTTON,
+  BAR_DANGER,
+  GHOST_BUTTON,
+  OUTLINE_BUTTON,
+  SOLID_BUTTON,
+} from '@/shared/ui/buttonStyles'
 import {
   addStamp,
   dayInfo,
@@ -37,9 +43,11 @@ import {
   formatDate,
   formatMonthDay,
   isDateKey,
+  shiftDay,
   todayKey,
 } from '@/core/utils/dateKey'
 import DayNav from '@/shared/ui/DayNav'
+import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import DatePickerDialog from './DatePickerDialog'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { prepareImages } from './imageAssets'
@@ -108,6 +116,11 @@ export default function DiaryPage() {
 
   // 批量多选
   const batch = useBatchSelect()
+  // 整页左右滑动换天，和点日期栏箭头一个口径
+  const swipe = useDaySwipe(
+    () => setDateKey(shiftDay(dateKey, -1)),
+    () => setDateKey(shiftDay(dateKey, 1)),
+  )
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
   const [moveOpen, setMoveOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
@@ -364,7 +377,7 @@ export default function DiaryPage() {
   }
 
   return (
-    <div className="w-full p-4">
+    <div className="w-full p-4" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
       {/* 日期与栏目入口吸顶常驻：翻长列表时还能直接换天、切日记 / 随记 */}
       <DayNav
         dayKey={dateKey}
@@ -661,11 +674,7 @@ export default function DiaryPage() {
                 {formatDate(key, t)}
               </button>
             ))}
-            <button
-              type="button"
-              onClick={() => setDateChoice(null)}
-              className={GHOST_BUTTON}
-            >
+            <button type="button" onClick={() => setDateChoice(null)} className={GHOST_BUTTON}>
               {t('common.cancel')}
             </button>
           </div>

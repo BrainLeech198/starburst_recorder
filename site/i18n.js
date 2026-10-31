@@ -23,7 +23,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.6.0',
+    'hero.cta': '下载 0.6.1',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -94,11 +94,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.6.0',
+    'open.version': '版本 0.6.1',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.6.0 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.6.1 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -109,11 +109,11 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '日记和随记能手绘插图了：选「自己画」，画笔、橡皮、颜色、粗细、撤销、清空都有，画完直接作为图片插进记录',
+      '整页左右滑动换天：日记、健康首页、摄入、体重、睡眠页都能左滑下一天、右滑前一天，输入框和横向滚动区域里不会误触',
     'whatsnew.item2':
-      '食物库能挑选导出和导入了：记录级导出多出「食物库」一类，导入同样认这份文件，照片跟着 JSON 一起走',
+      '夜醒记录精确到时间：每次醒来记下时间和持续分钟，次数与累计醒来时长自动汇总；旧记录仍按原来的次数和分钟显示',
     'whatsnew.item3':
-      '食物照片处理更省内存：压缩完主动释放原图位图，低内存手机保存时不容易被系统杀掉',
+      '新字段跟着备份走：夜醒时间会一起导出、导入和参与冲突对比，旧备份照常能读',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -122,7 +122,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.6.0',
+    'footer.version': '版本 0.6.1',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -145,7 +145,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.6.0',
+    'hero.cta': 'Download 0.6.1',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -220,12 +220,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.6.0',
+    'open.version': 'Version 0.6.1',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.6.0 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.6.1 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -236,13 +236,13 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.6.0",
+    'whatsnew.title': "What's new in 0.6.1",
     'whatsnew.item1':
-      'Draw your own illustrations in diaries and notes: pick "Draw it yourself" — pen, eraser, colour, brush size, undo and clear — and the drawing is inserted as an image',
+      'Swipe anywhere to change the day: diary, health home, intake, weight and sleep pages switch with a left or right swipe — inputs and horizontally scrollable areas are left alone',
     'whatsnew.item2':
-      'Food library entries can now be picked for export and import: record export gains a food category, and import reads the same file with photos carried in JSON',
+      'Night wakes carry exact times: log each wake with a time and minutes awake; the count and total awake time add up automatically, while older records keep their count and minutes',
     'whatsnew.item3':
-      'Lighter food-photo processing: the decoded original bitmap is released right after compression, so saving on low-memory phones is less likely to be killed',
+      'The new field travels with backups: wake times are exported, imported and compared for conflicts, and older backups still load',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -251,7 +251,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.6.0',
+    'footer.version': 'Version 0.6.1',
     'footer.tagline': 'Data stays on your device',
   },
 };

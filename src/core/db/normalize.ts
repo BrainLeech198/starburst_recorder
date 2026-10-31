@@ -27,6 +27,7 @@ import type {
   HealthSex,
   HealthSleep,
   IntakeComponent,
+  SleepWakeEvent,
   WeighIn,
 } from './schema'
 import { newCode } from '@/core/utils/id'
@@ -51,6 +52,25 @@ function clockText(value: unknown, fallback: string) {
   const hour = Number(matched[1])
   const minute = Number(matched[2])
   return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 ? raw : fallback
+}
+
+/** 一夜最多记这么多次夜醒，防止手改的备份把弹窗撑爆 */
+const MAX_WAKE_EVENTS = 20
+
+/** 逐条夜醒：只保留时刻合法、分钟数是非负整数的条目，坏条目直接剔除 */
+function pickWakeEvents(value: unknown): SleepWakeEvent[] {
+  if (!Array.isArray(value)) return []
+  const events: SleepWakeEvent[] = []
+  for (const raw of value.slice(0, MAX_WAKE_EVENTS)) {
+    if (!raw || typeof raw !== 'object') continue
+    const item = raw as Record<string, unknown>
+    const time = text(item.time)
+    const minutes = nullableNumber(item.minutes)
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) continue
+    if (minutes === null || minutes < 0 || minutes > 1440) continue
+    events.push({ time, minutes: Math.floor(minutes) })
+  }
+  return events
 }
 
 function deletedAt(value: unknown): number | null {
@@ -360,6 +380,8 @@ export function pickSleep(raw: unknown): HealthSleep | null {
     wakeTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(wakeTime) ? wakeTime : '00:00',
     // 只认 1–5，越界或缺失都算没评
     quality: quality !== null && quality >= 1 && quality <= 5 ? quality : null,
+    // 逐条夜醒；旧备份没有这个字段时留空数组，下面再用旧口径兜底
+    wakeEvents: pickWakeEvents(item.wakeEvents),
     wakeCount:
       wakeCount !== null && wakeCount >= 0 && wakeCount <= 99 ? Math.floor(wakeCount) : null,
     wakeMinutes:

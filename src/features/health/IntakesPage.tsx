@@ -10,7 +10,7 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { HealthIntake } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
-import { formatDate, isDateKey, todayKey } from '@/core/utils/dateKey'
+import { formatDate, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
@@ -23,6 +23,7 @@ import MealParts from './MealParts'
 import IntakeDialog from './IntakeDialog'
 import IntakeDetailDialog from './IntakeDetailDialog'
 import DayNav from '@/shared/ui/DayNav'
+import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import { formatNum } from './healthMath'
 import {
   exportAllData,
@@ -83,6 +84,10 @@ export default function IntakesPage() {
     batch.exit()
     setSearchParams({ date: next }, { replace: true })
   }
+  const swipe = useDaySwipe(
+    () => setDayKey(shiftDay(dayKey, -1)),
+    () => setDayKey(shiftDay(dayKey, 1)),
+  )
 
   async function openPicker() {
     setWrittenDays(new Set(await intakeDays()))
@@ -134,7 +139,7 @@ export default function IntakesPage() {
   const empty = intakes !== undefined && rows.length === 0
 
   return (
-    <div className="w-full p-4">
+    <div className="w-full p-4" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
       {/* 日期与返回入口吸顶常驻，跟日记 / 健康首页一致 */}
       <DayNav
         dayKey={dayKey}
@@ -186,9 +191,7 @@ export default function IntakesPage() {
 
       <div className="mt-4 flex items-center justify-between gap-2">
         <h2 className="m-0 text-xs text-muted">
-          {isToday
-            ? t('health.todayTitle')
-            : t('health.dayTitle', { date: formatDate(dayKey, t) })}
+          {isToday ? t('health.todayTitle') : t('health.dayTitle', { date: formatDate(dayKey, t) })}
         </h2>
         {rows.length > 0 && (
           <span className="text-xs tabular-nums text-muted">
@@ -253,8 +256,8 @@ export default function IntakesPage() {
                       </span>
                     </p>
                     <p className="m-0 mt-0.5 text-xs tabular-nums text-muted">
-                      {formatNum(intake.kcal)} {t('health.kcalUnit')} ·{' '}
-                      {t('health.legendProtein')} {formatNum(intake.protein)} g
+                      {formatNum(intake.kcal)} {t('health.kcalUnit')} · {t('health.legendProtein')}{' '}
+                      {formatNum(intake.protein)} g
                     </p>
                   </button>
                   <TimeMeta createdAt={intake.createdAt} updatedAt={intake.updatedAt} />
@@ -299,7 +302,11 @@ export default function IntakesPage() {
       )}
 
       {batch.active && (
-        <BatchActions select={batch} ids={rows.map((intake) => intake.id)} unit={t('health.unitIntake')}>
+        <BatchActions
+          select={batch}
+          ids={rows.map((intake) => intake.id)}
+          unit={t('health.unitIntake')}
+        >
           <button
             type="button"
             onClick={() => void handleBatchExport()}

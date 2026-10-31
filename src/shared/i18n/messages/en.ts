@@ -964,6 +964,15 @@ export const en: Record<MessageKey, string> = {
   'health.sleepQualityNone': 'No rating',
   'health.sleepWakeCount': 'Night wakes',
   'health.sleepWakeMinutes': 'Minutes awake',
+  'health.sleepWakeEvents': 'Night wakes',
+  'health.sleepWakeAt': 'Wake time',
+  'health.sleepWakeDuration': 'Minutes awake',
+  'health.sleepWakeAdd': 'Add a wake',
+  'health.sleepWakeEmpty': 'No night wakes — slept straight through.',
+  'health.sleepWakeRemove': 'Remove this wake',
+  'health.sleepWakeLegacy':
+    'Older records only stored a count and total minutes; adding exact times will replace that summary.',
+  'health.sleepWakeRow': '{time} · {m} min',
   'health.sleepWakeHint':
     'Fill 0 minutes if you only woke briefly; leave both blank if you slept through.',
   'health.sleepWakeLine': 'Woke {n}× · {m} min awake',

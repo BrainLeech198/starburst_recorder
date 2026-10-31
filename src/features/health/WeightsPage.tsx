@@ -10,7 +10,7 @@ import type { ChangeEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { HealthProfile, WeighIn } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
-import { formatDate, isDateKey, todayKey } from '@/core/utils/dateKey'
+import { formatDate, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
@@ -28,6 +28,7 @@ import {
 } from '@/shared/ui/buttonStyles'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import DayNav from '@/shared/ui/DayNav'
+import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import { formatNum, round2 } from './healthMath'
 import { exportAllData, healthProfile, saveHealthProfile } from './healthRepo'
 import type { BackupData } from './healthRepo'
@@ -90,6 +91,10 @@ export default function WeightsPage() {
     setFormOpen(false)
     setSearchParams({ date: next }, { replace: true })
   }
+  const swipe = useDaySwipe(
+    () => setDayKey(shiftDay(dayKey, -1)),
+    () => setDayKey(shiftDay(dayKey, 1)),
+  )
 
   async function handleSave() {
     if (!profile) return
@@ -208,7 +213,7 @@ export default function WeightsPage() {
   const batchRows = weighIns.map((item) => ({ id: `weight:${item.dateKey}`, item }))
 
   return (
-    <div className="w-full p-4">
+    <div className="w-full p-4" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
       {/* 日期与返回入口吸顶常驻；批量多选时不占这一条 */}
       {!batch.active && (
         <DayNav

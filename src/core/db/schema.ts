@@ -171,9 +171,17 @@ export interface HealthIntake {
   deletedAt: number | null
 }
 
+/** 一次夜醒：几点醒的、这次醒了多久 */
+export interface SleepWakeEvent {
+  /** 醒来时刻，'HH:MM' */
+  time: string
+  /** 这次醒了几分钟；0 表示只是短暂醒来 */
+  minutes: number
+}
+
 /**
  * 一夜睡眠：一行一夜，dateKey = 起床那天（周五晚睡周六起 → 记周六）。
- * 时长是派生值不存（跨零点自动 +24h），以后要加入睡耗时/夜醒次数直接补可选字段。
+ * 时长是派生值不存（跨零点自动 +24h）。夜醒按事件逐条记，次数与累计分钟由事件汇总。
  */
 export interface HealthSleep {
   id: string
@@ -187,9 +195,11 @@ export interface HealthSleep {
   wakeTime: string
   /** 睡得怎么样，1–5；没评就是 null */
   quality: number | null
-  /** 夜里醒了几次（含「只是醒了一下」）；没记就是 null */
+  /** 逐条夜醒记录；空数组表示没醒过，或者旧记录没补具体时间 */
+  wakeEvents: SleepWakeEvent[]
+  /** 旧口径：夜醒次数，仍保留用于读取旧备份；新记录保存时由 wakeEvents 汇总 */
   wakeCount: number | null
-  /** 夜里醒来累计多少分钟；没记就是 null，0 表示醒了但很快又睡着 */
+  /** 旧口径：累计醒来分钟，仍保留用于读取旧备份；新记录保存时由 wakeEvents 汇总 */
   wakeMinutes: number | null
   note: string
   createdAt: number

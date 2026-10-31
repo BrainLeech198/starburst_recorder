@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { bag, pickDay, pickEntry, pickIntake, pickMeal, pickSleep, pickStamp, rows } from './normalize'
+import {
+  bag,
+  pickDay,
+  pickEntry,
+  pickIntake,
+  pickMeal,
+  pickSleep,
+  pickStamp,
+  rows,
+} from './normalize'
 
 describe('行级校验：必填缺失就丢行', () => {
   it('日记缺 id 就丢', () => {
@@ -24,7 +33,9 @@ describe('行级校验：必填缺失就丢行', () => {
   })
 
   it('随记的时刻写坏时退回 00:00，宁可挪个位置也不丢内容', () => {
-    expect(pickStamp({ id: 'a', dateKey: '2026-10-25', time: '9:3', content: 'x' })?.time).toBe('00:00')
+    expect(pickStamp({ id: 'a', dateKey: '2026-10-25', time: '9:3', content: 'x' })?.time).toBe(
+      '00:00',
+    )
   })
 
   it('随记的短编号缺失时现场补一个 7 位十六进制，已有的原样保留', () => {
@@ -136,6 +147,24 @@ describe('睡眠行：时刻坏了退回 00:00，评分只认 1–5', () => {
       wakeMinutes: null,
     })
     expect(pickSleep({ ...base, wakeCount: 1.5 })?.wakeCount).toBe(1)
+  })
+
+  it('逐条夜醒：只收合法时刻与非负整数分钟，旧记录补空数组', () => {
+    expect(pickSleep(base)).toMatchObject({ wakeEvents: [] })
+    expect(
+      pickSleep({
+        ...base,
+        wakeEvents: [
+          { time: '01:20', minutes: 5 },
+          { time: '25:99', minutes: 5 },
+          { time: '03:40', minutes: -1 },
+          { time: '04:10', minutes: 12.8 },
+        ],
+      })?.wakeEvents,
+    ).toEqual([
+      { time: '01:20', minutes: 5 },
+      { time: '04:10', minutes: 12 },
+    ])
   })
 
   it('id 或日期缺失整行丢掉', () => {

@@ -200,7 +200,7 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 范本调研过 SleepDiaries（MIT，临床共识睡眠日记）、Gadgetbridge、Health Connect 的睡眠模型，取舍如下：
 
 - **一夜一行，`dateKey = 起床那天`**（用户拍板：周五晚睡周六起 → 记周六）。「昨晚睡了几小时」跟日常语感一致；表 `healthSleeps`（Dexie version(9) / SQLite 同名表），跟健康表同构（ULID id、7 位 code、软删除）。
-- **字段只做最小闭环**：就寝 `bedtime` / 起床 `wakeTime`（HH:MM）/ 质量 `quality` 1–5 / 备注。**时长是派生值不落库**，跨零点自动 +24h（`features/health/sleepMath.ts` 纯函数 + 单测）。以后要加入睡耗时、夜醒次数（算睡眠效率）补可选字段即可，不需要数据迁移。
+- **字段只做最小闭环**：就寝 `bedtime` / 起床 `wakeTime`（HH:MM）/ 质量 `quality` 1–5 / 逐条夜醒 `wakeEvents`（`[{ time: 'HH:MM', minutes }]`）/ 备注。**时长是派生值不落库**，跨零点自动 +24h（`features/health/sleepMath.ts` 纯函数 + 单测）。夜醒次数与累计分钟由事件汇总（`sleepWakeStats`）；旧记录只有 `wakeCount` / `wakeMinutes` 时继续按旧字段展示，补上具体时间后以事件为准。
 - **入口是健康页「睡眠」卡片摘要 + `/health/sleeps` 一级页**（`HealthPage` 卡片、`SleepsPage` 明细 + `SleepDialog`），跟着 URL 里那一天走；删除软删 + 撤销，另有回收站页 `/health/sleeps/trash`（`SleepTrashPage`，逐条恢复 / 彻底删除 / 清空）；日历把「睡过觉」的日子和「记过摄入」一起标亮。健康档案没填也能记睡眠。
 - **睡眠跟着整条数据链走**：备份导出/导入（`diaryBackup` 的 health 块加 `sleeps`）、导入冲突逐条抉择（`diaryMerge` 的 `sleep` 类目）、挑选记录导出（第 5 类）、AI 整理原料（历史摘要与当天都带「睡眠」行，没记就不提）。
 - 行级校验 `pickSleep`：时刻必须是合法 HH:MM，坏的退回 '00:00'；评分只认 1–5，越界算没评。
@@ -212,7 +212,8 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 - `/health/intakes`（`IntakesPage`）：日期导航 + 按钮行（记一笔 / 批量 / 回收站）+ 当天摄入列表。批量导出与删除、单条 JSON 导出、营养详情弹窗、删除撤销都在这。
 - `/health/sleeps`（`SleepsPage`）：一天一条的详情卡 + 删除 / 回收站，理想作息设置从首页卡片搬到这里。
 - `/health/weights`（`WeightsPage`）：按天看称重、可补记、可删单条（toast 撤销），称重日 / 提醒时刻设置搬到这里；趋势图和推算 TDEE 仍留在卡片上当概览。
-- 三个页面共用 `HealthDayNav`，和日记页同一套日期导航（前一天 / 后一天 / 回到今日 / 日历选择），日期写进 URL 的 `?date=`，刷新或返回都停在那一天。
+- 三个页面共用 `shared/ui/DayNav`，和日记页同一套日期导航（前一天 / 后一天 / 回到今日 / 日历选择），日期写进 URL 的 `?date=`，刷新或返回都停在那一天；页面根节点挂 `useDaySwipe`，左滑下一天、右滑前一天（输入框与横向滚动控件内不触发）。
+
 - 体重删除直接改档案里的 `weighIns` 并重算「最新体重」，没有新增表，也不进回收站。
 
 ### 长辈关怀模式（2026-10-29 加，me/older）

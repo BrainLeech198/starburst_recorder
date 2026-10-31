@@ -18,7 +18,7 @@ import type {
   HealthSleep,
   WeighIn,
 } from '@/core/db/schema'
-import { sleepMinutes, sleepParts } from '@/features/health/sleepMath'
+import { sleepMinutes, sleepParts, sleepWakeStats } from '@/features/health/sleepMath'
 import { sleepWakeMessage } from '@/features/health/healthViz'
 import { formatClock, formatDateCn, formatShortStamp, weekdayLabel } from '@/core/utils/dateKey'
 import { parseWeather, weatherLabel } from '@/features/diary/weather'
@@ -146,7 +146,8 @@ function sleepItems(sleeps: HealthSleep[]): RecordItem[] {
     .filter((sleep) => sleep.deletedAt === null)
     .map((sleep) => {
       const parts = sleepParts(sleepMinutes(sleep.bedtime, sleep.wakeTime))
-      const wake = sleepWakeMessage(sleep.wakeCount, sleep.wakeMinutes)
+      const wakeStats = sleepWakeStats(sleep)
+      const wake = sleepWakeMessage(wakeStats.count, wakeStats.minutes)
       return {
         kind: 'sleep' as const,
         id: sleep.id,

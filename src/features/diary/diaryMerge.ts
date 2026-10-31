@@ -264,10 +264,21 @@ function mealSummary(meal: HealthMeal) {
   return `${meal.name} · ${meal.items.length} items · ${Math.round(grams)} g`
 }
 
+/** 夜醒按时间排序后的指纹，用来判断新旧两份记录有没有实质差异 */
+function wakeEventsKey(sleep: HealthSleep) {
+  return (sleep.wakeEvents ?? [])
+    .map((event) => `${event.time}/${event.minutes}`)
+    .sort()
+    .join(',')
+}
+
 function sleepSummary(sleep: HealthSleep) {
   const parts = [sleep.dateKey + ' ' + sleep.bedtime + '\u2192' + sleep.wakeTime]
   if (sleep.quality !== null) parts.push('q' + sleep.quality)
-  // 夜醒也算这一夜的内容：次数和累计分钟都要在冲突对比里看得到
+  // 夜醒也算这一夜的内容：逐条时间、次数、累计分钟都要在冲突对比里看得到
+  for (const event of sleep.wakeEvents ?? []) {
+    parts.push('wake ' + event.time + ' ' + event.minutes + 'min')
+  }
   if (sleep.wakeCount !== null && sleep.wakeCount !== undefined) {
     parts.push('wake ' + sleep.wakeCount)
   }
@@ -284,6 +295,7 @@ function sleepDiffers(local: HealthSleep, incoming: HealthSleep) {
     local.bedtime !== incoming.bedtime ||
     local.wakeTime !== incoming.wakeTime ||
     (local.quality ?? null) !== (incoming.quality ?? null) ||
+    wakeEventsKey(local) !== wakeEventsKey(incoming) ||
     (local.wakeCount ?? null) !== (incoming.wakeCount ?? null) ||
     (local.wakeMinutes ?? null) !== (incoming.wakeMinutes ?? null) ||
     local.note !== incoming.note ||

@@ -140,6 +140,7 @@ const SCHEMA = `
     bedtime TEXT NOT NULL,
     wakeTime TEXT NOT NULL,
     quality INTEGER,
+    wakeEvents TEXT NOT NULL DEFAULT '[]',
     wakeCount INTEGER,
     wakeMinutes INTEGER,
     note TEXT NOT NULL DEFAULT '',
@@ -348,12 +349,36 @@ function sleepRow(row) {
     bedtime: row.bedtime,
     wakeTime: row.wakeTime,
     quality: num(row.quality),
+    wakeEvents: wakeEventsFromDb(row.wakeEvents),
     wakeCount: num(row.wakeCount),
     wakeMinutes: num(row.wakeMinutes),
     note: row.note ?? '',
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
+  }
+}
+
+/** 夜醒事件：只认 { time: 'HH:MM', minutes: 非负整数 }，坏条目直接剔除 */
+function wakeEventsFromDb(text) {
+  if (typeof text !== 'string' || text.trim() === '') return []
+  try {
+    const list = JSON.parse(text)
+    if (!Array.isArray(list)) return []
+    return list
+      .filter(
+        (item) =>
+          item &&
+          typeof item.time === 'string' &&
+          /^([01]\d|2[0-3]):[0-5]\d$/.test(item.time) &&
+          typeof item.minutes === 'number' &&
+          Number.isFinite(item.minutes) &&
+          item.minutes >= 0 &&
+          item.minutes <= 1440,
+      )
+      .map((item) => ({ time: item.time, minutes: Math.floor(item.minutes) }))
+  } catch {
+    return []
   }
 }
 
@@ -479,6 +504,8 @@ function createDatabase(file) {
     db.exec('ALTER TABLE healthSleeps ADD COLUMN wakeCount INTEGER')
   if (!sleepColumns.has('wakeMinutes'))
     db.exec('ALTER TABLE healthSleeps ADD COLUMN wakeMinutes INTEGER')
+  if (!sleepColumns.has('wakeEvents'))
+    db.exec("ALTER TABLE healthSleeps ADD COLUMN wakeEvents TEXT NOT NULL DEFAULT '[]'")
   // 旧记录补上 7 位短编号；新记录写入时自己带
   const fillCode = "substr(lower(hex(randomblob(4))), 1, 7)"
   db.exec(`UPDATE healthFoods SET code = ${fillCode} WHERE code IS NULL OR code = ''`)
@@ -673,14 +700,15 @@ function createDatabase(file) {
     sleepDays: db.prepare('SELECT DISTINCT dateKey FROM healthSleeps WHERE deletedAt IS NULL'),
     upsertSleep: db.prepare(
       `INSERT INTO healthSleeps
-         (id, code, dateKey, bedtime, wakeTime, quality, wakeCount, wakeMinutes, note, createdAt, updatedAt, deletedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (id, code, dateKey, bedtime, wakeTime, quality, wakeEvents, wakeCount, wakeMinutes, note, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          code = excluded.code,
          dateKey = excluded.dateKey,
          bedtime = excluded.bedtime,
          wakeTime = excluded.wakeTime,
          quality = excluded.quality,
+         wakeEvents = excluded.wakeEvents,
          wakeCount = excluded.wakeCount,
          wakeMinutes = excluded.wakeMinutes,
          note = excluded.note,
@@ -834,6 +862,7 @@ function createDatabase(file) {
       sleep.bedtime,
       sleep.wakeTime,
       num(sleep.quality),
+      JSON.stringify(Array.isArray(sleep.wakeEvents) ? sleep.wakeEvents : []),
       num(sleep.wakeCount),
       num(sleep.wakeMinutes),
       sleep.note ?? '',

@@ -1,3 +1,16 @@
+## 0.6.1 · 2026-10-31
+
+### What's new
+
+- **Swipe anywhere to change the day**: diary, health home, intake, weight and sleep pages all switch with a left or right swipe; inputs and horizontally scrollable areas are left alone
+- **Night wakes carry exact times**: log each wake with a time and minutes awake, and the count and total awake time add up automatically; older records keep showing their count and minutes until you add times
+- **The new field travels with backups**: wake times are exported, imported and compared for conflicts, and older backups still load
+
+### Download
+
+- Windows 10/11: `starburst-recorder-0.6.1-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.6.1.apk` (~16 MB, release-signed)
+
 ## 0.6.0 · 2026-10-31
 
 ### What's new
