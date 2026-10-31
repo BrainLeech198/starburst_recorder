@@ -1,3 +1,16 @@
+## 0.6.3 · 2026-10-31
+
+### What's new
+
+- **Meals open a detail view**: components, grams, total calories and protein, plus any deleted components are listed
+- **Meals can be duplicated**: copy one from the menu with the same components and grams, and the name gets a copy suffix
+- **Meals now match single foods**: detail, edit, copy and delete all live in the same row menu
+
+### Download
+
+- Windows 10/11: `starburst-recorder-0.6.3-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.6.3.apk` (~16 MB, release-signed)
+
 ## 0.6.2 · 2026-10-31
 
 ### What's new
