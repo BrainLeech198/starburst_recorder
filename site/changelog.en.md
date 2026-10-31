@@ -1,3 +1,16 @@
+## 0.6.2 · 2026-10-31
+
+### What's new
+
+- **Intake entries can be edited again**: tap ✎ in the list or edit from the detail view; regular foods let you change name, time, portion and nutrition, while meals recalculate proportionally from component grams
+- **Day switching now has motion**: the five date pages slide in by direction; elder-care reduced motion or the system setting turns it off
+- **Easier back navigation**: the back buttons on the intake, sleep and weight pages moved to the left; the finance data foundation is in place, with the monthly ledger UI coming next
+
+### Download
+
+- Windows 10/11: `starburst-recorder-0.6.2-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.6.2.apk` (~16 MB, release-signed)
+
 ## 0.6.1 · 2026-10-31
 
 ### What's new

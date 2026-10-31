@@ -23,7 +23,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.6.1',
+    'hero.cta': '下载 0.6.2',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -94,11 +94,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.6.1',
+    'open.version': '版本 0.6.2',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.6.1 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.6.2 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -109,11 +109,11 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '整页左右滑动换天：日记、健康首页、摄入、体重、睡眠页都能左滑下一天、右滑前一天，输入框和横向滚动区域里不会误触',
+      '摄入记录可以重新编辑：列表行点 ✎ 或从详情进入编辑，普通食物改名称、时间、份量和营养，套餐按成分克数等比重算',
     'whatsnew.item2':
-      '夜醒记录精确到时间：每次醒来记下时间和持续分钟，次数与累计醒来时长自动汇总；旧记录仍按原来的次数和分钟显示',
+      '左右滑动换天加了动画：五个日期页换天时按方向轻轻滑入，长辈关怀的减少动效和系统减少动效都会自动关闭',
     'whatsnew.item3':
-      '新字段跟着备份走：夜醒时间会一起导出、导入和参与冲突对比，旧备份照常能读',
+      '健康三个子页的返回按钮移到左侧；经济模块的记账数据底座已经铺好，月账本界面会在后续版本出现',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -122,7 +122,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.6.1',
+    'footer.version': '版本 0.6.2',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -145,7 +145,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.6.1',
+    'hero.cta': 'Download 0.6.2',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -220,12 +220,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.6.1',
+    'open.version': 'Version 0.6.2',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.6.1 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.6.2 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -236,13 +236,13 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.6.1",
+    'whatsnew.title': "What's new in 0.6.2",
     'whatsnew.item1':
-      'Swipe anywhere to change the day: diary, health home, intake, weight and sleep pages switch with a left or right swipe — inputs and horizontally scrollable areas are left alone',
+      'Intake entries can be edited again: tap ✎ in the list or edit from the detail view; regular foods let you change name, time, portion and nutrition, while meals recalculate proportionally from component grams',
     'whatsnew.item2':
-      'Night wakes carry exact times: log each wake with a time and minutes awake; the count and total awake time add up automatically, while older records keep their count and minutes',
+      'Day switching now has motion: the five date pages slide in by direction, and elder-care reduced motion or the system setting turns it off',
     'whatsnew.item3':
-      'The new field travels with backups: wake times are exported, imported and compared for conflicts, and older backups still load',
+      'The back buttons on the three health sub-pages moved to the left; the finance data foundation is in place, with the monthly ledger UI coming next',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -251,7 +251,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.6.1',
+    'footer.version': 'Version 0.6.2',
     'footer.tagline': 'Data stays on your device',
   },
 };

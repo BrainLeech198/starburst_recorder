@@ -3,7 +3,7 @@
 本地优先的个人记录工具，内置 AI：随手记一句今天，AI 整理成完整日记。不用注册、没有云端，数据只留在这台设备上。
 Windows 与 Android 同源，一套 React 代码分别装进 Electron 和 Capacitor。
 
-> 0.6.1 是早期版本：**日记**与**健康**已经能天天用，**财务**和**日历**还是占位页。
+> 0.6.2 是早期版本：**日记**与**健康**已经能天天用，**财务**和**日历**还是占位页。
 
 - 官网与下载：https://brainleech198.github.io/starburst_recorder/
 - 主仓库（Gitee）：https://gitee.com/Mr_brainleech/starburst_recorder
