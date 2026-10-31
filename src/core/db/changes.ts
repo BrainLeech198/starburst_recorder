@@ -82,6 +82,7 @@ const WRITE_METHODS = new Set([
   'purgeHealthMeal',
   'purgeTrashedHealthMeals',
   'addIntake',
+  'saveIntake',
   'removeIntake',
   'removeIntakes',
   'restoreIntake',

@@ -119,6 +119,16 @@ export const ru: Record<MessageKey, string> = {
   'health.deleteIntakeTitle': 'Удалить запись «{name}»?',
   'health.deleteIntakeDesc': 'Она сначала попадёт в корзину, откуда её можно вернуть.',
   'health.intakeDeleted': 'Запись удалена',
+  'health.editIntake': 'Изменить',
+  'health.intakeEditTitle': 'Изменить эту запись',
+  'health.intakeEditComponents': 'Состав набора',
+  'health.intakeEditTotal': 'Итого {grams} г · {kcal} ккал · белки {protein} г',
+  'health.intakeEditHint':
+    'При изменении порции пищевая ценность не пересчитывается автоматически — проверьте её.',
+  'health.intakeEditComponentHint':
+    'Изменение граммовки компонента пересчитывает ценность и итог пропорционально.',
+  'health.intakeEditSave': 'Сохранить',
+  'health.intakeUpdated': 'Запись обновлена',
   'health.legendProtein': 'Белки',
   'health.legendCarbs': 'Углеводы',
   'health.legendFat': 'Жиры',

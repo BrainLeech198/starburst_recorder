@@ -119,6 +119,16 @@ export const fr: Record<MessageKey, string> = {
   'health.deleteIntakeTitle': "Supprimer l'entrée « {name} » ?",
   'health.deleteIntakeDesc': "Elle part d'abord dans la corbeille, vous pourrez la restaurer.",
   'health.intakeDeleted': 'Entrée supprimée',
+  'health.editIntake': 'Modifier',
+  'health.intakeEditTitle': 'Modifier cette prise',
+  'health.intakeEditComponents': 'Composants du menu',
+  'health.intakeEditTotal': 'Total {grams} g · {kcal} kcal · protéines {protein} g',
+  'health.intakeEditHint':
+    'Changer la portion ne recalcule pas les valeurs nutritionnelles — vérifie-les aussi.',
+  'health.intakeEditComponentHint':
+    'Modifier les grammes d’un composant recalcule les valeurs et le total au prorata.',
+  'health.intakeEditSave': 'Enregistrer',
+  'health.intakeUpdated': 'Prise mise à jour',
   'health.legendProtein': 'Protéines',
   'health.legendCarbs': 'Glucides',
   'health.legendFat': 'Lipides',

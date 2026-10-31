@@ -119,6 +119,16 @@ export const en: Record<MessageKey, string> = {
   'health.deleteIntakeTitle': 'Delete the “{name}” entry?',
   'health.deleteIntakeDesc': 'It moves to the trash first, so you can restore it.',
   'health.intakeDeleted': 'Entry deleted',
+  'health.editIntake': 'Edit',
+  'health.intakeEditTitle': 'Edit this intake',
+  'health.intakeEditComponents': 'Meal components',
+  'health.intakeEditTotal': 'Total {grams} g · {kcal} kcal · protein {protein} g',
+  'health.intakeEditHint':
+    'Changing the portion does not recalculate nutrition automatically — check the values too.',
+  'health.intakeEditComponentHint':
+    'Changing component grams recalculates nutrition and totals proportionally.',
+  'health.intakeEditSave': 'Save',
+  'health.intakeUpdated': 'Intake updated',
   'health.legendProtein': 'Protein',
   'health.legendCarbs': 'Carbs',
   'health.legendFat': 'Fat',

@@ -13,6 +13,7 @@ import type {
   DiaryPreset,
   DiaryStamp,
   HealthFood,
+  HealthIntake,
   HealthMeal,
   HealthProfile,
   HealthSleep,
@@ -208,6 +209,11 @@ export const sqliteStore: DiaryStore = {
   intakesOfDay: (dateKey) => call('intakesOfDay', dateKey),
   intakeDays: () => call('intakeDays'),
   addIntake: (intake) => call('insertIntake', intake),
+  saveIntake: async (intake) => {
+    const next: HealthIntake = { ...intake, updatedAt: Date.now() }
+    await call('insertIntake', next)
+    return next
+  },
   removeIntake: async (id) => {
     await call('removeIntake', id)
   },

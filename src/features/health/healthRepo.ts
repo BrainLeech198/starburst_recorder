@@ -29,6 +29,7 @@ export const {
   intakesOfDay,
   intakeDays,
   addIntake,
+  saveIntake,
   removeIntake,
   removeIntakes,
   restoreIntake,

@@ -22,6 +22,7 @@ import { BAR_BUTTON, BAR_DANGER, NAV_BACK_BUTTON, SOLID_BUTTON } from '@/shared/
 import MealParts from './MealParts'
 import IntakeDialog from './IntakeDialog'
 import IntakeDetailDialog from './IntakeDetailDialog'
+import IntakeEditDialog from './IntakeEditDialog'
 import DayNav from '@/shared/ui/DayNav'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import { formatNum } from './healthMath'
@@ -72,6 +73,8 @@ export default function IntakesPage() {
   const [pendingDelete, setPendingDelete] = useState<HealthIntake | null>(null)
   /** 点开某一笔看完整营养成分 */
   const [detailIntake, setDetailIntake] = useState<HealthIntake | null>(null)
+  /** 正在编辑的那一笔 */
+  const [editingIntake, setEditingIntake] = useState<HealthIntake | null>(null)
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
   /** 批量导出时取来的整库数据；非 null 就打开挑选弹窗 */
   const [exportData, setExportData] = useState<BackupData | null>(null)
@@ -283,6 +286,15 @@ export default function IntakesPage() {
                   <div className="flex shrink-0 items-center gap-1">
                     <button
                       type="button"
+                      onClick={() => setEditingIntake(intake)}
+                      title={t('health.editIntake')}
+                      aria-label={t('health.editIntake')}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm text-muted transition-colors hover:text-brand"
+                    >
+                      ✎
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => void handleExportIntake(intake)}
                       title={t('records.export')}
                       className="inline-flex h-8 items-center justify-center rounded-lg px-1.5 font-mono text-[10px] text-muted transition-colors hover:text-brand"
@@ -350,7 +362,21 @@ export default function IntakesPage() {
       )}
 
       {detailIntake && (
-        <IntakeDetailDialog intake={detailIntake} onClose={() => setDetailIntake(null)} />
+        <IntakeDetailDialog
+          intake={detailIntake}
+          onClose={() => setDetailIntake(null)}
+          onEdit={() => {
+            setEditingIntake(detailIntake)
+            setDetailIntake(null)
+          }}
+        />
+      )}
+
+      {editingIntake && (
+        <IntakeEditDialog
+          intake={editingIntake}
+          onClose={() => setEditingIntake(null)}
+        />
       )}
 
       {dialogOpen && (

@@ -250,6 +250,8 @@ export interface DiaryStore {
   /** 有摄入记录的所有日期，日历上用来标「这天记过」 */
   intakeDays(): Promise<string[]>
   addIntake(intake: HealthIntake): Promise<HealthIntake>
+  /** 整行更新已有摄入；找不到 id 时按新增处理 */
+  saveIntake(intake: HealthIntake): Promise<HealthIntake>
   removeIntake(id: string): Promise<void>
   /** 批量软删除，返回实际改到的行数 */
   removeIntakes(ids: string[]): Promise<number>

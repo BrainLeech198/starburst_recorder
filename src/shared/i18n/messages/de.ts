@@ -119,6 +119,16 @@ export const de: Record<MessageKey, string> = {
   'health.deleteIntakeTitle': 'Eintrag „{name}“ löschen?',
   'health.deleteIntakeDesc': 'Er landet zuerst im Papierkorb und lässt sich wiederherstellen.',
   'health.intakeDeleted': 'Eintrag gelöscht',
+  'health.editIntake': 'Bearbeiten',
+  'health.intakeEditTitle': 'Diesen Eintrag bearbeiten',
+  'health.intakeEditComponents': 'Menü-Bestandteile',
+  'health.intakeEditTotal': 'Gesamt {grams} g · {kcal} kcal · Protein {protein} g',
+  'health.intakeEditHint':
+    'Eine geänderte Portion berechnet die Nährwerte nicht automatisch neu – bitte mitprüfen.',
+  'health.intakeEditComponentHint':
+    'Geänderte Grammzahlen der Bestandteile berechnen Nährwerte und Summe im gleichen Verhältnis neu.',
+  'health.intakeEditSave': 'Speichern',
+  'health.intakeUpdated': 'Eintrag aktualisiert',
   'health.legendProtein': 'Protein',
   'health.legendCarbs': 'Kohlenhydrate',
   'health.legendFat': 'Fett',

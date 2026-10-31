@@ -527,6 +527,12 @@ export const dexieStore: DiaryStore = {
     return intake
   },
 
+  async saveIntake(intake) {
+    const next: HealthIntake = { ...intake, updatedAt: Date.now() }
+    await db.healthIntakes.put(next)
+    return next
+  },
+
   async removeIntake(id) {
     await db.healthIntakes.update(id, { deletedAt: Date.now() })
   },
