@@ -214,7 +214,8 @@ export function buildStyleSamples(
 
 function formatFinance(item: FinanceEntry) {
   const note = item.note.trim()
-  return `${item.name} ${item.amount} 元${note ? `（${note}）` : ''}`
+  const kind = item.kind === 'income' ? '收入' : '支出'
+  return `${kind} ${item.name} ${item.amount} 元${note ? `（${note}）` : ''}`
 }
 
 const ALL_SOURCES: ComposeSource[] = ['stamps', 'health', 'finance']

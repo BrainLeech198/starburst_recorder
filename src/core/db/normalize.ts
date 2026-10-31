@@ -403,9 +403,13 @@ export function pickFinance(raw: unknown): FinanceEntry | null {
   if (id === '' || day === null) return null
   return {
     id,
+    code: text(item.code) || newCode(),
     dateKey: day,
+    // 旧占位数据没有方向，统一按支出口径读；金额一律收成正数
+    kind: item.kind === 'income' ? 'income' : 'expense',
+    category: text(item.category),
     name: text(item.name),
-    amount: number(item.amount, 0),
+    amount: Math.abs(number(item.amount, 0)),
     note: text(item.note),
     createdAt: number(item.createdAt, Date.now()),
     updatedAt: number(item.updatedAt, Date.now()),

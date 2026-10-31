@@ -207,16 +207,27 @@ export interface HealthSleep {
   deletedAt: number | null
 }
 
+/** 一笔收支的方向：钱进来还是出去 */
+export type FinanceKind = 'expense' | 'income'
+
 /**
- * 经济模块的占位表：真正的记账模型还没设计，先留一张「一行一笔」的表，
- * 好让备份能按块带上它；等经济模块落地再按需改字段。
+ * 经济模块：一行一笔收支。
+ *
+ * 金额统一存正数，方向由 `kind` 决定；分类先存一个可扩展的字符串 id，
+ * 内置分类和以后的自定义分类共用这个字段。
  */
 export interface FinanceEntry {
   id: string
+  /** 7 位十六进制短编号，跟日记、食物一样用来指代某一笔 */
+  code: string
   dateKey: string
+  /** 支出还是收入 */
+  kind: FinanceKind
+  /** 分类 id；空串表示还没选分类 */
+  category: string
   /** 项目名，例如「午饭」 */
   name: string
-  /** 金额，正数；收入还是支出以后再加字段 */
+  /** 金额，正数；方向看 kind */
   amount: number
   note: string
   createdAt: number

@@ -98,7 +98,10 @@ function sleep(
 function finance(dateKey: string, name: string, amount: number, note = ''): FinanceEntry {
   return {
     id: `f_${name}`,
+    code: 'f000001',
     dateKey,
+    kind: 'expense',
+    category: 'food',
     name,
     amount,
     note,

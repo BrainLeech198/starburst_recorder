@@ -149,7 +149,8 @@ function stampLine(item: DiaryStamp) {
 
 function financeLine(item: FinanceEntry) {
   const note = item.note.trim()
-  return `${formatDateCn(item.dateKey)} ${item.name} ${item.amount} 元${note ? `（${note}）` : ''}`
+  const kind = item.kind === 'income' ? '收入' : '支出'
+  return `${formatDateCn(item.dateKey)} ${kind} ${item.name} ${item.amount} 元${note ? `（${note}）` : ''}`
 }
 
 function intakeLine(item: HealthIntake) {

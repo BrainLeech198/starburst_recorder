@@ -68,7 +68,10 @@ function intake(overrides: Partial<HealthIntake> = {}): HealthIntake {
 function finance(overrides: Partial<FinanceEntry> = {}): FinanceEntry {
   return {
     id: 'f1',
+    code: 'f000001',
     dateKey: '2026-10-26',
+    kind: 'expense',
+    category: 'food',
     name: '午饭',
     amount: 25,
     note: '食堂',

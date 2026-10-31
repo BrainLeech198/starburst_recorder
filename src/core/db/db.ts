@@ -145,3 +145,19 @@ db.version(12)
       })
       .then(() => undefined),
   )
+
+// 经济：占位表补上短编号、收支方向与分类，老数据按支出读取
+db.version(13)
+  .stores({})
+  .upgrade((tx) =>
+    tx
+      .table('financeEntries')
+      .toCollection()
+      .modify((entry: FinanceEntry) => {
+        if (!entry.code) entry.code = newCode()
+        if (entry.kind !== 'income' && entry.kind !== 'expense') entry.kind = 'expense'
+        if (typeof entry.category !== 'string') entry.category = ''
+        entry.amount = Math.abs(entry.amount)
+      })
+      .then(() => undefined),
+  )

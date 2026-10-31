@@ -184,13 +184,13 @@ function financeItems(entries: FinanceEntry[]): RecordItem[] {
     .map((entry) => ({
       kind: 'finance' as const,
       id: entry.id,
-      // 收支表还没有短编号：列表里别把内部 id 当编号露出来
-      code: '',
+      code: entry.code,
       dateKey: entry.dateKey,
       time: formatClock(entry.createdAt),
       createdAt: entry.createdAt,
       text: entry.name,
-      detail: entry.amount.toFixed(2),
+      detail:
+        (entry.kind === 'income' ? '收入' : '支出') + ' · ' + entry.amount.toFixed(2),
     }))
 }
 

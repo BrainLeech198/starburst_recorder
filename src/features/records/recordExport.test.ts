@@ -89,7 +89,10 @@ function intake(overrides: Partial<HealthIntake> = {}): HealthIntake {
 function finance(overrides: Partial<FinanceEntry> = {}): FinanceEntry {
   return {
     id: 'f1',
+    code: 'f000001',
     dateKey: '2026-10-24',
+    kind: 'expense',
+    category: 'food',
     name: '买菜',
     amount: 18,
     note: '',
@@ -153,7 +156,7 @@ describe('recordsOf', () => {
   it('给收支带上名称与两位小数金额', () => {
     const item = recordsOf(base({ finance: [finance({ amount: 18.5 })] }), 'finance')[0]
     expect(item.text).toBe('买菜')
-    expect(item.detail).toBe('18.50')
+    expect(item.detail).toBe('支出 · 18.50')
   })
 
   it('食物库没有日期，按名称排序并带上每 100 g 营养', () => {
@@ -295,7 +298,7 @@ describe('buildRecordExport 的 Markdown', () => {
 
     expect(file.content).toContain('- 09:30 晒了太阳。')
     expect(file.content).toContain('- 12:10 午饭 · 520 kcal · 蛋白质 30 g')
-    expect(file.content).toContain('- 买菜 · 18.00')
+    expect(file.content).toContain('- 买菜 · 支出 · 18.00')
     expect(file.content.indexOf(formatDateCn('2026-10-24'))).toBeLessThan(
       file.content.indexOf(formatDateCn('2026-10-26')),
     )

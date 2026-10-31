@@ -151,10 +151,13 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_sleeps_day ON healthSleeps(dateKey);
   CREATE INDEX IF NOT EXISTS idx_sleeps_trash ON healthSleeps(deletedAt);
 
-  -- 经济：占位表，真正的记账模型以后再加
+  -- 经济：一行一笔收支，金额统一存正数，方向看 kind
   CREATE TABLE IF NOT EXISTS financeEntries (
     id TEXT PRIMARY KEY,
+    code TEXT,
     dateKey TEXT NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'expense',
+    category TEXT NOT NULL DEFAULT '',
     name TEXT NOT NULL DEFAULT '',
     amount REAL NOT NULL DEFAULT 0,
     note TEXT NOT NULL DEFAULT '',
@@ -428,14 +431,17 @@ function mealRow(row) {
   }
 }
 
-/** 经济占位行：字段少，坏值统一兜底成空串 / 0 */
+/** 经济行：坏值统一兜底，金额一律收成正数 */
 function financeRow(row) {
   if (!row) return undefined
   return {
     id: row.id,
+    code: row.code ?? '',
     dateKey: row.dateKey,
+    kind: row.kind === 'income' ? 'income' : 'expense',
+    category: row.category ?? '',
     name: row.name ?? '',
-    amount: num(row.amount) ?? 0,
+    amount: Math.abs(num(row.amount) ?? 0),
     note: row.note ?? '',
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -506,11 +512,21 @@ function createDatabase(file) {
     db.exec('ALTER TABLE healthSleeps ADD COLUMN wakeMinutes INTEGER')
   if (!sleepColumns.has('wakeEvents'))
     db.exec("ALTER TABLE healthSleeps ADD COLUMN wakeEvents TEXT NOT NULL DEFAULT '[]'")
+  // 经济：老库补短编号、收支方向与分类，老数据按支出读取
+  const financeColumns = new Set(
+    db.prepare('PRAGMA table_info(financeEntries)').all().map((row) => row.name),
+  )
+  if (!financeColumns.has('code')) db.exec('ALTER TABLE financeEntries ADD COLUMN code TEXT')
+  if (!financeColumns.has('kind'))
+    db.exec("ALTER TABLE financeEntries ADD COLUMN kind TEXT NOT NULL DEFAULT 'expense'")
+  if (!financeColumns.has('category'))
+    db.exec("ALTER TABLE financeEntries ADD COLUMN category TEXT NOT NULL DEFAULT ''")
   // 旧记录补上 7 位短编号；新记录写入时自己带
   const fillCode = "substr(lower(hex(randomblob(4))), 1, 7)"
   db.exec(`UPDATE healthFoods SET code = ${fillCode} WHERE code IS NULL OR code = ''`)
   db.exec(`UPDATE healthIntakes SET code = ${fillCode} WHERE code IS NULL OR code = ''`)
   db.exec(`UPDATE diaryStamps SET code = ${fillCode} WHERE code IS NULL OR code = ''`)
+  db.exec(`UPDATE financeEntries SET code = ${fillCode} WHERE code IS NULL OR code = ''`)
   db.exec('PRAGMA user_version = 9')
 
   const q = {
@@ -754,12 +770,16 @@ function createDatabase(file) {
     allSleepIds: db.prepare('SELECT id FROM healthSleeps'),
     allFinanceIds: db.prepare('SELECT id FROM financeEntries'),
 
-    // ─────────── 经济（占位） ───────────
+    // ─────────── 经济 ───────────
     upsertFinance: db.prepare(
-      `INSERT INTO financeEntries (id, dateKey, name, amount, note, createdAt, updatedAt, deletedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO financeEntries
+         (id, code, dateKey, kind, category, name, amount, note, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
+         code = excluded.code,
          dateKey = excluded.dateKey,
+         kind = excluded.kind,
+         category = excluded.category,
          name = excluded.name,
          amount = excluded.amount,
          note = excluded.note,
@@ -1141,9 +1161,12 @@ function createDatabase(file) {
         for (const item of finances) {
           q.upsertFinance.run(
             item.id,
+            item.code ?? '',
             item.dateKey,
+            item.kind === 'income' ? 'income' : 'expense',
+            item.category ?? '',
             item.name ?? '',
-            num(item.amount) ?? 0,
+            Math.abs(num(item.amount) ?? 0),
             item.note ?? '',
             item.createdAt,
             item.updatedAt,

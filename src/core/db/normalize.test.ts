@@ -3,6 +3,7 @@ import {
   bag,
   pickDay,
   pickEntry,
+  pickFinance,
   pickIntake,
   pickMeal,
   pickSleep,
@@ -170,5 +171,26 @@ describe('睡眠行：时刻坏了退回 00:00，评分只认 1–5', () => {
   it('id 或日期缺失整行丢掉', () => {
     expect(pickSleep({ ...base, id: '' })).toBeNull()
     expect(pickSleep({ ...base, dateKey: '2026-13-40' })).toBeNull()
+  })
+})
+
+describe('收支行：旧数据按支出读，金额收回正数', () => {
+  const base = { id: 'f1', dateKey: '2026-10-31', name: '午饭', amount: 25 }
+
+  it('缺方向、分类、短编号时补默认值', () => {
+    const row = pickFinance(base)
+    expect(row).toMatchObject({ kind: 'expense', category: '' })
+    expect(row?.code).not.toBe('')
+  })
+
+  it('只认 income，其余都算支出；金额统一取绝对值', () => {
+    expect(pickFinance({ ...base, kind: 'income', amount: -100 })?.kind).toBe('income')
+    expect(pickFinance({ ...base, kind: 'weird', amount: -25 })?.kind).toBe('expense')
+    expect(pickFinance({ ...base, amount: -25 })?.amount).toBe(25)
+  })
+
+  it('id 或日期缺失整行丢掉', () => {
+    expect(pickFinance({ ...base, id: '' })).toBeNull()
+    expect(pickFinance({ ...base, dateKey: '2026-13-40' })).toBeNull()
   })
 })
