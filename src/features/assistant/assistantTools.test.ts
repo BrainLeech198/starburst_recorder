@@ -4,6 +4,7 @@ import type {
   DiaryEntry,
   DiaryStamp,
   FinanceEntry,
+  HealthFood,
   HealthIntake,
   HealthProfile,
   HealthSleep,
@@ -313,6 +314,45 @@ describe('统计类工具', () => {
   it('没有档案时直说', () => {
     const text = runAssistantTool('profile_stats', {}, { data: emptyData(), today: '2026-10-28' })
     expect(text).toContain('还没有填写身体档案')
+  })
+})
+
+function food(name: string, id = 'food_1'): HealthFood {
+  return {
+    id,
+    code: 'a000001',
+    name,
+    kcal: 133,
+    protein: 24,
+    carbs: 0,
+    fat: 5,
+    servingName: null,
+    servingGrams: null,
+    photo: null,
+    createdAt: 0,
+    updatedAt: 0,
+    deletedAt: null,
+  }
+}
+
+describe('search_food', () => {
+  it('按名字过滤，带出 foodId 与每 100g 营养', () => {
+    const data = emptyData()
+    data.foods.push(food('鸡胸肉'), food('米饭', 'food_2'))
+    const text = runAssistantTool('search_food', { keyword: '鸡' }, { data, today: '2026-10-28' })
+    expect(text).toContain('鸡胸肉')
+    expect(text).toContain('foodId=food_1')
+    expect(text).toContain('133 千卡')
+    expect(text).not.toContain('米饭')
+  })
+
+  it('没有命中时直说', () => {
+    const text = runAssistantTool(
+      'search_food',
+      { keyword: '火锅' },
+      { data: emptyData(), today: '2026-10-28' },
+    )
+    expect(text).toContain('没有名字含')
   })
 })
 

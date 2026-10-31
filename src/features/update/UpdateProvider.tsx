@@ -14,13 +14,17 @@ import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import DownloadProgressPanel from './DownloadProgressPanel'
-import { checkForUpdate, downloadUpdate, getDownloadSource, onDownloadProgress, setDownloadSource, shouldPrompt, snooze } from './updateService'
-import type { DownloadSource, UpdateInfo } from './updateService'
+import { checkForUpdate, downloadUpdate, getDownloadSource, getUpdateChannel, onDownloadProgress, setDownloadSource, setUpdateChannel, shouldPrompt, snooze } from './updateService'
+import type { DownloadSource, UpdateChannel, UpdateInfo } from './updateService'
 
 interface UpdateValue {
   /** 有新版时非空，「我的」用它点红点 */
   info: UpdateInfo | null
   checking: boolean
+  /** 当前更新通道：正式版 / 测试版 */
+  channel: UpdateChannel
+  /** 切换通道会清掉旧结果，并按新通道立刻查一次 */
+  setChannel: (channel: UpdateChannel) => void
   /** 手动检查：结果会用 toast 说一句 */
   check: () => void
   /** 已经有 info 时重新打开弹窗 */
@@ -44,9 +48,12 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
   const [checking, setChecking] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [progress, setProgress] = useState<{ received: number; total: number } | null>(null)
+  const [channel, setChannelState] = useState<UpdateChannel>(getUpdateChannel)
   /** 本次弹窗里选的下载源；默认 Gitee */
   const [source, setSource] = useState<DownloadSource>(getDownloadSource)
   const started = useRef(false)
+  /** 每次检查递增；切通道后，旧请求的结果一律丢掉 */
+  const checkSeq = useRef(0)
 
   /** 每次打开弹窗前从本地设置读一次，「版本」页可能刚改过 */
   const openWithCurrentSource = useCallback(() => {
@@ -55,10 +62,11 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const runCheck = useCallback(
-    async (manual: boolean) => {
-      if (checking) return
+    async (manual: boolean, nextChannel: UpdateChannel = channel) => {
+      const seq = ++checkSeq.current
       setChecking(true)
-      const found = await checkForUpdate(locale)
+      const found = await checkForUpdate(locale, nextChannel)
+      if (seq !== checkSeq.current) return null
       setChecking(false)
       if (found) setInfo(found)
       if (manual) {
@@ -70,7 +78,19 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       }
       return found
     },
-    [checking, locale, showToast, t],
+    [channel, locale, showToast, t],
+  )
+
+  /** 切通道：先清掉旧结果，避免测试版卡片留在正式版通道里 */
+  const setChannel = useCallback(
+    (next: UpdateChannel) => {
+      if (next === channel) return
+      setUpdateChannel(next)
+      setChannelState(next)
+      setInfo(null)
+      void runCheck(true, next)
+    },
+    [channel, runCheck],
   )
 
   // 启动检查一次；StrictMode 下 effect 会跑两遍，用 ref 挡住
@@ -95,6 +115,8 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     () => ({
       info,
       checking,
+      channel,
+      setChannel,
       check: () => {
         if (info) {
           openWithCurrentSource()
@@ -105,7 +127,7 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       open: openWithCurrentSource,
       close,
     }),
-    [checking, close, info, openWithCurrentSource, runCheck],
+    [channel, checking, close, info, openWithCurrentSource, runCheck, setChannel],
   )
 
   async function startDownload() {
@@ -153,10 +175,30 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
             <DownloadProgressPanel fileName={info.fileName} progress={progress} />
           ) : (
             <>
-              <h2 className="text-base font-medium">{t('update.title', { version: info.version })}</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base font-medium">
+                  {t('update.title', { version: info.version })}
+                </h2>
+                {info.beta && (
+                  <span className="rounded-full border border-warning/50 bg-warning/10 px-2 py-0.5 text-[10px] text-warning">
+                    {t('update.betaBadge')}
+                  </span>
+                )}
+              </div>
               <p className="mt-1 text-xs text-muted">
                 {t('update.current', { version: APP_VERSION })}
               </p>
+              <p className="mt-0.5 text-xs text-muted">
+                {t('update.channelLine', {
+                  channel:
+                    channel === 'beta' ? t('version.channelBeta') : t('version.channelStable'),
+                })}
+              </p>
+              {info.beta && (
+                <p className="mt-2 rounded-lg border border-warning/40 bg-warning/10 px-2.5 py-1.5 text-[11px] text-fg">
+                  {t('update.betaNote')}
+                </p>
+              )}
               {info.notes && (
                 <>
                   <p className="mt-4 text-xs font-medium text-muted">{t('update.notes')}</p>
@@ -166,33 +208,36 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
                 </>
               )}
 
-              <div className="mt-4">
-                <p className="m-0 text-xs font-medium text-muted">{t('version.source')}</p>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  {(['gitee', 'github'] as DownloadSource[]).map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      aria-pressed={source === item}
-                      onClick={() => {
-                        setDownloadSource(item)
-                        setSource(item)
-                      }}
-                      className={choiceTile(source === item, 'px-3 py-2 text-xs')}
-                    >
-                      {t(item === 'gitee' ? 'version.sourceGitee' : 'version.sourceGithub')}
-                    </button>
-                  ))}
+              {/* 测试版只放在 GitHub，下载源切换没有意义，直接不显示 */}
+              {!info.beta && (
+                <div className="mt-4">
+                  <p className="m-0 text-xs font-medium text-muted">{t('version.source')}</p>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {(['gitee', 'github'] as DownloadSource[]).map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        aria-pressed={source === item}
+                        onClick={() => {
+                          setDownloadSource(item)
+                          setSource(item)
+                        }}
+                        className={choiceTile(source === item, 'px-3 py-2 text-xs')}
+                      >
+                        {t(item === 'gitee' ? 'version.sourceGitee' : 'version.sourceGithub')}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="mt-5 flex items-center justify-between gap-2">
                 <button
                   type="button"
-                  onClick={() => void openExternal(SITE_URL)}
+                  onClick={() => void openExternal(info.beta ? info.pageUrl : SITE_URL)}
                   className="text-xs text-muted underline-offset-4 transition-colors hover:text-brand hover:underline"
                 >
-                  {t('update.site')}
+                  {t(info.beta ? 'update.releasePage' : 'update.site')}
                 </button>
                 <div className="flex gap-2">
                   <button type="button" onClick={close} className={GHOST_BUTTON}>

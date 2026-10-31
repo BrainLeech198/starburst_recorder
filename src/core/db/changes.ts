@@ -92,6 +92,11 @@ const WRITE_METHODS = new Set([
   'restoreHealthSleep',
   'purgeHealthSleep',
   'purgeTrashedHealthSleeps',
+  // 经济
+  'addFinance',
+  'saveFinance',
+  'removeFinance',
+  'restoreFinance',
 ])
 
 /** 给存储实现套一层：写成功后自动广播变化，读操作原样透传 */

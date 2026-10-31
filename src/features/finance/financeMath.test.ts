@@ -1,6 +1,14 @@
 import { describe, expect, test } from 'vitest'
 import type { FinanceEntry } from '@/core/db/schema'
-import { isMonthKey, monthBounds, monthKeyOf, shiftMonth, summarizeFinance } from './financeMath'
+import {
+  groupFinanceByDay,
+  isMonthKey,
+  monthBounds,
+  monthKeyOf,
+  roundMoney,
+  shiftMonth,
+  summarizeFinance,
+} from './financeMath'
 
 function entry(overrides: Partial<FinanceEntry> = {}): FinanceEntry {
   return {
@@ -44,6 +52,32 @@ describe('monthBounds', () => {
   test('给出当月首尾日期，闰年二月也正确', () => {
     expect(monthBounds('2026-10')).toEqual({ start: '2026-10-01', end: '2026-10-31' })
     expect(monthBounds('2024-02')).toEqual({ start: '2024-02-01', end: '2024-02-29' })
+  })
+})
+
+describe('groupFinanceByDay', () => {
+  test('按天分组，日期与创建时间都新的在前', () => {
+    const days = groupFinanceByDay([
+      entry({ id: 'a', dateKey: '2026-10-30', createdAt: 10, amount: 20 }),
+      entry({ id: 'b', dateKey: '2026-10-31', createdAt: 5, amount: 30 }),
+      entry({ id: 'c', dateKey: '2026-10-30', createdAt: 30, amount: 12 }),
+      entry({ id: 'd', dateKey: '2026-10-31', createdAt: 9, amount: 8, deletedAt: 1 }),
+    ])
+    expect(days.map((day) => day.dateKey)).toEqual(['2026-10-31', '2026-10-30'])
+    expect(days[0].entries.map((item) => item.id)).toEqual(['b'])
+    expect(days[1].entries.map((item) => item.id)).toEqual(['c', 'a'])
+    expect(days[1].summary).toEqual({ income: 0, expense: 32, balance: -32 })
+  })
+
+  test('空列表返回空数组', () => {
+    expect(groupFinanceByDay([])).toEqual([])
+  })
+})
+
+describe('roundMoney', () => {
+  test('保留两位小数', () => {
+    expect(roundMoney(12.345)).toBe(12.35)
+    expect(roundMoney(0.1 + 0.2)).toBe(0.3)
   })
 })
 

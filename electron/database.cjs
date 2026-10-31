@@ -719,6 +719,11 @@ function createDatabase(file) {
     sleepsBetween: db.prepare(
       'SELECT * FROM healthSleeps WHERE dateKey >= ? AND dateKey <= ? AND deletedAt IS NULL ORDER BY dateKey ASC',
     ),
+    financeOfMonth: db.prepare(
+      'SELECT * FROM financeEntries WHERE dateKey LIKE ? AND deletedAt IS NULL ORDER BY dateKey DESC, createdAt DESC',
+    ),
+    removeFinance: db.prepare('UPDATE financeEntries SET deletedAt = ? WHERE id = ?'),
+    restoreFinance: db.prepare('UPDATE financeEntries SET deletedAt = NULL WHERE id = ?'),
     sleepDays: db.prepare('SELECT DISTINCT dateKey FROM healthSleeps WHERE deletedAt IS NULL'),
     upsertSleep: db.prepare(
       `INSERT INTO healthSleeps
@@ -897,6 +902,37 @@ function createDatabase(file) {
       num(sleep.deletedAt),
     )
     return sleep
+  }
+
+  function saveFinance(entry) {
+    const next = {
+      id: entry.id,
+      code: entry.code ?? '',
+      dateKey: entry.dateKey,
+      kind: entry.kind === 'income' ? 'income' : 'expense',
+      category: entry.category ?? '',
+      name: entry.name ?? '',
+      // 金额一律收成正数，方向只由 kind 决定
+      amount: Math.abs(num(entry.amount) ?? 0),
+      note: entry.note ?? '',
+      createdAt: num(entry.createdAt) ?? Date.now(),
+      updatedAt: num(entry.updatedAt) ?? Date.now(),
+      deletedAt: num(entry.deletedAt),
+    }
+    q.upsertFinance.run(
+      next.id,
+      next.code,
+      next.dateKey,
+      next.kind,
+      next.category,
+      next.name,
+      next.amount,
+      next.note,
+      next.createdAt,
+      next.updatedAt,
+      next.deletedAt,
+    )
+    return next
   }
 
   function insertIntake(intake) {
@@ -1427,6 +1463,15 @@ function createDatabase(file) {
     },
     sleepOfDay: (dateKey) => sleepRow(q.sleepOfDay.get(dateKey)),
     sleepsBetween: (from, to) => q.sleepsBetween.all(from, to).map(sleepRow),
+    financeOfMonth: (monthKey) => q.financeOfMonth.all(`${monthKey}%`).map(financeRow),
+    addFinance: (entry) => saveFinance(entry),
+    saveFinance: (entry) => saveFinance(entry),
+    removeFinance: (id) => {
+      q.removeFinance.run(Date.now(), id)
+    },
+    restoreFinance: (id) => {
+      q.restoreFinance.run(id)
+    },
     sleepDays: () => q.sleepDays.all().map((row) => row.dateKey),
     saveHealthSleep: (sleep) => saveSleep(sleep),
     removeHealthSleep: (id) => {

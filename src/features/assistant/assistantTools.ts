@@ -10,6 +10,7 @@ import type {
   DiaryEntry,
   DiaryStamp,
   FinanceEntry,
+  HealthFood,
   HealthIntake,
   HealthSleep,
 } from '@/core/db/schema'
@@ -34,7 +35,7 @@ const DATE_ARGS = {
   to: { type: 'string', description: '结束日期，YYYY-MM-DD（含）' },
 } as const
 
-export const ASSISTANT_TOOLS: AssistantToolSpec[] = [
+export const ASSISTANT_READ_TOOLS: AssistantToolSpec[] = [
   {
     name: 'query_day',
     description: '按日期看用户这一天的完整记录：天气、日记、随记、摄入、睡眠、收支。',
@@ -98,7 +99,145 @@ export const ASSISTANT_TOOLS: AssistantToolSpec[] = [
     description: '看身体档案和最近的称重记录（体重趋势、TDEE、目标热量）。',
     parameters: { type: 'object', properties: {} },
   },
+  {
+    name: 'search_food',
+    description:
+      '在食物库里按名称查食物，拿到 foodId 和每 100g 营养。要记饮食时先用它查，别自己猜热量。',
+    parameters: {
+      type: 'object',
+      properties: {
+        keyword: { type: 'string', description: '食物名关键词，可不填（不填时列出前 25 条）' },
+      },
+    },
+  },
 ]
+
+/**
+ * 会写数据的工具。模型调用它们时不会立刻写库，
+ * 而是变成一张「待确认卡片」，等用户点确认后才执行。
+ */
+export const ASSISTANT_ACTION_TOOLS: AssistantToolSpec[] = [
+  {
+    name: 'remember',
+    description:
+      '把用户想让你长期记住的事（偏好、目标、习惯、重要事实）放进待确认卡片。用户确认后才会记住。',
+    parameters: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: '一句话，例如「不吃香菜」「目标体重 65kg」' },
+        kind: {
+          type: 'string',
+          enum: ['preference', 'goal', 'habit', 'fact'],
+          description: '记忆分类：偏好 / 目标 / 习惯 / 事实',
+        },
+      },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'add_finance',
+    description: '记一笔收支，放进待确认卡片。只用于用户明确说要记账的时候，不要替用户编数字。',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: '日期 YYYY-MM-DD，不填就是今天' },
+        direction: { type: 'string', enum: ['expense', 'income'], description: '支出还是收入' },
+        name: { type: 'string', description: '项目名，例如「午饭」' },
+        amount: { type: 'number', description: '金额，正数' },
+        note: { type: 'string', description: '备注，可不填' },
+        category: {
+          type: 'string',
+          description: '分类 id，可不填。支出：food/transport/shopping/home/health/fun/study/social/other；收入：salary/bonus/invest/gift/otherIncome',
+        },
+      },
+      required: ['name', 'amount'],
+    },
+  },
+  {
+    name: 'add_stamp',
+    description: '记一条随记（一天里发生的小事），放进待确认卡片。',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: '日期 YYYY-MM-DD，不填就是今天' },
+        time: { type: 'string', description: '时刻 HH:MM，不填就是现在' },
+        content: { type: 'string', description: '随记内容' },
+      },
+      required: ['content'],
+    },
+  },
+  {
+    name: 'add_diary',
+    description: '写一篇日记，放进待确认卡片。只在用户明确让你写的时候用。',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: '日期 YYYY-MM-DD，不填就是今天' },
+        content: { type: 'string', description: '日记正文' },
+      },
+      required: ['content'],
+    },
+  },
+  {
+    name: 'add_sleep',
+    description: '记一夜睡眠，放进待确认卡片。date 是起床那天；当天已有记录时会覆盖。',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: '起床那天 YYYY-MM-DD，不填就是今天' },
+        bedtime: { type: 'string', description: '入睡时刻 HH:MM' },
+        wakeTime: { type: 'string', description: '起床时刻 HH:MM' },
+        quality: { type: 'number', description: '睡眠质量 1–5，可不填' },
+        note: { type: 'string', description: '备注，可不填' },
+      },
+      required: ['bedtime', 'wakeTime'],
+    },
+  },
+  {
+    name: 'add_weigh',
+    description: '记一次体重，放进待确认卡片。需要先有身体档案。',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: '日期 YYYY-MM-DD，不填就是今天' },
+        weightKg: { type: 'number', description: '体重，公斤' },
+      },
+      required: ['weightKg'],
+    },
+  },
+  {
+    name: 'add_intake',
+    description:
+      '记一笔饮食，放进待确认卡片。优先传食物库的 foodId 和克数；食物库没有时，必须由用户给出热量才能手记。',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: '日期 YYYY-MM-DD，不填就是今天' },
+        time: { type: 'string', description: '时刻 HH:MM，不填就是现在' },
+        foodId: { type: 'string', description: '食物库 id（先用 search_food 查）' },
+        name: { type: 'string', description: '食物名；没有 foodId 时必填' },
+        grams: { type: 'number', description: '吃了多少克' },
+        kcal: { type: 'number', description: '没有 foodId 时的热量（千卡）' },
+        protein: { type: 'number', description: '蛋白质克数，可不填' },
+        carbs: { type: 'number', description: '碳水克数，可不填' },
+        fat: { type: 'number', description: '脂肪克数，可不填' },
+      },
+      required: ['grams'],
+    },
+  },
+]
+
+export const ASSISTANT_TOOLS: AssistantToolSpec[] = [
+  ...ASSISTANT_READ_TOOLS,
+  ...ASSISTANT_ACTION_TOOLS,
+]
+
+const ACTION_NAMES = new Set(ASSISTANT_ACTION_TOOLS.map((spec) => spec.name))
+
+/** 这个工具是「写」还是「读」：写的只出确认卡片，不直接落库 */
+export function isAssistantActionTool(name: string) {
+  return ACTION_NAMES.has(name)
+}
 
 /** 区间最宽 366 天，避免模型传 2000-01-01 把整库翻一遍 */
 const MAX_RANGE_DAYS = 366
@@ -314,6 +453,31 @@ function profileStats(data: BackupData) {
   return lines.join('\n')
 }
 
+function foodLine(food: HealthFood) {
+  const serving =
+    food.servingName && food.servingGrams
+      ? `；常用份量「${food.servingName}」约 ${food.servingGrams} g`
+      : ''
+  return `${food.name}（foodId=${food.id}）每 100g：${Math.round(food.kcal)} 千卡，蛋白 ${food.protein} g，碳水 ${food.carbs} g，脂肪 ${food.fat} g${serving}`
+}
+
+function searchFood(keyword: string, data: BackupData) {
+  const foods = data.foods.filter(
+    (item) => item.deletedAt === null && matches(item.name, keyword),
+  )
+  if (foods.length === 0) {
+    return keyword === ''
+      ? '食物库里还没有食物。'
+      : `食物库里没有名字含「${keyword}」的食物。`
+  }
+  const picked = foods.slice(0, 25)
+  return [
+    keyword === '' ? `食物库共 ${foods.length} 条，先列 ${picked.length} 条：` : `找到 ${picked.length} 条：`,
+    ...picked.map(foodLine),
+    '以上 foodId 只用于工具参数，不要念给用户。',
+  ].join('\n')
+}
+
 /** 工具执行器：名字不认识就返回一句人话，不让模型拿着空结果瞎编 */
 export function runAssistantTool(
   name: string,
@@ -384,6 +548,9 @@ export function runAssistantTool(
       break
     case 'profile_stats':
       text = profileStats(ctx.data)
+      break
+    case 'search_food':
+      text = searchFood(keyword, ctx.data)
       break
     default:
       text = `没有叫 ${name} 的工具。`

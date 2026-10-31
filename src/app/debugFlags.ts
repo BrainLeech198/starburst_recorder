@@ -1,24 +1,22 @@
 /**
- * 调试开关。默认全关，正式跑的时候一个都不生效。
+ * 悬浮球开关。
  *
- * 现在只有一项：悬浮球。它当前只是个占位（点开只会说"AI 还没接入"），
- * 放在右下角既是误导、又容易被当成多出来的鼠标指针，所以平时不显示。
- *
- * 想看它怎么动：
- *   1. 地址后加参数：`http://localhost:5173/?ball=1#/diary`
- *   2. 或在控制台执行：`localStorage.setItem('starburst.debug.ball', '1')`（之后刷新）
- *   关掉：`localStorage.removeItem('starburst.debug.ball')`
+ * 助手已经能真正对话，悬浮球默认显示；早期「它只是个占位」的临时隐藏已经撤掉。
+ * 想临时藏起来：
+ *   1. 地址后加参数：`?ball=0`（只对这次打开有效）
+ *   2. 或在控制台执行：`localStorage.setItem('starburst.debug.ball', '0')`（之后刷新）
+ * 恢复显示：删掉 `starburst.debug.ball` 或设回 `1`。
  */
 
 const BALL_KEY = 'starburst.debug.ball'
 
 export function ballVisible(): boolean {
-  // 地址参数优先：贴一次链接就能看，不用先开控制台
-  if (new URLSearchParams(window.location.search).get('ball') === '1') return true
+  // 地址参数优先：贴一次链接就能临时关掉，不用先开控制台
+  if (new URLSearchParams(window.location.search).get('ball') === '0') return false
   try {
-    return localStorage.getItem(BALL_KEY) === '1'
+    return localStorage.getItem(BALL_KEY) !== '0'
   } catch {
-    // 隐私模式下 localStorage 会抛错，那就当没开
-    return false
+    // 隐私模式下 localStorage 会抛错，默认照常显示
+    return true
   }
 }

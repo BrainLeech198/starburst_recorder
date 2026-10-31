@@ -12,6 +12,7 @@ import type {
   DiaryEntry,
   DiaryPreset,
   DiaryStamp,
+  FinanceEntry,
   HealthFood,
   HealthIntake,
   HealthMeal,
@@ -208,6 +209,19 @@ export const sqliteStore: DiaryStore = {
   },
   intakesOfDay: (dateKey) => call('intakesOfDay', dateKey),
   intakesBetween: (from, to) => call('intakesBetween', from, to),
+  financeOfMonth: (monthKey) => call('financeOfMonth', monthKey),
+  addFinance: (entry) => call('addFinance', entry),
+  saveFinance: async (entry) => {
+    const next: FinanceEntry = { ...entry, updatedAt: Date.now() }
+    await call('saveFinance', next)
+    return next
+  },
+  removeFinance: async (id) => {
+    await call('removeFinance', id)
+  },
+  restoreFinance: async (id) => {
+    await call('restoreFinance', id)
+  },
   intakeDays: () => call('intakeDays'),
   addIntake: (intake) => call('insertIntake', intake),
   saveIntake: async (intake) => {

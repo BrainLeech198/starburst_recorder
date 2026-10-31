@@ -1,7 +1,7 @@
 # 打包与发版规范
 
 > 本文是 Windows / Android 打包、签名、发版的**唯一操作口径**。
-> 内容合并自 CodeBuddy 与 Trae 的项目长期记忆、2026-10-25 至 10-26 的实际发版记录，以及本机签名核验结果。
+> 内容合并自 CodeBuddy 与 Trae 的项目长期记忆、2026-10-25 至 10-26 的实际发版记录、本机签名核验结果，以及 2026-11-01 定下的正式版 / 测试版双通道规范。
 > 与 `docs/PROJECT-NOTES.md`（架构与决策）互补：那份讲「为什么这样设计」，这份讲「发版时具体怎么做、哪里不能碰」。
 
 ## 0. 权威顺序
@@ -19,15 +19,17 @@
 
 | 位置 | 如何取值 |
 | --- | --- |
-| Android `versionName` | `package.json.version`（`android/app/build.gradle` 运行时读取） |
-| Android `versionCode` | `major × 10000 + minor × 100 + patch`（`0.2.7 → 207`） |
+| Android `versionName` | `package.json.version`（`android/app/build.gradle` 运行时读取，测试版带 `-beta.N` 后缀） |
+| Android `versionCode` | `major × 10000000 + minor × 100000 + patch × 1000 + 通道`；正式版通道 = `999`，测试版 `-beta.N` = `N`（`0.8.0 → 800999`，`0.8.0-beta.1 → 800001`） |
 | Windows 安装包版本 | `package/windows/build.ps1` 读取 `package.json.version` |
 | 安装包文件名 | `starburst-recorder-<version>-setup.exe` / `starburst-recorder-<version>.apk` |
-| 官网、更新日志、Release 正文 | 手动同步为同一版本号 |
+| 官网、更新日志、Release 正文 | 手动同步为同一版本号（测试版不更新官网，见 §1.2） |
 
 发版时 `package.json` 与 `package-lock.json` 要一起改，两处版本不能打架。
 
 **不要**再在 `build.gradle` 里手写版本号，也不要给 Android 单独维护一套。
+
+> versionCode 口径在 `0.8.0` 换代：旧公式 `major×10000 + minor×100 + patch` 装不下预发布序号，也无法保证 `beta.N < 同号正式版`。新公式从 `0.8.0-beta.1` 起生效；`0.7.0` 及更早仍按旧号（如 `0.7.0 = 700`），新号一律更大，升级覆盖不受影响。
 
 ### 1.1 什么时候动哪一位（2026-10-31 修订）
 
@@ -45,6 +47,30 @@
 - 一版里既有小功能又有修复，仍按“小步优先 patch”走，不因为出现 feat 就自动抬 minor。
 - 版本号只改 `package.json` 与 `package-lock.json`（见 §1 表），其余全部派生；官网与更新说明里的版本号是手动同步项，发版清单第 3 步负责。
 - 历史口径：0.2.7–0.2.13、0.5.2 曾把新功能放进 patch；按 2026-10-31 修订后的规则，这类“小步功能”本来就归 patch，不再算例外。历史版本号不追溯重排。
+
+### 1.2 版本通道：正式版与测试版（2026-11-01 起）
+
+正式版与测试版共用一套版本号，用后缀区分；两条通道的发布范围不同：
+
+| | 正式版（stable） | 测试版（beta） |
+| --- | --- | --- |
+| 版本 / 标签 | `0.8.0` / `v0.8.0` | `0.8.0-beta.1` / `v0.8.0-beta.1` |
+| GitHub Release | 普通 Release，**会更新 `latest`** | **Pre-release**，不影响 `latest` |
+| Gitee Release | 正常发，按 §4.1 只留最新版的附件 | **不发**，附件也不传 |
+| 官网 `site/` | 同步版本、下载与更新说明 | **不动**，官网只展示最近一个正式版 |
+| 更新说明 | 官网 `notes.zh.md` / Release 正文 | 只用 Release 正文（官网说明还是上一版） |
+| 谁能收到 | 所有用户 | 在「我的 → 版本 → 更新通道」切到测试版的用户 |
+
+版本号规则：
+
+- 测试版从**准备正式发布的那一版**起号：`0.7.0` 之后是 `0.8.0-beta.1`、`0.8.0-beta.2`……收尾发 `0.8.0`；同一 base 的正式版发布后，不再出同 base 的 beta。
+- 热修也可以先用测试版验证：`0.8.1-beta.1` → `0.8.1`，规则相同。
+- 优先级按 SemVer：`0.8.0-beta.2 < 0.8.0-beta.10 < 0.8.0 < 0.8.1-beta.1`。正式版比同号预发布高，测试版用户能在正式版发布后升级过去。
+- 正式版用户永远看不到测试版；测试版通道会同时收正式版与测试版，并取最高者。
+- 通道选择存 `localStorage` 的 `sb_update_channel`，默认 `stable`，切换后立刻按新通道检查一次。
+- 测试版安装包**只放 GitHub**：Gitee 附件配额有限，且规矩是「只保留最新正式版」；应用检查测试版时不拼 Gitee 下载地址。
+- 检查测试版走 GitHub `/releases?per_page=20`，跳过 draft，按 SemVer 排序取最高；正式版仍走 `/releases/latest`，失败再退 Gitee。
+- 桌面主进程（`electron/main.cjs`）与渲染层（`src/core/utils/versionCompare.ts`）各有一份 SemVer 比较与 Release 解析，**改规则必须两边一起改**，否则桌面和安卓会看到不同结果。
 
 ## 2. Android 打包
 
@@ -84,7 +110,7 @@ CN=Starburst Recorder, OU=Personal, O=Mr_brainleech, L=Hangzhou, ST=Zhejiang, C=
 有效期：2026-10-25 → 2059-09-02
 ```
 
-**核验记录（2026-10-26）**：`0.1.0` 至 `0.2.6` 全部 APK 的签名证书 SHA-256 均为上值，且与当前 `.jks` 完全一致。也就是说，历次升级包一直使用同一套密钥。`0.2.7` 出包时同样核对过；`0.2.8` 在发布后从 Gitee 重新下载 APK 复验，哈希与本地归档一致、指纹仍为上值。`0.2.9` 出包后核对：指纹仍为上值，`versionCode=209`、`versionName=0.2.9`。`0.2.10` 出包后核对：指纹仍为上值，`versionCode=210`、`versionName=0.2.10`。`0.2.11` 出包后核对：指纹仍为上值，`versionCode=211`、`versionName=0.2.11`。`0.2.12` 出包后核对：指纹仍为上值，`versionCode=212`、`versionName=0.2.12`。`0.2.13` 出包后核对：指纹仍为上值，`versionCode=213`、`versionName=0.2.13`。`0.3.0` 出包后核对：指纹仍为上值，`versionCode=300`、`versionName=0.3.0`。`0.3.1` 出包后核对：指纹仍为上值，`versionCode=301`、`versionName=0.3.1`。`0.4.0` 出包后核对：指纹仍为上值，`versionCode=400`、`versionName=0.4.0`。`0.5.0` 出包后核对：指纹仍为上值，`versionCode=500`、`versionName=0.5.0`。`0.5.1` 出包后核对：指纹仍为上值，`versionCode=501`、`versionName=0.5.1`。`0.5.2` 出包后核对：指纹仍为上值，`versionCode=502`、`versionName=0.5.2`。`0.6.0` 出包后核对：指纹仍为上值，`versionCode=600`、`versionName=0.6.0`。`0.6.1` 出包后核对：指纹仍为上值，`versionCode=601`、`versionName=0.6.1`。`0.6.2` 出包后核对：指纹仍为上值，`versionCode=602`、`versionName=0.6.2`。`0.6.3` 出包后核对：指纹仍为上值，`versionCode=603`、`versionName=0.6.3`。`0.7.0` 出包后核对：指纹仍为上值，`versionCode=700`、`versionName=0.7.0`。
+**核验记录（2026-10-26）**：`0.1.0` 至 `0.2.6` 全部 APK 的签名证书 SHA-256 均为上值，且与当前 `.jks` 完全一致。也就是说，历次升级包一直使用同一套密钥。`0.2.7` 出包时同样核对过；`0.2.8` 在发布后从 Gitee 重新下载 APK 复验，哈希与本地归档一致、指纹仍为上值。`0.2.9` 出包后核对：指纹仍为上值，`versionCode=209`、`versionName=0.2.9`。`0.2.10` 出包后核对：指纹仍为上值，`versionCode=210`、`versionName=0.2.10`。`0.2.11` 出包后核对：指纹仍为上值，`versionCode=211`、`versionName=0.2.11`。`0.2.12` 出包后核对：指纹仍为上值，`versionCode=212`、`versionName=0.2.12`。`0.2.13` 出包后核对：指纹仍为上值，`versionCode=213`、`versionName=0.2.13`。`0.3.0` 出包后核对：指纹仍为上值，`versionCode=300`、`versionName=0.3.0`。`0.3.1` 出包后核对：指纹仍为上值，`versionCode=301`、`versionName=0.3.1`。`0.4.0` 出包后核对：指纹仍为上值，`versionCode=400`、`versionName=0.4.0`。`0.5.0` 出包后核对：指纹仍为上值，`versionCode=500`、`versionName=0.5.0`。`0.5.1` 出包后核对：指纹仍为上值，`versionCode=501`、`versionName=0.5.1`。`0.5.2` 出包后核对：指纹仍为上值，`versionCode=502`、`versionName=0.5.2`。`0.6.0` 出包后核对：指纹仍为上值，`versionCode=600`、`versionName=0.6.0`。`0.6.1` 出包后核对：指纹仍为上值，`versionCode=601`、`versionName=0.6.1`。`0.6.2` 出包后核对：指纹仍为上值，`versionCode=602`、`versionName=0.6.2`。`0.6.3` 出包后核对：指纹仍为上值，`versionCode=603`、`versionName=0.6.3`。`0.7.0` 出包后核对：指纹仍为上值，`versionCode=700`、`versionName=0.7.0`。`0.8.0-beta.1` 出包后核对：指纹仍为上值，`versionCode=800001`、`versionName=0.8.0-beta.1`（首个启用新 versionCode 公式的版本）；Windows 安装包 ProductVersion 为 `0.8.0-beta.1`。
 
 ### 2.3 每次出包必须验签
 
@@ -141,8 +167,8 @@ npm run desktop:installer
 6. **提交**：只提交源码与文档；`git add` 用具体文件名，不用 `git add -A`
 7. **打标签**：`git tag v<version>`
 8. **推送**：`git push origin main --tags`（origin = Gitee 主仓库，GitHub 由镜像自动同步）
-9. **发 Release**：Gitee 与 GitHub 各建一条，上传同名的 `.apk` 与 `-setup.exe`；替换同名资产时先删旧资产再传。**Gitee 只保留最新版本的附件**：免费仓库的发行版附件总量只有 1 GB，每版两个包约 110 MB，发新版前先删掉旧版本 Release 里的附件（Release 与源码归档保留）；旧版本下载只走 GitHub，官网「历史版本」链接也一直指向 GitHub
-10. **验证**：官网 Pages 是否更新、两个平台的下载链接是否可用、APK 指纹是否仍是 §2.2
+9. **发 Release（正式版）**：Gitee 与 GitHub 各建一条普通 Release，上传同名的 `.apk` 与 `-setup.exe`；替换同名资产时先删旧资产再传。**Gitee 只保留最新版本的附件**：免费仓库的发行版附件总量只有 1 GB，每版两个包约 110 MB，发新版前先删掉旧版本 Release 里的附件（Release 与源码归档保留）；旧版本下载只走 GitHub，官网「历史版本」链接也一直指向 GitHub。测试版走 §4.2，**不发 Gitee**。
+10. **验证**：官网 Pages 是否更新、两个平台的下载链接是否可用、APK 指纹是否仍是 §2.2；再打开一个已安装的正式版，确认「检查更新」能拿到这一版。
 
 ### 4.1 Gitee 发行版附件配额（重要）
 
@@ -173,6 +199,20 @@ POST   https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files 
 
 > 0.2.8 发版时按这条规矩清空了 `0.1.0` 至 `0.2.7` 的全部附件，只留 `0.2.8` 的两个包；各版本 Release 页面与源码归档仍在。`0.2.10` 发版时同样删掉 `0.2.9` 的两个附件，核对结果为：`0.1.0` 至 `0.2.9` 均无附件，仅 `0.2.10` 有 `apk` 与 `-setup.exe`。从 Gitee 重新下载的 APK，SHA-256 与本地归档一致。`0.2.11` 发版时删掉 `0.2.10` 的两个附件，核对结果为：`0.1.0` 至 `0.2.10` 均无附件，仅 `0.2.11` 有 `apk` 与 `-setup.exe`；从 Gitee 重新下载的 APK，SHA-256 与本地归档一致（`2aba4db5…51a82a`）。`0.2.12` 发版时删掉 `0.2.11` 的两个附件，仅 `0.2.12` 有 `apk`（16,116,020 字节）与 `-setup.exe`（99,583,205 字节）；GitHub 与 Gitee 的附件大小一致。`0.2.13` 发版时删掉 `0.2.12` 的两个附件，仅 `0.2.13` 有 `apk`（16,209,857 字节）与 `-setup.exe`（99,598,354 字节）；从 Gitee 重新下载的 APK，SHA-256（`883d7c1d…faa27976`）与本地归档一致。`0.3.0` 发版时删掉 `0.2.13` 的两个附件，仅 `0.3.0` 有 `apk`（16,235,859 字节）与 `-setup.exe`（99,655,537 字节）；GitHub 与 Gitee 的附件大小一致；从 Gitee 重新下载的 APK，SHA-256（`ca60ab32…1afb1df3`）与本地归档一致。`0.3.1` 发版时删掉 `0.3.0` 的两个附件，核对结果为：`0.1.0` 至 `0.3.0` 均无附件，仅 `0.3.1` 有 `apk`（16,236,091 字节）与 `-setup.exe`（99,657,009 字节）；GitHub 与 Gitee 的附件大小一致；从 Gitee 重新下载的 APK，SHA-256（`12da83f5…d9a65093`）与本地归档一致；官网 Pages 已显示 `0.3.1`。`0.4.0` 发版时删掉 `0.3.1` 的两个附件，仅 `0.4.0` 有 `apk`（16,250,178 字节）与 `-setup.exe`（99,667,492 字节）；GitHub 与 Gitee 的附件大小一致；从 Gitee 重新下载的 APK，SHA-256（`d259bda4…ba448ab4`）与本地归档一致；官网 Pages 已显示 `0.4.0`。`0.5.0` 发版时删掉 `0.4.0` 的两个附件，仅 `0.5.0` 有 `apk`（16,255,135 字节）与 `-setup.exe`（99,668,437 字节）；GitHub 与 Gitee 的附件大小一致。`0.5.1` 发版时删掉 `0.5.0` 的两个附件，仅 `0.5.1` 有 `apk`（16,255,279 字节）与 `-setup.exe`（99,667,927 字节）；GitHub 与 Gitee 的附件大小一致；从 Gitee 重新下载的 APK，SHA-256（`8624cd2e…04623760`）与本地归档一致。`0.5.2` 发版时删掉 `0.5.1` 的两个附件，仅 `0.5.2` 有 `apk`（16,259,905 字节）与 `-setup.exe`（99,673,587 字节）；GitHub 与 Gitee 的附件大小一致；从 Gitee 重新下载的 APK，SHA-256（`2970979c…9e18f60a`）与本地归档一致；官网 Pages 已显示 `0.5.2`。`0.6.0` 发版时删掉 `0.5.2` 的两个附件，仅 `0.6.0` 有 `apk`（16,263,777 字节）与 `-setup.exe`（99,674,844 字节）；GitHub 与 Gitee 的附件大小一致；从 Gitee 重新下载的 APK，SHA-256（`44573818…133908fd`）与本地归档一致；官网 Pages 已显示 `0.6.0`。`0.6.1` 发版时删掉 `0.6.0` 的两个附件，仅 `0.6.1` 有 `apk`（16,266,570 字节）与 `-setup.exe`（99,675,134 字节）；GitHub 与 Gitee 的附件大小一致；从 Gitee 重新下载的 APK，SHA-256（`a6a9b4f9…f39692a5`）与本地归档一致；官网 Pages 已显示 `0.6.1`。`0.6.2` 发版时删掉 `0.6.1` 的两个附件，仅 `0.6.2` 有 `apk`（16,269,778 字节）与 `-setup.exe`（99,678,651 字节）；GitHub 与 Gitee 的附件大小一致；从 Gitee 重新下载的 APK，SHA-256（`eaf76b07…8c59bb85`）与本地归档一致；官网 Pages 已显示 `0.6.2`。`0.6.3` 发版时删掉 `0.6.2` 的两个附件，仅 `0.6.3` 有 `apk`（16,270,258 字节）与 `-setup.exe`（99,677,889 字节）；GitHub 与 Gitee 的附件大小一致；从 Gitee 重新下载的 APK，SHA-256（`8994cd8a…dd81e867`）与本地归档一致；官网 Pages 已显示 `0.6.3`。`0.7.0` 发版时删掉 `0.6.3` 的两个附件，仅 `0.7.0` 有 `apk`（16,281,707 字节）与 `-setup.exe`（99,687,271 字节）；GitHub 与 Gitee 的附件大小一致；从 Gitee 重新下载的 APK，SHA-256（`ae33099b…4edabc0`）与本地归档一致；官网 Pages 已显示 `0.7.0`。
 
+### 4.2 测试版发版（GitHub Pre-release）
+
+测试版少几步，但边界更硬：
+
+1. 检查、定版本、写说明、出包、归档、提交、打标签与正式版相同；版本号带 `-beta.N`，文件名也带后缀。
+2. 推 `origin main --tags`，等 GitHub 镜像同步后，在 GitHub 建 **Pre-release**（勾选 *Set as a pre-release*），上传该版本的 `.apk` 与 `-setup.exe`。
+3. **不建 Gitee Release、不传 Gitee 附件**；`site/`、`notes.zh.md`、官网更新日志都不动。
+4. 发布后核对：
+   - GitHub `/releases/latest` 仍是上一个正式版（`0.7.0`），测试版不会顶掉正式版；
+   - `/releases?per_page=20` 里能看到刚发的 beta；
+   - 应用内把更新通道切到「测试版」能检查到该版本，切回「正式版」查不到；
+   - APK 指纹、`versionCode` 与 §2.2 / §1 一致。
+5. 测试版说明写清「这是测试版」、主要验证点、已知问题与退回正式版的方法，不写「稳定版」之类误导。
+
 ## 5. 凭证与提交约定
 
 - **长期凭证（密钥、密码、Token）由用户决定**：需要新凭证时先给选项（用户提供 / 我生成并写进 gitignore 文件 / 用已有文件），得到确认再动手；已经生成的不要擅自更换。
@@ -192,6 +232,10 @@ POST   https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files 
 | GitHub 资产本地下载报 TLS 吊销错误 | 本机证书链问题，用 `gh release view` 核对资产大小，不代表文件坏了 |
 | Gitee 上传安装包报「文件大小已超出仓库附件配额：1 GB」 | 这是**仓库附件总量**（1 GB）满了，不是单文件；按 §4.1 先删旧版本附件再传，之后坚持「Gitee 只留最新版」 |
 | Gitee 上传单个包被拒（接近或超过 100 MB） | 单附件上限 100 MB；当前 exe 94.9 MB 已接近，超过后 Windows 包只能放 GitHub |
+| 发完测试版，正式版用户也收到了 | GitHub Release 没勾 *Pre-release*，`latest` 被顶掉；改成 Pre-release 并确认 `/releases/latest` 回到正式版 |
+| 测试版通道检查不到刚发的包 | 依次查：Release 是否为 draft、是否上传了对应平台附件（apk / exe）、`/releases?per_page=20` 是否能看到、当前安装版本是否已不低于它 |
+| 测试版下载 404 或只有 GitHub 能下 | 正常：测试版只传 GitHub，Gitee 没有对应附件，应用也不会拼 Gitee 地址 |
+| Android `versionCode` 突然变大 | `0.8.0` 起换成「base × 1000 + 通道」公式（§1），新号一律大于旧号，属正常 |
 | Inno Setup 找不到 | 安装 Inno Setup 6，或把 `ISCC.exe` 放进 PATH |
 | 官网更新了但页面没变 | Pages 工作流只监听 `site/**`；确认提交里确实改了 `site/`，再看 Actions 是否成功 |
 
@@ -200,7 +244,9 @@ POST   https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files 
 | 文件 | 作用 |
 | --- | --- |
 | `package.json` | 版本真源、打包脚本、electron-builder 配置 |
-| `android/app/build.gradle` | 版本派生、release 签名读取 |
+| `android/app/build.gradle` | 版本派生（含测试版 versionCode）、release 签名读取 |
+| `src/core/utils/versionCompare.ts` | SemVer 比较（渲染层与安卓） |
+| `src/features/update/updateService.ts` / `electron/main.cjs` | 检查更新：正式版 latest、测试版 releases 列表、下载源与更新说明 |
 | `.local/keys/keystore.properties` / `starburst-release.jks` | Android 签名凭证（**不进 git**） |
 | `package/windows/build.ps1` / `starburst-recorder.iss` | Windows 安装包流水线 |
 | `package/icons/make-icons.ps1` / `make-splash.ps1` | 全端图标与启动图生成 |

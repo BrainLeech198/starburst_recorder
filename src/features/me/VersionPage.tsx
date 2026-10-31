@@ -7,11 +7,12 @@
  */
 import { useState } from 'react'
 import { APP_VERSION } from '@/core/version'
+import { isPrereleaseVersion } from '@/core/utils/versionCompare'
 import { SITE_URL } from '@/core/links'
 import { openExternal } from '@/platform/openExternal'
 import { useUpdate } from '@/features/update/UpdateProvider'
 import { getDownloadSource, setDownloadSource } from '@/features/update/updateService'
-import type { DownloadSource } from '@/features/update/updateService'
+import type { DownloadSource, UpdateChannel } from '@/features/update/updateService'
 import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import { choiceTile } from '@/shared/ui/buttonStyles'
@@ -23,21 +24,34 @@ const SOURCES: { id: DownloadSource; labelKey: MessageKey; hintKey: MessageKey }
   { id: 'github', labelKey: 'version.sourceGithub', hintKey: 'version.sourceGithubHint' },
 ]
 
+const CHANNELS: { id: UpdateChannel; labelKey: MessageKey; hintKey: MessageKey }[] = [
+  { id: 'stable', labelKey: 'version.channelStable', hintKey: 'version.channelStableHint' },
+  { id: 'beta', labelKey: 'version.channelBeta', hintKey: 'version.channelBetaHint' },
+]
+
 export default function VersionPage() {
   const { t } = useI18n()
-  const { info, checking, check } = useUpdate()
+  const { info, checking, check, channel, setChannel } = useUpdate()
   const [source, setSource] = useState<DownloadSource>(getDownloadSource)
+  const betaBuild = isPrereleaseVersion(APP_VERSION)
 
   const status = checking
     ? t('update.checking')
     : info
       ? t('update.found', { version: info.version })
-      : t('update.latest', { version: APP_VERSION })
+      : betaBuild && channel === 'stable'
+        ? t('update.betaOnStable', { version: APP_VERSION })
+        : t('update.latest', { version: APP_VERSION })
 
   return (
     <PageShell
       title={t('version.title')}
-      badge={<SettingBadge>{APP_VERSION}</SettingBadge>}
+      badge={
+        <span className="flex items-center gap-1.5">
+          <SettingBadge>{APP_VERSION}</SettingBadge>
+          {betaBuild && <SettingBadge tone="plain">{t('update.betaBadge')}</SettingBadge>}
+        </span>
+      }
       description={t('version.description')}
       backTo="/me"
       backLabel={t('me.title')}
@@ -82,6 +96,30 @@ export default function VersionPage() {
             </span>
           </button>
         </div>
+      </SettingCard>
+
+      <SettingCard title={t('version.channel')} description={t('version.channelDesc')}>
+        <div className="grid grid-cols-2 gap-2">
+          {CHANNELS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              aria-pressed={channel === item.id}
+              onClick={() => setChannel(item.id)}
+              className={choiceTile(
+                channel === item.id,
+                'flex flex-col items-center gap-1 px-3 py-2',
+              )}
+            >
+              <span className="flex items-center gap-2">
+                {t(item.labelKey)}
+                {channel === item.id && <span aria-hidden="true">✓</span>}
+              </span>
+              <span className="text-[11px] text-muted">{t(item.hintKey)}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-[11px] text-muted">{t('version.channelNote')}</p>
       </SettingCard>
 
       <SettingCard title={t('version.source')} description={t('version.sourceDesc')}>

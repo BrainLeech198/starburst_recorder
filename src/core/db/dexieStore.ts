@@ -9,6 +9,7 @@ import type {
   DiaryEntry,
   DiaryPreset,
   DiaryStamp,
+  FinanceEntry,
   HealthFood,
   HealthIntake,
   HealthMeal,
@@ -622,6 +623,38 @@ export const dexieStore: DiaryStore = {
 
   async purgeTrashedHealthSleeps() {
     await db.healthSleeps.filter((sleep) => sleep.deletedAt !== null).delete()
+  },
+
+  async financeOfMonth(monthKey: string): Promise<FinanceEntry[]> {
+    const rows = await db.financeEntries
+      .where('dateKey')
+      .startsWith(monthKey)
+      .filter((entry) => entry.deletedAt === null)
+      .toArray()
+    return rows.sort((a, b) =>
+      a.dateKey === b.dateKey
+        ? b.createdAt - a.createdAt
+        : b.dateKey.localeCompare(a.dateKey),
+    )
+  },
+
+  async addFinance(entry) {
+    await db.financeEntries.add(entry)
+    return entry
+  },
+
+  async saveFinance(entry) {
+    const next: FinanceEntry = { ...entry, updatedAt: Date.now() }
+    await db.financeEntries.put(next)
+    return next
+  },
+
+  async removeFinance(id) {
+    await db.financeEntries.update(id, { deletedAt: Date.now() })
+  },
+
+  async restoreFinance(id) {
+    await db.financeEntries.update(id, { deletedAt: null })
   },
 }
 

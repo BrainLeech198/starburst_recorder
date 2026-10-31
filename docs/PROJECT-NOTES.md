@@ -2,7 +2,7 @@
 
 > 这份文档的用途：把"只存在于对话里"的判断落成文字。
 > 换机器、换会话、换工具之后，读这一份就能接手。
-> 最近更新：2026-10-26
+> 最近更新：2026-11-01
 >
 > **项目路径：`D:\File\idea\trae\starburst_recorder`**（2026-10-20 从 `D:\File\claude\` + 零宽字符 + `starburst_recorder` 搬过来，原因见 §9）
 
@@ -36,11 +36,12 @@
 - 两条路都回同一个「信封」`ChatTransportResult`，所以解析响应、把 401/404/429 翻译成人话的逻辑只写一份。
 - **图片按 OpenAI 的 content parts 发**：`content` 允许写成 `[{type:'text'}, {type:'image_url', image_url:{url}}]`，url 是压缩后的 JPEG dataURL。图片是**一次性的输入，不落库、不进备份**。
 
-### 应用内更新与下载源（2026-10-26）
+### 应用内更新与下载源（2026-10-26，2026-11-01 增补双通道）
 
 - **检查更新**：以 GitHub API 的 Release 为主，拿不到再问 Gitee；更新说明优先从 GitHub Pages 拉 `notes.zh.md`（`updateService.ts` 与 `electron/main.cjs` 各有一处地址，改的时候两边一起改），拿不到再用 Gitee Release 正文（版本对得上才用），最后退回 GitHub 的英文说明。
 - **下载顺序（2026-10-29 改为用户可选）**（`src/features/update/updateService.ts` 的 `downloadUrlsFor` / `orderUrlsBySource`；UI 在「版本」页「下载源」卡片，存 `localStorage` 的 `sb_update_source`）：**下载源由用户自己选（Gitee / GitHub），默认 Gitee**；选中的先试、失败换另一个兜底，全失败才报错；错误信息按源合并，不要只报最后一个。桌面端 `electron/main.cjs` 的 `normalizeRelease` 返回的顺序不跟用户偏好走，渲染层 `downloadUpdate` 按当前设置再排一次（改偏好不用动主进程）。
-- **过渡提醒**：应用内更新逻辑跟着**已安装的版本**走。`0.2.7` 及更早只取一个下载源（GitHub 能查到就用 GitHub），国内手机上会卡住——这些用户必须**手动安装一次** `0.2.8`，之后才有双源回退。以后改下载源或检查接口同理：先发一版让用户手动过渡，不能假设老客户端会自己适应。
+- **正式版 / 测试版双通道（2026-11-01）**：`sb_update_channel` 存用户选择（默认 `stable`），「版本」页可切换，切换后立刻按新通道检查。正式版走 GitHub `/releases/latest` + Gitee 兜底，永远过滤预发布；测试版走 GitHub `/releases?per_page=20`，跳过 draft、按 SemVer 取最高，正式版也会参与排序（测试版用户能在正式版发布后升过去）。**测试版只放 GitHub，下载不拼 Gitee 地址**；官网与 `notes.zh.md` 只跟正式版，测试版说明直接用 Release 正文。版本比较统一按 SemVer（`src/core/utils/versionCompare.ts`，主进程里有一份同步实现）：`0.8.0-beta.2 < 0.8.0-beta.10 < 0.8.0`。更新弹窗对测试版显示角标和「可能不稳定」提示，并隐藏下载源选择。Android `versionCode` 同时换成 `base × 1000 + 通道`（正式版 999、beta.N 为 N），保证 beta 递增且低于同号正式版。
+- **过渡提醒**：应用内更新逻辑跟着**已安装的版本**走。`0.2.7` 及更早只取一个下载源（GitHub 能查到就用 GitHub），国内手机上会卡住——这些用户必须**手动安装一次** `0.2.8`，之后才有双源回退。以后改下载源或检查接口同理：先发一版让用户手动过渡，不能假设老客户端会自己适应。同理，0.8.0 之前安装的版本不认识「测试版通道」，要体验测试版得手动装一次。
 
 ### 明确不做的事
 

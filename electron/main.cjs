@@ -440,26 +440,58 @@ ipcMain.handle('db:path', () => getDatabase().file)
 
 /**
  * 检查更新：主进程代取 Release JSON（没有 CORS，也跟系统代理走）。
- * GitHub 先试，失败退 Gitee；版本号只比三段数字，预发布版不提示。
+ * 正式版只看 latest；测试版看 releases 列表，能拿到预发布。
+ * 版本比较和渲染进程保持同一套 SemVer 规则（见 src/core/utils/versionCompare.ts）。
  */
-function versionParts(version) {
-  return String(version)
-    .replace(/^v/i, '')
-    .split('-')[0]
+function parseVersion(version) {
+  const cleaned = String(version).trim().replace(/^v/i, '').split('+')[0]
+  const dash = cleaned.indexOf('-')
+  const base = dash === -1 ? cleaned : cleaned.slice(0, dash)
+  const suffix = dash === -1 ? '' : cleaned.slice(dash + 1)
+  const parts = base
     .split('.')
     .map((part) => Number.parseInt(part, 10) || 0)
     .slice(0, 3)
+  while (parts.length < 3) parts.push(0)
+  const prerelease =
+    suffix === ''
+      ? []
+      : suffix.split('.').map((part) => (/^\d+$/.test(part) ? Number(part) : part))
+  return { parts, prerelease }
+}
+
+function compareVersions(a, b) {
+  const left = parseVersion(a)
+  const right = parseVersion(b)
+  for (let index = 0; index < 3; index += 1) {
+    if (left.parts[index] !== right.parts[index]) {
+      return left.parts[index] > right.parts[index] ? 1 : -1
+    }
+  }
+  const l = left.prerelease
+  const r = right.prerelease
+  if (l.length === 0 && r.length === 0) return 0
+  if (l.length === 0) return 1
+  if (r.length === 0) return -1
+  const length = Math.min(l.length, r.length)
+  for (let index = 0; index < length; index += 1) {
+    const x = l[index]
+    const y = r[index]
+    if (x === y) continue
+    if (typeof x === 'number' && typeof y === 'number') return x > y ? 1 : -1
+    if (typeof x === 'number') return -1
+    if (typeof y === 'number') return 1
+    return x < y ? -1 : 1
+  }
+  return l.length === r.length ? 0 : l.length > r.length ? 1 : -1
 }
 
 function isNewerVersion(latest, current) {
-  const a = versionParts(latest)
-  const b = versionParts(current)
-  for (let index = 0; index < 3; index += 1) {
-    const left = a[index] ?? 0
-    const right = b[index] ?? 0
-    if (left !== right) return left > right
-  }
-  return false
+  return compareVersions(latest, current) > 0
+}
+
+function isPrerelease(version) {
+  return parseVersion(version).prerelease.length > 0
 }
 
 function pickUpdateAsset(assets, wantApk) {
@@ -472,19 +504,23 @@ function pickUpdateAsset(assets, wantApk) {
   return hit?.browser_download_url ? { url: hit.browser_download_url, name: hit.name } : null
 }
 
-function normalizeRelease(raw, pageUrl, wantApk) {
+function normalizeRelease(raw, pageUrl, wantApk, allowBeta = false) {
   if (!raw?.tag_name) return null
   const version = String(raw.tag_name).replace(/^v/i, '')
+  const beta = isPrerelease(version)
+  if (beta && !allowBeta) return null
   if (!isNewerVersion(version, app.getVersion())) return null
   const asset = pickUpdateAsset(raw.assets, wantApk)
   if (!asset) return null
   const fileName = wantApk
     ? `starburst-recorder-${version}.apk`
     : `starburst-recorder-${version}-setup.exe`
-  // 另一个源：这个资产来自 GitHub 就补 Gitee，反之补 GitHub
-  const fallbackUrl = asset.url.includes('gitee.com')
+  // 测试版只传 GitHub；正式版才补另一个源兜底
+  const fallbackUrl = beta
     ? `https://github.com/BrainLeech198/starburst_recorder/releases/download/v${version}/${fileName}`
-    : `https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v${version}/${fileName}`
+    : asset.url.includes('gitee.com')
+      ? `https://github.com/BrainLeech198/starburst_recorder/releases/download/v${version}/${fileName}`
+      : `https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v${version}/${fileName}`
   return {
     version,
     notes: String(raw.body ?? '').trim(),
@@ -492,6 +528,7 @@ function normalizeRelease(raw, pageUrl, wantApk) {
     downloadUrl: asset.url,
     fallbackUrl,
     fileName,
+    beta,
   }
 }
 
@@ -531,31 +568,57 @@ async function fetchChineseNotes(version) {
 
 const UPDATE_SOURCES = {
   github: 'https://api.github.com/repos/BrainLeech198/starburst_recorder/releases/latest',
+  githubReleases:
+    'https://api.github.com/repos/BrainLeech198/starburst_recorder/releases?per_page=20',
   gitee: 'https://gitee.com/api/v5/repos/Mr_brainleech/starburst_recorder/releases/latest',
 }
 
-ipcMain.handle('update:check', async (_event, locale) => {
+ipcMain.handle('update:check', async (_event, locale, channel) => {
   const wantApk = process.platform !== 'win32' && process.platform !== 'darwin'
-  const github = await fetchReleaseJson(UPDATE_SOURCES.github)
-  let info = normalizeRelease(
-    github,
-    'https://github.com/BrainLeech198/starburst_recorder/releases',
-    wantApk,
-  )
+  const betaChannel = channel === 'beta'
+  let info = null
 
-  // GitHub 拿不到就退 Gitee；Gitee 上可能只有 APK，那 normalize 会返回 null
-  if (!info) {
-    const gitee = await fetchReleaseJson(UPDATE_SOURCES.gitee)
+  if (betaChannel) {
+    const list = await fetchReleaseJson(UPDATE_SOURCES.githubReleases)
+    if (Array.isArray(list)) {
+      info =
+        list
+          .filter((raw) => raw && raw.draft !== true)
+          .map((raw) =>
+            normalizeRelease(
+              raw,
+              'https://github.com/BrainLeech198/starburst_recorder/releases',
+              wantApk,
+              true,
+            ),
+          )
+          .filter(Boolean)
+          .sort((a, b) => compareVersions(b.version, a.version))[0] ?? null
+    }
+  } else {
+    const github = await fetchReleaseJson(UPDATE_SOURCES.github)
     info = normalizeRelease(
-      gitee,
-      'https://gitee.com/Mr_brainleech/starburst_recorder/releases',
+      github,
+      'https://github.com/BrainLeech198/starburst_recorder/releases',
       wantApk,
+      false,
     )
-    if (!info) return null
-  }
 
-  // 中文界面换成中文说明
-  if (locale === 'zh') {
+    // GitHub 拿不到就退 Gitee；Gitee 上可能只有 APK，那 normalize 会返回 null
+    if (!info) {
+      const gitee = await fetchReleaseJson(UPDATE_SOURCES.gitee)
+      info = normalizeRelease(
+        gitee,
+        'https://gitee.com/Mr_brainleech/starburst_recorder/releases',
+        wantApk,
+        false,
+      )
+    }
+  }
+  if (!info) return null
+
+  // 中文界面换成中文说明；测试版官网说明还是上一版，别拿错
+  if (locale === 'zh' && !info.beta) {
     const notes = await fetchChineseNotes(info.version)
     if (notes) info.notes = notes
   }

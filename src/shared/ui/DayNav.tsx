@@ -33,10 +33,11 @@ export default function DayNav({
   const isToday = dayKey === todayKey()
 
   return (
-    <div className="sticky top-0 z-20 -mx-4 -mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-line/60 bg-bg/95 px-4 pb-2 pt-3 backdrop-blur">
+    <div className="sticky top-0 z-20 -mx-4 -mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 bg-bg/95 px-4 pb-2 pt-3 backdrop-blur">
       {leading && <div className="flex shrink-0 items-center">{leading}</div>}
 
-      <div className="flex min-w-0 items-center gap-1">
+      {/* 日期控件单独收进一个圆角矩形里，和信息更细的日期内容配在一起 */}
+      <div className="flex min-w-0 items-center gap-1 rounded-xl border border-line bg-surface px-1 py-0.5">
         <button
           type="button"
           onClick={() => onChange(shiftDay(dayKey, -1))}

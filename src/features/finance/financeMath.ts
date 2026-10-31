@@ -46,6 +46,40 @@ export interface FinanceSummary {
   balance: number
 }
 
+export interface FinanceDay {
+  dateKey: string
+  /** 这一天的收支，新的在前 */
+  entries: FinanceEntry[]
+  /** 这一天的小计 */
+  summary: FinanceSummary
+}
+
+/**
+ * 按天分组，日期新的在前，同一天按创建时间新的在前。
+ * 已删除的记录直接跳过，页面上不用再过滤一遍。
+ */
+export function groupFinanceByDay(entries: FinanceEntry[]): FinanceDay[] {
+  const byDay = new Map<string, FinanceEntry[]>()
+  for (const entry of entries) {
+    if (entry.deletedAt !== null) continue
+    const list = byDay.get(entry.dateKey)
+    if (list) list.push(entry)
+    else byDay.set(entry.dateKey, [entry])
+  }
+  return [...byDay.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([dateKey, list]) => ({
+      dateKey,
+      entries: [...list].sort((a, b) => b.createdAt - a.createdAt),
+      summary: summarizeFinance(list),
+    }))
+}
+
+/** 金额统一保留两位小数，页面和汇总口径一致 */
+export function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100
+}
+
 /** 汇总一组收支；已删除的记录不算 */
 export function summarizeFinance(entries: FinanceEntry[]): FinanceSummary {
   let income = 0

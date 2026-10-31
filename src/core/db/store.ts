@@ -278,4 +278,13 @@ export interface DiaryStore {
   trashedHealthSleeps(): Promise<HealthSleep[]>
   purgeHealthSleep(id: string): Promise<void>
   purgeTrashedHealthSleeps(): Promise<void>
+
+  /** 某个月的收支（按 dateKey 前 7 位），日期倒序、同一天按创建时间倒序 */
+  financeOfMonth(monthKey: string): Promise<FinanceEntry[]>
+  addFinance(entry: FinanceEntry): Promise<FinanceEntry>
+  /** 整行更新已有收支；找不到 id 时按新增处理 */
+  saveFinance(entry: FinanceEntry): Promise<FinanceEntry>
+  /** 软删除：只打标记，可撤销 */
+  removeFinance(id: string): Promise<void>
+  restoreFinance(id: string): Promise<void>
 }

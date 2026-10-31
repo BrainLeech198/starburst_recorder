@@ -1,16 +1,24 @@
 /**
  * 检查更新。
  *
- * 下载源用户可选（「版本」页，默认 Gitee），选中的先试、失败换另一个兜底。
- * 桌面端由主进程代取（没有 CORS，
- * 也走系统代理）；浏览器和安卓走 fetch，拿不到就安静地放弃，不打扰用户。
+ * 两条通道：
+ *   - 正式版（默认）：只看 GitHub / Gitee 的 latest，预发布不会出现
+ *   - 测试版：看 GitHub 的 releases 列表，连同预发布一起排；测试版用户
+ *     也能在正式版发布后升到正式版
  *
- * 版本号比较只看三段数字：'v0.2.0' 与 '0.2.0-beta' 都算 0.2.0，
- * 预发布版不提示——用户装的是哪个版本，就只跟正式发版比。
+ * 下载源用户可选（「版本」页，默认 Gitee），选中的先试、失败换另一个兜底。
+ * 测试版的安装包只放在 GitHub，所以走测试版时不拼 Gitee 地址。
+ *
+ * 桌面端由主进程代取（没有 CORS，也走系统代理）；浏览器和安卓走 fetch，
+ * 拿不到就安静地放弃，不打扰用户。
  */
 import { Capacitor, registerPlugin } from '@capacitor/core'
 import { APP_VERSION } from '@/core/version'
-import { isNewerVersion } from '@/core/utils/versionCompare'
+import {
+  compareVersions,
+  isNewerVersion,
+  isPrereleaseVersion,
+} from '@/core/utils/versionCompare'
 import { translate } from '@/shared/i18n/context'
 import { desktopBridge } from '@/platform/desktop'
 
@@ -24,12 +32,34 @@ export interface UpdateInfo {
   /** 直链失败时再试的另一个源 */
   fallbackUrl?: string
   fileName: string
+  /** 这条更新是不是预发布版本 */
+  beta: boolean
 }
+
+/** 用户想收正式版还是测试版 */
+export type UpdateChannel = 'stable' | 'beta'
 
 const GITHUB_REPO = 'BrainLeech198/starburst_recorder'
 const GITEE_REPO = 'Mr_brainleech/starburst_recorder'
 const SNOOZE_KEY = 'sb.update.snoozed'
 const SOURCE_KEY = 'sb_update_source'
+const CHANNEL_KEY = 'sb_update_channel'
+
+export function getUpdateChannel(): UpdateChannel {
+  try {
+    return localStorage.getItem(CHANNEL_KEY) === 'beta' ? 'beta' : 'stable'
+  } catch {
+    return 'stable'
+  }
+}
+
+export function setUpdateChannel(channel: UpdateChannel) {
+  try {
+    localStorage.setItem(CHANNEL_KEY, channel === 'beta' ? 'beta' : 'stable')
+  } catch {
+    // 存不了就只在本次会话生效
+  }
+}
 
 /** 用户选的下载源：选中的先试，失败再换另一个（默认 Gitee，国内网络更稳） */
 export type DownloadSource = 'gitee' | 'github'
@@ -67,7 +97,7 @@ export function isAndroid(): boolean {
   return /Android/i.test(navigator.userAgent)
 }
 
-/** 只看正式版：latest 比 current 新就返回 true */
+/** 正式版和测试版都按完整 semver 比较：预发布不会盖过同号正式版 */
 export function isNewer(latest: string, current = APP_VERSION): boolean {
   return isNewerVersion(latest, current)
 }
@@ -97,6 +127,8 @@ interface RawRelease {
   tag_name?: string
   body?: string
   html_url?: string
+  draft?: boolean
+  prerelease?: boolean
   assets?: { name?: string; browser_download_url?: string }[]
 }
 
@@ -123,23 +155,33 @@ export function downloadUrlsFor(
   android: boolean,
   assetUrl: string,
   source: DownloadSource = getDownloadSource(),
+  beta = isPrereleaseVersion(version),
 ): string[] {
-  const gitee = `https://gitee.com/${GITEE_REPO}/releases/download/v${version}/${fileName}`
   const github = `https://github.com/${GITHUB_REPO}/releases/download/v${version}/${fileName}`
+  // 测试版不上 Gitee：那边只保留正式版安装包
+  if (beta) return [...new Set([assetUrl || github, github])]
+  const gitee = `https://gitee.com/${GITEE_REPO}/releases/download/v${version}/${fileName}`
   const candidates = android ? [gitee, assetUrl || github, github] : [assetUrl || github, gitee]
   return orderUrlsBySource(candidates, source)
 }
 
-function normalize(raw: RawRelease | null, pageUrl: string, android: boolean): UpdateInfo | null {
+function normalize(
+  raw: RawRelease | null,
+  pageUrl: string,
+  android: boolean,
+  allowBeta: boolean,
+): UpdateInfo | null {
   if (!raw?.tag_name) return null
   const version = raw.tag_name.replace(/^v/i, '')
+  const beta = isPrereleaseVersion(version)
+  if (beta && !allowBeta) return null
   if (!isNewer(version)) return null
   const asset = pickAsset(raw.assets, android)
   if (!asset) return null
   const fileName = android
     ? `starburst-recorder-${version}.apk`
     : `starburst-recorder-${version}-setup.exe`
-  const urls = downloadUrlsFor(version, fileName, android, asset.url)
+  const urls = downloadUrlsFor(version, fileName, android, asset.url, getDownloadSource(), beta)
   return {
     version,
     notes: (raw.body ?? '').trim(),
@@ -147,17 +189,18 @@ function normalize(raw: RawRelease | null, pageUrl: string, android: boolean): U
     downloadUrl: urls[0],
     fallbackUrl: urls[1],
     fileName,
+    beta,
   }
 }
 
-async function fetchJson(url: string): Promise<RawRelease | null> {
+async function fetchJson<T>(url: string): Promise<T | null> {
   try {
     const response = await fetch(url, {
       headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(8000),
     })
     if (!response.ok) return null
-    return (await response.json()) as RawRelease
+    return (await response.json()) as T
   } catch {
     return null
   }
@@ -186,41 +229,72 @@ async function fetchChineseNotes(version: string): Promise<string | null> {
   )
   if (fromSite) return fromSite
 
-  const gitee = await fetchJson(`https://gitee.com/api/v5/repos/${GITEE_REPO}/releases/latest`)
+  const gitee = await fetchJson<RawRelease>(
+    `https://gitee.com/api/v5/repos/${GITEE_REPO}/releases/latest`,
+  )
   const body = String(gitee?.body ?? '').trim()
   const tag = String(gitee?.tag_name ?? '').replace(/^v/i, '')
   return body && tag === version ? body : null
 }
 
 /**
- * 检查一次；没有新版、两个源都失败、或当前平台没有对应安装包时返回 null。
- *
- * 版本号和安装包信息取 GitHub（两个平台的包都传在那儿）；下载时按用户选的源先试，
- * 失败换另一个。中文界面会再取一次 Gitee，把更新说明换成中文那版。
+ * 测试版通道：从 releases 列表里挑当前平台能装的最高版本。
+ * 正式版也一起参与排序——测试版用户能在正式版发布后直接升到正式版。
  */
-export async function checkForUpdate(locale: string = 'zh'): Promise<UpdateInfo | null> {
+async function checkBetaRelease(android: boolean): Promise<UpdateInfo | null> {
+  const list = await fetchJson<RawRelease[]>(
+    `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=20`,
+  )
+  if (!Array.isArray(list)) return null
+  const found = list
+    .filter((raw) => raw && raw.draft !== true)
+    .map((raw) => normalize(raw, `https://github.com/${GITHUB_REPO}/releases`, android, true))
+    .filter((info): info is UpdateInfo => info !== null)
+    .sort((a, b) => compareVersions(b.version, a.version))
+  return found[0] ?? null
+}
+
+/**
+ * 检查一次；没有新版、源都失败、或当前平台没有对应安装包时返回 null。
+ *
+ * 正式版沿用 latest；测试版走 releases 列表。正式版的中文说明优先取官网
+ * 静态文件；测试版官网还没更新，直接用 Release 正文。
+ */
+export async function checkForUpdate(
+  locale: string = 'zh',
+  channel: UpdateChannel = getUpdateChannel(),
+): Promise<UpdateInfo | null> {
   const android = isAndroid()
 
   // 桌面端交给主进程：不受 CORS 限制，也跟系统代理走
   const desktop = desktopBridge()
   if (desktop?.update) {
-    const info = await desktop.update.check(locale)
+    const info = await desktop.update.check(locale, channel)
     return info && isNewer(info.version) ? info : null
   }
 
-  const github = await fetchJson(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`)
-  let info = normalize(github, `https://github.com/${GITHUB_REPO}/releases`, android)
+  let info: UpdateInfo | null
+  if (channel === 'beta') {
+    info = await checkBetaRelease(android)
+  } else {
+    const github = await fetchJson<RawRelease>(
+      `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
+    )
+    info = normalize(github, `https://github.com/${GITHUB_REPO}/releases`, android, false)
 
-  // GitHub 连不上（国内网络常见）时退到 Gitee；Gitee 上安卓包一定在，桌面包可能因为
-  // 100 MB 上限缺席——那种情况 normalize 会返回 null，安静地当作「没有更新」。
-  if (!info) {
-    const gitee = await fetchJson(`https://gitee.com/api/v5/repos/${GITEE_REPO}/releases/latest`)
-    info = normalize(gitee, `https://gitee.com/${GITEE_REPO}/releases`, android)
-    if (!info) return null
+    // GitHub 连不上（国内网络常见）时退到 Gitee；Gitee 上安卓包一定在，桌面包可能因为
+    // 100 MB 上限缺席——那种情况 normalize 会返回 null，安静地当作「没有更新」。
+    if (!info) {
+      const gitee = await fetchJson<RawRelease>(
+        `https://gitee.com/api/v5/repos/${GITEE_REPO}/releases/latest`,
+      )
+      info = normalize(gitee, `https://gitee.com/${GITEE_REPO}/releases`, android, false)
+    }
   }
+  if (!info) return null
 
-  // 中文界面换成中文说明
-  if (locale === 'zh') {
+  // 中文界面换成中文说明；测试版官网说明还是上一版，别拿错
+  if (locale === 'zh' && !info.beta) {
     const notes = await fetchChineseNotes(info.version)
     if (notes) info.notes = notes
   }

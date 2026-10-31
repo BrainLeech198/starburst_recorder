@@ -28,7 +28,7 @@ contextBridge.exposeInMainWorld('desktop', {
   },
   // 检查更新与下载安装包：由主进程代劳，网页只拿到结果
   update: {
-    check: (locale) => ipcRenderer.invoke('update:check', locale),
+    check: (locale, channel) => ipcRenderer.invoke('update:check', locale, channel),
     download: (url, fileName) => ipcRenderer.invoke('update:download', url, fileName),
     install: (filePath) => ipcRenderer.invoke('update:install', filePath),
     onProgress: (listener) => {

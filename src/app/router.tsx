@@ -35,6 +35,7 @@ const AppearancePage = lazy(() => import('@/features/settings/AppearancePage'))
 const LanguagePage = lazy(() => import('@/features/settings/LanguagePage'))
 const BallPage = lazy(() => import('@/features/settings/BallPage'))
 const AiPage = lazy(() => import('@/features/settings/AiPage'))
+const MemoryPage = lazy(() => import('@/features/settings/MemoryPage'))
 const DataPage = lazy(() => import('@/features/settings/DataPage'))
 const QuickCapturePage = lazy(() => import('@/features/diary/QuickCapturePage'))
 
@@ -78,6 +79,7 @@ export const router = createHashRouter([
       { path: 'me/agent', element: <AgentMenuPage /> },
       { path: 'me/agent/ball', element: <BallPage /> },
       { path: 'me/agent/ai', element: <AiPage /> },
+      { path: 'me/agent/memory', element: <MemoryPage /> },
       // 设置页曾经在一级（/settings），老书签留个跳转，免得打开是一片空白
       { path: 'settings/*', element: <Navigate to="/me/settings" replace /> },
     ],

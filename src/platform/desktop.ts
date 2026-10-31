@@ -99,7 +99,10 @@ export interface DesktopBridge {
   }
   /** 检查更新与下载安装包：走主进程，避开 CORS 和渲染进程的网络栈 */
   update: {
-    check: (locale: string) => Promise<DesktopUpdateInfo | null>
+    check: (
+      locale: string,
+      channel: 'stable' | 'beta',
+    ) => Promise<DesktopUpdateInfo | null>
     download: (url: string, fileName: string) => Promise<DesktopUpdateResult>
     /** 下载完成后拉起安装程序并退出应用；成功返回 true */
     install: (filePath: string) => Promise<boolean>
@@ -116,6 +119,8 @@ export interface DesktopUpdateInfo {
   downloadUrl: string
   fallbackUrl?: string
   fileName: string
+  /** 预发布版本（测试版通道才会出现） */
+  beta: boolean
 }
 
 export interface DesktopUpdateResult {

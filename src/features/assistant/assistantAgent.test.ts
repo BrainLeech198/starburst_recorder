@@ -61,11 +61,12 @@ describe('toolSchemas', () => {
 })
 
 describe('buildSystemPrompt', () => {
-  it('带上今天、工具清单和只读约束', () => {
+  it('带上今天、读写工具清单和确认后才写入的约束', () => {
     const text = buildSystemPrompt('2026-10-28', false)
     expect(text).toContain('今天是 2026-10-28')
     expect(text).toContain('query_day')
-    expect(text).toContain('你只能读')
+    expect(text).toContain('add_finance')
+    expect(text).toContain('待确认卡片')
     expect(text).not.toContain('输出格式')
   })
 
@@ -78,6 +79,12 @@ describe('buildSystemPrompt', () => {
     const text = buildSystemPrompt('2026-10-28', false, ['用户不吃香菜'])
     expect(text).toContain('【你记得的事】')
     expect(text).toContain('用户不吃香菜')
+  })
+
+  it('已确认写入的内容单独成段', () => {
+    const text = buildSystemPrompt('2026-10-28', false, [], ['2026-10-28 支出：午饭 28 元'])
+    expect(text).toContain('用户已经确认写入')
+    expect(text).toContain('午饭 28 元')
   })
 })
 
@@ -292,7 +299,88 @@ describe('runAssistant', () => {
         )
       },
     })
-    expect(calls).toBe(6)
+    expect(calls).toBe(8)
     expect(result.ok).toBe(false)
+  })
+
+  it('写工具只生成待确认动作，不直接写库', async () => {
+    let round = 0
+    const result = await runAssistant({
+      config: CONFIG,
+      history: [{ role: 'user', content: '午饭 28 块，记一下' }],
+      data: emptyData(),
+      today: '2026-10-28',
+      now: Date.UTC(2026, 9, 28, 4, 0),
+      request: async () => {
+        round += 1
+        if (round === 1) {
+          return transport(
+            body({
+              tool_calls: [
+                {
+                  id: 'call_1',
+                  type: 'function',
+                  function: {
+                    name: 'add_finance',
+                    arguments: '{"name":"午饭","amount":28,"direction":"expense"}',
+                  },
+                },
+              ],
+            }),
+          )
+        }
+        return transport(body({ content: '确认后我就把午饭记成 28 元支出。' }))
+      },
+    })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.reply).toContain('确认')
+      expect(result.steps).toHaveLength(0)
+      expect(result.pending).toEqual([
+        {
+          kind: 'finance',
+          dateKey: '2026-10-28',
+          direction: 'expense',
+          name: '午饭',
+          amount: 28,
+          note: '',
+          category: '',
+        },
+      ])
+    }
+  })
+
+  it('写工具参数不对时把原因回给模型，不生成卡片', async () => {
+    let round = 0
+    let lastToolResult = ''
+    const result = await runAssistant({
+      config: CONFIG,
+      history: [],
+      data: emptyData(),
+      today: '2026-10-28',
+      request: async (request) => {
+        round += 1
+        if (round === 1) {
+          return transport(
+            body({
+              tool_calls: [
+                {
+                  id: 'call_1',
+                  type: 'function',
+                  function: { name: 'add_finance', arguments: '{"name":"午饭","amount":-5}' },
+                },
+              ],
+            }),
+          )
+        }
+        lastToolResult = String(request.messages.at(-1)?.content ?? '')
+        return transport(body({ content: '金额好像不对，是多少钱？' }))
+      },
+    })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.pending).toBeUndefined()
+    expect(lastToolResult).toContain('金额')
   })
 })

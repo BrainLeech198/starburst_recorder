@@ -9,6 +9,7 @@ import SettingRow from '@/shared/ui/SettingRow'
 import PageShell from '@/shared/ui/PageShell'
 import { SettingBadge } from '@/shared/ui/SettingCard'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
+import { loadMemories } from '@/features/assistant/assistantMemory'
 
 export default function AgentMenuPage() {
   const { prefs } = useBall()
@@ -18,6 +19,7 @@ export default function AgentMenuPage() {
   const sizeOption = MASCOT_SIZES.find((item) => item.id === prefs.size)
   const sizeLabel = sizeOption ? t(sizeOption.labelKey) : prefs.size
   const aiReady = isConfigured(loadAiConfig())
+  const memoryCount = loadMemories().length
 
   return (
     <PageShell
@@ -48,6 +50,13 @@ export default function AgentMenuPage() {
             {aiReady ? t('agent.configured') : t('agent.notConfigured')}
           </SettingBadge>
         }
+      />
+      <SettingRow
+        to="/me/agent/memory"
+        emoji="🧠"
+        title={t('agent.memory')}
+        hint={t('agent.memoryHint')}
+        value={<SettingBadge>{t('agent.memoryCount', { count: memoryCount })}</SettingBadge>}
       />
     </PageShell>
   )
