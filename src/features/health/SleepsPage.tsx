@@ -192,7 +192,12 @@ export default function SleepsPage() {
       : sleepParts(sleepMinutes(sleep.bedtime, sleep.wakeTime))
 
   return (
-    <div className="w-full p-4" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
+    <div
+      className={'w-full p-4 ' + swipe.animationClass}
+      onTouchStart={swipe.onTouchStart}
+      onTouchEnd={swipe.onTouchEnd}
+      onAnimationEnd={swipe.onAnimationEnd}
+    >
       {/* 日期与返回入口吸顶常驻；批量多选时不占这一条 */}
       {!batch.active && (
         <DayNav

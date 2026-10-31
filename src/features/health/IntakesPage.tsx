@@ -139,7 +139,12 @@ export default function IntakesPage() {
   const empty = intakes !== undefined && rows.length === 0
 
   return (
-    <div className="w-full p-4" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
+    <div
+      className={'w-full p-4 ' + swipe.animationClass}
+      onTouchStart={swipe.onTouchStart}
+      onTouchEnd={swipe.onTouchEnd}
+      onAnimationEnd={swipe.onAnimationEnd}
+    >
       {/* 日期与返回入口吸顶常驻，跟日记 / 健康首页一致 */}
       <DayNav
         dayKey={dayKey}

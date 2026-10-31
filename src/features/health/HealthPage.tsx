@@ -126,7 +126,12 @@ export default function HealthPage() {
     .join(' / ')
 
   return (
-    <div className="w-full p-4" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
+    <div
+      className={'w-full p-4 ' + swipe.animationClass}
+      onTouchStart={swipe.onTouchStart}
+      onTouchEnd={swipe.onTouchEnd}
+      onAnimationEnd={swipe.onAnimationEnd}
+    >
       {/* 日期与页面级入口（食物库 / 档案）吸顶常驻，跟日记同一条口径 */}
       <DayNav
         dayKey={dayKey}

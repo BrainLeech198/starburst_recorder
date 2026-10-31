@@ -645,6 +645,43 @@ html.sb-scroll-locked .sb-scroll {
   animation: page-in 0.28s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
+/* 左右滑动换天：新一天从滑入方向轻轻进来。
+   动画期间夹住横向溢出，避免 18px 位移在滚动容器里闪出横向滚动条；
+   减少动效时由 prefers-reduced-motion 与长辈关怀段一起关掉。 */
+@keyframes day-slide-next {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes day-slide-prev {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.sb-day-slide {
+  overflow-x: clip;
+}
+
+.sb-day-slide-next {
+  animation: day-slide-next 0.22s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.sb-day-slide-prev {
+  animation: day-slide-prev 0.22s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
 @keyframes rise-in {
   from {
     opacity: 0;
@@ -742,6 +779,8 @@ html.sb-scroll-locked .sb-scroll {
 
 @media (prefers-reduced-motion: reduce) {
   .sb-page,
+  .sb-day-slide-next,
+  .sb-day-slide-prev,
   .sb-rise > *,
   .sb-overlay-in,
   .sb-panel-in,
@@ -786,11 +825,17 @@ html[data-care-contrast='on'] {
   --color-line: color-mix(in srgb, var(--color-fg) 30%, var(--color-bg));
 }
 
-/* 减少动效：口径跟 prefers-reduced-motion 那段一致，只是改成手动强制 */
+/* 减少动效：口径跟 prefers-reduced-motion 那段一致，只是改成手动强制。
+   滑动换天也从这里彻底关掉，不再依赖「缩短到 0.01ms」的兜底。 */
 html[data-care-motion='on'] *,
 html[data-care-motion='on'] *::before,
 html[data-care-motion='on'] *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
+}
+
+html[data-care-motion='on'] .sb-day-slide-next,
+html[data-care-motion='on'] .sb-day-slide-prev {
+  animation: none !important;
 }
