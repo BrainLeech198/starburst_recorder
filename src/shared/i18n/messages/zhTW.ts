@@ -413,6 +413,7 @@ export const zhTW: Record<MessageKey, string> = {
   'intake.addItem': '增加一項食物',
   'intake.addItemHint': '從食物庫挑、新建或用圖片分析。',
   'intake.itemEmpty': '這一筆還沒有食物，點上面加一項。',
+  'intake.selectedItems': '已選 {n} 項',
   'intake.itemMeta': '{grams} g · 約 {kcal} 千卡 · 蛋白質 {protein} g',
   'intake.fromLibrary': '來自食物庫',
   'intake.newFood': '新的食物',

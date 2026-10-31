@@ -415,6 +415,7 @@ export const zh = {
   'intake.addItem': '增加一项食物',
   'intake.addItemHint': '从食物库挑、新建或图片分析。',
   'intake.itemEmpty': '这一笔还没有食物，点上面加一项。',
+  'intake.selectedItems': '已选 {n} 项',
   'intake.itemMeta': '{grams} g · 约 {kcal} 千卡 · 蛋白 {protein} g',
   'intake.fromLibrary': '来自食物库',
   'intake.newFood': '新的食物',

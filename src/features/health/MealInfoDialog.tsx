@@ -9,6 +9,7 @@ import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 import { foodMacros, formatNum, mealTotals } from './healthMath'
+import { mealPhoto } from './mealPhoto'
 
 export default function MealInfoDialog({
   meal,
@@ -22,10 +23,20 @@ export default function MealInfoDialog({
   const { t } = useI18n()
   const totals = mealTotals(meal.items, foods)
   const byId = new Map(foods.map((food) => [food.id, food]))
+  const photo = mealPhoto(meal, foods)
 
   return (
     <Modal size="sm" label={meal.name} onClose={onClose}>
       <h2 className="m-0 text-base font-medium text-fg">{meal.name}</h2>
+      {photo && (
+        <img
+          src={photo}
+          alt={meal.name}
+          loading="lazy"
+          decoding="async"
+          className="mt-3 aspect-[4/3] w-full rounded-xl border border-line object-cover"
+        />
+      )}
       <p className="m-0 mt-1 text-xs text-muted">
         {t('foods.mealItemCount', { n: totals.count })}
         {totals.missing > 0 && (

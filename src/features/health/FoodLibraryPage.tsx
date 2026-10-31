@@ -21,6 +21,7 @@ import MealForm from './MealForm'
 import FoodInfoDialog from './FoodInfoDialog'
 import MealInfoDialog from './MealInfoDialog'
 import { formatNum, mealTotals } from './healthMath'
+import { mealPhoto } from './mealPhoto'
 import {
   healthFoods,
   healthMeals,
@@ -431,6 +432,7 @@ export default function FoodLibraryPage() {
           <ul className="m-0 list-none space-y-2 p-0">
             {visibleMeals.map((meal) => {
               const totals = mealTotals(meal.items, foods ?? [])
+              const photo = mealPhoto(meal, foods ?? [])
               const selected = batch.isSelected(meal.id)
               return (
                 <li
@@ -444,6 +446,15 @@ export default function FoodLibraryPage() {
                       checked={selected}
                       label={meal.name}
                       onToggle={() => batch.toggle(meal.id)}
+                    />
+                  )}
+                  {photo && (
+                    <img
+                      src={photo}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="h-11 w-11 shrink-0 rounded-lg border border-line object-cover"
                     />
                   )}
                   <button

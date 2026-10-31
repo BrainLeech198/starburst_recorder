@@ -414,6 +414,7 @@ export const fr: Record<MessageKey, string> = {
   'intake.addItem': 'Ajouter un aliment',
   'intake.addItemHint': 'Depuis la bibliothèque, un nouvel aliment ou une analyse photo.',
   'intake.itemEmpty': "Pas encore d'aliment dans cette entrée, ajoutez-en un ci-dessus.",
+  'intake.selectedItems': '{n} sélectionné(s)',
   'intake.itemMeta': '{grams} g · environ {kcal} kcal · protéines {protein} g',
   'intake.fromLibrary': 'Depuis la bibliothèque',
   'intake.newFood': 'Nouvel aliment',

@@ -414,6 +414,7 @@ export const ja: Record<MessageKey, string> = {
   'intake.addItem': '食品を追加',
   'intake.addItemHint': 'フードライブラリから選ぶ、新規作成、画像解析。',
   'intake.itemEmpty': 'この記録にはまだ食品がありません。上から追加してください。',
+  'intake.selectedItems': '{n} 件選択中',
   'intake.itemMeta': '{grams} g · 約 {kcal} kcal · タンパク質 {protein} g',
   'intake.fromLibrary': 'フードライブラリから',
   'intake.newFood': '新しい食品',

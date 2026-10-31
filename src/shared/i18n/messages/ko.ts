@@ -414,6 +414,7 @@ export const ko: Record<MessageKey, string> = {
   'intake.addItem': '음식 추가',
   'intake.addItemHint': '보관함에서 고르거나 새로 만들거나 사진으로 분석해요.',
   'intake.itemEmpty': '이 기록에는 아직 음식이 없어요. 위에서 하나 추가하세요.',
+  'intake.selectedItems': '{n}개 선택됨',
   'intake.itemMeta': '{grams} g · 약 {kcal} kcal · 단백질 {protein} g',
   'intake.fromLibrary': '음식 보관함에서',
   'intake.newFood': '새 음식',

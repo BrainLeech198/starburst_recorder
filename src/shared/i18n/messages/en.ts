@@ -433,6 +433,7 @@ export const en: Record<MessageKey, string> = {
   'intake.addItem': 'Add a food',
   'intake.addItemHint': 'Pick from the library, create one, or analyse a photo.',
   'intake.itemEmpty': 'Nothing in this entry yet. Add one above.',
+  'intake.selectedItems': '{n} selected',
   'intake.itemMeta': '{grams} g · about {kcal} kcal · protein {protein} g',
   'intake.fromLibrary': 'From library',
   'intake.newFood': 'New food',

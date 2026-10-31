@@ -414,6 +414,7 @@ export const ru: Record<MessageKey, string> = {
   'intake.addItem': 'Добавить продукт',
   'intake.addItemHint': 'Выберите из библиотеки, создайте новый или разберите фото.',
   'intake.itemEmpty': 'В этой записи пока нет продуктов. Добавьте выше.',
+  'intake.selectedItems': 'Выбрано: {n}',
   'intake.itemMeta': '{grams} г · около {kcal} ккал · белки {protein} г',
   'intake.fromLibrary': 'Из библиотеки',
   'intake.newFood': 'Новый продукт',

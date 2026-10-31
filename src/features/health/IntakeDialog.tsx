@@ -45,6 +45,7 @@ import { dayTargets, foodMacros, formatNum, mealTotals, round2, sumMacros } from
 import { analyzeFoodPhoto } from './foodVision'
 import { analyzeMealPhrase } from './mealPhrase'
 import type { PhraseItem } from './mealPhrase'
+import { componentPhoto, mealPhoto } from './mealPhoto'
 import PhraseReviewDialog from './PhraseReviewDialog'
 import { matchFood, splitPhrase } from './phraseMatch'
 import { normalizeFoodName } from './intakeDraft'
@@ -915,14 +916,31 @@ export default function IntakeDialog({
                 {t('intake.itemEmpty')}
               </p>
             ) : (
-              <ul className="m-0 list-none space-y-1 p-0">
+              // 已选列表单独铺一层底色：上面的入口是描边卡片，这里再同色就分不开
+              <div className="rounded-xl border border-line bg-surface-2 p-2">
+                <p className="m-0 px-1 pb-1 text-xs font-medium text-fg">
+                  {t('intake.selectedItems', { n: items.length })}
+                </p>
+                <ul className="m-0 list-none space-y-1 p-0">
                 {items.map((item) => {
                   const macros = itemMacros(item)
+                  const photo =
+                    item.food?.photo ??
+                    (item.components.length > 0 ? componentPhoto(item.components, foods ?? []) : null)
                   return (
                     <li
                       key={item.key}
-                      className="flex items-start gap-2 rounded-lg border border-line px-2 py-2"
+                      className="flex items-start gap-2 rounded-lg border border-line/70 bg-surface px-2 py-2"
                     >
+                      {photo && (
+                        <img
+                          src={photo}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="h-10 w-10 shrink-0 rounded-md border border-line/60 object-cover"
+                        />
+                      )}
                       <div className="min-w-0 flex-1">
                         <span className="block truncate text-sm text-fg">{item.name}</span>
                         <span className="block text-xs text-muted">
@@ -994,7 +1012,8 @@ export default function IntakeDialog({
                     </li>
                   )
                 })}
-              </ul>
+                </ul>
+              </div>
             )}
 
             {items.length > 0 && <HealthEstimateNote />}
@@ -1288,6 +1307,7 @@ export default function IntakeDialog({
                 <ul className="m-0 max-h-40 list-none space-y-1 overflow-y-auto p-0">
                   {mealList.map((item) => {
                     const totals = mealTotals(item.items, foods ?? [])
+                    const photo = mealPhoto(item, foods ?? [])
                     return (
                       <li key={item.id}>
                         <button
@@ -1296,25 +1316,36 @@ export default function IntakeDialog({
                             setPickedMealId(item.id)
                             setPickedId(null)
                           }}
-                          className={`block w-full rounded-lg border p-2 text-left transition-colors ${
+                          className={`flex w-full items-center gap-2 rounded-lg border p-2 text-left transition-colors ${
                             pickedMealId === item.id ? 'border-brand' : 'border-line hover:border-brand/50'
                           }`}
                         >
-                          <span className="flex items-center gap-2">
-                            <span className="min-w-0 flex-1 truncate text-sm text-fg">
-                              {item.name}
-                            </span>
-                            <span className="shrink-0 rounded bg-brand/10 px-1.5 py-0.5 text-[10px] text-brand">
-                              {t('intake.mealTag')}
-                            </span>
-                          </span>
-                          <span className="mt-0.5 block text-xs text-muted">
-                            {t('intake.mealItemCount', { n: totals.count, kcal: totals.kcal })}
-                            {totals.missing > 0 && (
-                              <span className="ml-2 text-danger">
-                                {t('intake.mealMissing', { n: totals.missing })}
+                          {photo && (
+                            <img
+                              src={photo}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              className="h-10 w-10 shrink-0 rounded-md border border-line object-cover"
+                            />
+                          )}
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-2">
+                              <span className="min-w-0 flex-1 truncate text-sm text-fg">
+                                {item.name}
                               </span>
-                            )}
+                              <span className="shrink-0 rounded bg-brand/10 px-1.5 py-0.5 text-[10px] text-brand">
+                                {t('intake.mealTag')}
+                              </span>
+                            </span>
+                            <span className="mt-0.5 block text-xs text-muted">
+                              {t('intake.mealItemCount', { n: totals.count, kcal: totals.kcal })}
+                              {totals.missing > 0 && (
+                                <span className="ml-2 text-danger">
+                                  {t('intake.mealMissing', { n: totals.missing })}
+                                </span>
+                              )}
+                            </span>
                           </span>
                         </button>
                       </li>
