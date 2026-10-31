@@ -23,7 +23,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.5.2',
+    'hero.cta': '下载 0.6.0',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -94,11 +94,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.5.2',
+    'open.version': '版本 0.6.0',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.5.2 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.6.0 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -109,10 +109,11 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '日期栏吸顶常驻：日记、健康首页和摄入 / 体重 / 睡眠子页翻长列表时，日期与入口固定在顶部',
-    'whatsnew.item2': '睡眠能记夜醒了：次数和醒来累计分钟都能填，睡眠卡和详情里直接显示',
+      '日记和随记能手绘插图了：选「自己画」，画笔、橡皮、颜色、粗细、撤销、清空都有，画完直接作为图片插进记录',
+    'whatsnew.item2':
+      '食物库能挑选导出和导入了：记录级导出多出「食物库」一类，导入同样认这份文件，照片跟着 JSON 一起走',
     'whatsnew.item3':
-      '健康页更顺手：摄入列表带食物缩略图、摄入页常驻食物库入口、体重卡手机布局修好、二级页返回按钮改成醒目的红色实心',
+      '食物照片处理更省内存：压缩完主动释放原图位图，低内存手机保存时不容易被系统杀掉',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -121,7 +122,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.5.2',
+    'footer.version': '版本 0.6.0',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -144,7 +145,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.5.2',
+    'hero.cta': 'Download 0.6.0',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -219,12 +220,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.5.2',
+    'open.version': 'Version 0.6.0',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.5.2 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.6.0 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -235,13 +236,13 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.5.2",
+    'whatsnew.title': "What's new in 0.6.0",
     'whatsnew.item1':
-      'Sticky header: the date bar and entry points stay pinned on diary, health, and the intake / weight / sleep sub-pages as lists scroll',
+      'Draw your own illustrations in diaries and notes: pick "Draw it yourself" — pen, eraser, colour, brush size, undo and clear — and the drawing is inserted as an image',
     'whatsnew.item2':
-      'Sleep tracks night waking: record how many times you woke and the total minutes awake, shown right on the sleep card and detail',
+      'Food library entries can now be picked for export and import: record export gains a food category, and import reads the same file with photos carried in JSON',
     'whatsnew.item3':
-      'Health is easier to use: food thumbnails in the intake list, a permanent food-library entry on the intake page, a fixed mobile layout for the weight card, and a bold red back button on sub-pages',
+      'Lighter food-photo processing: the decoded original bitmap is released right after compression, so saving on low-memory phones is less likely to be killed',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -250,7 +251,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.5.2',
+    'footer.version': 'Version 0.6.0',
     'footer.tagline': 'Data stays on your device',
   },
 };

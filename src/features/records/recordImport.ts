@@ -13,6 +13,7 @@ import type {
   DiaryEntry,
   DiaryStamp,
   FinanceEntry,
+  HealthFood,
   HealthIntake,
   HealthProfile,
   HealthSleep,
@@ -21,6 +22,7 @@ import type {
 import {
   pickEntry,
   pickFinance,
+  pickFood,
   pickIntake,
   pickSleep,
   pickStamp,
@@ -54,6 +56,8 @@ export interface RecordsFile {
   sleeps: HealthSleep[]
   weights: WeighIn[]
   finance: FinanceEntry[]
+  /** 食物库条目，照片随 photo（dataURL）一起进来 */
+  foods: HealthFood[]
 }
 
 export type RecordsRead =
@@ -108,6 +112,7 @@ export function readRecordsFile(text: string): RecordsRead {
     sleeps: collect(root.sleeps, pickSleep),
     weights,
     finance: collect(root.finance, pickFinance),
+    foods: collect(root.foods, pickFood),
   }
   return { ok: true, skipped: skipped.n, file }
 }
@@ -179,6 +184,7 @@ export async function importRecords(
   const entries = want.has('diary') ? file.entries : []
   const stamps = want.has('stamp') ? file.stamps : []
   const intakes = want.has('intake') ? file.intakes : []
+  const foods = want.has('food') ? file.foods : []
   const finance = want.has('finance') ? file.finance : []
 
   const sections: BackupSections = {}
@@ -186,8 +192,8 @@ export async function importRecords(
     // 记录导出里没有 days / presets，这两个字段空着就行
     sections.diary = { entries, stamps, days: [], presets: [] }
   }
-  if (intakes.length > 0 || sleeps.length > 0 || profile) {
-    sections.health = { profile, foods: [], meals: [], intakes, sleeps }
+  if (intakes.length > 0 || sleeps.length > 0 || foods.length > 0 || profile) {
+    sections.health = { profile, foods, meals: [], intakes, sleeps }
   }
   if (finance.length > 0) sections.finance = { entries: finance }
 
@@ -213,6 +219,7 @@ export function recordsCount(file: RecordsFile, kinds: RecordKind[]): number {
     else if (kind === 'sleep') n += file.sleeps.length
     else if (kind === 'weight') n += file.weights.length
     else if (kind === 'finance') n += file.finance.length
+    else if (kind === 'food') n += file.foods.length
   }
   return n
 }

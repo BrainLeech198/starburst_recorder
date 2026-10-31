@@ -72,7 +72,15 @@ import {
 import type { RecordKind } from '@/features/records/recordExport'
 
 /** 记录级导入认的全部种类 */
-const RECORD_KINDS: RecordKind[] = ['diary', 'stamp', 'intake', 'sleep', 'weight', 'finance']
+const RECORD_KINDS: RecordKind[] = [
+  'diary',
+  'stamp',
+  'intake',
+  'sleep',
+  'weight',
+  'finance',
+  'food',
+]
 
 /** 导入方式：融合只补/更新，替换则先把选中的块清空再恢复 */
 type ImportMode = 'merge' | 'replace'
@@ -610,14 +618,16 @@ export default function DataPage() {
           done.stats.intakes.total +
           done.sleeps.total +
           done.weights.total +
-          done.stats.finance.total
+          done.stats.finance.total +
+          done.stats.foods.total
         const overwritten =
           done.stats.entries.overwritten +
           done.stats.stamps.overwritten +
           done.stats.intakes.overwritten +
           done.sleeps.overwritten +
           done.weights.overwritten +
-          done.stats.finance.overwritten
+          done.stats.finance.overwritten +
+          done.stats.foods.overwritten
         showToast({ message: t('records.importDone', { total, overwritten }) })
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : String(caught))

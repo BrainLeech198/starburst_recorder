@@ -1,3 +1,16 @@
+## 0.6.0 · 2026-10-31
+
+### What's new
+
+- **Draw your own illustrations in diaries and notes**: the image source adds "Draw it yourself", with pen, eraser, colour, brush size, undo and clear; the drawing is inserted as an image
+- **Food library entries can be picked for export and import**: record export gains a food category that mixes with diary, notes and health records in one file; import reads the same file with photos carried in JSON (readable formats note that photos are JSON-only)
+- **Lighter food-photo processing**: the decoded original bitmap is released and the canvas recycled right after compression, so saving on low-memory phones is less likely to be killed
+
+### Download
+
+- Windows 10/11: `starburst-recorder-0.6.0-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.6.0.apk` (~16 MB, release-signed)
+
 ## 0.5.2 · 2026-10-31
 
 ### What's new

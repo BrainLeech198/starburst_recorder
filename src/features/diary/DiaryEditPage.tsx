@@ -36,6 +36,7 @@ import { reviseText } from '@/features/ai/aiRevision'
 import type { RevisionTurn } from '@/features/ai/aiRevision'
 import RevisionChat from '@/features/ai/RevisionChat'
 import { MAX_IMAGES, prepareImages } from './imageAssets'
+import SketchDialog from './SketchDialog'
 import {
   imageToken,
   insertImageTokens,
@@ -133,8 +134,9 @@ export default function DiaryEditPage() {
     weather: string
     images: DiaryImage[]
   } | null>(null)
-  /** 插图：选来源（相册 / 拍照）→ 读文件 → 转码 → 插标记 */
+  /** 插图：选来源（相册 / 拍照 / 手绘）→ 读文件 → 转码 → 插标记 */
   const [imageSourceOpen, setImageSourceOpen] = useState(false)
+  const [sketchOpen, setSketchOpen] = useState(false)
   const [imageBusy, setImageBusy] = useState(false)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
@@ -915,7 +917,18 @@ export default function DiaryEditPage() {
             setImageSourceOpen(false)
             cameraInputRef.current?.click()
           }}
+          onDraw={() => setSketchOpen(true)}
           onClose={() => setImageSourceOpen(false)}
+        />
+      )}
+
+      {sketchOpen && (
+        <SketchDialog
+          onCancel={() => setSketchOpen(false)}
+          onDone={(file) => {
+            setSketchOpen(false)
+            void handleImageFiles([file])
+          }}
         />
       )}
       {/* 相册可以多选；拍照一次一张（多按几次就是多张） */}

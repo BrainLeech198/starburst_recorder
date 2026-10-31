@@ -4,6 +4,7 @@ import type {
   DiaryEntry,
   DiaryStamp,
   FinanceEntry,
+  HealthFood,
   HealthIntake,
 } from '@/core/db/schema'
 import { formatDateCn, weekdayLabel } from '@/core/utils/dateKey'
@@ -99,6 +100,25 @@ function finance(overrides: Partial<FinanceEntry> = {}): FinanceEntry {
   }
 }
 
+function food(overrides: Partial<HealthFood> = {}): HealthFood {
+  return {
+    id: 'food1',
+    code: 'd000001',
+    name: '鸡胸肉',
+    kcal: 133,
+    protein: 24,
+    carbs: 0,
+    fat: 5,
+    servingName: null,
+    servingGrams: null,
+    photo: null,
+    createdAt: 1790000000000,
+    updatedAt: 1790000000000,
+    deletedAt: null,
+    ...overrides,
+  }
+}
+
 function day(overrides: Partial<DiaryDay> = {}): DiaryDay {
   return {
     dateKey: '2026-10-26',
@@ -134,6 +154,24 @@ describe('recordsOf', () => {
     const item = recordsOf(base({ finance: [finance({ amount: 18.5 })] }), 'finance')[0]
     expect(item.text).toBe('买菜')
     expect(item.detail).toBe('18.50')
+  })
+
+  it('食物库没有日期，按名称排序并带上每 100 g 营养', () => {
+    const items = recordsOf(
+      base({
+        foods: [
+          food({ id: 'b', name: '香蕉' }),
+          food({ id: 'a', name: '苹果' }),
+          food({ id: 'gone', name: '过期', deletedAt: 1 }),
+        ],
+      }),
+      'food',
+    )
+    expect(items.map((item) => item.id)).toEqual(['a', 'b'])
+    expect(items[0].dateKey).toBe('')
+    expect(items[0].time).toBe('')
+    expect(items[0].detail).toContain('133')
+    expect(items[0].detail).toContain('蛋白质')
   })
 
   it('称重拿日期当 id，正文是重量', () => {
@@ -191,6 +229,7 @@ describe('勾选', () => {
       sleep: [],
       weight: [],
       finance: [],
+      food: [],
     })
     expect(picked.map((item) => item.id)).toEqual(['e2', 'i1'])
   })
@@ -212,6 +251,11 @@ describe('勾选', () => {
     ])
     expect(filterByDate(items, '0000-01-01', '9999-12-31')).toHaveLength(3)
   })
+
+  it('食物库没有日期，不受时间筛选影响', () => {
+    const items = recordsOf(base({ foods: [food()] }), 'food')
+    expect(filterByDate(items, '2026-10-01', '2026-10-31')).toHaveLength(1)
+  })
 })
 
 describe('buildRecordExport 的 Markdown', () => {
@@ -231,6 +275,7 @@ describe('buildRecordExport 的 Markdown', () => {
       sleep: [],
       weight: [],
       finance: [],
+      food: [],
     }, 'markdown')
 
     expect(file.filename.endsWith('.md')).toBe(true)
@@ -244,7 +289,7 @@ describe('buildRecordExport 的 Markdown', () => {
   it('带上随记时刻、摄入营养与收支金额，日期从旧到新', () => {
     const file = buildRecordExport(
       payload,
-      { diary: [], stamp: ['s1'], intake: ['i1'], sleep: [], weight: [], finance: ['f1'] },
+      { diary: [], stamp: ['s1'], intake: ['i1'], sleep: [], weight: [], finance: ['f1'], food: [] },
       'markdown',
     )
 
@@ -257,12 +302,12 @@ describe('buildRecordExport 的 Markdown', () => {
   })
 
   it('天气跟着日记所在日期走，关掉时一个字都不写', () => {
-    const on = buildRecordExport(payload, { diary: ['e1'], stamp: [], intake: [], sleep: [], weight: [], finance: [] }, 'markdown')
+    const on = buildRecordExport(payload, { diary: ['e1'], stamp: [], intake: [], sleep: [], weight: [], finance: [], food: [] }, 'markdown')
     expect(on.content).toContain('天气：晴')
 
     const off = buildRecordExport(
       payload,
-      { diary: ['e1'], stamp: [], intake: [], sleep: [], weight: [], finance: [] },
+      { diary: ['e1'], stamp: [], intake: [], sleep: [], weight: [], finance: [], food: [] },
       'markdown',
       { includeWeather: false },
     )
@@ -272,10 +317,23 @@ describe('buildRecordExport 的 Markdown', () => {
   it('只勾摄入时不写天气', () => {
     const file = buildRecordExport(
       payload,
-      { diary: [], stamp: [], intake: ['i1'], sleep: [], weight: [], finance: [] },
+      { diary: [], stamp: [], intake: ['i1'], sleep: [], weight: [], finance: [], food: [] },
       'markdown',
     )
     expect(file.content).not.toContain('天气：')
+  })
+
+  it('食物库单独成节，照片只提示去 JSON 里找', () => {
+    const withFood = base({ foods: [food({ photo: 'data:image/png;base64,AAAA' })] })
+    const file = buildRecordExport(
+      withFood,
+      { ...emptySelection(), food: ['food1'] },
+      'markdown',
+    )
+    expect(file.content).toContain('## 食物库')
+    expect(file.content).toContain('鸡胸肉 · 每 100 g：133 kcal · 蛋白质 24 g')
+    expect(file.content).toContain('食物照片只在 JSON 格式里带上。')
+    expect(file.content).not.toContain('data:image')
   })
 })
 
@@ -286,7 +344,7 @@ describe('buildRecordExport 的纯文本与 JSON', () => {
     intakes: [intake()],
     days: [day()],
   })
-  const all = { diary: ['e1'], stamp: ['s1'], intake: ['i1'], sleep: [], weight: [], finance: [] }
+  const all = { diary: ['e1'], stamp: ['s1'], intake: ['i1'], sleep: [], weight: [], finance: [], food: [] }
 
   it('纯文本不带 Markdown 标记，种类用方括号标出', () => {
     const file = buildRecordExport(payload, all, 'text')
@@ -312,11 +370,26 @@ describe('buildRecordExport 的纯文本与 JSON', () => {
     expect(data.days).toEqual([day()])
   })
 
+  it('JSON 带食物库原始行，照片 dataURL 一起走', () => {
+    const photo = 'data:image/png;base64,AAAA'
+    const payload = base({
+      foods: [food({ photo }), food({ id: 'gone', deletedAt: 1 })],
+    })
+    const file = buildRecordExport(
+      payload,
+      { ...emptySelection(), food: ['food1', 'gone'] },
+      'json',
+    )
+    const data = JSON.parse(file.content)
+    expect(data.foods).toHaveLength(1)
+    expect(data.foods[0].photo).toBe(photo)
+  })
+
   it('回收站里的记录即使 id 被勾上也不导出', () => {
     const buried = base({ entries: [entry({ id: 'gone', deletedAt: 1 })] })
     const file = buildRecordExport(
       buried,
-      { diary: ['gone'], stamp: [], intake: [], sleep: [], weight: [], finance: [] },
+      { diary: ['gone'], stamp: [], intake: [], sleep: [], weight: [], finance: [], food: [] },
       'json',
     )
     expect(JSON.parse(file.content).entries).toEqual([])

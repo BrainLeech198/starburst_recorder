@@ -14,31 +14,49 @@ export const FOOD_PHOTO_MAX_EDGE = 512
 const WEBP_QUALITY = 0.75
 const JPEG_QUALITY = 0.72
 
+/** 断开 Image 的 src，让解码后的原图位图尽快回收 */
+function releaseImage(image: HTMLImageElement) {
+  image.removeAttribute('src')
+  image.src = ''
+}
+
 /** 压缩并裁成正方形，返回可直接存库的 data URL */
 export async function compressFoodPhoto(file: File): Promise<string> {
   const image = await loadImage(file)
-  const side = Math.min(image.width, image.height)
-  if (side <= 0) throw new Error(translate('foods.photoFailed'))
+  try {
+    const side = Math.min(image.width, image.height)
+    if (side <= 0) throw new Error(translate('foods.photoFailed'))
 
-  const target = Math.min(FOOD_PHOTO_MAX_EDGE, side)
-  const canvas = document.createElement('canvas')
-  canvas.width = target
-  canvas.height = target
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error(translate('foods.photoFailed'))
+    const target = Math.min(FOOD_PHOTO_MAX_EDGE, side)
+    const canvas = document.createElement('canvas')
+    canvas.width = target
+    canvas.height = target
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error(translate('foods.photoFailed'))
 
-  ctx.drawImage(
-    image,
-    (image.width - side) / 2,
-    (image.height - side) / 2,
-    side,
-    side,
-    0,
-    0,
-    target,
-    target,
-  )
+    ctx.drawImage(
+      image,
+      (image.width - side) / 2,
+      (image.height - side) / 2,
+      side,
+      side,
+      0,
+      0,
+      target,
+      target,
+    )
+    // 手机原图解码后动辄几十 MB；画进小画布后立刻断开，别拖到 GC 才释放，
+    // 否则保存写库时叠加一次全库序列化，低内存设备容易被系统杀掉
+    releaseImage(image)
 
-  const webp = canvas.toDataURL('image/webp', WEBP_QUALITY)
-  return webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/jpeg', JPEG_QUALITY)
+    const webp = canvas.toDataURL('image/webp', WEBP_QUALITY)
+    const result = webp.startsWith('data:image/webp')
+      ? webp
+      : canvas.toDataURL('image/jpeg', JPEG_QUALITY)
+    canvas.width = 0
+    canvas.height = 0
+    return result
+  } finally {
+    releaseImage(image)
+  }
 }

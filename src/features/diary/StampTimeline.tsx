@@ -14,6 +14,7 @@ import CommonPresetDialog from './CommonPresetDialog'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import ImageViewer from './ImageViewer'
 import { MAX_IMAGES, prepareImages } from './imageAssets'
+import SketchDialog from './SketchDialog'
 import { buildSingleRecordExport } from '@/features/records/recordExport'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
 
@@ -120,17 +121,15 @@ function StampRow({
   const [presetOpen, setPresetOpen] = useState(false)
   const { t } = useI18n()
   const { showToast } = useToast()
-  /** 随记配图：选来源 → 转码 → 立刻写回这条随记 */
+  /** 随记配图：选来源（相册 / 拍照 / 手绘）→ 转码 → 立刻写回这条随记 */
   const [sourceOpen, setSourceOpen] = useState(false)
+  const [sketchOpen, setSketchOpen] = useState(false)
   const [imageBusy, setImageBusy] = useState(false)
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
 
-  async function handleImagePick(event: ChangeEvent<HTMLInputElement>) {
-    const files = [...(event.target.files ?? [])]
-    // 清掉 value：同一个文件再选一次也能触发 change
-    event.target.value = ''
+  async function addImages(files: File[]) {
     if (files.length === 0 || imageBusy) return
     setImageBusy(true)
     try {
@@ -145,6 +144,13 @@ function StampRow({
     } finally {
       setImageBusy(false)
     }
+  }
+
+  function handleImagePick(event: ChangeEvent<HTMLInputElement>) {
+    const files = [...(event.target.files ?? [])]
+    // 清掉 value：同一个文件再选一次也能触发 change
+    event.target.value = ''
+    void addImages(files)
   }
 
   function removeImage(id: string) {
@@ -398,7 +404,17 @@ function StampRow({
             setSourceOpen(false)
             cameraRef.current?.click()
           }}
+          onDraw={() => setSketchOpen(true)}
           onClose={() => setSourceOpen(false)}
+        />
+      )}
+      {sketchOpen && (
+        <SketchDialog
+          onCancel={() => setSketchOpen(false)}
+          onDone={(file) => {
+            setSketchOpen(false)
+            void addImages([file])
+          }}
         />
       )}
       {viewerIndex !== null && viewerIndex < stamp.images.length && (

@@ -1,10 +1,10 @@
 /**
- * 「挑选记录导出」：用户逐条勾选日记、随记、健康摄入、收支，
+ * 「挑选记录导出」：用户逐条勾选日记、随记、健康记录、收支和食物库，
  * 混在一起导出一份给 AI 或别人看的文件。
  *
  * 和 diaryExport.ts 的区别：
  *   - 那份从日记页出发，按「天 / 区间 / 当前选中」取日记与随记，服务日记模块。
- *   - 这份从整库取数，只认 id，四类记录可以混选，服务「我想把这几条单独拿出来」。
+ *   - 这份从整库取数，只认 id，各类记录可以混选，服务「我想把这几条单独拿出来」。
  *
  * 和 diaryBackup.ts 的区别：备份是整库的快照（带版本、可恢复），这里只是可读文本 / 原始记录。
  */
@@ -13,11 +13,13 @@ import type {
   DiaryEntry,
   DiaryStamp,
   FinanceEntry,
+  HealthFood,
   HealthIntake,
   HealthSleep,
   WeighIn,
 } from '@/core/db/schema'
 import { sleepMinutes, sleepParts } from '@/features/health/sleepMath'
+import { sleepWakeMessage } from '@/features/health/healthViz'
 import { formatClock, formatDateCn, formatShortStamp, weekdayLabel } from '@/core/utils/dateKey'
 import { parseWeather, weatherLabel } from '@/features/diary/weather'
 import type { BackupPayload } from '@/features/diary/diaryBackup'
@@ -26,17 +28,32 @@ import { stripImageTokens } from '@/features/diary/imageTokens'
 import { translate } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 
-export type RecordKind = 'diary' | 'stamp' | 'intake' | 'sleep' | 'weight' | 'finance'
+export type RecordKind =
+  | 'diary'
+  | 'stamp'
+  | 'intake'
+  | 'sleep'
+  | 'weight'
+  | 'finance'
+  | 'food'
 
 /** 固定顺序：文件里按这个顺序分组，勾选面板也按这个顺序排 */
-export const RECORD_KINDS: RecordKind[] = ['diary', 'stamp', 'intake', 'sleep', 'weight', 'finance']
+export const RECORD_KINDS: RecordKind[] = [
+  'diary',
+  'stamp',
+  'intake',
+  'sleep',
+  'weight',
+  'finance',
+  'food',
+]
 
 /** 各类记录各自勾了哪些 id；可以混在同一份文件里 */
 export type RecordSelection = Record<RecordKind, string[]>
 
 /** 空文件、空勾选都从这份开始，免得各处手写一串空数组 */
 export function emptySelection(): RecordSelection {
-  return { diary: [], stamp: [], intake: [], sleep: [], weight: [], finance: [] }
+  return { diary: [], stamp: [], intake: [], sleep: [], weight: [], finance: [], food: [] }
 }
 
 export function selectionSize(selection: RecordSelection): number {
@@ -55,7 +72,7 @@ export function toggleSelection(
   return next
 }
 
-/** 列表里的一行：四种记录压成同一个形状，勾选和导出都只认这个 */
+/** 列表里的一行：各类记录压成同一个形状，勾选和导出都只认这个 */
 export interface RecordItem {
   kind: RecordKind
   id: string
@@ -129,6 +146,7 @@ function sleepItems(sleeps: HealthSleep[]): RecordItem[] {
     .filter((sleep) => sleep.deletedAt === null)
     .map((sleep) => {
       const parts = sleepParts(sleepMinutes(sleep.bedtime, sleep.wakeTime))
+      const wake = sleepWakeMessage(sleep.wakeCount, sleep.wakeMinutes)
       return {
         kind: 'sleep' as const,
         id: sleep.id,
@@ -139,7 +157,8 @@ function sleepItems(sleeps: HealthSleep[]): RecordItem[] {
         text: sleep.bedtime + ' \u2192 ' + sleep.wakeTime,
         detail:
           translate('records.sleepDetail', { h: parts.h, m: parts.m }) +
-          (sleep.quality !== null ? ' \u00b7 ' + '\u2605'.repeat(sleep.quality) : ''),
+          (sleep.quality !== null ? ' \u00b7 ' + '\u2605'.repeat(sleep.quality) : '') +
+          (wake ? ' \u00b7 ' + translate(wake.key, wake.params) : ''),
       }
     })
 }
@@ -174,14 +193,34 @@ function financeItems(entries: FinanceEntry[]): RecordItem[] {
     }))
 }
 
-/** 某一类里所有还在用的记录，按日期、时刻排序 */
+/** 食物库没有日期：条目本身不属于某一天，导出时单独成节 */
+function foodItems(foods: HealthFood[]): RecordItem[] {
+  return foods
+    .filter((food) => food.deletedAt === null)
+    .map((food) => ({
+      kind: 'food' as const,
+      id: food.id,
+      code: food.code,
+      dateKey: '',
+      time: '',
+      createdAt: food.createdAt,
+      text: food.name,
+      detail: translate('records.foodDetail', {
+        kcal: Math.round(food.kcal * 100) / 100,
+        protein: Math.round(food.protein * 100) / 100,
+      }),
+    }))
+}
+
+/** 某一类里所有还在用的记录，按日期、时刻排序；食物库按名称排 */
 export function recordsOf(payload: BackupPayload, kind: RecordKind): RecordItem[] {
   if (kind === 'diary') return diaryItems(payload.entries).sort(byTime)
   if (kind === 'stamp') return stampItems(payload.stamps).sort(byTime)
   if (kind === 'intake') return intakeItems(payload.intakes).sort(byTime)
   if (kind === 'sleep') return sleepItems(payload.sleeps).sort(byTime)
   if (kind === 'weight') return weightItems(payload.profile?.weighIns ?? []).sort(byTime)
-  return financeItems(payload.finance).sort(byTime)
+  if (kind === 'finance') return financeItems(payload.finance).sort(byTime)
+  return foodItems(payload.foods).sort((a, b) => a.text.localeCompare(b.text))
 }
 
 /** 勾选的记录，按「日记 / 随记 / 摄入 / 收支」固定顺序摊平 */
@@ -195,9 +234,14 @@ export function selectedRecords(
   })
 }
 
-/** 列表上的时间筛选：只影响眼下看到哪些行，已经勾上的不因为被筛掉就取消 */
+/**
+ * 列表上的时间筛选：只影响眼下看到哪些行，已经勾上的不因为被筛掉就取消。
+ * 食物库没有日期，永远显示。
+ */
 export function filterByDate(items: RecordItem[], from: string, to: string): RecordItem[] {
-  return items.filter((item) => item.dateKey >= from && item.dateKey <= to)
+  return items.filter(
+    (item) => item.dateKey === '' || (item.dateKey >= from && item.dateKey <= to),
+  )
 }
 
 const KIND_TITLE_KEY: Record<RecordKind, MessageKey> = {
@@ -207,6 +251,7 @@ const KIND_TITLE_KEY: Record<RecordKind, MessageKey> = {
   sleep: 'records.kindSleep',
   weight: 'records.kindWeight',
   finance: 'records.kindFinance',
+  food: 'records.kindFood',
 }
 
 function kindTitle(kind: RecordKind): string {
@@ -294,6 +339,9 @@ export function buildRecordExport(
           ...(kept.has('finance')
             ? { finance: payload.finance.filter((row) => selection.finance.includes(row.id) && row.deletedAt === null) }
             : {}),
+          ...(kept.has('food')
+            ? { foods: payload.foods.filter((row) => selection.food.includes(row.id) && row.deletedAt === null) }
+            : {}),
           ...(includeWeather && days.length > 0 ? { days } : {}),
         },
         null,
@@ -305,7 +353,8 @@ export function buildRecordExport(
   const weatherByDay = new Map<string, string | null>(
     includeWeather ? days.map((day) => [day.dateKey, day.weather]) : [],
   )
-  const dates = [...new Set(picked.map((item) => item.dateKey))].sort()
+  // 食物库没有日期，不进按天分组的循环
+  const dates = [...new Set(picked.map((item) => item.dateKey))].filter((date) => date !== '').sort()
   const lines: string[] = []
   const markdown = format === 'markdown'
 
@@ -356,6 +405,24 @@ export function buildRecordExport(
     }
   }
 
+  // 食物库不属于任何一天，放在按天的段落之后单独一节
+  const foods = picked.filter((item) => item.kind === 'food')
+  if (foods.length > 0) {
+    if (markdown) {
+      lines.push(`## ${kindTitle('food')}`, '')
+      for (const item of foods) lines.push(`- ${item.text}${item.detail ? ` · ${item.detail}` : ''}`)
+    } else {
+      lines.push(`[${kindTitle('food')}]`)
+      for (const item of foods) lines.push(`${item.text}${item.detail ? ` · ${item.detail}` : ''}`)
+    }
+    // 照片是 dataURL，只有 JSON 装得下；可读格式里提一句，免得以为照片丢了
+    const hasPhoto = payload.foods.some(
+      (food) => selection.food.includes(food.id) && food.photo !== null,
+    )
+    if (hasPhoto) lines.push('', translate('records.foodPhotoNote'))
+    lines.push('')
+  }
+
   return {
     label: markdown ? 'Markdown' : translate('records.plainTextLabel'),
     filename: `${base}.${markdown ? 'md' : 'txt'}`,
@@ -367,7 +434,7 @@ export function buildRecordExport(
 /** JSON 里各类记录各自的字段名，与整库挑选导出保持一致 */
 const KIND_FIELD: Record<
   RecordKind,
-  'entries' | 'stamps' | 'intakes' | 'sleeps' | 'weights' | 'finance'
+  'entries' | 'stamps' | 'intakes' | 'sleeps' | 'weights' | 'finance' | 'foods'
 > = {
   diary: 'entries',
   stamp: 'stamps',
@@ -375,6 +442,7 @@ const KIND_FIELD: Record<
   sleep: 'sleeps',
   weight: 'weights',
   finance: 'finance',
+  food: 'foods',
 }
 
 /**
@@ -383,7 +451,7 @@ const KIND_FIELD: Record<
  */
 export function buildSingleRecordExport(
   kind: RecordKind,
-  row: DiaryEntry | DiaryStamp | HealthIntake | HealthSleep | WeighIn | FinanceEntry,
+  row: DiaryEntry | DiaryStamp | HealthIntake | HealthSleep | WeighIn | FinanceEntry | HealthFood,
   day?: DiaryDay | null,
 ): ExportFile {
   const now = new Date()

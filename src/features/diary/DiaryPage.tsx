@@ -50,6 +50,7 @@ import AiComposeDialog from '@/features/ai/AiComposeDialog'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import type { AiConfig } from '@/features/ai/aiConfig'
 import ImageImportDialog from './ImageImportDialog'
+import SketchDialog from './SketchDialog'
 import type { ImportSummary } from './importPages'
 import { buildExport, pickInRange } from './diaryExport'
 import { stripImageTokens } from './imageTokens'
@@ -98,8 +99,9 @@ export default function DiaryPage() {
   const [hint, setHint] = useState('')
   /** 刚记下的那一笔，用来把光标直接落到它的内容框 */
   const [focusStampId, setFocusStampId] = useState('')
-  /** 拍一张当随记：选来源 → 读图 → 建一条带图的随记 */
+  /** 拍一张 / 画一张当随记：选来源 → 读图 → 建一条带图的随记 */
   const [photoOpen, setPhotoOpen] = useState(false)
+  const [sketchOpen, setSketchOpen] = useState(false)
   const [photoBusy, setPhotoBusy] = useState(false)
   const galleryRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
@@ -700,7 +702,18 @@ export default function DiaryPage() {
             setPhotoOpen(false)
             cameraRef.current?.click()
           }}
+          onDraw={() => setSketchOpen(true)}
           onClose={() => setPhotoOpen(false)}
+        />
+      )}
+
+      {sketchOpen && (
+        <SketchDialog
+          onCancel={() => setSketchOpen(false)}
+          onDone={(file) => {
+            setSketchOpen(false)
+            void handlePhotoStamp([file])
+          }}
         />
       )}
       {/* 相册可以一次选多张（一条随记带多图）；拍照一次一张 */}

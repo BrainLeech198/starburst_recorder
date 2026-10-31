@@ -904,7 +904,7 @@ export const en: Record<MessageKey, string> = {
   'data.pickExportGroup': 'Pick records',
   'data.pickExport': 'Pick records to export…',
   'data.pickExportHint':
-    'Tick a few diary entries, stamps, intakes or finance records and export as Markdown / plain text / JSON. Use "Export data" above for a full backup.',
+    'Tick a few diary entries, stamps, intakes, sleeps, weights, finance records or foods and export as Markdown / plain text / JSON. Use "Export data" above for a full backup.',
   'data.savedAll':
     'Everything: {entries} entries, {stamps} stamps, {days} days of weather (trash included)',
   'data.savedDownloaded': 'Exported {detail}',
@@ -1320,6 +1320,9 @@ export const en: Record<MessageKey, string> = {
   'records.sleepDetail': 'slept {h} h {m} min',
   'records.kindWeight': 'Weight',
   'records.kindFinance': 'Finance',
+  'records.kindFood': 'Food library',
+  'records.foodDetail': 'Per 100 g: {kcal} kcal · protein {protein} g',
+  'records.foodPhotoNote': 'Food photos are included only in the JSON format.',
   'records.emptyKind': 'Nothing here yet.',
   'records.emptyWindow': 'Nothing in this range — switch to "All time".',
   'records.picked': '{count} picked',
@@ -1412,6 +1415,15 @@ export const en: Record<MessageKey, string> = {
   'imageSource.camera': 'Take photo',
   'imageSource.cameraUnavailable':
     'This device cannot take photos here; use "Choose file" instead.',
+  'imageSource.draw': 'Draw',
+  'sketch.title': 'Sketch',
+  'sketch.hint': 'Draw something — it will be added to the record as an image.',
+  'sketch.pen': 'Pen',
+  'sketch.eraser': 'Eraser',
+  'sketch.color': 'Color',
+  'sketch.brushSize': 'Brush size',
+  'sketch.undo': 'Undo',
+  'sketch.clear': 'Clear',
 
   'presetPick.title': 'Frequently used',
   'presetPick.person': 'People',

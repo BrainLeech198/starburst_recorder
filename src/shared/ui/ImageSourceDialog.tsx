@@ -10,10 +10,13 @@ import { canUseCamera } from '@/platform/camera'
 export default function ImageSourceDialog({
   onPickFile,
   onTakePhoto,
+  onDraw,
   onClose,
 }: {
   onPickFile: () => void
   onTakePhoto: () => void
+  /** 日记 / 随记才提供手绘；不传就只显示选文件和拍照 */
+  onDraw?: () => void
   onClose: () => void
 }) {
   const { t } = useI18n()
@@ -34,6 +37,18 @@ export default function ImageSourceDialog({
         >
           {t('imageSource.pickFile')}
         </button>
+        {onDraw && (
+          <button
+            type="button"
+            onClick={() => {
+              onClose()
+              onDraw()
+            }}
+            className={`${OUTLINE_BUTTON} w-full`}
+          >
+            {t('imageSource.draw')}
+          </button>
+        )}
         <button
           type="button"
           disabled={!cameraOK}

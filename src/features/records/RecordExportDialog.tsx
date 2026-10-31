@@ -52,6 +52,7 @@ const KIND_LABEL: Record<RecordKind, MessageKey> = {
   sleep: 'records.kindSleep',
   weight: 'records.kindWeight',
   finance: 'records.kindFinance',
+  food: 'records.kindFood',
 }
 
 const CHIP = 'px-2 py-0.5 text-[11px]'
@@ -83,6 +84,7 @@ export default function RecordExportDialog({
     sleep: [...(initial?.sleep ?? [])],
     weight: [...(initial?.weight ?? [])],
     finance: [...(initial?.finance ?? [])],
+    food: [...(initial?.food ?? [])],
   }))
   // 列表页带着预选进来时，预选可能不在最近 7 天里，直接铺开全部
   const [window, setWindow] = useState<Window>(selectionSize(selection) > 0 ? 'all' : '7d')
@@ -238,7 +240,9 @@ export default function RecordExportDialog({
                 type="button"
                 role="checkbox"
                 aria-checked={checked}
-                aria-label={`${t(KIND_LABEL[current.kind])} ${formatMonthDay(item.dateKey, t)} ${item.text}`}
+                aria-label={`${t(KIND_LABEL[current.kind])} ${
+                  item.dateKey !== '' ? `${formatMonthDay(item.dateKey, t)} ` : ''
+                }${item.text}`}
                 onClick={() =>
                   setSelection((previous) =>
                     toggleSelection(previous, current.kind, item.id),
@@ -257,8 +261,13 @@ export default function RecordExportDialog({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-baseline gap-x-2 text-[11px] text-muted">
-                    <span className="tabular-nums">{formatMonthDay(item.dateKey, t)}</span>
-                    <span className="font-mono tabular-nums">{item.time}</span>
+                    {/* 食物库没有日期，只露短编号 */}
+                    {item.dateKey !== '' && (
+                      <>
+                        <span className="tabular-nums">{formatMonthDay(item.dateKey, t)}</span>
+                        <span className="font-mono tabular-nums">{item.time}</span>
+                      </>
+                    )}
                     {item.code !== '' && (
                       <span className="font-mono text-[10px] opacity-70">{item.code}</span>
                     )}
