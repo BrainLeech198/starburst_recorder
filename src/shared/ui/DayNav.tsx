@@ -2,8 +2,8 @@
  * 日期栏：‹ 日期 ›，外加各页面自己的快捷入口。
  *
  * 这一条吸在内容区顶部常驻：日记、健康首页、摄入 / 睡眠 / 体重都在用，
- * 长列表往下翻的时候还能直接换天。右侧 trailing 由页面决定（日记是日记/随记，
- * 健康是食物库/档案，子页是返回健康），所以入口会跟着日期一起常驻。
+ * 长列表往下翻的时候还能直接换天。左侧 leading 放二级页返回，右侧 trailing
+ * 由页面决定（日记是日记/随记，健康是食物库/档案），入口会跟着日期一起常驻。
  *
  * 吸顶要有底色：半透明背景 + 模糊，滚上来的内容不会在字缝里透出来。
  * 页面容器都是 p-4，这里用负外边距抵掉左边距，让栏铺到容器边缘。
@@ -17,12 +17,15 @@ export default function DayNav({
   onChange,
   onPick,
   labels,
+  leading,
   trailing,
 }: {
   dayKey: string
   onChange: (next: string) => void
   onPick: () => void
   labels: { prev: string; next: string; pick: string; today: string }
+  /** 左侧入口（例如二级页的返回）；放在日期控件前面，符合从左边退出的习惯 */
+  leading?: ReactNode
   /** 右侧入口；窄屏时整体换到下一行，不挤日期 */
   trailing?: ReactNode
 }) {
@@ -31,6 +34,8 @@ export default function DayNav({
 
   return (
     <div className="sticky top-0 z-20 -mx-4 -mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-line/60 bg-bg/95 px-4 pb-2 pt-3 backdrop-blur">
+      {leading && <div className="flex shrink-0 items-center">{leading}</div>}
+
       <div className="flex min-w-0 items-center gap-1">
         <button
           type="button"

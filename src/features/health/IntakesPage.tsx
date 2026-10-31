@@ -156,19 +156,19 @@ export default function IntakesPage() {
           pick: t('health.pickDate'),
           today: t('health.backToToday'),
         }}
+        leading={
+          <Link to="/health" className={NAV_BACK_BUTTON}>
+            <span aria-hidden="true">‹</span>
+            {t('nav.health')}
+          </Link>
+        }
         trailing={
-          <>
-            <Link
-              to="/health/foods"
-              className="inline-flex h-8 items-center rounded-lg px-2 text-xs text-muted transition-colors hover:text-fg"
-            >
-              {t('health.foods')}
-            </Link>
-            <Link to="/health" className={NAV_BACK_BUTTON}>
-              <span aria-hidden="true">‹</span>
-              {t('nav.health')}
-            </Link>
-          </>
+          <Link
+            to="/health/foods"
+            className="inline-flex h-8 items-center rounded-lg px-2 text-xs text-muted transition-colors hover:text-fg"
+          >
+            {t('health.foods')}
+          </Link>
         }
       />
 

@@ -210,7 +210,7 @@ export default function SleepsPage() {
             pick: t('health.pickDate'),
             today: t('health.backToToday'),
           }}
-          trailing={
+          leading={
             <Link to="/health" className={NAV_BACK_BUTTON}>
               <span aria-hidden="true">‹</span>
               {t('nav.health')}
