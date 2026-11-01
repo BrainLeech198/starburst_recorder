@@ -157,6 +157,55 @@
 
       <article class="ver">
         <div class="ver__head">
+          <span class="ver__tag">0.9.0</span>
+          <span class="ver__date">2026-11-01</span>
+        </div>
+        <div class="lang-zh">
+          <h3>这一版有什么</h3>
+          <ul>
+            <li><strong>助手支持多段对话</strong>：新建、切换、删除会话，每段各自保留上下文；旧的单段对话自动迁移成第一段</li>
+            <li><strong>图片与文本附件</strong>：一条消息最多 3 个，图片先压到 1280 长边，文本文件截前 6000 字一起发</li>
+            <li><strong>推荐问</strong>：每次答完按话题挑三条可点的追问，不额外消耗 token</li>
+            <li><strong>运行中提示</strong>：「正在处理 · N 秒」「正在查 {工具}」，并显示查了几次与用时</li>
+            <li><strong>上下文与 token</strong>：解析服务商真实 usage，显示上下文占用百分比、本轮 token 与压缩条数</li>
+            <li><strong>查询收敛</strong>：单轮轮数 6、真实查询上限 10、同参数复用结果，提示词要求一次拿全</li>
+            <li><strong>经济页两张图</strong>：本月支出分类占比、近半年收支趋势</li>
+            <li><strong>安卓健康导入（实验）</strong>：从 Health Connect 只读导入体重与睡眠，已有日子跳过</li>
+            <li><strong>五处文案纠偏</strong>：悬浮球说明改成「一直显示」，删掉「助手还没接入」等旧说法</li>
+          </ul>
+          <h3>下载</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.9.0-setup.exe</code>（约 95 MB）</dd>
+            <dt>Android 10 以上</dt>
+            <dd><code>starburst-recorder-0.9.0.apk</code>（约 16 MB，正式签名）</dd>
+          </dl>
+        </div>
+        <div class="lang-en">
+          <h3>What's new</h3>
+          <ul>
+            <li><strong>Multiple conversations</strong> — start, switch and delete chats, each with its own context; the old single thread migrates into the first one</li>
+            <li><strong>Image and text attachments</strong> — up to 3 per message; images are scaled to 1280 px and text files keep their first 6000 characters</li>
+            <li><strong>Suggested follow-ups</strong> — three tappable questions picked from the last answer, with no extra tokens spent</li>
+            <li><strong>Working indicator</strong> — “Processing · N sec” and “Looking up {tool}”, plus how many lookups ran and how long they took</li>
+            <li><strong>Context and tokens</strong> — real usage from the provider, a context percentage, this turn's tokens and how many messages were compacted</li>
+            <li><strong>Tighter lookups</strong> — six rounds per turn, ten real lookups at most, cached repeats, and prompts that ask for one complete query</li>
+            <li><strong>Two charts in Finance</strong> — this month's spending by category and a half-year trend</li>
+            <li><strong>Health import on Android (experimental)</strong> — read-only weight and sleep from Health Connect, skipping days already logged</li>
+            <li><strong>Copy fixes</strong> — the floating ball description now says it is always shown, and stale “assistant not connected” text is gone</li>
+          </ul>
+          <h3>Downloads</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><code>starburst-recorder-0.9.0-setup.exe</code> (~95 MB)</dd>
+            <dt>Android 10+</dt>
+            <dd><code>starburst-recorder-0.9.0.apk</code> (~16 MB, release-signed)</dd>
+          </dl>
+        </div>
+      </article>
+
+      <article class="ver">
+        <div class="ver__head">
           <span class="ver__tag">0.8.1</span>
           <span class="ver__date">2026-11-01</span>
         </div>
@@ -1263,7 +1312,7 @@
         <p>
           <span data-i18n="app.name">星芒记录者</span>
           <span class="footer__dot" aria-hidden="true">·</span>
-          <span data-i18n="footer.version">版本 0.8.1</span>
+          <span data-i18n="footer.version">版本 0.9.0</span>
         </p>
         <p data-i18n="footer.tagline">数据只存在你的设备上</p>
       </div>

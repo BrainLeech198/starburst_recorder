@@ -10,10 +10,19 @@ import { I18nProvider } from './shared/i18n/I18nProvider'
 import { router } from './app/router'
 import { desktopBridge } from './platform/desktop'
 import { notifyChange } from './core/db/changes'
+import { APP_VERSION } from './core/version'
+import { isAndroid } from './features/update/updateService'
+import { logInfo } from './shared/log/log'
 import './index.css'
 
 // 桌面版可能开着「快速记一笔」小窗，那边写库本窗口看不见，靠主进程转发过来
 desktopBridge()?.onDbChanged?.(notifyChange)
+
+// 会话第一条日志：版本与运行平台；出问题时先看这行对不对
+logInfo('App', 'app.boot', {
+  version: APP_VERSION,
+  platform: desktopBridge()?.isDesktop ? 'desktop' : isAndroid() ? 'android' : 'web',
+})
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

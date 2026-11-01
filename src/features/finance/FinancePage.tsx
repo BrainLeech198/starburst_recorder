@@ -10,7 +10,7 @@
  */
 import EmptyState from '@/shared/ui/EmptyState'
 import { useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import type { FinanceEntry } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
 import { formatMonthDay, todayKey } from '@/core/utils/dateKey'
@@ -20,6 +20,7 @@ import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import {
+  expenseByCategory,
   groupFinanceByDay,
   isMonthKey,
   monthKeyOf,
@@ -63,6 +64,18 @@ export default function FinancePage() {
   const rows = entries ?? []
   const summary = summarizeFinance(rows)
   const days = groupFinanceByDay(rows)
+  const slices = expenseByCategory(rows)
+
+  // 近半年趋势：每月各查一次汇总，跨年也按真实月份排
+  const trendMonths = Array.from({ length: 6 }, (_, index) => shiftMonth(currentMonth, index - 5))
+  const trend = useLiveQuery(
+    async () => {
+      const lists = await Promise.all(trendMonths.map((key) => financeOfMonth(key)))
+      return trendMonths.map((key, index) => ({ monthKey: key, ...summarizeFinance(lists[index]) }))
+    },
+    [currentMonth],
+  )
+  const trendMax = Math.max(1, ...(trend ?? []).map((item) => Math.max(item.income, item.expense)))
 
   /** 新增 / 编辑；date 是新增时预填的日期 */
   const [dialog, setDialog] = useState<{ entry: FinanceEntry | null; date: string } | null>(null)
@@ -191,6 +204,85 @@ export default function FinancePage() {
         </div>
       </section>
 
+      {/* 本月支出分类：按金额从大到小，条长就是占比 */}
+      {slices.length > 0 && (
+        <section className="mt-3 rounded-2xl border border-line bg-surface p-4">
+          <h2 className="m-0 text-xs font-medium text-fg">{t('finance.breakdown')}</h2>
+          <ul className="m-0 mt-2 flex list-none flex-col gap-2 p-0">
+            {slices.map((slice) => (
+              <li key={slice.category}>
+                <div className="flex items-baseline justify-between gap-2 text-[11px]">
+                  <span className="min-w-0 truncate text-muted">
+                    {t(categoryKey(slice.category))}
+                  </span>
+                  <span className="shrink-0 tabular-nums text-fg">
+                    {money(slice.amount)} · {Math.round(slice.share * 100)}%
+                  </span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-2">
+                  <div
+                    className="h-full rounded-full bg-brand"
+                    style={{ width: `${Math.max(2, slice.share * 100)}%` }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* 近半年收支：每月两根柱，同一标尺比较 */}
+      {trend &&
+        trend.some((item) => item.income > 0 || item.expense > 0) && (
+          <section className="mt-3 rounded-2xl border border-line bg-surface p-4">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="m-0 text-xs font-medium text-fg">{t('finance.trend')}</h2>
+              <div className="flex items-center gap-2 text-[10px] text-muted">
+                <span className="inline-flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-sm bg-brand" />
+                  {t('finance.income')}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-sm bg-danger/60" />
+                  {t('finance.expense')}
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 flex items-end gap-2">
+              {trend.map((item) => (
+                <div
+                  key={item.monthKey}
+                  className="flex min-w-0 flex-1 flex-col items-center gap-1"
+                >
+                  <div className="flex h-20 w-full items-end justify-center gap-1">
+                    <div
+                      className="w-2 rounded-t bg-brand"
+                      style={{
+                        height: `${(item.income / trendMax) * 100}%`,
+                        minHeight: item.income > 0 ? 2 : 0,
+                      }}
+                    />
+                    <div
+                      className="w-2 rounded-t bg-danger/60"
+                      style={{
+                        height: `${(item.expense / trendMax) * 100}%`,
+                        minHeight: item.expense > 0 ? 2 : 0,
+                      }}
+                    />
+                  </div>
+                  <span
+                    className={`text-[10px] tabular-nums ${
+                      item.monthKey === monthKey ? 'text-brand' : 'text-muted'
+                    }`}
+                  >
+                    {item.monthKey.slice(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
       {entries === undefined ? null : days.length === 0 ? (
         <div className="mt-4">
           <EmptyState icon="🧾" text={t('finance.empty')} />
@@ -205,9 +297,17 @@ export default function FinancePage() {
               <span className="min-w-0 truncate text-xs text-fg">
                 {formatMonthDay(day.dateKey, t)} · {t(weekdayKey(day.dateKey))}
               </span>
-              <span className="shrink-0 text-[11px] tabular-nums text-muted">
-                {t('finance.dayExpense', { value: money(day.summary.expense) })}
-              </span>
+              <div className="flex shrink-0 items-center gap-2">
+                <Link
+                  to={`/diary?date=${day.dateKey}`}
+                  className="text-[11px] text-brand transition-opacity hover:opacity-80"
+                >
+                  {t('finance.dayRecords')}
+                </Link>
+                <span className="text-[11px] tabular-nums text-muted">
+                  {t('finance.dayExpense', { value: money(day.summary.expense) })}
+                </span>
+              </div>
             </header>
             <ul className="m-0 list-none p-0">
               {day.entries.map((entry) => (

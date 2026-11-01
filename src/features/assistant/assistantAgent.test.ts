@@ -419,7 +419,7 @@ describe('runAssistant', () => {
         )
       },
     })
-    expect(calls).toBe(8)
+    expect(calls).toBe(6)
     expect(result.ok).toBe(false)
   })
 

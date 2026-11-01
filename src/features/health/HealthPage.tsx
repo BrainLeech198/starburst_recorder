@@ -15,6 +15,8 @@ import { intakeReviewKey, sleepReviewKey, sleepWakeMessage } from './healthViz'
 import { useDerivedTdee } from './useDerivedTdee'
 import { maybeNotifyWeighDay, syncWeighReminder } from './weighNotify'
 import SleepDialog from './SleepDialog'
+import HealthDeviceImportDialog from './HealthDeviceImportDialog'
+import { canImportFromHealthApp } from './deviceHealth'
 import { sleepMinutes, sleepParts, sleepWakeStats, sortWakeEvents } from './sleepMath'
 import IntakeDialog from './IntakeDialog'
 import HealthEstimateNote, { HealthDisclaimerDialog } from './HealthDisclaimer'
@@ -63,6 +65,8 @@ export default function HealthPage() {
     void syncWeighReminder(profile)
   }, [profile])
   const [sleepDialogOpen, setSleepDialogOpen] = useState(false)
+  /** 手机健康应用导入的弹窗；只在安卓原生端有入口 */
+  const [importOpen, setImportOpen] = useState(false)
   /** 理想作息的内联编辑：平时收成一行，点「编辑」展开两个时间框 */
   const [idealEditing, setIdealEditing] = useState(false)
   const [idealBed, setIdealBed] = useState('23:00')
@@ -347,6 +351,23 @@ export default function HealthPage() {
           )}
         </div>
       </section>
+
+      {/* 手机健康应用的数据只能从安卓端读，桌面和浏览器不显示这块 */}
+      {canImportFromHealthApp() && (
+        <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
+          <h2 className="text-sm font-medium">{t('health.deviceTitle')}</h2>
+          <p className="mt-1 text-xs leading-relaxed text-muted">{t('health.deviceDesc')}</p>
+          <button
+            type="button"
+            onClick={() => setImportOpen(true)}
+            className={OUTLINE_BUTTON + ' mt-3'}
+          >
+            {t('health.deviceAction')}
+          </button>
+        </section>
+      )}
+
+      {importOpen && <HealthDeviceImportDialog onClose={() => setImportOpen(false)} />}
 
       {dialogOpen && (
         <IntakeDialog

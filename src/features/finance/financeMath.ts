@@ -95,3 +95,34 @@ export function summarizeFinance(entries: FinanceEntry[]): FinanceSummary {
     balance: Math.round((income - expense) * 100) / 100,
   }
 }
+
+/** 本月支出按分类切出来的一块 */
+export interface CategorySlice {
+  /** 分类 id，页面再翻译成名称 */
+  category: string
+  amount: number
+  /** 占本月总支出的比例，0–1 */
+  share: number
+}
+
+/**
+ * 支出按分类汇总，金额从大到小。
+ * 没有支出时返回空数组，页面据此整块不显示。
+ */
+export function expenseByCategory(entries: FinanceEntry[]): CategorySlice[] {
+  let total = 0
+  const byCategory = new Map<string, number>()
+  for (const entry of entries) {
+    if (entry.deletedAt !== null || entry.kind !== 'expense') continue
+    total += entry.amount
+    byCategory.set(entry.category, (byCategory.get(entry.category) ?? 0) + entry.amount)
+  }
+  if (total <= 0) return []
+  return [...byCategory.entries()]
+    .map(([category, amount]) => ({
+      category,
+      amount: roundMoney(amount),
+      share: amount / total,
+    }))
+    .sort((a, b) => b.amount - a.amount)
+}

@@ -4,4 +4,6 @@
     <string name="title_activity_main">星芒记录者</string>
     <string name="package_name">com.starburst.recorder</string>
     <string name="custom_url_scheme">com.starburst.recorder</string>
+    <!-- Health Connect 授权说明页打开的本机隐私政策，随包内置 -->
+    <string name="health_connect_privacy_policy_url">file:///android_asset/public/privacypolicy.html</string>
 </resources>

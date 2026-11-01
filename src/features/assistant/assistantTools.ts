@@ -12,11 +12,13 @@ import type {
   FinanceEntry,
   HealthFood,
   HealthIntake,
+  HealthMeal,
   HealthSleep,
 } from '@/core/db/schema'
 import { formatDateCn, isDateKey, shiftDay } from '@/core/utils/dateKey'
 import { sleepMinutes, sleepParts } from '@/features/health/sleepMath'
 import { findSkill, type AssistantSkill } from './assistantSkills'
+import type { AssistantMemory, AssistantMemoryKind } from './assistantMemory'
 
 /** 一次工具执行需要的东西；today 由调用方注入，纯函数不自己看时钟 */
 export interface ToolRunContext {
@@ -24,6 +26,8 @@ export interface ToolRunContext {
   today: string
   /** 已启用的技能；load_skill 从这里取完整说明 */
   skills?: AssistantSkill[]
+  /** 长期记忆；list_memory 用，改删记忆前模型先靠它拿到原文 */
+  memories?: AssistantMemory[]
 }
 
 /** OpenAI function calling 的工具声明 */
@@ -112,6 +116,29 @@ export const ASSISTANT_READ_TOOLS: AssistantToolSpec[] = [
         keyword: { type: 'string', description: '食物名关键词，可不填（不填时列出前 25 条）' },
       },
     },
+  },
+  {
+    name: 'list_memory',
+    description:
+      '列出你为这个用户记住的长期信息（偏好、目标、习惯、事实）。要改或删记忆前先用它，记住原文再动手。',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'search_meals',
+    description:
+      '查套餐库（几样食物组成的固定一顿），返回套餐名、成分和每份营养。改或删套餐前先用它拿 mealId。',
+    parameters: {
+      type: 'object',
+      properties: {
+        keyword: { type: 'string', description: '套餐名关键词，可不填（不填时列出前 20 条）' },
+      },
+    },
+  },
+  {
+    name: 'list_presets',
+    description:
+      '列出日记预设库里的人名和地名，返回 [code]。改或删预设前先用它。',
+    parameters: { type: 'object', properties: {} },
   },
   {
     name: 'load_skill',
@@ -273,6 +300,98 @@ const ASSISTANT_WRITE_TOOLS: AssistantToolSpec[] = [
       required: ['grams'],
     },
   },
+  {
+    name: 'add_food',
+    description:
+      '往食物库里加一种食物，放进待确认卡片。营养按每 100g 填；用户只说了做法和热量时先问清，不要自己编。',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: '食物名，例如「卤鸡腿」' },
+        kcal: { type: 'number', description: '每 100g 热量（千卡）' },
+        protein: { type: 'number', description: '每 100g 蛋白质克数' },
+        carbs: { type: 'number', description: '每 100g 碳水克数' },
+        fat: { type: 'number', description: '每 100g 脂肪克数' },
+        servingName: { type: 'string', description: '常用份量叫法，例如「1 个鸡腿」，可不填' },
+        servingGrams: { type: 'number', description: '常用份量多少克，可不填' },
+      },
+      required: ['name', 'kcal'],
+    },
+  },
+  {
+    name: 'add_meal',
+    description:
+      '往套餐库里加一顿固定搭配（比如「沙县鸡腿饭」= 鸡腿 + 米饭），放进待确认卡片。成分用食物库的 foodId，先用 search_food 查。',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: '套餐名' },
+        items: {
+          type: 'array',
+          minItems: 1,
+          description: '套餐成分，至少一样',
+          items: {
+            type: 'object',
+            properties: {
+              foodId: { type: 'string', description: '食物库 id（来自 search_food）' },
+              grams: { type: 'number', description: '这一份多少克' },
+            },
+            required: ['foodId', 'grams'],
+          },
+        },
+      },
+      required: ['name', 'items'],
+    },
+  },
+  {
+    name: 'add_preset',
+    description: '往日记预设库里加一个常用的人名或地名，放进待确认卡片，写日记时能一键插入。',
+    parameters: {
+      type: 'object',
+      properties: {
+        kind: { type: 'string', enum: ['person', 'place'], description: '人名还是地名' },
+        name: { type: 'string', description: '预设的名字' },
+      },
+      required: ['kind', 'name'],
+    },
+  },
+  {
+    name: 'update_profile',
+    description:
+      '改身体档案里的基础信息（性别、年龄、身高、体重、活动量、TDEE、目标热量、蛋白质目标、理想作息、自述）。只传要改的字段；数值必须是用户自己说的。',
+    parameters: {
+      type: 'object',
+      properties: {
+        sex: { type: 'string', enum: ['male', 'female'], description: '性别，可不填' },
+        age: { type: 'number', description: '年龄，可不填' },
+        heightCm: { type: 'number', description: '身高（厘米），可不填' },
+        weightKg: { type: 'number', description: '体重（公斤），可不填' },
+        activity: {
+          type: 'string',
+          enum: ['sedentary', 'light', 'moderate', 'high'],
+          description: '活动量：久坐 / 轻度 / 中等 / 高强度，可不填',
+        },
+        tdee: { type: 'number', description: '维持热量（千卡），可不填' },
+        targetKcal: { type: 'number', description: '目标热量（千卡），可不填' },
+        proteinTarget: { type: 'number', description: '蛋白质目标（克），可不填' },
+        idealBedtime: { type: 'string', description: '理想入睡时刻 HH:MM，可不填' },
+        idealWakeTime: { type: 'string', description: '理想起床时刻 HH:MM，可不填' },
+        note: { type: 'string', description: '计划或自我评价，可不填' },
+      },
+    },
+  },
+  {
+    name: 'update_weather',
+    description: '记某一天的天气，放进待确认卡片。用户说了当天的天气时才用，不要自己猜。',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: '日期 YYYY-MM-DD，不填就是今天' },
+        weather: { type: 'string', description: '天气描述，例如「晴」「小雨」；传空串表示清空' },
+      },
+      required: ['weather'],
+    },
+  },
 ]
 
 /** 改已有记录要用的短编号：读工具输出的 [code] 就是它 */
@@ -352,6 +471,164 @@ const ASSISTANT_EDIT_TOOLS: AssistantToolSpec[] = [
         date: { type: 'string', description: '睡眠记录对应的起床那天 YYYY-MM-DD' },
       },
       required: ['date'],
+    },
+  },
+  {
+    name: 'delete_diary',
+    description: '删掉一篇日记（进回收站，可恢复）。先用 search_diary 拿到 [code] 并核对内容。',
+    parameters: CODE_PARAM,
+  },
+  {
+    name: 'update_intake',
+    description:
+      '原地改一笔已有摄入：时刻、食物、克数、热量、三大营养素。先用 query_day 或 intake_stats 拿到 [code]；只传要改的字段。给了 foodId 时按食物库和克数重算营养，别再用「删了重记」的方式改。',
+    parameters: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: '摄入的短编号 [code]' },
+        time: { type: 'string', description: '新的时刻 HH:MM，可不填' },
+        foodId: { type: 'string', description: '换成食物库里的另一种食物时填' },
+        name: { type: 'string', description: '新的食物名，可不填' },
+        grams: { type: 'number', description: '新的克数，可不填' },
+        kcal: { type: 'number', description: '新的热量（没有 foodId 时用），可不填' },
+        protein: { type: 'number', description: '新的蛋白质克数，可不填' },
+        carbs: { type: 'number', description: '新的碳水克数，可不填' },
+        fat: { type: 'number', description: '新的脂肪克数，可不填' },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'update_sleep',
+    description:
+      '原地改某一夜的睡眠（入睡、起床、质量、备注）。参数是起床那天；先用 sleep_stats 确认那一天有记录，别用「删了重记」。',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: '睡眠对应的起床那天 YYYY-MM-DD' },
+        bedtime: { type: 'string', description: '新的入睡时刻 HH:MM，可不填' },
+        wakeTime: { type: 'string', description: '新的起床时刻 HH:MM，可不填' },
+        quality: { type: 'number', description: '新的质量 1–5，可不填' },
+        note: { type: 'string', description: '新的备注，可不填' },
+      },
+      required: ['date'],
+    },
+  },
+  {
+    name: 'delete_weigh',
+    description: '删掉某一天的称重记录。参数是称重那天，先用 profile_stats 确认。',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: '称重那天 YYYY-MM-DD' },
+      },
+      required: ['date'],
+    },
+  },
+  {
+    name: 'update_food',
+    description:
+      '改食物库里的一条（名称、每 100g 营养、常用份量）。先用 search_food 拿到 [code]；只传要改的字段。',
+    parameters: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: '食物的短编号 [code]' },
+        name: { type: 'string', description: '新的食物名，可不填' },
+        kcal: { type: 'number', description: '新的每 100g 热量，可不填' },
+        protein: { type: 'number', description: '新的蛋白质克数，可不填' },
+        carbs: { type: 'number', description: '新的碳水克数，可不填' },
+        fat: { type: 'number', description: '新的脂肪克数，可不填' },
+        servingName: { type: 'string', description: '新的常用份量叫法，可不填' },
+        servingGrams: { type: 'number', description: '新的常用份量克数，可不填' },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'update_meal',
+    description:
+      '改套餐库里的一条（名称或成分）。先用 search_meals 拿到 mealId；成分给了就整体替换，每项用食物库 foodId 和克数。',
+    parameters: {
+      type: 'object',
+      properties: {
+        mealId: { type: 'string', description: '套餐的 mealId' },
+        name: { type: 'string', description: '新的套餐名，可不填' },
+        items: {
+          type: 'array',
+          minItems: 1,
+          description: '新的成分，给了就整体替换',
+          items: {
+            type: 'object',
+            properties: {
+              foodId: { type: 'string', description: '食物库 id' },
+              grams: { type: 'number', description: '这一份多少克' },
+            },
+            required: ['foodId', 'grams'],
+          },
+        },
+      },
+      required: ['mealId'],
+    },
+  },
+  {
+    name: 'update_preset',
+    description: '改日记预设库里的一条（名字或人名/地名类型）。先用 list_presets 拿到 [code]。',
+    parameters: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: '预设的短编号 [code]' },
+        name: { type: 'string', description: '新的名字，可不填' },
+        kind: { type: 'string', enum: ['person', 'place'], description: '改类型时填' },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'update_memory',
+    description:
+      '改一条已有记忆的文字或分类。先用 list_memory 看到原文，text 传原文；只传要改的字段。',
+    parameters: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: '原来的记忆文字' },
+        newText: { type: 'string', description: '新的文字，可不填' },
+        kind: {
+          type: 'string',
+          enum: ['preference', 'goal', 'habit', 'fact'],
+          description: '新的分类，可不填',
+        },
+      },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'delete_food',
+    description: '删掉食物库里的一条（进回收站，可恢复）。先用 search_food 拿到 [code]。',
+    parameters: CODE_PARAM,
+  },
+  {
+    name: 'delete_meal',
+    description: '删掉套餐库里的一条（进回收站，可恢复）。先用 search_meals 拿到 mealId。',
+    parameters: {
+      type: 'object',
+      properties: { mealId: { type: 'string', description: '套餐的 mealId' } },
+      required: ['mealId'],
+    },
+  },
+  {
+    name: 'delete_preset',
+    description: '删掉日记预设库里的一条（进回收站，可恢复）。先用 list_presets 拿到 [code]。',
+    parameters: CODE_PARAM,
+  },
+  {
+    name: 'delete_memory',
+    description: '删掉一条长期记忆。先用 list_memory 看到原文，text 传原文。',
+    parameters: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: '要删的记忆原文' },
+      },
+      required: ['text'],
     },
   },
 ]
@@ -593,7 +870,7 @@ function foodLine(food: HealthFood) {
     food.servingName && food.servingGrams
       ? `；常用份量「${food.servingName}」约 ${food.servingGrams} g`
       : ''
-  return `${food.name}（foodId=${food.id}）每 100g：${Math.round(food.kcal)} 千卡，蛋白 ${food.protein} g，碳水 ${food.carbs} g，脂肪 ${food.fat} g${serving}`
+  return `${food.name} [${food.code}]（foodId=${food.id}）每 100g：${Math.round(food.kcal)} 千卡，蛋白 ${food.protein} g，碳水 ${food.carbs} g，脂肪 ${food.fat} g${serving}`
 }
 
 function searchFood(keyword: string, data: BackupData) {
@@ -610,6 +887,62 @@ function searchFood(keyword: string, data: BackupData) {
     keyword === '' ? `食物库共 ${foods.length} 条，先列 ${picked.length} 条：` : `找到 ${picked.length} 条：`,
     ...picked.map(foodLine),
     '以上 foodId 只用于工具参数，不要念给用户。',
+  ].join('\n')
+}
+
+/** 套餐按成分实时算营养，和页面口径一致：每项食物每 100g 值 × 克数 */
+function mealLine(meal: HealthMeal, foods: HealthFood[]) {
+  const items = meal.items.map((item) => {
+    const food = foods.find((entry) => entry.id === item.foodId && entry.deletedAt === null)
+    if (!food) return `（食物已删除）${item.grams} g`
+    const ratio = item.grams / 100
+    return `${food.name} ${item.grams} g（${Math.round(food.kcal * ratio)} 千卡）`
+  })
+  return `${meal.name}（mealId=${meal.id}）：${items.join(' + ')}`
+}
+
+function searchMeals(keyword: string, data: BackupData) {
+  const meals = data.meals.filter(
+    (item) => item.deletedAt === null && matches(item.name, keyword),
+  )
+  if (meals.length === 0) {
+    return keyword === ''
+      ? '套餐库里还没有套餐。'
+      : `套餐库里没有名字含「${keyword}」的套餐。`
+  }
+  const picked = meals.slice(0, 20)
+  return [
+    keyword === '' ? `套餐库共 ${meals.length} 条，先列 ${picked.length} 条：` : `找到 ${picked.length} 条：`,
+    ...picked.map((item) => mealLine(item, data.foods)),
+    '成分里的食物按每 100g 营养换算；mealId 只用于工具参数，不要念给用户。',
+  ].join('\n')
+}
+
+function listPresets(data: BackupData) {
+  const presets = data.presets.filter((item) => item.deletedAt === null)
+  if (presets.length === 0) return '预设库里还没有人名或地名。'
+  return [
+    `共 ${presets.length} 条：`,
+    ...presets
+      .slice(0, 60)
+      .map((item) => `${item.kind === 'person' ? '人名' : '地名'}：${item.name} [${item.code}]`),
+    '改或删预设时，code 传方括号里的编号。',
+  ].join('\n')
+}
+
+const MEMORY_KIND_LABEL: Record<AssistantMemoryKind, string> = {
+  preference: '偏好',
+  goal: '目标',
+  habit: '习惯',
+  fact: '事实',
+}
+
+function listMemory(memories: AssistantMemory[]) {
+  if (memories.length === 0) return '还没有记住任何东西。'
+  return [
+    `共 ${memories.length} 条：`,
+    ...memories.map((item) => `- 【${MEMORY_KIND_LABEL[item.kind]}】${item.text}`),
+    '改或删记忆时，text 传上面这条的完整原文。',
   ].join('\n')
 }
 
@@ -686,6 +1019,15 @@ export function runAssistantTool(
       break
     case 'search_food':
       text = searchFood(keyword, ctx.data)
+      break
+    case 'search_meals':
+      text = searchMeals(keyword, ctx.data)
+      break
+    case 'list_presets':
+      text = listPresets(ctx.data)
+      break
+    case 'list_memory':
+      text = listMemory(ctx.memories ?? [])
       break
     case 'load_skill': {
       const id = argText(args, 'id')

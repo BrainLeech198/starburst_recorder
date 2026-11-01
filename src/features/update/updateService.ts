@@ -20,6 +20,7 @@ import {
   isPrereleaseVersion,
 } from '@/core/utils/versionCompare'
 import { translate } from '@/shared/i18n/context'
+import { logInfo } from '@/shared/log/log'
 import { desktopBridge } from '@/platform/desktop'
 
 export interface UpdateInfo {
@@ -270,7 +271,9 @@ export async function checkForUpdate(
   const desktop = desktopBridge()
   if (desktop?.update) {
     const info = await desktop.update.check(locale, channel)
-    return info && isNewer(info.version) ? info : null
+    const fresh = info && isNewer(info.version) ? info : null
+    logInfo('Update', 'update.check.done', { channel, result: fresh ? fresh.version : '无新版本' })
+    return fresh
   }
 
   let info: UpdateInfo | null
@@ -291,7 +294,10 @@ export async function checkForUpdate(
       info = normalize(gitee, `https://gitee.com/${GITEE_REPO}/releases`, android, false)
     }
   }
-  if (!info) return null
+  if (!info) {
+    logInfo('Update', 'update.check.done', { channel, result: '无新版本' })
+    return null
+  }
 
   // 中文界面换成中文说明；测试版官网说明还是上一版，别拿错
   if (locale === 'zh' && !info.beta) {
@@ -299,6 +305,7 @@ export async function checkForUpdate(
     if (notes) info.notes = notes
   }
 
+  logInfo('Update', 'update.check.done', { channel, result: info.version })
   return info
 }
 

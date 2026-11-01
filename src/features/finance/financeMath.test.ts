@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import type { FinanceEntry } from '@/core/db/schema'
 import {
+  expenseByCategory,
   groupFinanceByDay,
   isMonthKey,
   monthBounds,
@@ -78,6 +79,28 @@ describe('roundMoney', () => {
   test('保留两位小数', () => {
     expect(roundMoney(12.345)).toBe(12.35)
     expect(roundMoney(0.1 + 0.2)).toBe(0.3)
+  })
+})
+
+describe('expenseByCategory', () => {
+  test('只算支出，按金额从大到小，占比加起来为 1', () => {
+    const slices = expenseByCategory([
+      entry({ id: 'a', category: 'food', amount: 30 }),
+      entry({ id: 'b', category: 'food', amount: 20 }),
+      entry({ id: 'c', category: 'transport', amount: 70 }),
+      entry({ id: 'd', kind: 'income', category: 'salary', amount: 1000 }),
+      entry({ id: 'e', category: 'fun', amount: 40, deletedAt: 1 }),
+    ])
+    expect(slices.map((item) => item.category)).toEqual(['transport', 'food'])
+    expect(slices[0].amount).toBe(70)
+    expect(slices[0].share).toBeCloseTo(70 / 120)
+    expect(slices[1].amount).toBe(50)
+    expect(slices.reduce((sum, item) => sum + item.share, 0)).toBeCloseTo(1)
+  })
+
+  test('没有支出时返回空数组', () => {
+    expect(expenseByCategory([])).toEqual([])
+    expect(expenseByCategory([entry({ kind: 'income', amount: 100 })])).toEqual([])
   })
 })
 

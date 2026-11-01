@@ -11,6 +11,7 @@
 import { desktopBridge } from '@/platform/desktop'
 import type { ChatContentPart, ChatRequest, ChatTransportResult } from '@/platform/desktop'
 import { translate } from '@/shared/i18n/context'
+import { logInfo, logWarn } from '@/shared/log/log'
 import type { AiConfig } from './aiConfig'
 
 /** 地址可能带结尾斜杠，统一拼成 chat/completions */
@@ -44,7 +45,7 @@ function authHeaders(apiKey: string) {
   }
 }
 
-/** 发一次请求，返回统一信封 */
+/** 发一次请求，把结果记一条日志再返回；桌面端由主进程记，不在这里重复 */
 export async function chat(request: ChatRequest): Promise<ChatTransportResult> {
   const bridge = desktopBridge()
   if (bridge) return bridge.chat(request)
@@ -64,6 +65,7 @@ export async function chat(request: ChatRequest): Promise<ChatTransportResult> {
   const body = JSON.stringify(bodyObj)
   const started = Date.now()
 
+  let result: ChatTransportResult
   try {
     if (import.meta.env.DEV) {
       const response = await fetch('/__ai', {
@@ -71,17 +73,18 @@ export async function chat(request: ChatRequest): Promise<ChatTransportResult> {
         headers: { ...headers, 'x-ai-target': chatUrl(request.baseUrl) },
         body,
       })
-      return (await response.json()) as ChatTransportResult
-    }
-    const response = await fetch(chatUrl(request.baseUrl), { method: 'POST', headers, body })
-    return {
-      ok: response.ok,
-      status: response.status,
-      body: await response.text(),
-      ms: Date.now() - started,
+      result = (await response.json()) as ChatTransportResult
+    } else {
+      const response = await fetch(chatUrl(request.baseUrl), { method: 'POST', headers, body })
+      result = {
+        ok: response.ok,
+        status: response.status,
+        body: await response.text(),
+        ms: Date.now() - started,
+      }
     }
   } catch (error) {
-    return {
+    result = {
       ok: false,
       status: 0,
       body: '',
@@ -89,6 +92,22 @@ export async function chat(request: ChatRequest): Promise<ChatTransportResult> {
       error: (error as Error).message,
     }
   }
+
+  logChatResult(request.model, result)
+  return result
+}
+
+/** 一次对话的结果：成功走 Info，失败走 Warn，并带上能定位问题的原因 */
+function logChatResult(model: string, result: ChatTransportResult) {
+  if (result.ok) {
+    logInfo('AI', 'ai.chat.done', { model, status: result.status, ms: result.ms })
+    return
+  }
+  logWarn('AI', 'ai.chat.failed', {
+    model,
+    status: result.status,
+    reason: result.error ? `请求没发出去：${result.error}` : `服务商返回 ${result.status}`,
+  })
 }
 
 /** 模型列表的结论：拉不到不算错，用户始终可以自己填 */
@@ -185,9 +204,11 @@ export async function listModels(
   }
 
   if (!result.ok) {
+    logWarn('AI', 'ai.models.failed', { status: result.status, ms: result.ms })
     return { ok: false, models: [], error: modelsHint(result, baseUrl), ms: result.ms }
   }
   const models = parseModelList(result.body)
+  logInfo('AI', 'ai.models.done', { count: models.length, ms: result.ms })
   return {
     ok: models.length > 0,
     models,

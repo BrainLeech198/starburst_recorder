@@ -357,3 +357,212 @@ describe('改与删已有记录', () => {
     expect(buildAssistantAction('delete_sleep', { date: '2026-10-26' }, editCtx).ok).toBe(false)
   })
 })
+
+describe('摄入原地改：改的是同一条记录', () => {
+  function intakeData(): BackupData {
+    const data = emptyData()
+    data.foods.push(food())
+    data.intakes.push({
+      id: 'in_1',
+      code: 'd000001',
+      dateKey: '2026-10-27',
+      time: '12:00',
+      foodId: 'food_1',
+      name: '鸡胸肉',
+      grams: 100,
+      kcal: 133,
+      protein: 24,
+      carbs: 0,
+      fat: 5,
+      source: 'library',
+      mealId: null,
+      components: null,
+      tdeeSnapshot: null,
+      targetKcalSnapshot: null,
+      proteinTargetSnapshot: null,
+      createdAt: 0,
+      updatedAt: 0,
+      deletedAt: null,
+    })
+    return data
+  }
+
+  const intakeCtx = { data: intakeData(), today: '2026-10-28' }
+
+  it('只改克数时保持编号，交给执行层按食物库重算', () => {
+    const result = buildAssistantAction('update_intake', { code: 'd000001', grams: 150 }, intakeCtx)
+    expect(result.ok).toBe(true)
+    if (result.ok && result.action.kind === 'intakeEdit') {
+      expect(result.action).toMatchObject({ code: 'd000001', dateKey: '2026-10-27', grams: 150 })
+      expect(result.action.kcal).toBeUndefined()
+    }
+  })
+
+  it('换食物但没给克数时沿用原来的克数', () => {
+    const result = buildAssistantAction('update_intake', { code: 'd000001', foodId: 'food_1' }, intakeCtx)
+    expect(result.ok).toBe(true)
+    if (result.ok && result.action.kind === 'intakeEdit') {
+      expect(result.action.foodId).toBe('food_1')
+      expect(result.action.grams).toBe(100)
+    }
+  })
+
+  it('一个字段都不给就不出卡片', () => {
+    expect(buildAssistantAction('update_intake', { code: 'd000001' }, intakeCtx).ok).toBe(false)
+  })
+})
+
+describe('睡眠原地改', () => {
+  it('必须显式给日期，且至少改一个字段', () => {
+    const data = emptyData()
+    data.sleeps.push({
+      id: 'sl_1',
+      code: 'e000001',
+      dateKey: '2026-10-27',
+      bedtime: '23:30',
+      wakeTime: '07:10',
+      quality: 4,
+      wakeEvents: [],
+      naps: [],
+      wakeCount: null,
+      wakeMinutes: null,
+      note: '',
+      createdAt: 0,
+      updatedAt: 0,
+      deletedAt: null,
+    })
+    const ctx = { data, today: '2026-10-28' }
+    expect(buildAssistantAction('update_sleep', { date: '2026-10-27' }, ctx).ok).toBe(false)
+    expect(buildAssistantAction('update_sleep', { bedtime: '23:00' }, ctx).ok).toBe(false)
+    const result = buildAssistantAction('update_sleep', { date: '2026-10-27', quality: 5 }, ctx)
+    expect(result.ok).toBe(true)
+    if (result.ok && result.action.kind === 'sleepEdit') {
+      expect(result.action).toMatchObject({ dateKey: '2026-10-27', quality: 5 })
+    }
+  })
+})
+
+describe('食物库、套餐、预设与记忆的增删改', () => {
+  function libraryData(): BackupData {
+    const data = emptyData()
+    data.foods.push(food())
+    data.meals.push({
+      id: 'meal_1',
+      name: '鸡腿饭',
+      items: [{ foodId: 'food_1', grams: 120 }],
+      createdAt: 0,
+      updatedAt: 0,
+      deletedAt: null,
+    })
+    data.presets.push({
+      id: 'pr_1',
+      code: 'f000001',
+      kind: 'person',
+      name: '小王',
+      createdAt: 0,
+      updatedAt: 0,
+      deletedAt: null,
+    })
+    return data
+  }
+
+  const ctx = { data: libraryData(), today: '2026-10-28' }
+
+  it('新增食物时营养按每 100g 收下', () => {
+    const result = buildAssistantAction(
+      'add_food',
+      { name: '卤鸡腿', kcal: 180, protein: 20, carbs: 2, fat: 11 },
+      ctx,
+    )
+    expect(result.ok).toBe(true)
+    if (result.ok && result.action.kind === 'foodCreate') {
+      expect(result.action).toMatchObject({ name: '卤鸡腿', kcal: 180, protein: 20, carbs: 2, fat: 11 })
+      expect(result.action.servingName).toBeNull()
+    }
+    expect(buildAssistantAction('add_food', { name: '卤鸡腿', kcal: -1 }, ctx).ok).toBe(false)
+  })
+
+  it('改食物只带要改的字段', () => {
+    const result = buildAssistantAction('update_food', { code: 'a000001', kcal: 140 }, ctx)
+    expect(result.ok).toBe(true)
+    if (result.ok && result.action.kind === 'foodEdit') {
+      expect(result.action.kcal).toBe(140)
+      expect(result.action.name).toBeUndefined()
+    }
+    expect(buildAssistantAction('update_food', { code: 'a000001' }, ctx).ok).toBe(false)
+  })
+
+  it('套餐按 mealId 定位，成分整体替换', () => {
+    const result = buildAssistantAction(
+      'update_meal',
+      { mealId: 'meal_1', name: '鸡腿饭（大）', items: [{ foodId: 'food_1', grams: 200 }] },
+      ctx,
+    )
+    expect(result.ok).toBe(true)
+    if (result.ok && result.action.kind === 'mealEdit') {
+      expect(result.action).toMatchObject({
+        mealId: 'meal_1',
+        name: '鸡腿饭（大）',
+        items: [{ foodId: 'food_1', name: '鸡胸肉', grams: 200 }],
+      })
+    }
+    expect(buildAssistantAction('update_meal', { mealId: 'nope', name: 'x' }, ctx).ok).toBe(false)
+    expect(buildAssistantAction('update_meal', { mealId: 'meal_1' }, ctx).ok).toBe(false)
+  })
+
+  it('删套餐按 mealId，删食物、预设、日记按 code', () => {
+    const meal = buildAssistantAction('delete_meal', { mealId: 'meal_1' }, ctx)
+    expect(meal.ok).toBe(true)
+    if (meal.ok && meal.action.kind === 'mealDelete') {
+      expect(meal.action.name).toBe('鸡腿饭')
+    }
+    expect(buildAssistantAction('delete_food', { code: 'a000001' }, ctx).ok).toBe(true)
+    expect(buildAssistantAction('delete_preset', { code: 'f000001' }, ctx).ok).toBe(true)
+
+    const data = emptyData()
+    data.entries.push({
+      id: 'en_1',
+      code: 'a000001',
+      dateKey: '2026-10-20',
+      content: '旧日记',
+      images: [],
+      createdAt: 0,
+      updatedAt: 0,
+      deletedAt: null,
+    })
+    expect(
+      buildAssistantAction('delete_diary', { code: 'a000001' }, { data, today: '2026-10-28' }).ok,
+    ).toBe(true)
+  })
+
+  it('预设新增只认人名/地名', () => {
+    expect(buildAssistantAction('add_preset', { kind: 'person', name: '小王' }, ctx).ok).toBe(true)
+    expect(buildAssistantAction('add_preset', { kind: 'tag', name: '小王' }, ctx).ok).toBe(false)
+  })
+
+  it('记忆按原文改删，一句话定位', () => {
+    const memories = [
+      { id: 'm_1', kind: 'preference' as const, text: '不吃香菜', createdAt: 0, updatedAt: 0, source: 'user' as const },
+      { id: 'm_2', kind: 'goal' as const, text: '目标体重 65kg', createdAt: 0, updatedAt: 0, source: 'user' as const },
+    ]
+    const memoryCtx = { data: emptyData(), today: '2026-10-28', memories }
+    const edit = buildAssistantAction(
+      'update_memory',
+      { text: '不吃香菜', newText: '不吃香菜，也不吃葱' },
+      memoryCtx,
+    )
+    expect(edit.ok).toBe(true)
+    if (edit.ok && edit.action.kind === 'memoryEdit') {
+      expect(edit.action.text).toBe('不吃香菜')
+      expect(edit.action.newText).toBe('不吃香菜，也不吃葱')
+    }
+    const remove = buildAssistantAction('delete_memory', { text: '65kg' }, memoryCtx)
+    expect(remove.ok).toBe(true)
+    if (remove.ok && remove.action.kind === 'memoryDelete') {
+      expect(remove.action.text).toBe('目标体重 65kg')
+    }
+    expect(
+      buildAssistantAction('delete_memory', { text: '不存在' }, memoryCtx).ok,
+    ).toBe(false)
+  })
+})

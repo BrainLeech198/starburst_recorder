@@ -10,3 +10,6 @@ project(':capacitor-camera').projectDir = new File('../node_modules/@capacitor/c
 
 include ':capacitor-local-notifications'
 project(':capacitor-local-notifications').projectDir = new File('../node_modules/@capacitor/local-notifications/android')
+
+include ':krzysztofkostecki-capacitor-health'
+project(':krzysztofkostecki-capacitor-health').projectDir = new File('../node_modules/@krzysztofkostecki/capacitor-health/android')

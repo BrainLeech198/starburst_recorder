@@ -357,6 +357,61 @@ describe('search_food', () => {
   })
 })
 
+describe('search_meals / list_memory', () => {
+  it('套餐带出 mealId 和按克数换算的营养', () => {
+    const data = emptyData()
+    data.foods.push(food('鸡胸肉'))
+    data.meals.push({
+      id: 'meal_1',
+      name: '鸡胸饭',
+      items: [{ foodId: 'food_1', grams: 150 }],
+      createdAt: 0,
+      updatedAt: 0,
+      deletedAt: null,
+    })
+    const text = runAssistantTool('search_meals', { keyword: '鸡' }, { data, today: '2026-10-28' })
+    expect(text).toContain('鸡胸饭')
+    expect(text).toContain('mealId=meal_1')
+    expect(text).toContain('200 千卡')
+  })
+
+  it('没有套餐时直说', () => {
+    const text = runAssistantTool('search_meals', {}, { data: emptyData(), today: '2026-10-28' })
+    expect(text).toContain('还没有套餐')
+  })
+
+  it('记忆带分类列出原文，方便改删', () => {
+    const memories = [
+      { id: 'm_1', kind: 'preference' as const, text: '不吃香菜', createdAt: 0, updatedAt: 0, source: 'user' as const },
+      { id: 'm_2', kind: 'goal' as const, text: '目标体重 65kg', createdAt: 0, updatedAt: 0, source: 'user' as const },
+    ]
+    const text = runAssistantTool('list_memory', {}, { data: emptyData(), today: '2026-10-28', memories })
+    expect(text).toContain('【偏好】不吃香菜')
+    expect(text).toContain('【目标】目标体重 65kg')
+  })
+
+  it('没有记忆时直说', () => {
+    expect(runAssistantTool('list_memory', {}, { data: emptyData(), today: '2026-10-28' })).toContain(
+      '还没有记住',
+    )
+  })
+
+  it('预设按人名/地名列出并带短编号', () => {
+    const data = emptyData()
+    data.presets.push({
+      id: 'pr_1',
+      code: 'f000001',
+      kind: 'person',
+      name: '小王',
+      createdAt: 0,
+      updatedAt: 0,
+      deletedAt: null,
+    })
+    const text = runAssistantTool('list_presets', {}, { data, today: '2026-10-28' })
+    expect(text).toContain('人名：小王 [f000001]')
+  })
+})
+
 describe('执行器的兜底', () => {
   it('不认识的工具名不返回空串', () => {
     const text = runAssistantTool('drop_table', {}, { data: emptyData(), today: '2026-10-28' })

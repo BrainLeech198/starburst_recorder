@@ -170,6 +170,19 @@ export function removeMemory(id: string) {
   persist(loadMemories().filter((item) => item.id !== id))
 }
 
+/**
+ * 按原文找一条记忆：先精确匹配（忽略大小写），再退到「只有一条包含它」。
+ * 助手看不到记忆 id，改删都靠这句话定位。
+ */
+export function findMemoryByText(list: AssistantMemory[], text: string): AssistantMemory | null {
+  const key = text.trim().toLowerCase()
+  if (key === '') return null
+  const exact = list.find((item) => item.text.toLowerCase() === key)
+  if (exact) return exact
+  const partial = list.filter((item) => item.text.toLowerCase().includes(key))
+  return partial.length === 1 ? partial[0] : null
+}
+
 export function clearMemories() {
   persist([])
 }

@@ -21,6 +21,7 @@ const fs = require('node:fs')
 const os = require('node:os')
 const { Readable } = require('node:stream')
 const { createDatabase } = require('./database.cjs')
+const log = require('./log.cjs')
 
 /** 窗口不能小于这个尺寸，免得版式被压坏 */
 const MIN_WIDTH = 420
@@ -88,7 +89,7 @@ function saveWindowState(win) {
       'utf8',
     )
   } catch (error) {
-    console.error('[window-state] 保存失败', error)
+    log.error('WindowState', `窗口状态保存失败 | ${windowStatePath()} | ${error.message} | 下次启动会回到上次成功保存的位置`)
   }
 }
 
@@ -195,12 +196,12 @@ function createWindow() {
     if (mainWindow === win) mainWindow = null
   })
 
-  // 渲染进程的报错直接打到终端，方便排查
+  // 渲染进程的报错直接打到终端与日志文件，方便排查
   win.webContents.on('console-message', (event) => {
-    console.log(`[renderer:${event.level}] ${event.message}`)
+    log.raw(event.message)
   })
   win.webContents.on('did-fail-load', (_event, code, description, url) => {
-    console.error(`[load-failed] ${code} ${description} ${url}`)
+    log.error('Load', `页面加载失败 | ${code} ${description} | ${url} | 窗口会停在空白页`)
   })
 
   win.loadURL(APP_URL)
@@ -409,19 +410,27 @@ ipcMain.handle('ai:chat', async (_event, request) => {
       headers: aiHeaders(apiKey),
       body: JSON.stringify(requestBody),
     })
-    return {
+    const result = {
       ok: response.ok,
       status: response.status,
       body: await response.text(),
       ms: Date.now() - started,
     }
+    if (result.ok) {
+      log.info('AI', `AI 请求完成 | 模型 ${model} | 状态 ${result.status} | 耗时 ${result.ms} ms`)
+    } else {
+      log.warn('AI', `AI 请求失败 | 模型 ${model} | 状态 ${result.status} | HTTP 返回非 2xx`)
+    }
+    return result
   } catch (error) {
+    const reason = String(error?.message ?? error)
+    log.error('AI', `AI 请求异常 | 模型 ${model} | ${reason} | 按网络失败返回给调用方`)
     return {
       ok: false,
       status: 0,
       body: '',
       ms: Date.now() - started,
-      error: String(error?.message ?? error),
+      error: reason,
     }
   }
 })
@@ -779,15 +788,18 @@ async function runSelfCheck(win) {
     // 打包后的 exe 用 GUI 子系统启动时看不到 stdout，所以同时写一份到文件
     const resultFile = path.join(os.tmpdir(), 'starburst-selfcheck.json')
     fs.writeFileSync(resultFile, result)
-    console.log('[selfcheck]', result)
-    console.log('[selfcheck-file]', resultFile)
+    log.info('SelfCheck', `自检结果 | ${result}`)
+    log.info('SelfCheck', `自检文件 | ${resultFile}`)
   } catch (error) {
-    console.error('[selfcheck-failed]', error)
+    log.error('SelfCheck', `自检失败 | ${error.message} | 窗口内容可能没加载起来`)
   }
   app.quit()
 }
 
 app.whenReady().then(() => {
+  log.init()
+  log.info('App', `应用启动 | 版本 ${app.getVersion()} | 平台 ${process.platform}`)
+
   protocol.handle('app', (request) => {
     const target = assetPathFor(request.url)
     if (!target) return new Response('Not found', { status: 404 })
@@ -819,6 +831,7 @@ app.on('before-quit', () => {
 })
 
 app.on('will-quit', () => {
+  log.close()
   if (tray) {
     tray.destroy()
     tray = null

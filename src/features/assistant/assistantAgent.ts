@@ -24,6 +24,7 @@ import {
   type AssistantToolSpec,
 } from './assistantTools'
 import type { AssistantSkill } from './assistantSkills'
+import { loadMemories } from './assistantMemory'
 import {
   canWrite,
   isDeleteKind,
@@ -35,13 +36,23 @@ import {
   describeAction,
   type AssistantAction,
 } from './assistantActionBuild'
+import {
+  compactHistory,
+  parseUsage,
+  type HistoryMessage,
+  type TokenUsage,
+} from './assistantContext'
 
 /** 最多来回几轮工具调用；再多的模型基本是在原地打转 */
-const MAX_ROUNDS = 8
+const MAX_ROUNDS = 6
 /** 正文里最多带多少条历史，太长的对话只保留最近的 */
 const MAX_HISTORY = 16
+/** 单条历史最多留多少字，避免一条长日记把上下文吃光 */
+const MAX_HISTORY_CHARS = 900
 /** 一轮里最多准备几张卡片：再多就不是在帮忙，是在替用户做主 */
 const MAX_PENDING = 3
+/** 一轮里最多真正执行几次查询；超过就让模型直接回答，别一直翻库 */
+const MAX_TOOL_CALLS = 10
 
 export interface AssistantStep {
   name: string
@@ -49,9 +60,12 @@ export interface AssistantStep {
   text: string
 }
 
-export interface AssistantHistoryMessage {
-  role: 'user' | 'assistant'
-  content: string
+/** 一条历史消息；带图片时正文是分段数组，和 OpenAI 的 content parts 一致 */
+export type AssistantHistoryMessage = HistoryMessage
+
+/** 这一轮的 token 用量；context 是最后一次请求的提示词长度，用来画上下文进度 */
+export interface AssistantUsage extends TokenUsage {
+  context: number
 }
 
 export interface AssistantQuestionOption {
@@ -105,6 +119,10 @@ export type AssistantRunResult =
       pending?: AssistantAction[]
       /** 模型递给用户的选择题；有它时这轮先停在这里 */
       question?: AssistantQuestion
+      /** 真实 token 用量；服务商不返回时没有这一项 */
+      usage?: AssistantUsage
+      /** 这一轮压缩掉了几条较早的历史 */
+      compacted?: number
     }
   | { ok: false; error: string }
 
@@ -159,7 +177,9 @@ export function buildSystemPrompt(
 - 记饮食先用 search_food 查食物库；食物库没有时，热量必须由用户提供
 - 一次最多提出 1–2 张卡片，不要一口气替用户补一堆记录
 - 用户说「记住……」时用 remember，把一句话收短，保留关键信息
-- 改、删已有记录前，先用读工具拿到它的 [code]，并核对是不是用户说的那一条
+- 改已有记录必须用 update_* 工具原地改，保留原来的 id 和创建时间；绝对不要用「删掉再记一条」来当修改
+- 删已有记录前，先用读工具拿到它的 [code]，并核对是不是用户说的那一条
+- 记忆没有 [code]，改删时把原文一字不差地传进去（先用 list_memory 看一眼）
 - 写卡片前不需要反复确认措辞，直接把用户给的事实放进去`
   const skillList = skills
     .filter((skill) => skill.enabled)
@@ -208,7 +228,9 @@ ${writeBlock}
 - 用户问「最近」「这几天」，默认看最近 7 天；问「这个月」看最近 30 天
 - 问某一天就直接 query_day，不要用关键词乱搜
 - 问某个具体的事（比如「上次吃火锅是什么时候」）用 search_diary / search_stamps / finance_stats 带关键词
-- 一次可以查多个工具，但别把同一个工具翻来覆去调；查过就够用
+- 先用一个工具把需要的数据一次拿到，不要把一个时间段拆成很多次小查询
+- 同一个问题最多查 2–3 次；同样的条件不要重复查，结果里没有的东西就直说没有
+- 查过就够用，剩下一半没查到也不影响回答时，直接回答
 
 回答方式：
 - 像熟悉用户的朋友，说人话，先给结论再给依据
@@ -350,11 +372,19 @@ function toolUnsupported(result: ChatTransportResult) {
   return result.status === 400 || result.status === 404 || result.status === 422
 }
 
-function historyMessages(history: AssistantHistoryMessage[]): ChatMessage[] {
-  return history
-    .filter((item) => item.content.trim() !== '')
-    .slice(-MAX_HISTORY)
-    .map((item) => ({ role: item.role, content: item.content }))
+function historyMessages(history: AssistantHistoryMessage[]) {
+  return compactHistory(history, {
+    maxMessages: MAX_HISTORY,
+    maxChars: MAX_HISTORY_CHARS,
+  })
+}
+
+/** 同样的参数换个键序算同一个查询，去重才认得出来 */
+function argKey(name: string, args: Record<string, unknown>) {
+  const sorted = Object.keys(args)
+    .sort()
+    .map((key) => [key, args[key]])
+  return `${name}|${JSON.stringify(sorted)}`
 }
 
 /**
@@ -376,10 +406,24 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
       : ASSISTANT_TOOLS
   const steps: AssistantStep[] = []
   const pending: AssistantAction[] = []
-  const ctx = { data, today, skills }
-  const actionCtx = { data, today, now: options.now }
+  /** 记忆改删只能按原文定位，所以工具和执行层都要拿到原始列表 */
+  const memoryList = loadMemories()
+  const ctx = { data, today, skills, memories: memoryList }
+  const actionCtx = { data, today, now: options.now, memories: memoryList }
 
   let mode: 'tools' | 'json' = 'tools'
+  /** 压缩一次就够：换协议重来时还用这同一份历史 */
+  const packed = historyMessages(options.history)
+  const history: ChatMessage[] = packed.messages.map((item) => ({
+    role: item.role,
+    content: item.content,
+  }))
+  /** 累计这一轮所有请求的 token；context 取最后一次请求的提示词长度 */
+  const usage = { prompt: 0, completion: 0, total: 0, context: 0 }
+  /** 这一轮真正执行过几次查询，用来给模型踩刹车 */
+  let toolCalls = 0
+  /** 同一次运行里重复的查询直接复用结果，省一次请求和一大段上下文 */
+  const toolCache = new Map<string, string>()
 
   /** 深度思考时在原有提示词后面加一段「先想清楚」的规矩 */
   const systemPrompt = (jsonMode: boolean) => {
@@ -401,8 +445,14 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
       role: 'system',
       content: systemPrompt(false),
     },
-    ...historyMessages(options.history),
+    ...history,
   ]
+
+  /** 成功结果统一带上用量与压缩信息；没有数字就不显示 */
+  const meta = () => ({
+    ...(usage.total > 0 ? { usage: { ...usage } } : {}),
+    ...(packed.dropped > 0 ? { compacted: packed.dropped } : {}),
+  })
 
   const finish = (reply: string): AssistantRunResult => ({
     ok: true,
@@ -410,6 +460,7 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
     steps,
     mode,
     ...(pending.length > 0 ? { pending } : {}),
+    ...meta(),
   })
 
   const ask = (reply: string, question: AssistantQuestion): AssistantRunResult => ({
@@ -419,6 +470,7 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
     mode,
     question,
     ...(pending.length > 0 ? { pending } : {}),
+    ...meta(),
   })
 
   /** 写工具：只记录成待确认动作，绝不在这里落库 */
@@ -447,6 +499,27 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
     return `已生成待确认卡片：${text}\n还没有写入；请用一句话请用户确认，不要说已经记好。`
   }
 
+  /**
+   * 读工具统一走这里：重复的查询直接复用结果，超过预算就请模型收手。
+   * 换协议重来时 toolCache 还在，同一轮里不会把同样的库再翻一遍。
+   */
+  const readTool = (name: string, args: Record<string, unknown>) => {
+    const key = argKey(name, args)
+    const cached = toolCache.get(key)
+    if (cached) {
+      return `（同样的条件刚刚查过，结果和上面完全一致，不要重复查询）\n${cached}`
+    }
+    if (toolCalls >= MAX_TOOL_CALLS) {
+      return '这一轮已经查得够多了，不要再调用查询工具；请根据已经拿到的结果直接回答，确实缺关键信息就说清缺什么。'
+    }
+    toolCalls++
+    const output = runAssistantTool(name, args, ctx)
+    toolCache.set(key, output)
+    steps.push({ name, text: output })
+    options.onStep?.(steps[steps.length - 1])
+    return output
+  }
+
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const useTools = mode === 'tools'
     const result = await request({
@@ -468,11 +541,20 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
             role: 'system',
             content: systemPrompt(true),
           },
-          ...historyMessages(options.history),
+          ...history,
         ]
         continue
       }
       return { ok: false, error: explainFailure(result, config.baseUrl) }
+    }
+
+    // 服务商给了真实用量就累加；context 取上一次请求的提示词长度，用来画进度条
+    const turnUsage = parseUsage(result.body)
+    if (turnUsage) {
+      usage.prompt += turnUsage.prompt
+      usage.completion += turnUsage.completion
+      usage.total += turnUsage.total
+      usage.context = turnUsage.prompt
     }
 
     const parsed = parseAssistantMessage(result.body)
@@ -501,9 +583,7 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
             messages.push({ role: 'tool', tool_call_id: call.id, content: output })
             continue
           }
-          const output = runAssistantTool(call.function.name, args, ctx)
-          steps.push({ name: call.function.name, text: output })
-          options.onStep?.(steps[steps.length - 1])
+          const output = readTool(call.function.name, args)
           messages.push({ role: 'tool', tool_call_id: call.id, content: output })
         }
         continue
@@ -529,9 +609,7 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
       if (isAssistantActionTool(action.tool)) {
         output = takeAction(action.tool, action.args)
       } else {
-        output = runAssistantTool(action.tool, action.args, ctx)
-        steps.push({ name: action.tool, text: output })
-        options.onStep?.(steps[steps.length - 1])
+        output = readTool(action.tool, action.args)
       }
       messages.push({ role: 'assistant', content: parsed.content })
       messages.push({

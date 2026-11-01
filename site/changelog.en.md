@@ -1,3 +1,22 @@
+## 0.9.0 · 2026-11-01
+
+### What's new
+
+- **Multiple conversations**: start, switch and delete chats, each with its own context; the old single thread migrates into the first one
+- **Image and text attachments**: up to 3 per message; images are scaled to 1280 px and text files keep their first 6000 characters
+- **Suggested follow-ups**: three tappable questions picked from the last answer, with no extra tokens spent
+- **Working indicator**: “Processing · N sec” and “Looking up {tool}”, plus how many lookups ran and how long they took
+- **Context and tokens**: real usage from the provider, a context percentage, this turn's tokens and how many messages were compacted
+- **Tighter lookups**: six rounds per turn, ten real lookups at most, cached repeats, and prompts that ask for one complete query
+- **Two charts in Finance**: this month's spending by category and a half-year trend
+- **Health import on Android (experimental)**: read-only weight and sleep from Health Connect, skipping days already logged
+- **Copy fixes**: the floating ball description now says it is always shown, and stale “assistant not connected” text is gone
+
+### Download
+
+- Windows 10/11: `starburst-recorder-0.9.0-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.9.0.apk` (~16 MB, release-signed)
+
 ## 0.8.1 · 2026-11-01
 
 ### What's new
