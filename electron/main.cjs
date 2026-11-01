@@ -642,19 +642,36 @@ ipcMain.handle('update:check', async (_event, locale, channel) => {
 /** 下载安装包到「下载」目录；边下边写盘，进度用 update:progress 推给页面 */
 ipcMain.handle('update:download', async (event, url, fileName) => {
   try {
-    const response = await net.fetch(String(url), { redirect: 'follow' })
-    if (!response.ok || !response.body) return { ok: false, error: `HTTP ${response.status}` }
-    const total = Number(response.headers.get('content-length') ?? 0) || 0
     const dir = app.getPath('downloads')
     const safe = String(fileName || 'starburst-update.bin').replace(/[/:*?"<>|\\]/g, '_')
     const target = path.join(dir, safe)
+
+    // 上一次已经下完整了就直接复用：用户拉起安装器后又关掉时，不必再下一遍
+    try {
+      const stat = await fs.promises.stat(target)
+      if (stat.isFile() && stat.size > 0) return { ok: true, path: target }
+    } catch {
+      // 文件不存在，正常走下载
+    }
+
+    const response = await net.fetch(String(url), { redirect: 'follow' })
+    if (!response.ok || !response.body) return { ok: false, error: `HTTP ${response.status}` }
+    const total = Number(response.headers.get('content-length') ?? 0) || 0
     await fs.promises.mkdir(dir, { recursive: true })
 
+    // 先写 .part，成功后再改名：只凭文件存在就判断「下载完成」才成立，
+    // 中途失败或崩溃留下的半截文件不会冒充完整安装包
+    const partial = `${target}.part`
     let received = 0
     let lastPush = 0
     await new Promise((resolve, reject) => {
       const stream = Readable.fromWeb(response.body)
-      const file = fs.createWriteStream(target)
+      const file = fs.createWriteStream(partial)
+      const fail = (error) => {
+        file.destroy()
+        void fs.promises.unlink(partial).catch(() => {})
+        reject(error)
+      }
       stream.on('data', (chunk) => {
         received += chunk.length
         const now = Date.now()
@@ -663,9 +680,14 @@ ipcMain.handle('update:download', async (event, url, fileName) => {
           event.sender.send('update:progress', { received, total })
         }
       })
-      stream.on('error', reject)
-      file.on('error', reject)
-      file.on('finish', resolve)
+      stream.on('error', fail)
+      file.on('error', fail)
+      file.on('finish', () => {
+        fs.promises.rename(partial, target).then(
+          () => resolve(),
+          (error) => fail(error),
+        )
+      })
       stream.pipe(file)
     })
     event.sender.send('update:progress', { received, total: total || received })
@@ -694,8 +716,8 @@ ipcMain.handle('update:install', async (_event, filePath) => {
   return true
 })
 
-/** 只删我们自己下载的安装包，别碰用户下载目录里的其它东西 */
-const UPDATE_INSTALLER = /^starburst-recorder-\d+\.\d+\.\d+-setup\.exe$/i
+/** 只删我们自己下载的安装包，别碰用户下载目录里的其它东西；.part 是下到一半的残留 */
+const UPDATE_INSTALLER = /^starburst-recorder-\d+\.\d+\.\d+-setup\.exe(\.part)?$/i
 
 async function removeUpdateInstallers() {
   const dir = app.getPath('downloads')

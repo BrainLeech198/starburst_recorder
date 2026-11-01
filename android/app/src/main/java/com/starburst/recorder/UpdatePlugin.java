@@ -12,6 +12,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -51,6 +52,24 @@ public class UpdatePlugin extends Plugin {
 
         File target = new File(dir, fileName.replaceAll("[\\\\/:*?\"<>|]", "_"));
 
+        // 上一次已经下完整了就直接复用：用户关掉系统安装器后，不必再下一遍
+        if (target.isFile() && target.length() > 0) {
+            new Thread(() -> {
+                try {
+                    install(target);
+                    JSObject done = new JSObject();
+                    done.put("ok", true);
+                    call.resolve(done);
+                } catch (Exception error) {
+                    call.reject("拉起安装器失败：" + error.getMessage(), error);
+                }
+            }).start();
+            return;
+        }
+
+        // 先写 .part，成功后再改名：只凭文件存在就判断「下载完成」才成立
+        File partial = new File(dir, target.getName() + ".part");
+
         new Thread(() -> {
             HttpURLConnection connection = null;
             try {
@@ -60,7 +79,7 @@ public class UpdatePlugin extends Plugin {
                 notifyProgress(0, total);
 
                 try (InputStream input = connection.getInputStream();
-                     FileOutputStream output = new FileOutputStream(target)) {
+                     FileOutputStream output = new FileOutputStream(partial)) {
                     byte[] buffer = new byte[64 * 1024];
                     long received = 0;
                     long nextNotify = 256 * 1024;
@@ -75,6 +94,9 @@ public class UpdatePlugin extends Plugin {
                         }
                     }
                 }
+                if (!partial.renameTo(target)) {
+                    throw new IOException("安装包改名失败");
+                }
                 notifyProgress(target.length(), total);
                 install(target);
                 JSObject done = new JSObject();
@@ -82,6 +104,8 @@ public class UpdatePlugin extends Plugin {
                 call.resolve(done);
             } catch (Exception error) {
                 // 网络或写入失败：前端把进度条收掉、提示一句失败，下次启动还会再提示
+                // 半截的 .part 留着只会占地方，顺手删掉
+                if (partial.isFile()) partial.delete();
                 call.reject("下载失败：" + error.getMessage(), error);
             } finally {
                 if (connection != null) connection.disconnect();
