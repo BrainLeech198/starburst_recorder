@@ -239,6 +239,13 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 - **摄入条三条线**：目标热量（细实线）/ 参考 TDEE（粗实线）/ 推算 TDEE（主题色细线，无数据不画），图例文案分别是「目标热量 / 参考TDEE / 推算TDEE」。
 - **「问 ai 一下」**（`AskAiDialog`，入口在「记一笔摄入」按钮下面）：5 个预设（这一笔合适吗 / 接下来吃什么 / 今天怎么样 / 还剩多少额度 / 你看着说）+ 自由追问；当天数据（摄入明细、三大营养素合计、三条线的数值、档案、剩余额度）拼进用户消息当上下文，并带本会话的对话记忆（`turns` 作为多轮消息回传）。**只读不写库**——写数据要等「AI 助手 + 改动预览确认」那一版。模型输出固定走 `aiClient.chat()`，换 seed 避免套模板。
 
+### 从手机健康应用导入（2026-11-01 加，安卓实验功能）
+
+- **只读、只导体重与睡眠**：走 `@krzysztofkostecki/capacitor-health` v8.4.0（Health Connect 封装），`features/health/deviceHealth.ts` 里 `canImportFromHealthApp()` 只有安卓原生壳返回 true，浏览器与桌面根本不显示入口（`HealthPage` 的「设备」卡片）。窗口固定近 30 天、单次最多 1000 条（`DEVICE_IMPORT_DAYS` / `READ_LIMIT`）。
+- **入口在健康首页**（`HealthDeviceImportDialog`）：读数据 → 列出体重与睡眠 → 勾选 → 导入。体重按天去重写进档案 `weighIns`（保留 120 条，并回填 `weightKg` / `weightAt`）；睡眠按夜去重，当天已有 `sleepOfDay` 就跳过。**不覆盖手记内容**，只补空着的日子。
+- **权限声明由插件自带**：`android/app/src/main/AndroidManifest.xml` 没有再手写 `android.permission.health.*`，插件清单已声明全部权限与 rationale 的 `PermissionsRationaleActivity` / `activity-alias`；应用这边只提供隐私政策：`public/privacypolicy.html`（Vite 复制到产物，`cap sync` 后落在 `assets/public/`），`strings.xml` 的 `health_connect_privacy_policy_url` 指向 `file:///android_asset/public/privacypolicy.html`。`minSdkVersion = 29` 满足 Health Connect 的 26+。
+- **状态是实验功能**：代码与单测（`deviceHealthMap.test.ts`）只覆盖映射与去重逻辑，**尚未在真机上验证**授权弹窗与读取结果；官网、更新说明与更新日志都按「实验」写明。
+
 ---
 
 ## 5. 界面与设计约定（最容易丢的部分）
