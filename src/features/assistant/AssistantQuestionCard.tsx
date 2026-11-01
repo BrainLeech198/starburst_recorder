@@ -4,7 +4,7 @@
  */
 import { useState } from 'react'
 import { useI18n } from '@/shared/i18n/context'
-import { choiceTile } from '@/shared/ui/buttonStyles'
+import { choiceTile, SOLID_SMALL_BUTTON } from '@/shared/ui/buttonStyles'
 import type { ChatQuestionState } from './assistantChatStore'
 
 export default function AssistantQuestionCard({
@@ -83,7 +83,7 @@ export default function AssistantQuestionCard({
             type="button"
             disabled={busy || picked.length === 0}
             onClick={() => onAnswer(picked)}
-            className="rounded-lg border border-brand px-2.5 py-1 text-xs text-brand transition-colors hover:bg-brand/10 disabled:opacity-40"
+            className={SOLID_SMALL_BUTTON + ' disabled:opacity-40'}
           >
             {t('assistant.questionConfirm')}
           </button>

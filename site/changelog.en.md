@@ -1,3 +1,12 @@
+## 0.9.1 · 2026-11-01
+
+### What's new
+
+- **A new layout for the assistant panel**: starting a chat is a round accent button, the chat list is plain text with a count badge, suggested questions fold into one full-width strip, deep thinking is a switch with a knob, and attachments are icon buttons — no more a screen full of identical pale pills
+- **Suggestions are built from your actual situation**: expanding “Let AI suggest what to say next” sends today's intake and protein, last night's sleep and quality, the past seven days of entries, notes and money, plus your profile and latest weigh-in; the prompt forbids inventing numbers that are not there
+- **Chats are easier to manage**: rename any chat (leave it empty to go back to the automatic title), see the message count and last-used time per row, and delete in two steps so a stray tap cannot lose a conversation; the dialog header keeps a single close button
+- **Retry is now underlined text** instead of a button lookalike, and the memory and skills links collapsed into a quiet “text · text” row
+
 ## 0.9.0 · 2026-11-01
 
 ### What's new

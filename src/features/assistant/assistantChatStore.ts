@@ -455,6 +455,17 @@ export function switchChatSession(id: string) {
   notify()
 }
 
+/** 手动改会话标题；留空就交还给「取第一条用户消息」的自动命名 */
+export function renameChatSession(id: string, title: string) {
+  const session = sessions.find((item) => item.id === id)
+  if (!session) return
+  session.title = title.trim().slice(0, 40)
+  if (session.title === '') session.title = deriveTitle(session.messages)
+  session.updatedAt = Date.now()
+  persist()
+  notify()
+}
+
 export function deleteChatSession(id: string) {
   sessions = sessions.filter((item) => item.id !== id)
   ensureCurrent()

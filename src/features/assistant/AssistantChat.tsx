@@ -39,7 +39,7 @@ import {
   readAttachment,
 } from './assistantAttachments'
 import { contextWindow, formatTokens } from './assistantContext'
-import { suggestKeys } from './assistantSuggest'
+import { requestSuggestions, suggestKeys, summarizeSituation } from './assistantSuggest'
 import {
   clearChat,
   createChatMessage,
@@ -48,6 +48,7 @@ import {
   getChatSessions,
   getCurrentSessionId,
   newChatSession,
+  renameChatSession,
   switchChatSession,
   subscribeChat,
   updateChat,
@@ -66,6 +67,13 @@ function firstLine(text: string) {
   return line?.trim() ?? ''
 }
 
+/** 会话列表里的时间：「月-日 时:分」，够用又不占地方 */
+function whenLabel(at: number) {
+  const date = new Date(at)
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${date.getMonth() + 1}-${date.getDate()} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 const EXAMPLE_KEYS = [
   'assistant.example1',
   'assistant.example2',
@@ -73,6 +81,20 @@ const EXAMPLE_KEYS = [
   'assistant.example4',
   'assistant.example5',
 ] as const
+
+/**
+ * 控件按「形状 + 重量」分档，避免一屏全是同一种圆角胶囊：
+ * 圆形主按钮（新对话）、文字 + 计数徽标（历史）、虚线折叠头（推荐问）、
+ * 主色芯片（推荐内容）、方形图标钮（附件）、实心胶囊（发送）。
+ */
+const CHAT_ICON_BRAND =
+  'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand text-sm text-on-brand transition hover:opacity-90 active:scale-[0.94] disabled:opacity-40'
+const CHAT_TOOL = 'inline-flex h-7 shrink-0 items-center gap-1 px-1 text-[11px] text-muted transition-colors hover:text-brand disabled:opacity-50'
+const CHAT_COUNT = 'rounded-full bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-muted'
+const CHAT_CHIP = 'rounded-full bg-brand/10 px-2.5 py-1 text-[11px] text-brand transition-colors hover:bg-brand/20 disabled:opacity-50'
+const CHAT_ICON = 'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2 text-base text-muted transition-colors hover:bg-brand/10 hover:text-brand disabled:opacity-40'
+const CHAT_SEND = 'inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-brand px-4 text-sm font-medium text-on-brand transition hover:opacity-90 active:scale-[0.97] disabled:opacity-40'
+const CHAT_ROW = 'flex min-w-0 flex-1 flex-col px-2.5 py-2 text-left transition-colors'
 
 /**
  * 一条消息变成请求里的 content。
@@ -106,6 +128,18 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   const [drafts, setDrafts] = useState<ChatAttachment[]>([])
   /** 会话列表弹窗 */
   const [sessionOpen, setSessionOpen] = useState(false)
+  /** 推荐问默认收起，点标题才展开 */
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  /** 展开后按最后一条回答 id 缓存，已经生成过的不重复请求 */
+  const [suggestions, setSuggestions] = useState<{ id: string; items: string[] } | null>(null)
+  const [suggestLoading, setSuggestLoading] = useState(false)
+  /** 正在改名的会话 id 与输入框内容 */
+  const [renamingId, setRenamingId] = useState('')
+  const [renameText, setRenameText] = useState('')
+  /** 待确认删除的会话 id：避免误点 ✕ 就把对话删掉 */
+  const [deletingId, setDeletingId] = useState('')
+  /** 上一轮已经读出来的整库快照，展开推荐问时直接拿来当「当前情况」 */
+  const dataRef = useRef<Awaited<ReturnType<typeof exportAllData>> | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
 
@@ -171,6 +205,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     try {
       // 每轮都取一份最新快照：刚刚在别的页面记的东西也能查到
       const data = await exportAllData()
+      dataRef.current = data
       // 历史里只放已经说出口的话；正在加载的占位和错误提示都不算
       const source = [...messages, ...(userMessage ? [userMessage] : [])].filter(
         (item) =>
@@ -259,6 +294,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     const files = drafts
     setInput('')
     setDrafts([])
+    setSuggestOpen(false)
     // 用户绕过选择题直接说话：把还挂着的题标成跳过，别让它一直亮着
     updateChat((current) =>
       current.map((item) =>
@@ -368,6 +404,20 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     setDrafts([])
   }
 
+  /** 提交改名；留空就回到自动命名 */
+  function commitRename() {
+    if (renamingId === '') return
+    renameChatSession(renamingId, renameText)
+    setRenamingId('')
+    setRenameText('')
+  }
+
+  function startRename(id: string, title: string) {
+    setDeletingId('')
+    setRenamingId(id)
+    setRenameText(title)
+  }
+
   function renderActions(item: ChatMessageRecord) {
     if (!item.actions || item.actions.length === 0) return null
     return (
@@ -386,11 +436,41 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     )
   }
 
-  /** 最后一条正常回答：推荐问按它的话题挑 */
+  /**
+   * 展开下拉栏时才让模型按最近对话与长期记忆现想三条；
+   * 没配模型或请求失败就退回按话题挑的预设，保证下拉栏不会空着。
+   */
+  async function openSuggestions(reply: ChatMessageRecord) {
+    setSuggestOpen(true)
+    if (suggestions?.id === reply.id || suggestLoading) return
+    setSuggestLoading(true)
+    try {
+      const config = loadAiConfig()
+      const items = isConfigured(config)
+        ? await requestSuggestions({
+            config,
+            recent: messages.map((item) => ({ role: item.role, content: item.content })),
+            memories: memoryPromptLines(loadMemories()),
+            situation: dataRef.current
+              ? summarizeSituation(dataRef.current, todayKey())
+              : [],
+          })
+        : []
+      setSuggestions({
+        id: reply.id,
+        items: items.length > 0 ? items : suggestKeys(reply.content).map((key) => t(key)),
+      })
+    } catch {
+      setSuggestions({ id: reply.id, items: suggestKeys(reply.content).map((key) => t(key)) })
+    } finally {
+      setSuggestLoading(false)
+    }
+  }
+
+  /** 最后一条正常回答：推荐问以它为锚点 */
   const lastReply = [...messages]
     .reverse()
     .find((item) => item.role === 'assistant' && !item.error && item.content.trim() !== '')
-  const suggestionKeys = lastReply ? suggestKeys(lastReply.content) : []
 
   /** 上下文进度：以最后一次请求的提示词长度做分子，模型窗口做分母 */
   const lastWithUsage = [...messages]
@@ -406,27 +486,38 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
 
   return (
     <div className={compact ? 'flex min-h-0 flex-1 flex-col' : 'flex flex-1 flex-col'}>
-      {/* 会话工具条：新建对话与历史列表 */}
-      <div className="flex items-center justify-between gap-2 border-b border-line px-1 pb-2">
-        <p className="m-0 min-w-0 truncate text-[11px] text-muted">{sessionTitle}</p>
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={startNewChat}
-            disabled={busy}
-            className="rounded-lg border border-line px-2 py-1 text-[11px] text-muted transition-colors hover:text-fg disabled:opacity-60"
-          >
-            {t('assistant.newChat')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setSessionOpen(true)}
-            aria-label={t('assistant.sessions')}
-            className="rounded-lg border border-line px-2 py-1 text-[11px] text-muted transition-colors hover:text-fg"
-          >
-            {t('assistant.sessions')} · {sessions.length}
-          </button>
+      {/* 会话工具条：标题两行（名字 + 条数），右侧是圆形新建与「历史 + 计数」 */}
+      <div className="flex items-center gap-2 border-b border-line pb-2">
+        <span
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand/10 text-[11px] text-brand"
+          aria-hidden="true"
+        >
+          ✦
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="m-0 truncate text-xs font-medium text-fg">{sessionTitle}</p>
+          <p className="m-0 text-[10px] text-muted">
+            {t('assistant.sessionMeta', { n: messages.length })}
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={startNewChat}
+          disabled={busy}
+          aria-label={t('assistant.newChat')}
+          title={t('assistant.newChat')}
+          className={CHAT_ICON_BRAND}
+        >
+          ＋
+        </button>
+        <button
+          type="button"
+          onClick={() => setSessionOpen(true)}
+          className={CHAT_TOOL}
+        >
+          {t('assistant.sessions')}
+          <span className={CHAT_COUNT}>{sessions.length}</span>
+        </button>
       </div>
 
       <div
@@ -448,31 +539,31 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         {messages.length === 0 && (
           <div className="rounded-xl border border-line bg-surface p-3">
             <p className="m-0 text-sm text-fg">{t('assistant.intro')}</p>
-            <div className="mt-2 flex flex-col gap-1.5">
+            <div className="mt-2 flex flex-col gap-1">
               {EXAMPLE_KEYS.map((key) => (
                 <button
                   key={key}
                   type="button"
                   disabled={busy}
                   onClick={() => void run(t(key), true)}
-                  className="rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 text-left text-xs text-muted transition-colors hover:text-fg disabled:opacity-60"
+                  className="group flex items-start gap-2 rounded-lg bg-surface-2 px-3 py-2 text-left text-xs text-fg transition-colors hover:bg-brand/10 hover:text-brand disabled:opacity-50"
                 >
-                  {t(key)}
+                  <span className="mt-0.5 shrink-0 text-[10px] text-brand" aria-hidden="true">
+                    ▸
+                  </span>
+                  <span className="min-w-0 flex-1">{t(key)}</span>
                 </button>
               ))}
             </div>
-            <Link
-              to="/me/agent/memory"
-              className="mt-2 inline-block text-[11px] text-muted transition-colors hover:text-brand"
-            >
-              {t('assistant.memoryLink', { count: loadMemories().length })}
-            </Link>
-            <Link
-              to="/me/agent/skills"
-              className="ml-3 mt-2 inline-block text-[11px] text-muted transition-colors hover:text-brand"
-            >
-              {t('assistant.skillsLink', { count: loadSkills().filter((skill) => skill.enabled).length })}
-            </Link>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted">
+              <Link to="/me/agent/memory" className="transition-colors hover:text-brand">
+                {t('assistant.memoryLink', { count: loadMemories().length })}
+              </Link>
+              <span aria-hidden="true">·</span>
+              <Link to="/me/agent/skills" className="transition-colors hover:text-brand">
+                {t('assistant.skillsLink', { count: loadSkills().filter((skill) => skill.enabled).length })}
+              </Link>
+            </div>
           </div>
         )}
 
@@ -577,7 +668,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                       type="button"
                       onClick={retry}
                       disabled={busy}
-                      className="mt-2 block rounded-lg border border-line px-2.5 py-1 text-xs text-muted transition-colors hover:text-fg disabled:opacity-60"
+                      className="mt-2 inline-flex items-center gap-1 text-[11px] text-danger underline-offset-2 transition-colors hover:underline disabled:opacity-50"
                     >
                       {t('assistant.retry')}
                     </button>
@@ -652,29 +743,71 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
               setReasoning(next)
               saveReasoning(next)
             }}
-            className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] transition-colors disabled:opacity-60 ${
-              reasoning
-                ? 'border-brand text-brand'
-                : 'border-line text-muted hover:text-fg'
-            }`}
+            className="inline-flex h-6 shrink-0 items-center gap-1.5 text-[11px] text-muted transition-colors hover:text-fg disabled:opacity-50"
           >
-            {t('assistant.reasoning')} · {reasoning ? t('reasoning.on') : t('reasoning.off')}
+            <span
+              className={`relative inline-block h-3.5 w-6 rounded-full transition-colors ${
+                reasoning ? 'bg-brand' : 'bg-surface-2 ring-1 ring-inset ring-line'
+              }`}
+              aria-hidden="true"
+            >
+              <span
+                className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white shadow-sm transition-[left] duration-150 motion-reduce:transition-none ${
+                  reasoning ? 'left-3' : 'left-0.5'
+                }`}
+              />
+            </span>
+            <span className={reasoning ? 'text-brand' : ''}>{t('assistant.reasoning')}</span>
           </button>
         </div>
 
-        {/* 推荐问：有对话之后一直挂在这里，点一下就等于发出去 */}
-        {messages.length > 0 && !busy && suggestionKeys.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            {suggestionKeys.map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => void run(t(key), true)}
-                className="rounded-full border border-line bg-surface-2 px-2.5 py-1 text-[11px] text-muted transition-colors hover:text-fg"
+        {/* 推荐问：默认收起，展开时让模型按对话与记忆现想三条 */}
+        {messages.length > 0 && !busy && lastReply && (
+          <div className="mb-2">
+            <button
+              type="button"
+              aria-expanded={suggestOpen}
+              onClick={() => {
+                if (suggestOpen) setSuggestOpen(false)
+                else void openSuggestions(lastReply)
+              }}
+              className="flex w-full items-center gap-2 rounded-lg border border-dashed border-brand/30 bg-brand/[0.04] px-2.5 py-1.5 text-left text-[11px] text-brand transition-colors hover:bg-brand/10"
+            >
+              <span aria-hidden="true">✦</span>
+              <span className="min-w-0 flex-1">{t('assistant.suggestTitle')}</span>
+              <span
+                className={`text-[10px] transition-transform ${
+                  suggestOpen ? 'rotate-180' : ''
+                }`}
+                aria-hidden="true"
               >
-                {t(key)}
-              </button>
-            ))}
+                ▾
+              </span>
+            </button>
+            {suggestOpen &&
+              (suggestLoading ? (
+                <p className="m-0 mt-1.5 text-[11px] text-muted">
+                  {t('assistant.suggestLoading')}
+                </p>
+              ) : (
+                suggestions?.items.length ? (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {suggestions.items.map((text) => (
+                      <button
+                        key={text}
+                        type="button"
+                        onClick={() => {
+                          setSuggestOpen(false)
+                          void run(text, true)
+                        }}
+                        className={CHAT_CHIP}
+                      >
+                        {text}
+                      </button>
+                    ))}
+                  </div>
+                ) : null
+              ))}
           </div>
         )}
 
@@ -715,7 +848,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             disabled={busy || drafts.length >= MAX_ATTACHMENTS}
             aria-label={t('assistant.attach')}
             title={t('assistant.attach')}
-            className="shrink-0 rounded-lg border border-line px-2.5 py-2 text-sm text-muted transition-colors hover:text-fg disabled:opacity-60"
+            className={CHAT_ICON}
           >
             ＋
           </button>
@@ -734,32 +867,29 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             type="button"
             onClick={send}
             disabled={busy || (input.trim() === '' && drafts.length === 0)}
-            className={SOLID_BUTTON}
+            className={CHAT_SEND}
           >
             {t('assistant.send')}
           </button>
         </div>
         {messages.length > 0 && !busy && (
-          <div className="mt-2 flex items-center gap-3">
+          <div className="mt-2 flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => clearChat()}
-              className="text-[11px] text-muted transition-colors hover:text-fg"
+              className="text-[11px] text-muted transition-colors hover:text-danger"
             >
               {t('assistant.clear')}
             </button>
-            <Link
-              to="/me/agent/memory"
-              className="text-[11px] text-muted transition-colors hover:text-brand"
-            >
-              {t('assistant.memoryLink', { count: loadMemories().length })}
-            </Link>
-            <Link
-              to="/me/agent/skills"
-              className="text-[11px] text-muted transition-colors hover:text-brand"
-            >
-              {t('assistant.skillsLink', { count: loadSkills().filter((skill) => skill.enabled).length })}
-            </Link>
+            <div className="flex shrink-0 items-center gap-2 text-[11px] text-muted">
+              <Link to="/me/agent/memory" className="transition-colors hover:text-brand">
+                {t('assistant.memoryLink', { count: loadMemories().length })}
+              </Link>
+              <span aria-hidden="true">·</span>
+              <Link to="/me/agent/skills" className="transition-colors hover:text-brand">
+                {t('assistant.skillsLink', { count: loadSkills().filter((skill) => skill.enabled).length })}
+              </Link>
+            </div>
           </div>
         )}
       </div>
@@ -768,7 +898,11 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         <Modal
           size="sm"
           label={t('assistant.sessions')}
-          onClose={() => setSessionOpen(false)}
+          onClose={() => {
+            setSessionOpen(false)
+            setRenamingId('')
+            setDeletingId('')
+          }}
           panelClassName="flex max-h-[70dvh] flex-col"
         >
           <div className="mb-3 flex items-center justify-between gap-2">
@@ -776,43 +910,136 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             <button
               type="button"
               onClick={() => setSessionOpen(false)}
-              className="text-xs text-muted transition-colors hover:text-fg"
+              aria-label={t('common.close')}
+              title={t('common.close')}
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] text-muted transition-colors hover:bg-surface-2 hover:text-fg"
             >
-              {t('assistant.close')}
+              ✕
             </button>
           </div>
           {sessions.length === 0 ? (
             <p className="m-0 text-xs text-muted">{t('assistant.sessionEmpty')}</p>
           ) : (
-            <ul className="m-0 min-h-0 list-none space-y-1 overflow-y-auto p-0">
+            <ul className="m-0 min-h-0 list-none space-y-1.5 overflow-y-auto p-0">
               {[...sessions]
                 .sort((a, b) => b.updatedAt - a.updatedAt)
-                .map((session) => (
-                  <li key={session.id} className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        switchChatSession(session.id)
-                        setSessionOpen(false)
-                      }}
-                      className={`min-w-0 flex-1 truncate rounded-lg border px-2.5 py-1.5 text-left text-xs transition-colors ${
-                        session.id === currentSessionId
-                          ? 'border-brand text-brand'
-                          : 'border-line text-muted hover:text-fg'
+                .map((session) => {
+                  const active = session.id === currentSessionId
+                  const renaming = renamingId === session.id
+                  const confirming = deletingId === session.id
+                  return (
+                    <li
+                      key={session.id}
+                      className={`rounded-xl border transition-colors ${
+                        active ? 'border-brand/30 bg-brand/[0.06]' : 'border-transparent'
                       }`}
                     >
-                      {session.title || t('assistant.untitled')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteChatSession(session.id)}
-                      aria-label={t('assistant.sessionDelete')}
-                      className="shrink-0 rounded-lg border border-line px-2 py-1 text-[11px] text-muted transition-colors hover:text-danger"
-                    >
-                      {t('assistant.sessionDelete')}
-                    </button>
-                  </li>
-                ))}
+                      {renaming ? (
+                        <div className="flex items-center gap-1.5 p-2">
+                          <input
+                            autoFocus
+                            value={renameText}
+                            onChange={(event) => setRenameText(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' && !event.nativeEvent.isComposing) commitRename()
+                              if (event.key === 'Escape') setRenamingId('')
+                            }}
+                            placeholder={t('assistant.renameHint')}
+                            aria-label={t('assistant.rename')}
+                            className={INPUT + ' h-8 flex-1 text-xs'}
+                          />
+                          <button
+                            type="button"
+                            onClick={commitRename}
+                            className="shrink-0 text-[11px] font-medium text-brand transition-colors hover:opacity-80"
+                          >
+                            {t('assistant.renameSave')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRenamingId('')}
+                            className="shrink-0 text-[11px] text-muted transition-colors hover:text-fg"
+                          >
+                            {t('common.cancel')}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              switchChatSession(session.id)
+                              setSessionOpen(false)
+                            }}
+                            className={CHAT_ROW}
+                          >
+                            <span
+                              className={`truncate text-xs ${
+                                active ? 'font-medium text-brand' : 'text-fg'
+                              }`}
+                            >
+                              {session.title || t('assistant.untitled')}
+                            </span>
+                            <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted">
+                              {t('assistant.sessionMeta', { n: session.messages.length })}
+                              <span aria-hidden="true">·</span>
+                              {whenLabel(session.updatedAt)}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => startRename(session.id, session.title)}
+                            aria-label={t('assistant.rename')}
+                            title={t('assistant.rename')}
+                            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] text-muted transition-colors hover:bg-surface-2 hover:text-brand"
+                          >
+                            ✎
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRenamingId('')
+                              setDeletingId(confirming ? '' : session.id)
+                            }}
+                            aria-label={t('assistant.sessionDelete')}
+                            title={t('assistant.sessionDelete')}
+                            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] text-muted transition-colors hover:bg-danger/10 hover:text-danger"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                      {confirming && (
+                        <div className="flex items-center justify-between gap-2 border-t border-line px-2.5 py-1.5">
+                          <span className="min-w-0 truncate text-[11px] text-danger">
+                            {t('assistant.sessionDeleteConfirm', {
+                              title: session.title || t('assistant.untitled'),
+                            })}
+                          </span>
+                          <div className="flex shrink-0 items-center gap-2 text-[11px]">
+                            <button
+                              type="button"
+                              onClick={() => setDeletingId('')}
+                              className="text-muted transition-colors hover:text-fg"
+                            >
+                              {t('common.cancel')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                deleteChatSession(session.id)
+                                setDeletingId('')
+                              }}
+                              className="font-medium text-danger transition-opacity hover:opacity-80"
+                            >
+                              {t('common.delete')}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                  )
+                })}
             </ul>
           )}
         </Modal>

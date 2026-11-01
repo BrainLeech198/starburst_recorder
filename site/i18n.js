@@ -42,7 +42,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.9.0',
+    'hero.cta': '下载 0.9.1',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -113,11 +113,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.9.0',
+    'open.version': '版本 0.9.1',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.9.0 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.9.1 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -128,11 +128,11 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '助手可以开新对话了：新建、切换、删除会话，每段对话各自保留上下文，能发图片与文本文件，回答后还给几条可以点的推荐问',
+      '助手面板重新排过：新建对话是圆形主钮，推荐问收成一条可展开的窄栏，深度思考换成开关，一屏里不再全是同一种按钮',
     'whatsnew.item2':
-      '等待时显示「正在处理 · N 秒」和当前在查哪一项；输入框上方能看到上下文占用、本轮 token 与较早对话的压缩情况',
+      '「AI 帮你想接下来说什么」会先读一眼你的实际情况——今天吃了多少、昨夜睡了几小时、最近一周的收支——再给三条能直接点的话',
     'whatsnew.item3':
-      '查询更克制，经济页多了本月支出分类与近半年趋势；安卓可只读导入手机健康应用里的体重与睡眠（实验功能）',
+      '对话记录能重命名，每条显示消息数与最近使用时间；删除改成两步确认，误点也不会把对话删掉',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -141,7 +141,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.9.0',
+    'footer.version': '版本 0.9.1',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -184,7 +184,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.9.0',
+    'hero.cta': 'Download 0.9.1',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -260,12 +260,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.9.0',
+    'open.version': 'Version 0.9.1',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.9.0 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.9.1 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -276,13 +276,13 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.9.0",
+    'whatsnew.title': "What's new in 0.9.1",
     'whatsnew.item1':
-      'The assistant keeps multiple conversations: start, switch and delete chats, each with its own context; send images and text files, and tap a suggested follow-up after every answer',
+      'The assistant panel has a new layout: a round primary button starts a chat, suggested questions fold into one narrow strip, and deep thinking is a real switch instead of another pill',
     'whatsnew.item2':
-      'While it works you see “Processing · N sec” and which lookup is running; above the input there is a context meter, this turn’s tokens and how many older messages were compacted',
+      '“Let AI suggest what to say next” first reads your actual situation — today’s intake, last night’s sleep and the past week’s spending — then offers three lines you can tap',
     'whatsnew.item3':
-      'Fewer lookups, a monthly spending breakdown and a half-year trend in Finance, and read-only import of weight and sleep from your phone’s health app on Android (experimental)',
+      'Chats can be renamed and each row shows its message count and last-used time; deleting now takes two steps, so a stray tap will not lose a conversation',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -291,7 +291,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.9.0',
+    'footer.version': 'Version 0.9.1',
     'footer.tagline': 'Data stays on your device',
   },
 };
