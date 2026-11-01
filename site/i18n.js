@@ -42,7 +42,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.10.3',
+    'hero.cta': '下载 0.10.4',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -113,11 +113,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.10.3',
+    'open.version': '版本 0.10.4',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.10.3 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.10.4 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -128,10 +128,11 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '更新安装包不再重复下载：下载完安装包后不小心关掉安装界面，再点更新会先看本地有没有已经下好的完整安装包，有就直接打开，桌面和安卓都适用',
+      '二维码分享修好：分享码压缩不再卡死，二维码正常显示；食物、套餐行尾也新增了常驻分享按钮，不用再翻「⋯」菜单',
     'whatsnew.item2':
-      '下载改为先写临时文件、完成后再改名，下载中断留下的半截文件不会被当成完整安装包',
-    'whatsnew.item3': '这一版是修 bug 的小版本，其余功能与 0.10.2 相同',
+      '批量操作栏不再消失：工具条挂到页面根节点，不会被内容区或安卓底部导航压住，所有批量页面一并生效',
+    'whatsnew.item3':
+      '睡眠条改为前后各 24 小时，白天补觉不再被截断；版本页与各模块的二级按钮补齐统一图标',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -140,7 +141,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.10.3',
+    'footer.version': '版本 0.10.4',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -183,7 +184,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.10.3',
+    'hero.cta': 'Download 0.10.4',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -259,12 +260,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.10.3',
+    'open.version': 'Version 0.10.4',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.10.3 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.10.4 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -275,12 +276,13 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.10.3",
+    'whatsnew.title': "What's new in 0.10.4",
     'whatsnew.item1':
-      'Update installers are no longer downloaded twice: after a download, if you close the installer by accident, tapping update again looks for a complete installer already on disk and opens it directly, on desktop and Android alike',
+      'QR sharing is fixed: the compressed payload no longer deadlocks and the QR code renders; food and meal rows also gained a permanent share button, so the "⋯" menu is no longer the only way in',
     'whatsnew.item2':
-      'Downloads are written to a temporary file and renamed only when finished, so an interrupted download cannot pass as a complete installer',
-    'whatsnew.item3': 'This is a small bug-fix build; everything else is the same as 0.10.2',
+      'The batch action bar no longer disappears: it is attached to the page root, so neither the content area nor the Android bottom navigation can hide it, across all batch pages',
+    'whatsnew.item3':
+      'The sleep bar now spans 24 hours on each side so naps are no longer clipped; the version page and secondary actions across modules gained the shared icon set',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -289,7 +291,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.10.3',
+    'footer.version': 'Version 0.10.4',
     'footer.tagline': 'Data stays on your device',
   },
 };

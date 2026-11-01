@@ -254,6 +254,7 @@ export default function FinanceEntryDialog({
               onClick={() => setPhotoPicking(true)}
               className={`${OUTLINE_BUTTON} px-2 py-1 text-xs`}
             >
+              <Icon name="image" />
               {photoUploading
                 ? t('finance.photoUploading')
                 : photo

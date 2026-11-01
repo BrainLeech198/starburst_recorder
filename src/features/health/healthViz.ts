@@ -198,6 +198,9 @@ export function healthRangeSummary(params: {
   }
 }
 
+/** 睡眠条左右各铺多少分钟：为了放下白天补觉、一直睡到下午的跨段，两边各留 24 小时 */
+export const SLEEP_AXIS_MIN = 1440
+
 /** 时刻相对 0 点的分钟数；12:00 及以后算负（放到零点左边） */
 export function offsetFromMidnight(time: string): number {
   const [hour, minute] = time.split(':').map(Number)
@@ -205,9 +208,10 @@ export function offsetFromMidnight(time: string): number {
   return total >= 720 ? total - 1440 : total
 }
 
-/** -720…720 分钟映射到 0…100%：0 点在正中间 */
+/** -SLEEP_AXIS_MIN…SLEEP_AXIS_MIN 分钟映射到 0…100%：0 点在正中间 */
 export function midnightPercent(minutes: number): number {
-  return ((Math.min(720, Math.max(-720, minutes)) + 720) / 1440) * 100
+  const span = SLEEP_AXIS_MIN * 2
+  return ((Math.min(SLEEP_AXIS_MIN, Math.max(-SLEEP_AXIS_MIN, minutes)) + SLEEP_AXIS_MIN) / span) * 100
 }
 
 export interface SleepBarLayout {
@@ -222,7 +226,7 @@ export interface SleepBarLayout {
 }
 
 /**
- * 睡眠条布局：以 0 点为中心，左右各 12 小时。
+ * 睡眠条布局：以 0 点为中心，左右各 SLEEP_AXIS_MIN（24 小时）。
  * 入睡时刻落在 12:00 之后就算负偏移（昨晚），起床时刻落在 12:00 之前就算正偏移（今早）；
  * 两头都落在同半边时按「跨了 24 小时」理解，避免出现一条反向的条。
  */
@@ -235,15 +239,15 @@ export function sleepBarLayout(
   let start = offsetFromMidnight(bedtime)
   let end = offsetFromMidnight(wakeTime)
   while (end <= start) end += 1440
-  start = Math.max(-720, start)
-  end = Math.min(720, end)
-  if (end <= start) end = Math.min(720, start + 1)
+  start = Math.max(-SLEEP_AXIS_MIN, start)
+  end = Math.min(SLEEP_AXIS_MIN, end)
+  if (end <= start) end = Math.min(SLEEP_AXIS_MIN, start + 1)
 
   let idealStart = offsetFromMidnight(idealBedtime)
   let idealEnd = offsetFromMidnight(idealWakeTime)
   while (idealEnd <= idealStart) idealEnd += 1440
-  idealStart = Math.max(-720, idealStart)
-  idealEnd = Math.min(720, idealEnd)
+  idealStart = Math.max(-SLEEP_AXIS_MIN, idealStart)
+  idealEnd = Math.min(SLEEP_AXIS_MIN, idealEnd)
 
   return {
     startPct: midnightPercent(start),

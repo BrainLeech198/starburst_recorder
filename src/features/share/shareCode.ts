@@ -174,10 +174,13 @@ async function gzip(bytes: Uint8Array): Promise<Uint8Array | null> {
     const input = new Uint8Array(bytes.length)
     input.set(bytes)
     const stream = new CompressionStream('gzip')
+    // 先把输出接上读端再写入：只写不读时，压缩流会被背压卡住，await write 永远不返回，
+    // 分享弹窗就停在「正在准备」，二维码一直出不来。
+    const reading = new Response(stream.readable).arrayBuffer()
     const writer = stream.writable.getWriter()
     await writer.write(input)
     await writer.close()
-    const buffer = await new Response(stream.readable).arrayBuffer()
+    const buffer = await reading
     return new Uint8Array(buffer)
   } catch {
     return null
@@ -190,10 +193,12 @@ async function ungzip(bytes: Uint8Array): Promise<Uint8Array | null> {
     const input = new Uint8Array(bytes.length)
     input.set(bytes)
     const stream = new DecompressionStream('gzip')
+    // 同上：读端先挂上，再写
+    const reading = new Response(stream.readable).arrayBuffer()
     const writer = stream.writable.getWriter()
     await writer.write(input)
     await writer.close()
-    const buffer = await new Response(stream.readable).arrayBuffer()
+    const buffer = await reading
     return new Uint8Array(buffer)
   } catch {
     return null

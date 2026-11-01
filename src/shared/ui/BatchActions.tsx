@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useI18n } from '@/shared/i18n/context'
+import { Icon } from './icons'
 import BatchBar from './BatchBar'
 import { BAR_BUTTON } from './buttonStyles'
 import type { BatchSelect } from './useBatchSelect'
@@ -28,9 +29,11 @@ export default function BatchActions({
   return (
     <BatchBar count={select.count} unit={unit}>
       <button type="button" onClick={() => select.setAll(ids)} className={BAR_BUTTON}>
+        <Icon name="check" />
         {t('common.selectAll')}
       </button>
       <button type="button" onClick={() => select.invert(ids)} className={BAR_BUTTON}>
+        <Icon name="refresh" />
         {t('common.invert')}
       </button>
       <button type="button" onClick={select.clear} className={BAR_BUTTON}>
@@ -38,6 +41,7 @@ export default function BatchActions({
       </button>
       {children}
       <button type="button" onClick={select.exit} className={`${BAR_BUTTON} text-brand`}>
+        <Icon name="check" />
         {t('common.done')}
       </button>
     </BatchBar>

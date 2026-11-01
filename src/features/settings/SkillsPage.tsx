@@ -12,6 +12,7 @@ import { useI18n } from '@/shared/i18n/context'
 import PageShell from '@/shared/ui/PageShell'
 import SettingCard, { SettingBadge } from '@/shared/ui/SettingCard'
 import { choiceTile } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import {
   SKILLS_SITE_URL,
   downloadSkill,
@@ -124,6 +125,7 @@ export default function SkillsPage() {
       <SettingCard title={t('skills.catalogTitle')} description={t('skills.catalogDesc')}>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => void openCatalog()} className={choiceTile(false, 'px-3 py-2 text-xs')}>
+            <Icon name="download" />
             {loadingCatalog ? t('skills.catalogLoading') : t('skills.catalogLoad')}
           </button>
           <button
@@ -161,6 +163,7 @@ export default function SkillsPage() {
                       onClick={() => void install(entry)}
                       className="shrink-0 rounded-lg border border-brand px-2.5 py-1 text-xs text-brand transition-colors hover:bg-brand/10 disabled:opacity-40"
                     >
+                      <Icon name="download" />
                       {already ? t('skills.installed') : t('skills.install')}
                     </button>
                   </div>
@@ -178,6 +181,7 @@ export default function SkillsPage() {
           onClick={() => importRef.current?.click()}
           className={choiceTile(false, 'mt-2 px-3 py-2 text-xs')}
         >
+          <Icon name="upload" />
           {t('skills.importButton')}
         </button>
         <input

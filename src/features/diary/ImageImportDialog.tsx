@@ -268,6 +268,7 @@ export default function ImageImportDialog({
           onClick={() => setSourceOpen(true)}
           className="mt-3 flex h-28 w-full items-center justify-center rounded-lg border border-dashed border-line text-sm text-muted transition-colors hover:border-brand hover:text-brand"
         >
+          <Icon name="plus" />
           {t('imageImport.add')}
         </button>
       ) : (
@@ -403,6 +404,7 @@ export default function ImageImportDialog({
           disabled={running || pages.length >= MAX_IMPORT_IMAGES}
           className={GHOST_BUTTON}
         >
+          <Icon name="plus" />
           {t('imageImport.add')}
         </button>
         <button
@@ -411,6 +413,7 @@ export default function ImageImportDialog({
           disabled={running || pages.length === 0 || waitingCount + failedCount === 0}
           className={GHOST_BUTTON}
         >
+          <Icon name="sparkles" />
           {t('imageImport.start')}
         </button>
         <button

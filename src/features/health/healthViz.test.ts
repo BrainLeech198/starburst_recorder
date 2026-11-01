@@ -115,25 +115,31 @@ describe('区间健康概览', () => {
 })
 
 describe('睡眠条', () => {
-  it('0 点是正中间，12 点两边是端点', () => {
+  it('0 点是正中间，左右各 24 小时是端点', () => {
     expect(midnightPercent(0)).toBe(50)
-    expect(midnightPercent(-720)).toBe(0)
-    expect(midnightPercent(720)).toBe(100)
+    expect(midnightPercent(-1440)).toBe(0)
+    expect(midnightPercent(1440)).toBe(100)
     expect(offsetFromMidnight('23:00')).toBe(-60)
     expect(offsetFromMidnight('07:00')).toBe(420)
   })
 
   it('23:00→07:00 是从零点左边到右边', () => {
     const bar = sleepBarLayout('23:00', '07:00', '22:30', '06:30')
-    expect(bar.startPct).toBeCloseTo(45.83, 1)
-    expect(bar.endPct).toBeCloseTo(79.17, 1)
+    expect(bar.startPct).toBeCloseTo(47.92, 1)
+    expect(bar.endPct).toBeCloseTo(64.58, 1)
     expect(bar.durationMin).toBe(480)
     expect(bar.idealStartPct).toBeLessThan(bar.startPct)
   })
 
   it('半夜之后入睡也落在零点右边', () => {
     const bar = sleepBarLayout('01:00', '09:00', '23:00', '07:00')
-    expect(bar.startPct).toBeCloseTo(54.17, 1)
+    expect(bar.startPct).toBeCloseTo(52.08, 1)
+    expect(bar.endPct).toBeCloseTo(68.75, 1)
+  })
+
+  it('白天补觉一直睡到下午也不会被截断', () => {
+    const bar = sleepBarLayout('10:00', '18:00', '23:00', '07:00')
+    expect(bar.startPct).toBeCloseTo(70.83, 1)
     expect(bar.endPct).toBeCloseTo(87.5, 1)
   })
 })

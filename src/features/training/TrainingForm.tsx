@@ -415,6 +415,7 @@ export default function TrainingForm({
             onClick={() => void runPhrase()}
             className={`${SOLID_BUTTON} w-full disabled:opacity-40`}
           >
+            <Icon name="sparkles" />
             {phraseBusy ? t('training.phraseParsing') : t('training.confirm')}
           </button>
           <button type="button" onClick={() => setMode('pick')} className={`${OUTLINE_BUTTON} w-full`}>
@@ -716,6 +717,7 @@ export default function TrainingForm({
                       onClick={() => addSet(index)}
                       className={SOLID_SMALL_BUTTON}
                     >
+                      <Icon name="plus" />
                       {t('training.addSet')}
                     </button>
                     <button
@@ -723,6 +725,7 @@ export default function TrainingForm({
                       onClick={() => void copyLast(index)}
                       className={`${OUTLINE_BUTTON} px-2 py-1 text-xs`}
                     >
+                      <Icon name="copy" />
                       {t('training.copyLast')}
                     </button>
                   </div>

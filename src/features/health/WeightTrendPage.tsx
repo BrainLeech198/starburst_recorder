@@ -19,6 +19,7 @@ import { useLiveQuery } from '@/core/db/live'
 import { formatDate, formatMonthDay, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import { NAV_BACK_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { dayTargets, derivedTdee, formatNum, round2, sumMacros } from './healthMath'
 import {
   DETAIL_TREND_RANGES,
@@ -197,6 +198,7 @@ export default function WeightTrendPage() {
           <EmptyState icon="⚖️" text={t('health.weightBatchEmpty')} />
           <div className="mt-3 text-center">
             <Link to="/health/weights" className="text-xs text-brand underline">
+              <Icon name="scale" className="mr-1 inline h-3.5 w-3.5 shrink-0 align-middle" />
               {t('health.weighRecord')} ›
             </Link>
           </div>

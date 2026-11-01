@@ -15,6 +15,7 @@ import { getDownloadSource, setDownloadSource } from '@/features/update/updateSe
 import type { DownloadSource, UpdateChannel } from '@/features/update/updateService'
 import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
+import { Icon } from '@/shared/ui/icons'
 import { choiceTile } from '@/shared/ui/buttonStyles'
 import PageShell from '@/shared/ui/PageShell'
 import SettingCard, { SettingBadge } from '@/shared/ui/SettingCard'
@@ -64,9 +65,7 @@ export default function VersionPage() {
             disabled={checking}
             className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:text-brand disabled:opacity-60"
           >
-            <span aria-hidden="true" className="text-lg leading-none">
-              ⬇️
-            </span>
+            <Icon name="download" className="h-5 w-5 shrink-0 text-muted" />
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-2 text-sm font-medium">
                 {t('update.check')}
@@ -74,8 +73,8 @@ export default function VersionPage() {
               </span>
               <span className="mt-0.5 block text-xs text-muted">{status}</span>
             </span>
-            <span aria-hidden="true" className="text-muted">
-              {checking ? '…' : '›'}
+            <span className="shrink-0 text-muted">
+              {checking ? '…' : <Icon name="arrow-right" className="h-4 w-4 shrink-0" />}
             </span>
           </button>
 
@@ -84,16 +83,12 @@ export default function VersionPage() {
             onClick={() => void openExternal(SITE_URL)}
             className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:text-brand"
           >
-            <span aria-hidden="true" className="text-lg leading-none">
-              🌐
-            </span>
+            <Icon name="arrow-right" className="h-5 w-5 shrink-0 text-muted" />
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-medium">{t('update.site')}</span>
               <span className="mt-0.5 block text-xs text-muted">{t('update.siteHint')}</span>
             </span>
-            <span aria-hidden="true" className="text-muted">
-              ↗
-            </span>
+            <Icon name="arrow-right" className="h-4 w-4 shrink-0 text-muted" />
           </button>
         </div>
       </SettingCard>
@@ -113,7 +108,7 @@ export default function VersionPage() {
             >
               <span className="flex items-center gap-2">
                 {t(item.labelKey)}
-                {channel === item.id && <span aria-hidden="true">✓</span>}
+                {channel === item.id && <Icon name="check" className="h-4 w-4 shrink-0" />}
               </span>
               <span className="text-[11px] text-muted">{t(item.hintKey)}</span>
             </button>
@@ -137,7 +132,7 @@ export default function VersionPage() {
             >
               <span className="flex items-center gap-2">
                 {t(item.labelKey)}
-                {source === item.id && <span aria-hidden="true">✓</span>}
+                {source === item.id && <Icon name="check" className="h-4 w-4 shrink-0" />}
               </span>
               <span className="text-[11px] text-muted">{t(item.hintKey)}</span>
             </button>

@@ -5,6 +5,7 @@
  */
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
+import { Icon } from '@/shared/ui/icons'
 import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 
 const CHOICE =
@@ -32,11 +33,17 @@ export default function IntakeEditChoiceDialog({
 
       <div className="mt-4 space-y-2">
         <button type="button" onClick={onSingle} className={CHOICE}>
-          <span className="block text-sm text-fg">{t('health.intakeEditSingle')}</span>
+          <span className="flex items-center gap-2 text-sm text-fg">
+            <Icon name="edit" className="mr-0 h-4 w-4 shrink-0" />
+            {t('health.intakeEditSingle')}
+          </span>
           <span className="mt-0.5 block text-xs text-muted">{t('health.intakeEditSingleHint')}</span>
         </button>
         <button type="button" onClick={onSync} className={CHOICE}>
-          <span className="block text-sm text-fg">{t('health.intakeEditSync')}</span>
+          <span className="flex items-center gap-2 text-sm text-fg">
+            <Icon name="refresh" className="mr-0 h-4 w-4 shrink-0" />
+            {t('health.intakeEditSync')}
+          </span>
           <span className="mt-0.5 block text-xs text-muted">{t('health.intakeEditSyncHint')}</span>
         </button>
       </div>

@@ -28,6 +28,7 @@ import RevisionChat from './RevisionChat'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import Dropdown from '@/shared/ui/Dropdown'
+import { Icon } from '@/shared/ui/icons'
 import { FIELD, INPUT_NARROW } from '@/shared/ui/inputStyles'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 
@@ -357,6 +358,7 @@ export default function AiComposeDialog({
             onClick={() => void generate(style)}
             className={`${GHOST_BUTTON} disabled:opacity-40`}
           >
+            {requested ? <Icon name="refresh" /> : <Icon name="sparkles" />}
             {!requested ? t('ai.composeStart') : text === '' ? t('ai.retry') : t('ai.regenerate')}
           </button>
           <button type="button" onClick={onCancel} className={GHOST_BUTTON}>
@@ -368,6 +370,7 @@ export default function AiComposeDialog({
             onClick={() => onConfirm(text.trim())}
             className="rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition-colors hover:bg-surface-2 disabled:opacity-40"
           >
+            <Icon name="check" className="mr-1.5 inline h-4 w-4 shrink-0 align-middle" />
             {t('ai.writeDiary')}
           </button>
         </div>

@@ -4,7 +4,7 @@ import { sleepBarLayout } from './healthViz'
 import { sleepNapStats, sleepParts } from './sleepMath'
 
 /**
- * 今日睡眠条：0 点在正中间，左右各 12 小时。
+ * 今日睡眠条：0 点在正中间，左右各 24 小时。
  * 浅色是「理想作息」窗口，实色是这一夜实际睡了多久；一眼就能看出是睡早了、睡晚了还是时长不够。
  */
 export default function SleepBar({
@@ -40,9 +40,9 @@ export default function SleepBar({
         <div className="absolute inset-y-0 left-1/2 w-px bg-line" />
       </div>
       <div className="mt-1 flex items-center justify-between text-[10px] tabular-nums text-muted">
-        <span>-12h</span>
+        <span>-24h</span>
         <span className="text-fg">0:00</span>
-        <span>+12h</span>
+        <span>+24h</span>
       </div>
       <p className="m-0 mt-1 text-[10px] tabular-nums text-muted">
         {t('health.sleepBedtime')} {sleep.bedtime} → {t('health.sleepWake')} {sleep.wakeTime} ·{' '}

@@ -11,6 +11,7 @@ import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import { GHOST_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { round2, sumMacros } from './healthMath'
 import { saveHealthFood, saveIntake } from './healthRepo'
@@ -274,6 +275,7 @@ export default function IntakeEditDialog({
           onClick={() => void handleSave()}
           className={SOLID_BUTTON + (valid ? '' : ' opacity-40')}
         >
+          <Icon name="check" />
           {t('health.intakeEditSave')}
         </button>
       </div>

@@ -205,6 +205,13 @@ export default function FoodLibraryPage() {
     showToast({ message: t('foods.mealCopied') })
   }
 
+  /** 分享套餐：成分缺得太多（没有可带的内容）时提示一句 */
+  function shareMeal(meal: HealthMeal) {
+    const doc = buildMealShare(meal, foods ?? [])
+    if (doc) setSharing(doc)
+    else showToast({ message: t('share.mealEmpty') })
+  }
+
   async function handleMealSubmit(draft: { name: string; items: { foodId: string; grams: number }[] }) {
     const duplicated = (meals ?? []).some(
       (meal) => meal.id !== editingMeal?.id && meal.name.toLowerCase() === draft.name.toLowerCase(),
@@ -419,20 +426,44 @@ export default function FoodLibraryPage() {
                     )}
                   </button>
                   {!batch.active && (
-                    <RowMenu
-                      label={t('common.more')}
-                      items={[
-                        { label: t('foods.edit'), onSelect: () => openEdit(food) },
-                        { label: t('foods.copy'), onSelect: () => void handleCopy(food) },
-                        { label: t('share.action'), onSelect: () => setSharing(buildFoodShare(food)) },
-                        { label: t('foods.merge'), onSelect: () => openMerge(food) },
-                        {
-                          label: t('foods.delete'),
-                          danger: true,
-                          onSelect: () => setPendingDelete(food),
-                        },
-                      ]}
-                    />
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setSharing(buildFoodShare(food))}
+                        aria-label={t('share.action')}
+                        title={t('share.action')}
+                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+                      >
+                        <Icon name="share" className="h-4 w-4" />
+                      </button>
+                      <RowMenu
+                        label={t('common.more')}
+                        items={[
+                          { label: t('foods.edit'), icon: 'edit', onSelect: () => openEdit(food) },
+                          {
+                            label: t('foods.copy'),
+                            icon: 'copy',
+                            onSelect: () => void handleCopy(food),
+                          },
+                          {
+                            label: t('share.action'),
+                            icon: 'share',
+                            onSelect: () => setSharing(buildFoodShare(food)),
+                          },
+                          {
+                            label: t('foods.merge'),
+                            icon: 'refresh',
+                            onSelect: () => openMerge(food),
+                          },
+                          {
+                            label: t('foods.delete'),
+                            icon: 'trash',
+                            danger: true,
+                            onSelect: () => setPendingDelete(food),
+                          },
+                        ]}
+                      />
+                    </>
                   )}
                 </li>
               )
@@ -498,26 +529,39 @@ export default function FoodLibraryPage() {
                     </p>
                   </button>
                   {!batch.active && (
-                    <RowMenu
-                      label={t('common.more')}
-                      items={[
-                        { label: t('foods.edit'), onSelect: () => openEditMeal(meal) },
-                        { label: t('foods.copy'), onSelect: () => void handleCopyMeal(meal) },
-                        {
-                          label: t('share.action'),
-                          onSelect: () => {
-                            const doc = buildMealShare(meal, foods ?? [])
-                            if (doc) setSharing(doc)
-                            else showToast({ message: t('share.mealEmpty') })
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => shareMeal(meal)}
+                        aria-label={t('share.action')}
+                        title={t('share.action')}
+                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+                      >
+                        <Icon name="share" className="h-4 w-4" />
+                      </button>
+                      <RowMenu
+                        label={t('common.more')}
+                        items={[
+                          { label: t('foods.edit'), icon: 'edit', onSelect: () => openEditMeal(meal) },
+                          {
+                            label: t('foods.copy'),
+                            icon: 'copy',
+                            onSelect: () => void handleCopyMeal(meal),
                           },
-                        },
-                        {
-                          label: t('foods.delete'),
-                          danger: true,
-                          onSelect: () => setPendingMealDelete(meal),
-                        },
-                      ]}
-                    />
+                          {
+                            label: t('share.action'),
+                            icon: 'share',
+                            onSelect: () => shareMeal(meal),
+                          },
+                          {
+                            label: t('foods.delete'),
+                            icon: 'trash',
+                            danger: true,
+                            onSelect: () => setPendingMealDelete(meal),
+                          },
+                        ]}
+                      />
+                    </>
                   )}
                 </li>
               )

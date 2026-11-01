@@ -224,6 +224,7 @@ export default function SleepDialog({
             disabled={wakeDrafts.length >= MAX_WAKE_EVENTS}
             className={SOLID_SMALL_BUTTON + ' disabled:opacity-40'}
           >
+            <Icon name="plus" />
             {t('health.sleepWakeAdd')}
           </button>
         </div>
@@ -285,6 +286,7 @@ export default function SleepDialog({
             disabled={napDrafts.length >= MAX_NAPS}
             className={SOLID_SMALL_BUTTON + ' disabled:opacity-40'}
           >
+            <Icon name="plus" />
             {t('health.sleepNapsAdd')}
           </button>
         </div>

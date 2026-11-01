@@ -11,6 +11,7 @@
 import { useState } from 'react'
 import Modal from '@/shared/ui/Modal'
 import { SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { useI18n } from '@/shared/i18n/context'
 import { acknowledgeDisclaimer } from './disclaimerAck'
 
@@ -52,6 +53,7 @@ export function HealthDisclaimerDialog({
           }}
           className={SOLID_BUTTON}
         >
+          {firstRun && <Icon name="check" />}
           {firstRun ? t('health.disclaimerAck') : t('common.close')}
         </button>
       </div>

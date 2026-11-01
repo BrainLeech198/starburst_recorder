@@ -1,3 +1,19 @@
+## 0.10.4 · 2026-11-01
+
+### What's new
+
+- **The share QR code now appears**: the share payload compressed with a write-before-read pattern that deadlocked, leaving the dialog on an empty QR area; the reader is now attached first, so the QR code renders, and incoming-share decoding is fixed the same way
+- **Food and meal rows gained a permanent share button**: no need to dig into the "⋯" menu for the QR entry
+- **The batch action bar no longer disappears**: it is attached to the page root, so neither the content area's stacking context nor the Android bottom navigation can hide it, across all batch pages
+- **The sleep bar now spans 24 hours on each side**: naps and cross-day sleep draw in full, with midnight still centred
+- **Secondary buttons gained icons**: emoji on the version page became the shared icon set, and batch bar, row menu and primary actions across health / training / settings / finance now carry matching icons
+- Update-installer reuse, the elder-care high-contrast fix and QR sharing from earlier releases are unchanged
+
+### Downloads
+
+- Windows 10/11: `starburst-recorder-0.10.4-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.10.4.apk` (~61 MB, release-signed)
+
 ## 0.10.3 · 2026-11-01
 
 ### What's new

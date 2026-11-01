@@ -246,6 +246,7 @@ function LegacyCard() {
             onClick={() => setConfirming(true)}
             className={`${OUTLINE_BUTTON} mt-2`}
           >
+            <Icon name="import" />
             {busy ? t('data.migrating') : t('data.migrate')}
           </button>
           <p className="mt-2 text-xs text-muted">{t('data.migrateHint')}</p>
@@ -386,6 +387,7 @@ function SectionPicker({
           onClick={onConfirm}
           className={`${SOLID_BUTTON} flex-1`}
         >
+          <Icon name="check" />
           {confirmLabel}
         </button>
       </div>

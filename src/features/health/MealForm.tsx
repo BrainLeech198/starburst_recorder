@@ -254,6 +254,7 @@ export default function MealForm({
           }}
           className={`${OUTLINE_BUTTON} w-full`}
         >
+          <Icon name="sparkles" />
           {t('foods.mealAiAsk')}
         </button>
       )}
@@ -333,6 +334,7 @@ export default function MealForm({
           onClick={() => setPhotoOpen(true)}
           className={`${OUTLINE_BUTTON} w-full`}
         >
+          <Icon name="camera" />
           {t('foods.mealPhotoAsk')}
         </button>
       )}

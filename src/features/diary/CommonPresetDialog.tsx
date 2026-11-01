@@ -9,6 +9,7 @@ import { useLiveQuery } from '@/core/db/live'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import { GHOST_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { diaryPresets } from './diaryRepo'
 
 export default function CommonPresetDialog({
@@ -65,6 +66,7 @@ export default function CommonPresetDialog({
               title={preset.code}
               className="rounded-lg border border-line px-3 py-1.5 text-sm text-fg transition-colors hover:border-brand hover:text-brand"
             >
+              <Icon name="plus" className="mr-1.5 inline h-4 w-4 shrink-0 align-middle" />
               {preset.name}
             </button>
           ))}

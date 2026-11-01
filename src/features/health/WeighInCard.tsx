@@ -14,6 +14,7 @@ import { useI18n } from '@/shared/i18n/context'
 import { useToast } from '@/app/providers/ToastProvider'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { SOLID_SMALL_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import {
   TREND_RANGES,
   trendWeighIns,
@@ -100,6 +101,7 @@ export default function WeighInCard({
           disabled={!profile}
           className={SOLID_SMALL_BUTTON + ' shrink-0 disabled:opacity-40'}
         >
+          <Icon name="scale" />
           {t('health.weighRecord')}
         </button>
       </div>

@@ -3,17 +3,20 @@
  * 全站第一个下拉组件，目前给日记编辑页的「文件」「插入」「工具」用。
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Icon, type IconName } from './icons'
 
 export interface DropdownItem {
   label: string
   onSelect: () => void
+  /** 需要靠图标区分含义时给一个，纯文字菜单项不用给 */
+  icon?: IconName
   danger?: boolean
   disabled?: boolean
   title?: string
 }
 
 const MENU_ITEM =
-  'block w-full rounded-lg px-3 py-2 text-left text-sm transition-colors disabled:opacity-40'
+  'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors disabled:opacity-40'
 
 export default function Dropdown({
   label,
@@ -119,6 +122,7 @@ export default function Dropdown({
                 item.danger ? 'text-danger hover:bg-danger/10' : 'text-fg hover:bg-surface-2'
               }`}
             >
+              {item.icon && <Icon name={item.icon} className="mr-0 h-4 w-4 shrink-0" />}
               {item.label}
             </button>
           ))}

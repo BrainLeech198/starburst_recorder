@@ -240,6 +240,7 @@ export default function FoodForm({
               onClick={() => setPhotoPicking(true)}
               className={`${OUTLINE_BUTTON} px-2 py-1 text-xs`}
             >
+              <Icon name="image" />
               {photoUploading
                 ? t('foods.photoUploading')
                 : photo
@@ -293,6 +294,7 @@ export default function FoodForm({
 
       {!aiOpen && (
         <button type="button" onClick={openAi} className={`${OUTLINE_BUTTON} w-full`}>
+          <Icon name="sparkles" />
           {t('foods.aiAsk')}
         </button>
       )}
@@ -313,6 +315,7 @@ export default function FoodForm({
           onClick={() => setPhotoOpen(true)}
           className={`${OUTLINE_BUTTON} w-full`}
         >
+          <Icon name="camera" />
           {t('foods.photoAsk')}
         </button>
       )}
