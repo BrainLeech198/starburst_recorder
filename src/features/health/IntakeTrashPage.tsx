@@ -14,6 +14,7 @@ import { useI18n } from '@/shared/i18n/context'
 import PageShell from '@/shared/ui/PageShell'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { BAR_BUTTON, BAR_DANGER, SOLID_DANGER } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { purgeIntake, purgeTrashedIntakes, restoreIntake, trashedIntakes } from './healthRepo'
 import { formatNum } from './healthMath'
 
@@ -61,6 +62,7 @@ export default function IntakeTrashPage() {
           disabled={isEmpty}
           className={`${SOLID_DANGER} disabled:opacity-40`}
         >
+          <Icon name="trash" />
           {t('intakeTrash.clear')}
         </button>
       }
@@ -106,6 +108,7 @@ export default function IntakeTrashPage() {
                     onClick={() => void handleRestore(intake)}
                     className={BAR_BUTTON}
                   >
+                    <Icon name="refresh" />
                     {t('intakeTrash.restore')}
                   </button>
                   <button
@@ -113,6 +116,7 @@ export default function IntakeTrashPage() {
                     onClick={() => setPending({ kind: 'one', intake })}
                     className={BAR_DANGER}
                   >
+                    <Icon name="trash" />
                     {t('intakeTrash.purge')}
                   </button>
                 </div>

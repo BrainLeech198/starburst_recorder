@@ -6,6 +6,7 @@ import DayNav from '@/shared/ui/DayNav'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import { useI18n } from '@/shared/i18n/context'
 import { INPUT } from '@/shared/ui/inputStyles'
+import { Icon } from '@/shared/ui/icons'
 import { OUTLINE_BUTTON, SOLID_BUTTON, SOLID_SMALL_BUTTON } from '@/shared/ui/buttonStyles'
 import type { HealthProfile } from '@/core/db/schema'
 import IntakeBar, { ProteinBar } from './IntakeBar'
@@ -195,9 +196,10 @@ export default function HealthPage() {
               to="/health/profile"
               aria-label={t('health.profile')}
               title={t('health.profile')}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-lg text-muted transition-colors hover:text-fg"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:text-fg"
             >
-              <span aria-hidden="true">⚙</span>
+              <Icon name="settings" className="h-4 w-4" />
+              <span className="sr-only">{t('health.profile')}</span>
             </Link>
           </>
         }
@@ -210,6 +212,7 @@ export default function HealthPage() {
             {t('health.setupMissing', { fields: fieldNames })}
           </p>
           <Link to="/health/profile" className={`${OUTLINE_BUTTON} mt-3`}>
+            <Icon name="settings" />
             {t('health.setupAction')}
           </Link>
         </section>
@@ -264,6 +267,7 @@ export default function HealthPage() {
             onClick={() => setDialogOpen(true)}
             className={`${SOLID_BUTTON} mt-3 w-full`}
           >
+            <Icon name="utensils" />
             {t('health.addIntake')}
           </button>
         </section>
@@ -309,6 +313,7 @@ export default function HealthPage() {
               onClick={() => setSleepDialogOpen(true)}
               className={SOLID_BUTTON + ' mt-3 w-full'}
             >
+              <Icon name="bed" />
               {t('health.sleepAdd')}
             </button>
           </>
@@ -369,6 +374,7 @@ export default function HealthPage() {
                 className={INPUT + ' w-28'}
               />
               <button type="button" onClick={() => void saveIdeal()} className={SOLID_SMALL_BUTTON}>
+                <Icon name="check" className="mr-1 h-3.5 w-3.5 shrink-0" />
                 {t('health.weightSave')}
               </button>
             </div>
@@ -414,6 +420,7 @@ export default function HealthPage() {
           {formatVolume(weekTrainingSummary.volumeKg)}
         </p>
         <Link to={`/health/training?date=${dayKey}`} className={`${OUTLINE_BUTTON} mt-3`}>
+          <Icon name="dumbbell" />
           {t('training.title')}
         </Link>
       </section>
@@ -428,6 +435,7 @@ export default function HealthPage() {
             onClick={() => setImportOpen(true)}
             className={OUTLINE_BUTTON + ' mt-3'}
           >
+            <Icon name="import" />
             {t('health.deviceAction')}
           </button>
         </section>

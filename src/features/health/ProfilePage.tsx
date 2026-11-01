@@ -8,6 +8,7 @@ import PageShell from '@/shared/ui/PageShell'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { SOLID_BUTTON, OUTLINE_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import {
   ACTIVITY_FACTORS,
   activityFromQuestions,
@@ -304,6 +305,7 @@ export default function ProfilePage() {
       }
       actions={
         <button type="button" onClick={() => void handleSave()} className={SOLID_BUTTON}>
+          <Icon name="check" />
           {t('profile.save')}
         </button>
       }
@@ -447,6 +449,7 @@ export default function ProfilePage() {
                     }}
                     className={`${OUTLINE_BUTTON} mt-2`}
                   >
+                    <Icon name="check" />
                     {t('profile.guessApply')}
                   </button>
                 </div>
@@ -469,6 +472,7 @@ export default function ProfilePage() {
                 )}
               </div>
               <button type="button" onClick={adoptEstimate} className={OUTLINE_BUTTON}>
+                <Icon name="check" />
                 {t('profile.tdeeAdopt')}
               </button>
             </div>
@@ -488,6 +492,7 @@ export default function ProfilePage() {
               className={SOLID_BUTTON}
             >
               {t('profile.next')}
+              <Icon name="arrow-right" className="ml-1 h-4 w-4 shrink-0" />
             </button>
           </div>
         </>
@@ -590,9 +595,11 @@ export default function ProfilePage() {
 
           <div className="mt-4 flex justify-between">
             <button type="button" onClick={() => setStep(1)} className={OUTLINE_BUTTON}>
+              <Icon name="back" />
               {t('profile.prev')}
             </button>
             <button type="button" onClick={() => void handleSave()} className={SOLID_BUTTON}>
+              <Icon name="check" />
               {t('profile.save')}
             </button>
           </div>

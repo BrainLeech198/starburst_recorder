@@ -15,6 +15,7 @@ import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import { useI18n } from '@/shared/i18n/context'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { GHOST_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import type { DayTargets, Macros } from './healthMath'
 import { formatNum } from './healthMath'
 import HealthEstimateNote from './HealthDisclaimer'
@@ -284,6 +285,7 @@ export default function IntakeAiReview({
               disabled={busy || draft.trim() === ''}
               className={SOLID_BUTTON}
             >
+              <Icon name="send" />
               {t('askAi.send')}
             </button>
           </div>

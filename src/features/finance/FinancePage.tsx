@@ -19,6 +19,7 @@ import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { SOLID_BUTTON, OUTLINE_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import {
   expenseByCategory,
@@ -177,8 +178,9 @@ export default function FinancePage() {
             <button
               type="button"
               onClick={() => setMonth(currentMonth)}
-              className="text-xs text-brand transition-opacity hover:opacity-80"
+              className="inline-flex items-center text-xs text-brand transition-opacity hover:opacity-80"
             >
+              <Icon name="calendar" className="mr-1 h-3.5 w-3.5 shrink-0" />
               {t('finance.currentMonth')}
             </button>
           )}
@@ -186,21 +188,24 @@ export default function FinancePage() {
             type="button"
             onClick={() => void handleOpenExport()}
             disabled={rows.length === 0}
-            className="text-xs text-muted transition-colors hover:text-brand disabled:opacity-40"
+            className="inline-flex items-center text-xs text-muted transition-colors hover:text-brand disabled:opacity-40"
           >
+            <Icon name="export" className="mr-1 h-3.5 w-3.5 shrink-0" />
             {t('records.export')}
           </button>
           <button
             type="button"
             onClick={() => importInputRef.current?.click()}
-            className="text-xs text-muted transition-colors hover:text-brand"
+            className="inline-flex items-center text-xs text-muted transition-colors hover:text-brand"
           >
+            <Icon name="import" className="mr-1 h-3.5 w-3.5 shrink-0" />
             {t('records.import')}
           </button>
           <Link
             to="/finance/trash"
-            className="text-xs text-muted transition-colors hover:text-brand"
+            className="inline-flex items-center text-xs text-muted transition-colors hover:text-brand"
           >
+            <Icon name="trash" className="mr-1 h-3.5 w-3.5 shrink-0" />
             {t('finance.trash')}
           </Link>
           {/* 记录级 JSON 导入的隐藏文件框 */}
@@ -275,9 +280,11 @@ export default function FinancePage() {
               onClick={() => setDialog({ entry: null, date: defaultDate() })}
               className={SOLID_BUTTON}
             >
+              <Icon name="plus" />
               {t('finance.add')}
             </button>
             <button type="button" onClick={() => setAiOpen(true)} className={OUTLINE_BUTTON}>
+              <Icon name="sparkles" />
               {t('finance.aiAsk')}
             </button>
           </div>

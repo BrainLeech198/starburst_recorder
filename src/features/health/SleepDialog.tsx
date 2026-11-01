@@ -21,6 +21,7 @@ import {
   SOLID_SMALL_BUTTON,
   choiceTile,
 } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { sleepMinutes, sleepNapStats, sleepParts, sortNaps, sortWakeEvents } from './sleepMath'
 import { saveHealthSleep } from './healthRepo'
@@ -389,6 +390,7 @@ export default function SleepDialog({
           onClick={() => void handleSave()}
           className={SOLID_BUTTON + (valid ? '' : ' opacity-40')}
         >
+          <Icon name="check" />
           {t('health.sleepSave')}
         </button>
       </div>

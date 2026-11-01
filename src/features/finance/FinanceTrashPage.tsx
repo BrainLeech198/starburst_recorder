@@ -12,6 +12,7 @@ import { useI18n } from '@/shared/i18n/context'
 import PageShell from '@/shared/ui/PageShell'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { BAR_BUTTON, BAR_DANGER, SOLID_DANGER } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { categoryKey } from './financeCategories'
 import { purgeFinance, purgeTrashedFinance, restoreFinance, trashedFinance } from './financeRepo'
 
@@ -65,6 +66,7 @@ export default function FinanceTrashPage() {
           disabled={isEmpty}
           className={SOLID_DANGER + (isEmpty ? ' opacity-40' : '')}
         >
+          <Icon name="trash" />
           {t('finance.purgeAll')}
         </button>
       }
@@ -96,6 +98,7 @@ export default function FinanceTrashPage() {
                   onClick={() => void handleRestore(entry)}
                   className={BAR_BUTTON}
                 >
+                  <Icon name="refresh" />
                   {t('finance.restore')}
                 </button>
                 <button
@@ -103,6 +106,7 @@ export default function FinanceTrashPage() {
                   onClick={() => setPending({ kind: 'one', entry })}
                   className={BAR_DANGER}
                 >
+                  <Icon name="trash" />
                   {t('finance.purge')}
                 </button>
               </div>

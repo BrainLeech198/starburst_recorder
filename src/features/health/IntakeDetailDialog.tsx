@@ -2,6 +2,7 @@ import type { HealthIntake } from '@/core/db/schema'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { formatNum } from './healthMath'
 
 /** 一笔摄入的营养成分表：总量 + 每 100g + 套餐的成分明细 */
@@ -98,6 +99,7 @@ export default function IntakeDetailDialog({
       <div className="mt-4 flex justify-end gap-2">
         {onEdit && (
           <button type="button" onClick={onEdit} className={SOLID_BUTTON}>
+            <Icon name="edit" />
             {t('health.editIntake')}
           </button>
         )}

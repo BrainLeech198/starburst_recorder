@@ -14,6 +14,7 @@ import { useI18n } from '@/shared/i18n/context'
 import PageShell from '@/shared/ui/PageShell'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { BAR_BUTTON, BAR_DANGER, SOLID_DANGER } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { formatNum } from './healthMath'
 import {
   purgeHealthFood,
@@ -89,6 +90,7 @@ export default function FoodTrashPage() {
           disabled={isEmpty}
           className={`${SOLID_DANGER} disabled:opacity-40`}
         >
+          <Icon name="trash" />
           {t('foodTrash.clear')}
         </button>
       }
@@ -132,6 +134,7 @@ export default function FoodTrashPage() {
                 </div>
                 <div className="flex shrink-0 gap-1">
                   <button type="button" onClick={() => void handleRestore(row)} className={BAR_BUTTON}>
+                    <Icon name="refresh" />
                     {t('foodTrash.restore')}
                   </button>
                   <button
@@ -139,6 +142,7 @@ export default function FoodTrashPage() {
                     onClick={() => setPending({ kind: 'one', row })}
                     className={BAR_DANGER}
                   >
+                    <Icon name="trash" />
                     {t('foodTrash.purge')}
                   </button>
                 </div>

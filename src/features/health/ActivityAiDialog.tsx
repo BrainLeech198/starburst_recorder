@@ -17,6 +17,7 @@ import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { SOLID_BUTTON, OUTLINE_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { chat, explainFailure, pickReply } from '@/features/ai/aiClient'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import type { ChatMessage } from '@/platform/desktop'
@@ -267,6 +268,7 @@ export default function ActivityAiDialog({
                   onClick={() => onApply(proposal.activity)}
                   className={SOLID_BUTTON}
                 >
+                  <Icon name="check" />
                   {t('profile.activityAiApply')}
                 </button>
                 <button
@@ -298,6 +300,7 @@ export default function ActivityAiDialog({
                   disabled={loading}
                 />
                 <button type="button" onClick={send} disabled={loading || !input.trim()} className={SOLID_BUTTON}>
+                  <Icon name="send" />
                   {t('profile.activityAiSend')}
                 </button>
               </div>

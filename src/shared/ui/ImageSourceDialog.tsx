@@ -5,6 +5,7 @@
 import { useI18n } from '@/shared/i18n/context'
 import Modal from './Modal'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from './buttonStyles'
+import { Icon } from './icons'
 import { canUseCamera } from '@/platform/camera'
 
 export default function ImageSourceDialog({
@@ -35,6 +36,7 @@ export default function ImageSourceDialog({
           }}
           className={`${SOLID_BUTTON} w-full`}
         >
+          <Icon name="image" />
           {t('imageSource.pickFile')}
         </button>
         {onDraw && (
@@ -46,6 +48,7 @@ export default function ImageSourceDialog({
             }}
             className={`${OUTLINE_BUTTON} w-full`}
           >
+            <Icon name="edit" />
             {t('imageSource.draw')}
           </button>
         )}
@@ -59,6 +62,7 @@ export default function ImageSourceDialog({
           }}
           className={`${OUTLINE_BUTTON} w-full disabled:opacity-40`}
         >
+          <Icon name="camera" />
           {t('imageSource.camera')}
         </button>
         <button

@@ -13,6 +13,7 @@ import { useToast } from '@/app/providers/ToastProvider'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { SOLID_BUTTON, SOLID_DANGER } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import {
   addMemory,
   clearMemories,
@@ -120,6 +121,7 @@ export default function MemoryPage() {
               disabled={text.trim() === ''}
               className={`${SOLID_BUTTON} disabled:opacity-40`}
             >
+              <Icon name="plus" />
               {t('memory.add')}
             </button>
           </div>

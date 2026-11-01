@@ -19,6 +19,7 @@ import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
 import TimeMeta from '@/shared/ui/TimeMeta'
 import { BAR_BUTTON, BAR_DANGER, NAV_BACK_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import MealParts from './MealParts'
 import IntakeDialog from './IntakeDialog'
 import IntakeDetailDialog from './IntakeDetailDialog'
@@ -180,16 +181,17 @@ export default function IntakesPage() {
           today: t('health.backToToday'),
         }}
         leading={
-          <Link to="/health" className={NAV_BACK_BUTTON}>
-            <span aria-hidden="true">‹</span>
+          <Link to="/health" className={`${NAV_BACK_BUTTON} gap-1`}>
+            <Icon name="back" className="h-3.5 w-3.5 shrink-0" />
             {t('nav.health')}
           </Link>
         }
         trailing={
           <Link
             to="/health/foods"
-            className="inline-flex h-8 items-center rounded-lg px-2 text-xs text-muted transition-colors hover:text-fg"
+            className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs text-muted transition-colors hover:text-fg"
           >
+            <Icon name="folder" className="h-3.5 w-3.5 shrink-0" />
             {t('health.foods')}
           </Link>
         }
@@ -200,6 +202,7 @@ export default function IntakesPage() {
         {!batch.active && (
           <>
             <button type="button" onClick={() => setDialogOpen(true)} className={SOLID_BUTTON}>
+              <Icon name="utensils" />
               {t('health.addIntake')}
             </button>
             <button
@@ -208,11 +211,13 @@ export default function IntakesPage() {
               disabled={rows.length === 0}
               className={`${SOLID_BUTTON} disabled:opacity-40`}
             >
+              <Icon name="list" />
               {t('health.batch')}
             </button>
           </>
         )}
         <Link to="/health/intakes/trash" className={`${SOLID_BUTTON} col-span-2 sm:col-span-1`}>
+          <Icon name="trash" />
           {t('health.intakeTrash')}
         </Link>
       </ToolbarRow>

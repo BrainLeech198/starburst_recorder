@@ -23,6 +23,7 @@ import {
   OUTLINE_BUTTON,
   SOLID_BUTTON,
 } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import DayNav from '@/shared/ui/DayNav'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import SleepDialog from './SleepDialog'
@@ -213,8 +214,8 @@ export default function SleepsPage() {
             today: t('health.backToToday'),
           }}
           leading={
-            <Link to="/health" className={NAV_BACK_BUTTON}>
-              <span aria-hidden="true">‹</span>
+            <Link to="/health" className={`${NAV_BACK_BUTTON} gap-1`}>
+              <Icon name="back" className="h-3.5 w-3.5 shrink-0" />
               {t('nav.health')}
             </Link>
           }
@@ -226,6 +227,7 @@ export default function SleepsPage() {
         {!batch.active && (
           <>
             <button type="button" onClick={() => setDialogOpen(true)} className={SOLID_BUTTON}>
+              <Icon name="bed" />
               {sleep ? t('health.sleepEdit') : t('health.sleepAdd')}
             </button>
             <button
@@ -234,9 +236,11 @@ export default function SleepsPage() {
               disabled={!sleep}
               className={`${SOLID_BUTTON} disabled:opacity-40`}
             >
+              <Icon name="export" />
               {t('records.export')}
             </button>
             <button type="button" onClick={batch.enter} className={SOLID_BUTTON}>
+              <Icon name="list" />
               {t('health.batch')}
             </button>
             <button
@@ -244,6 +248,7 @@ export default function SleepsPage() {
               onClick={() => importInputRef.current?.click()}
               className={SOLID_BUTTON}
             >
+              <Icon name="import" />
               {t('records.import')}
             </button>
             {/* 记录级 JSON 导入的隐藏文件框 */}
@@ -257,6 +262,7 @@ export default function SleepsPage() {
           </>
         )}
         <Link to="/health/sleeps/trash" className={`${SOLID_BUTTON} col-span-2 sm:col-span-1`}>
+          <Icon name="trash" />
           {t('health.sleepTrash')}
         </Link>
       </ToolbarRow>
@@ -329,6 +335,7 @@ export default function SleepsPage() {
               onClick={() => setDialogOpen(true)}
               className={SOLID_BUTTON + ' mt-3 w-full'}
             >
+              <Icon name="plus" />
               {t('health.sleepAdd')}
             </button>
           </>
@@ -417,6 +424,7 @@ export default function SleepsPage() {
         <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
           <p className="m-0 text-xs text-muted">{t('health.setupNeeded')}</p>
           <Link to="/health/profile" className={`${OUTLINE_BUTTON} mt-3`}>
+            <Icon name="settings" />
             {t('health.setupAction')}
           </Link>
         </section>

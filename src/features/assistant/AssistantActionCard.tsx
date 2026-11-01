@@ -11,6 +11,7 @@ import type { AssistantMemoryKind } from './assistantMemory'
 import type { ChatActionState } from './assistantChatStore'
 import { categoryKey } from '@/features/finance/financeCategories'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 
 const KIND_KEYS: Record<AssistantMemoryKind, MessageKey> = {
   preference: 'memory.kind.preference',
@@ -217,6 +218,7 @@ export default function AssistantActionCard({ state, busy, onConfirm, onCancel, 
               disabled={busy}
               className={`${SOLID_BUTTON} disabled:opacity-50`}
             >
+              <Icon name="check" />
               {t('assistant.action.confirm')}
             </button>
             <button

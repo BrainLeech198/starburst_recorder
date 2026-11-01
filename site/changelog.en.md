@@ -1,3 +1,17 @@
+## 0.10.1 · 2026-11-01
+
+### What's new
+
+- **Share foods and meals**: the row menu in the food library gains Share, showing a QR code the other person can scan; photos do not fit in a QR code, so the full configuration can be copied as a share code or saved as a `.starburst-share` file, and the receiver imports it with photos intact
+- **A "receive a share" entry**: the top-right corner of the food library scans or pastes a share code and previews what is inside before importing; foods with the same name are reused and duplicate meal names get a suffix
+- **The share format is extensible**: documents carry a `kind` field, so later share types such as diary presets or training plans only need one adapter
+- **Action buttons carry icons**: New, Import, Export, Delete, Edit, Scan and Share each have a matching icon
+
+### Downloads
+
+- Windows 10/11: `starburst-recorder-0.10.1-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.10.1.apk` (~21 MB, release-signed)
+
 ## 0.10.0 · 2026-11-01
 
 ### What's new

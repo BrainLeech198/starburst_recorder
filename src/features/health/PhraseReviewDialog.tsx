@@ -13,6 +13,7 @@ import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { GHOST_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { INPUT } from '@/shared/ui/inputStyles'
 import FoodForm from './FoodForm'
 import type { FoodDraft } from './FoodForm'
@@ -125,6 +126,7 @@ export default function PhraseReviewDialog({
                 onClick={onClose}
                 className={`${SOLID_BUTTON} disabled:opacity-40`}
               >
+                <Icon name="check" />
                 {t('phrase.done')}
               </button>
             </div>

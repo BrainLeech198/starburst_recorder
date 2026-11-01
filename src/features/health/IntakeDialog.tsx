@@ -34,6 +34,7 @@ import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
 import { INPUT, INPUT_NARROW, INPUT_NUM } from '@/shared/ui/inputStyles'
 import { SOLID_BUTTON, OUTLINE_BUTTON, BAR_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import ImageViewer from '@/features/diary/ImageViewer'
 import HealthEstimateNote from './HealthDisclaimer'
 import FoodForm from './FoodForm'
@@ -1087,6 +1088,7 @@ export default function IntakeDialog({
                     onClick={() => void saveCurrentAsMeal()}
                     className={SOLID_BUTTON}
                   >
+                    <Icon name="check" />
                     {t('foods.mealSave')}
                   </button>
                 </div>
@@ -1112,6 +1114,7 @@ export default function IntakeDialog({
                 {t('common.cancel')}
               </button>
               <button type="button" onClick={submit} className={SOLID_BUTTON}>
+                <Icon name="check" />
                 {t('common.confirm')}
               </button>
             </div>
@@ -1223,6 +1226,7 @@ export default function IntakeDialog({
                     onClick={() => setAiReviewOpen(true)}
                     className={`${OUTLINE_BUTTON} w-full`}
                   >
+                    <Icon name="sparkles" />
                     {t('health.askAi')}
                   </button>
                 )}
@@ -1232,6 +1236,7 @@ export default function IntakeDialog({
                     {t('intake.cancelAdd')}
                   </button>
                   <button type="button" onClick={confirmItem} className={SOLID_BUTTON}>
+                    <Icon name="check" />
                     {t('intake.confirmItem')}
                   </button>
                 </div>
@@ -1264,6 +1269,7 @@ export default function IntakeDialog({
                     onClick={() => setAiReviewOpen(true)}
                     className={`${OUTLINE_BUTTON} w-full`}
                   >
+                    <Icon name="sparkles" />
                     {t('health.askAi')}
                   </button>
                 )}

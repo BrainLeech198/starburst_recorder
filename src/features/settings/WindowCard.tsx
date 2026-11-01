@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { useI18n } from '@/shared/i18n/context'
 import SettingCard, { SettingBadge, SettingGroup } from '@/shared/ui/SettingCard'
 import { choiceTile, OUTLINE_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { INPUT_NARROW } from '@/shared/ui/inputStyles'
 import { desktopBridge } from '@/platform/desktop'
 import type { DesktopBridge } from '@/platform/desktop'
@@ -107,6 +108,7 @@ export function WindowCard() {
             onClick={() => void apply(Number(width), Number(height))}
             className={OUTLINE_BUTTON}
           >
+            <Icon name="check" />
             {t('window.apply')}
           </button>
         </div>

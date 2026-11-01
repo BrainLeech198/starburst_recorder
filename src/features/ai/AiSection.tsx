@@ -27,6 +27,7 @@ import {
   SOLID_BUTTON,
   SOLID_DANGER,
 } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import {
   canTest,
   isConfigured,
@@ -266,6 +267,7 @@ export default function AiSection() {
             }}
             className={SOLID_BUTTON}
           >
+            <Icon name="plus" />
             {t('ai.addModel')}
           </button>
           <button
@@ -274,12 +276,14 @@ export default function AiSection() {
             onClick={() => void handleTestAll()}
             className={`${SOLID_BUTTON} disabled:opacity-40`}
           >
+            <Icon name="refresh" />
             {testingAll
               ? t('ai.testingProgress', { done: progress.done, total: progress.total })
               : t('ai.testAll')}
           </button>
           {models.length > 0 && !batch.active && (
             <button type="button" onClick={batch.enter} className={SOLID_BUTTON}>
+              <Icon name="list" />
               {t('ai.batchManage')}
             </button>
           )}

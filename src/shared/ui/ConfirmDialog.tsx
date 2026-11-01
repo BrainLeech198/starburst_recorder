@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Modal from './Modal'
 import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from './icons'
 import { useI18n } from '@/shared/i18n/context'
 import { useCareMode } from '@/shared/care/careContext'
 
@@ -52,7 +53,7 @@ export default function ConfirmDialog({
             onConfirm()
           }}
           className={[
-            'rounded-lg border px-3 py-1.5 text-sm transition-colors',
+            'inline-flex items-center rounded-lg border px-3 py-1.5 text-sm transition-colors',
             tone === 'danger'
               ? 'border-danger text-danger'
               : tone === 'warn'
@@ -60,6 +61,9 @@ export default function ConfirmDialog({
                 : 'border-brand text-brand',
           ].join(' ')}
         >
+          {!needsArm || armed ? (
+            <Icon name={tone === 'brand' ? 'check' : 'trash'} />
+          ) : null}
           {needsArm && !armed ? t('care.guardConfirmAgain') : (confirmLabel ?? t('common.confirm'))}
         </button>
       </div>

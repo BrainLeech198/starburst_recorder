@@ -12,6 +12,7 @@ import Modal from '@/shared/ui/Modal'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { BACK_BUTTON, GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import {
   createEntry,
   dayInfo,
@@ -657,6 +658,7 @@ export default function DiaryEditPage() {
             title={editing ? t('diaryEdit.lockHint') : t('diaryEdit.editHint')}
             className={SOLID_BUTTON}
           >
+            <Icon name={editing ? 'check' : 'edit'} />
             {editing ? t('diaryEdit.lock') : t('diaryEdit.edit')}
           </button>
         </div>
@@ -749,6 +751,7 @@ export default function DiaryEditPage() {
               }}
               className={`${SOLID_BUTTON} w-full disabled:opacity-40`}
             >
+              <Icon name="check" />
               {t('diaryEdit.save')}
             </button>
             <button
@@ -781,6 +784,7 @@ export default function DiaryEditPage() {
               onClick={() => void handleLeaveSave()}
               className={`${SOLID_BUTTON} w-full disabled:opacity-40`}
             >
+              <Icon name="check" />
               {t('diaryEdit.save')}
             </button>
             <button
@@ -901,6 +905,7 @@ export default function DiaryEditPage() {
               disabled={polishBusy || polishChatBusy || polishResult.trim() === ''}
               className={`${SOLID_BUTTON} disabled:opacity-40`}
             >
+              <Icon name="sparkles" />
               {t('diaryEdit.polishApply')}
             </button>
           </div>

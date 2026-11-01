@@ -7,6 +7,7 @@
  * 识别结果按缩略图当前的页序拼成一篇；失败页在正文里留占位，可以原地重试。
  */
 import { GHOST_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import Modal from '@/shared/ui/Modal'
@@ -392,6 +393,7 @@ export default function ImageImportDialog({
       <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
         {doneCount > 0 && (
           <button type="button" onClick={finish} disabled={running} className={SOLID_BUTTON}>
+            <Icon name="edit" />
             {t('imageImport.enterEdit')}
           </button>
         )}

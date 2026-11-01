@@ -12,6 +12,7 @@ import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import { GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { categoryKey } from './financeCategories'
 import { addFinance } from './financeRepo'
@@ -131,6 +132,7 @@ export default function FinanceAiDialog({
             onClick={() => void run()}
             className={`${SOLID_BUTTON} mt-3 w-full disabled:opacity-40`}
           >
+            <Icon name="sparkles" />
             {busy ? t('finance.aiParsing') : t('finance.aiParse')}
           </button>
           <button type="button" onClick={onManual} className={`${OUTLINE_BUTTON} mt-2 w-full`}>
@@ -149,6 +151,7 @@ export default function FinanceAiDialog({
               {t('finance.aiRetry')}
             </button>
             <button type="button" onClick={() => void confirm()} className={SOLID_BUTTON}>
+              <Icon name="check" />
               {t('finance.aiConfirm')}
             </button>
           </>

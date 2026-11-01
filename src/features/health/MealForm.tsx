@@ -14,6 +14,7 @@ import { compressImage } from '@/features/ai/aiVision'
 import { useI18n } from '@/shared/i18n/context'
 import { INPUT, INPUT_NUM } from '@/shared/ui/inputStyles'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
 import type { FoodDraft } from './FoodForm'
@@ -317,6 +318,7 @@ export default function MealForm({
                   disabled={aiBusy || askText.trim() === ''}
                   className={`${SOLID_BUTTON} shrink-0`}
                 >
+                  <Icon name="sparkles" />
                   {aiBusy ? t('foods.aiThinking') : t('foods.aiSend')}
                 </button>
               </div>
@@ -367,6 +369,7 @@ export default function MealForm({
                 onClick={() => setSourceOpen(true)}
                 className={`${SOLID_BUTTON} w-full`}
               >
+                <Icon name="camera" />
                 {photoBusy ? t('foods.photoReading') : t('foods.mealPhotoPick')}
               </button>
               {photoError !== '' && <ErrorNote>{photoError}</ErrorNote>}
@@ -511,6 +514,7 @@ export default function MealForm({
           {t('common.cancel')}
         </button>
         <button type="button" onClick={submit} className={SOLID_BUTTON}>
+          <Icon name="check" />
           {submitLabel}
         </button>
       </div>

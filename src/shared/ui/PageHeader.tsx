@@ -18,6 +18,7 @@
 import { Link } from 'react-router'
 import type { ReactNode } from 'react'
 import { BACK_BUTTON } from './buttonStyles'
+import { Icon } from './icons'
 import ToolbarRow from './ToolbarRow'
 import { useI18n } from '@/shared/i18n/context'
 
@@ -48,8 +49,9 @@ export default function PageHeader({
   const row = (
     <>
       {/* 这是唯一的"回上一级"入口，要一眼看出"可以点" */}
-      <Link to={backTo} className={`inline-flex items-center ${BACK_BUTTON}`}>
-        ← {backLabel ?? t('common.settings')}
+      <Link to={backTo} className={`${BACK_BUTTON} gap-1`}>
+        <Icon name="back" className="h-4 w-4 shrink-0" />
+        {backLabel ?? t('common.settings')}
       </Link>
       {status && <div className="flex items-center">{status}</div>}
       {actions && <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>}

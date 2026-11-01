@@ -14,12 +14,17 @@ import BatchActions from '@/shared/ui/BatchActions'
 import RowMenu from '@/shared/ui/RowMenu'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import { BAR_DANGER, OUTLINE_BUTTON, SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { INPUT } from '@/shared/ui/inputStyles'
 import FoodForm from './FoodForm'
 import type { FoodDraft } from './FoodForm'
 import MealForm from './MealForm'
 import FoodInfoDialog from './FoodInfoDialog'
 import MealInfoDialog from './MealInfoDialog'
+import ShareDialog from '@/features/share/ShareDialog'
+import ShareReceiveDialog from '@/features/share/ShareReceiveDialog'
+import { buildFoodShare, buildMealShare } from './foodShare'
+import type { ShareDoc } from '@/features/share/shareCode'
 import { formatNum, mealTotals } from './healthMath'
 import { mealPhoto } from './mealPhoto'
 import {
@@ -87,6 +92,9 @@ export default function FoodLibraryPage() {
   /** 批量多选：食物和套餐各管各的，换页签就退出 */
   const batch = useBatchSelect()
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
+  /** 正在分享的食物 / 套餐；非空就打开分享弹窗 */
+  const [sharing, setSharing] = useState<ShareDoc | null>(null)
+  const [receiving, setReceiving] = useState(false)
 
   function switchTab(next: Tab) {
     if (next === tab) return
@@ -296,16 +304,23 @@ export default function FoodLibraryPage() {
       actions={
         <div className="flex items-center gap-2">
           <Link to="/health/foods/trash" className={OUTLINE_BUTTON}>
+            <Icon name="trash" />
             {t('foods.trash')}
           </Link>
+          <button type="button" onClick={() => setReceiving(true)} className={OUTLINE_BUTTON}>
+            <Icon name="scan" />
+            {t('share.receive')}
+          </button>
           {!batch.active && (
             <>
               {tab === 'foods' ? (
                 <button type="button" onClick={openCreate} className={SOLID_BUTTON}>
+                  <Icon name="plus" />
                   {t('foods.add')}
                 </button>
               ) : (
                 <button type="button" onClick={openCreateMeal} className={SOLID_BUTTON}>
+                  <Icon name="plus" />
                   {t('foods.addMeal')}
                 </button>
               )}
@@ -315,6 +330,7 @@ export default function FoodLibraryPage() {
                 disabled={tabEmpty}
                 className={`${OUTLINE_BUTTON} disabled:opacity-40`}
               >
+                <Icon name="list" />
                 {t('foods.batch')}
               </button>
             </>
@@ -408,6 +424,7 @@ export default function FoodLibraryPage() {
                       items={[
                         { label: t('foods.edit'), onSelect: () => openEdit(food) },
                         { label: t('foods.copy'), onSelect: () => void handleCopy(food) },
+                        { label: t('share.action'), onSelect: () => setSharing(buildFoodShare(food)) },
                         { label: t('foods.merge'), onSelect: () => openMerge(food) },
                         {
                           label: t('foods.delete'),
@@ -486,6 +503,14 @@ export default function FoodLibraryPage() {
                       items={[
                         { label: t('foods.edit'), onSelect: () => openEditMeal(meal) },
                         { label: t('foods.copy'), onSelect: () => void handleCopyMeal(meal) },
+                        {
+                          label: t('share.action'),
+                          onSelect: () => {
+                            const doc = buildMealShare(meal, foods ?? [])
+                            if (doc) setSharing(doc)
+                            else showToast({ message: t('share.mealEmpty') })
+                          },
+                        },
                         {
                           label: t('foods.delete'),
                           danger: true,
@@ -668,6 +693,10 @@ export default function FoodLibraryPage() {
           onClose={() => setDetailMeal(null)}
         />
       )}
+
+      {sharing && <ShareDialog doc={sharing} onClose={() => setSharing(null)} />}
+
+      {receiving && <ShareReceiveDialog onClose={() => setReceiving(false)} />}
     </PageShell>
   )
 }

@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { useI18n } from '@/shared/i18n/context'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import { compressImage } from '@/features/ai/aiVision'
@@ -413,6 +414,7 @@ export default function FoodForm({
       {error !== '' && <ErrorNote>{error}</ErrorNote>}
 
       <button type="button" onClick={submit} className={`${SOLID_BUTTON} w-full`}>
+        <Icon name="check" />
         {submitLabel}
       </button>
 

@@ -9,6 +9,7 @@ import Tab from '@/shared/ui/Tab'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import { BACK_BUTTON, BAR_BUTTON, BAR_DANGER, PAPER_ROW_ACTION, SOLID_BUTTON, SOLID_DANGER } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import {
   purgeEntries,
   purgeEntry,
@@ -115,12 +116,14 @@ export default function TrashPage() {
     <div className="w-full p-4">
       {/* 顶上一整行都是功能按钮，套一层底色跟下面的清单分开 */}
       <ToolbarRow>
-        <Link to="/diary" className={BACK_BUTTON}>
+        <Link to="/diary" className={`${BACK_BUTTON} gap-1`}>
+          <Icon name="back" className="h-4 w-4 shrink-0" />
           {t('trash.back')}
         </Link>
         <div className="flex items-center gap-2">
           {!batch.active && !isEmpty && (
             <button type="button" onClick={batch.enter} className={SOLID_BUTTON}>
+              <Icon name="list" />
               {t('trash.batch')}
             </button>
           )}
@@ -130,6 +133,7 @@ export default function TrashPage() {
             disabled={isEmpty || batch.active}
             className={`${SOLID_DANGER} disabled:opacity-40`}
           >
+            <Icon name="trash" />
             {isDiary ? t('trash.clearDiary') : t('trash.clearStamp')}
           </button>
         </div>
@@ -205,6 +209,7 @@ export default function TrashPage() {
                         onClick={() => void handleRestore('entry', entry.id)}
                         className={`${PAPER_ROW_ACTION} text-ink-muted hover:text-ink`}
                       >
+                        <Icon name="refresh" className="mr-1 h-3.5 w-3.5 shrink-0" />
                         {t('trash.restore')}
                       </button>
                       <button
@@ -212,6 +217,7 @@ export default function TrashPage() {
                         onClick={() => setPending({ kind: 'entry', id: entry.id })}
                         className={`${PAPER_ROW_ACTION} text-danger`}
                       >
+                        <Icon name="trash" className="mr-1 h-3.5 w-3.5 shrink-0" />
                         {t('trash.purge')}
                       </button>
                     </span>
@@ -290,6 +296,7 @@ export default function TrashPage() {
                         onClick={() => void handleRestore('stamp', stamp.id)}
                         className={`${PAPER_ROW_ACTION} text-ink-muted hover:text-ink`}
                       >
+                        <Icon name="refresh" className="mr-1 h-3.5 w-3.5 shrink-0" />
                         {t('trash.restore')}
                       </button>
                       <button
@@ -297,6 +304,7 @@ export default function TrashPage() {
                         onClick={() => setPending({ kind: 'stamp', id: stamp.id })}
                         className={`${PAPER_ROW_ACTION} text-danger`}
                       >
+                        <Icon name="trash" className="mr-1 h-3.5 w-3.5 shrink-0" />
                         {t('trash.purge')}
                       </button>
                     </span>
@@ -329,6 +337,7 @@ export default function TrashPage() {
             disabled={selectedCount === 0}
             className={BAR_BUTTON}
           >
+            <Icon name="refresh" />
             {t('trash.restore')}
           </button>
           <button
@@ -337,6 +346,7 @@ export default function TrashPage() {
             disabled={selectedCount === 0}
             className={BAR_DANGER}
           >
+            <Icon name="trash" />
             {t('trash.purge')}
           </button>
         </BatchActions>

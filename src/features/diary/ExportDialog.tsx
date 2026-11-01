@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ExportFormat } from './diaryExport'
 import { formatDate, shiftDay } from '@/core/utils/dateKey'
 import { GHOST_BUTTON, OUTLINE_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
@@ -201,6 +202,7 @@ export default function ExportDialog({
           }
           className={`${OUTLINE_BUTTON} disabled:opacity-40`}
         >
+          <Icon name="export" />
           {t('export.confirm')}
         </button>
       </div>

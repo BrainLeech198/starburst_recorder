@@ -22,6 +22,7 @@ import DayNav from '@/shared/ui/DayNav'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import EmptyState from '@/shared/ui/EmptyState'
 import { NAV_BACK_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
 import {
   formatDuration,
@@ -238,7 +239,7 @@ export default function TrainingPage() {
           }}
           leading={
             <Link to="/health" className={NAV_BACK_BUTTON}>
-              <span aria-hidden="true">‹</span>
+              <Icon name="back" className="h-3.5 w-3.5 shrink-0" />
               {t('nav.health')}
             </Link>
           }
@@ -327,15 +328,19 @@ export default function TrainingPage() {
               onClick={() => setForm({ training: null })}
               className={SOLID_BUTTON}
             >
+              <Icon name="plus" />
               {t('training.add')}
             </button>
             <button type="button" onClick={openBatch} className={SOLID_BUTTON}>
+              <Icon name="list" />
               {t('training.batch')}
             </button>
             <Link to="/health/training/trash" className={SOLID_BUTTON}>
+              <Icon name="trash" />
               {t('training.trash')}
             </Link>
             <button type="button" onClick={() => setPlanOpen(true)} className={OUTLINE_BUTTON}>
+              <Icon name="calendar" />
               {t('training.plan.title')}
             </button>
             <button
@@ -343,6 +348,7 @@ export default function TrainingPage() {
               onClick={() => importInputRef.current?.click()}
               className={OUTLINE_BUTTON}
             >
+              <Icon name="import" />
               {t('records.import')}
             </button>
             {/* 记录级 JSON 导入的隐藏文件框 */}
@@ -392,6 +398,7 @@ export default function TrainingPage() {
               disabled={batch.count === 0}
               className="inline-flex min-h-11 items-center justify-center rounded-lg px-2.5 py-1 text-xs text-danger transition-colors hover:opacity-80 disabled:opacity-40 md:min-h-0"
             >
+              <Icon name="trash" />
               {t('common.delete')}
             </button>
           </BatchActions>
@@ -404,6 +411,7 @@ export default function TrainingPage() {
             onClick={() => setForm({ training: null })}
             className={`${SOLID_BUTTON} mt-3 w-full`}
           >
+            <Icon name="plus" />
             {t('training.first')}
           </button>
         </div>

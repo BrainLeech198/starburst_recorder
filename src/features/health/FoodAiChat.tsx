@@ -12,6 +12,7 @@ import { Link } from 'react-router'
 import { useI18n } from '@/shared/i18n/context'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { chat, explainFailure, pickReply } from '@/features/ai/aiClient'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import type { ChatMessage } from '@/platform/desktop'
@@ -387,6 +388,7 @@ export default function FoodAiChat({
                   }
                   className={SOLID_BUTTON}
                 >
+                  <Icon name="check" />
                   {t('foods.aiApply')}
                 </button>
                 <button
@@ -423,6 +425,7 @@ export default function FoodAiChat({
                   disabled={loading || !input.trim()}
                   className={SOLID_BUTTON}
                 >
+                  <Icon name="send" />
                   {t('foods.aiSend')}
                 </button>
               </div>

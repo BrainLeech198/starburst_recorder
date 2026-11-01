@@ -42,7 +42,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.10.0',
+    'hero.cta': '下载 0.10.1',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -113,11 +113,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.10.0',
+    'open.version': '版本 0.10.1',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.10.0 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.10.1 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -128,11 +128,11 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '训练板块能用了：力量、有氧、拉伸、球类都能记，动作库带肌群，按周排计划、到点提醒；健康首页也能直接看到本周练了几次',
+      '食物与套餐可以分享了：行菜单里的「分享」给一张二维码，对方扫码就能收下；二维码放不下的照片与细节，复制分享码或存成文件发过去，导入时原样带过去',
     'whatsnew.item2':
-      '经济补成一整套：每笔可以带票据照片、时刻精确到秒，能一句话让 AI 记账；支持单条导出、单独导入，也有回收站，导入备份时会逐条确认冲突',
+      '食物库右上角新增「收下分享」：扫码或粘贴分享码，先看一遍内容再决定导入；同名食物自动复用，同名套餐自动编号，不会覆盖你已有的数据',
     'whatsnew.item3':
-      '助手新增训练工具：查统计、记一次、改或删；拍食物照片估成分不再反复追问，会自己判断存成食物还是套餐',
+      '动作按钮配上了图标：新建、导入、导出、删除、编辑、扫描、分享都能扫一眼分辨',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -141,7 +141,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.10.0',
+    'footer.version': '版本 0.10.1',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -184,7 +184,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.10.0',
+    'hero.cta': 'Download 0.10.1',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -260,12 +260,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.10.0',
+    'open.version': 'Version 0.10.1',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.10.0 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.10.1 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -276,13 +276,13 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.10.0",
+    'whatsnew.title': "What's new in 0.10.1",
     'whatsnew.item1':
-      'A training section is here: log strength, cardio, mobility and ball sports, browse an exercise library by muscle group, set a weekly plan with reminders, and see this week’s progress on the health home',
+      'Foods and meals can be shared: the Share action in the row menu shows a QR code the other person can scan; when the QR code cannot hold the photos and detail, copy the share code or save a file and it imports exactly as it was',
     'whatsnew.item2':
-      'Finance is now complete: attach a receipt photo, keep time to the second, and record a purchase in one sentence with AI; export or import a single entry, recover from a trash page, and resolve conflicts one by one when merging a backup',
+      'A “receive a share” entry in the top-right corner of the food library: scan or paste a share code, preview what is inside, then import; foods with the same name are reused and duplicate meal names get a suffix, so nothing you have gets overwritten',
     'whatsnew.item3':
-      'The assistant can now read training stats, log a session, edit or delete one; food photos are estimated without repeated questions, and it decides whether to save a food or a meal',
+      'Action buttons carry icons: New, Import, Export, Delete, Edit, Scan and Share are now distinct at a glance',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -291,7 +291,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.10.0',
+    'footer.version': 'Version 0.10.1',
     'footer.tagline': 'Data stays on your device',
   },
 };

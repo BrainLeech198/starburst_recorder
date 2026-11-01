@@ -14,6 +14,7 @@ import { useI18n } from '@/shared/i18n/context'
 import PageShell from '@/shared/ui/PageShell'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { BAR_BUTTON, BAR_DANGER, SOLID_DANGER } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { sleepMinutes, sleepParts } from './sleepMath'
 import { purgeHealthSleep, purgeTrashedHealthSleeps, restoreHealthSleep, trashedHealthSleeps } from './healthRepo'
 
@@ -61,6 +62,7 @@ export default function SleepTrashPage() {
           disabled={isEmpty}
           className={SOLID_DANGER + (isEmpty ? ' opacity-40' : '')}
         >
+          <Icon name="trash" />
           {t('sleepTrash.clear')}
         </button>
       }
@@ -99,6 +101,7 @@ export default function SleepTrashPage() {
                     onClick={() => void handleRestore(sleep)}
                     className={BAR_BUTTON}
                   >
+                    <Icon name="refresh" />
                     {t('sleepTrash.restore')}
                   </button>
                   <button
@@ -106,6 +109,7 @@ export default function SleepTrashPage() {
                     onClick={() => setPending({ kind: 'one', sleep })}
                     className={BAR_DANGER}
                   >
+                    <Icon name="trash" />
                     {t('sleepTrash.purge')}
                   </button>
                 </div>

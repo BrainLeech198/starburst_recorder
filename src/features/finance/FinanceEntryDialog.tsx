@@ -15,6 +15,7 @@ import Modal from '@/shared/ui/Modal'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
 import { GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { categoriesOf, categoryKey } from './financeCategories'
 import { roundMoney } from './financeMath'
@@ -328,6 +329,7 @@ export default function FinanceEntryDialog({
           onClick={() => void submit()}
           className={`${SOLID_BUTTON} disabled:opacity-40`}
         >
+          <Icon name="check" />
           {t('finance.save')}
         </button>
       </div>

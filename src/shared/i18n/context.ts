@@ -21,6 +21,7 @@ export const LOCALE_ORDER = ['zh', 'zh-TW', 'en', 'ja', 'ko', 'de', 'fr', 'ru', 
 
 export type Locale = (typeof LOCALE_ORDER)[number]
 export type MessageParams = Record<string, string | number>
+export type Translate = (key: MessageKey, params?: MessageParams) => string
 
 /** 每种语言在语言页里的自称（用该语言自己写，便于跨语言辨认） */
 export const LOCALE_LABEL_KEYS: Record<Locale, MessageKey> = {

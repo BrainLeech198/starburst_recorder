@@ -12,6 +12,7 @@ import { useI18n } from '@/shared/i18n/context'
 import { useToast } from '@/app/providers/ToastProvider'
 import Modal from '@/shared/ui/Modal'
 import { GHOST_BUTTON, SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { formatNum } from './healthMath'
 import {
   healthProfile,
@@ -176,6 +177,7 @@ export default function HealthDeviceImportDialog({ onClose }: { onClose: () => v
               {t('common.cancel')}
             </button>
             <button type="button" onClick={retry} className={SOLID_BUTTON}>
+              <Icon name="refresh" />
               {t('health.deviceRetry')}
             </button>
           </div>
@@ -194,6 +196,7 @@ export default function HealthDeviceImportDialog({ onClose }: { onClose: () => v
               onClick={() => void openHealthConnect()}
               className={SOLID_BUTTON}
             >
+              <Icon name="settings" />
               {t('health.deviceSettings')}
             </button>
           </div>
@@ -213,6 +216,7 @@ export default function HealthDeviceImportDialog({ onClose }: { onClose: () => v
               onClick={() => void authorize()}
               className={SOLID_BUTTON + ' disabled:opacity-40'}
             >
+              <Icon name="check" />
               {t('health.deviceAuthorize')}
             </button>
           </div>
@@ -278,6 +282,7 @@ export default function HealthDeviceImportDialog({ onClose }: { onClose: () => v
               onClick={() => void handleImport()}
               className={SOLID_BUTTON + ' disabled:opacity-40'}
             >
+              <Icon name="import" />
               {t('health.deviceImport')}
             </button>
           </div>

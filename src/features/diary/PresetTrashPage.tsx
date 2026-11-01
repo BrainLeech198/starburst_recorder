@@ -17,6 +17,7 @@ import {
   SOLID_DANGER,
   choiceTile,
 } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import {
   purgeDiaryPreset,
   restoreDiaryPreset,
@@ -94,6 +95,7 @@ export default function PresetTrashPage() {
         <div className="flex items-center gap-2">
           {!batch.active && !isEmpty && (
             <button type="button" onClick={batch.enter} className={SOLID_BUTTON}>
+              <Icon name="list" />
               {t('presets.batch')}
             </button>
           )}
@@ -103,6 +105,7 @@ export default function PresetTrashPage() {
             disabled={isEmpty || batch.active}
             className={`${SOLID_DANGER} disabled:opacity-40`}
           >
+            <Icon name="trash" />
             {t('presets.clearTrash')}
           </button>
         </div>
@@ -167,6 +170,7 @@ export default function PresetTrashPage() {
                       onClick={() => void handleRestore(preset)}
                       className={BAR_BUTTON}
                     >
+                      <Icon name="refresh" />
                       {t('presets.restore')}
                     </button>
                     <button
@@ -174,6 +178,7 @@ export default function PresetTrashPage() {
                       onClick={() => setPending({ kind: 'one', id: preset.id })}
                       className={BAR_DANGER}
                     >
+                      <Icon name="trash" />
                       {t('presets.purge')}
                     </button>
                   </div>
@@ -192,6 +197,7 @@ export default function PresetTrashPage() {
             disabled={batch.count === 0}
             className={BAR_BUTTON}
           >
+            <Icon name="refresh" />
             {t('presets.restore')}
           </button>
           <button
@@ -200,6 +206,7 @@ export default function PresetTrashPage() {
             disabled={batch.count === 0}
             className={BAR_DANGER}
           >
+            <Icon name="trash" />
             {t('presets.purge')}
           </button>
         </BatchActions>

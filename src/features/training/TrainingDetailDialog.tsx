@@ -8,6 +8,7 @@ import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import Modal from '@/shared/ui/Modal'
 import { GHOST_BUTTON, ROW_DANGER, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { formatDate } from '@/core/utils/dateKey'
 import { durationOf, formatDuration, formatVolume, summarizeDay, trainingLabel } from './trainingMath'
 
@@ -101,6 +102,7 @@ export default function TrainingDetailDialog({
           {t('common.delete')}
         </button>
         <button type="button" onClick={onEdit} className={SOLID_BUTTON}>
+          <Icon name="edit" />
           {t('training.editTitle')}
         </button>
       </div>

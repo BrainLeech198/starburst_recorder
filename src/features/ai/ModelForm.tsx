@@ -16,6 +16,7 @@ import { INPUT } from '@/shared/ui/inputStyles'
 import ComboBox from '@/shared/ui/ComboBox'
 import type { ComboOption } from '@/shared/ui/ComboBox'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 
 /** 表单里正在填的内容：没有 id、没有测试结果 */
 export interface ModelDraft {
@@ -292,6 +293,7 @@ export default function ModelForm({
           }
           className={`${SOLID_BUTTON} disabled:opacity-40`}
         >
+          <Icon name="check" />
           {submitLabel}
         </button>
         <button type="button" onClick={onCancel} className={OUTLINE_BUTTON}>

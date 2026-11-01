@@ -24,6 +24,7 @@ import Modal from '@/shared/ui/Modal'
 import SettingCard, { SettingBadge, SettingGroup } from '@/shared/ui/SettingCard'
 import PageShell from '@/shared/ui/PageShell'
 import { OUTLINE_BUTTON, SOLID_BUTTON, SOLID_DANGER, SOLID_WARN, choiceTile } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { desktopBridge } from '@/platform/desktop'
 import type { DesktopBridge } from '@/platform/desktop'
 import { db } from '@/core/db/db'
@@ -903,6 +904,7 @@ export default function DataPage() {
             onClick={() => void handleExportStart()}
             className={OUTLINE_BUTTON}
           >
+            <Icon name="export" />
             {busy ? t('data.reading') : t('data.export')}
           </button>
           <p className="mt-2 text-xs text-muted">{t('data.exportHint')}</p>
@@ -915,6 +917,7 @@ export default function DataPage() {
             onClick={() => void handleRecordExportStart()}
             className={OUTLINE_BUTTON}
           >
+            <Icon name="filter" />
             {busy ? t('data.reading') : t('data.pickExport')}
           </button>
           <p className="mt-2 text-xs text-muted">{t('data.pickExportHint')}</p>
@@ -944,6 +947,7 @@ export default function DataPage() {
               }}
               className={OUTLINE_BUTTON}
             >
+              <Icon name="import" />
               {t('data.importMerge')}
             </button>
             <button
@@ -955,6 +959,7 @@ export default function DataPage() {
               }}
               className={SOLID_DANGER}
             >
+              <Icon name="upload" />
               {t('data.importReplace')}
             </button>
           </div>
@@ -999,6 +1004,7 @@ export default function DataPage() {
                 onClick={() => setClearing({ section, safe: true })}
                 className={`${SOLID_WARN} disabled:opacity-40`}
               >
+                <Icon name="trash" />
                 {SAFE_CLEAR_LABEL[section]}
               </button>
             ))}
@@ -1016,6 +1022,7 @@ export default function DataPage() {
                 onClick={() => setClearing({ section, safe: false })}
                 className={`${SOLID_DANGER} disabled:opacity-40`}
               >
+                <Icon name="trash" />
                 {CLEAR_LABEL[section]}
               </button>
             ))}

@@ -20,6 +20,7 @@ import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import Modal from '@/shared/ui/Modal'
 import { GHOST_BUTTON, OUTLINE_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
 import {
   RECORD_KINDS,
@@ -323,6 +324,7 @@ export default function RecordExportDialog({
             onClick={() => void handleExport()}
             className={`${OUTLINE_BUTTON} disabled:opacity-40`}
           >
+            <Icon name="export" />
             {t('records.export')}
           </button>
         </div>

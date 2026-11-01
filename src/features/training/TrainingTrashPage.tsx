@@ -13,6 +13,7 @@ import type { MessageKey } from '@/shared/i18n/messages/zh'
 import PageShell from '@/shared/ui/PageShell'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { BAR_BUTTON, BAR_DANGER, SOLID_DANGER } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { summarizeDay, trainingLabel } from './trainingMath'
 import {
   purgeHealthTraining,
@@ -65,6 +66,7 @@ export default function TrainingTrashPage() {
           disabled={isEmpty}
           className={SOLID_DANGER + (isEmpty ? ' opacity-40' : '')}
         >
+          <Icon name="trash" />
           {t('training.purgeAll')}
         </button>
       }
@@ -105,6 +107,7 @@ export default function TrainingTrashPage() {
                     onClick={() => void handleRestore(training)}
                     className={BAR_BUTTON}
                   >
+                    <Icon name="refresh" />
                     {t('training.restore')}
                   </button>
                   <button
@@ -112,6 +115,7 @@ export default function TrainingTrashPage() {
                     onClick={() => setPending({ kind: 'one', training })}
                     className={BAR_DANGER}
                   >
+                    <Icon name="trash" />
                     {t('training.purge')}
                   </button>
                 </div>

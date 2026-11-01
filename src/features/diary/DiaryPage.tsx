@@ -12,6 +12,7 @@ import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import Modal from '@/shared/ui/Modal'
 import Tab from '@/shared/ui/Tab'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
+import { Icon } from '@/shared/ui/icons'
 import {
   BAR_BUTTON,
   BAR_DANGER,
@@ -411,6 +412,7 @@ export default function DiaryPage() {
               to="/diary/presets"
               className="ml-1 inline-flex h-8 items-center rounded-lg border border-line px-2 text-xs text-muted transition-colors hover:text-fg"
             >
+              <Icon name="folder" className="mr-1 h-3.5 w-3.5 shrink-0" />
               {t('diary.presets')}
             </Link>
           </>
@@ -426,6 +428,7 @@ export default function DiaryPage() {
             {mode === 'diary' ? (
               <>
                 <button type="button" onClick={handleCreate} className={SOLID_BUTTON}>
+                  <Icon name="plus" />
                   {t('diary.new')}
                 </button>
                 <button
@@ -435,12 +438,14 @@ export default function DiaryPage() {
                   title={!aiReady ? t('diary.hintNoModel') : undefined}
                   className={`${SOLID_BUTTON} disabled:opacity-40`}
                 >
+                  <Icon name="image" />
                   {t('diary.imageImport')}
                 </button>
               </>
             ) : (
               <>
                 <button type="button" onClick={handleAddStamp} className={SOLID_BUTTON}>
+                  <Icon name="plus" />
                   {t('diary.addStamp')}
                 </button>
                 <button
@@ -449,6 +454,7 @@ export default function DiaryPage() {
                   disabled={photoBusy}
                   className={`${OUTLINE_BUTTON} disabled:opacity-40`}
                 >
+                  <Icon name="camera" />
                   {t('diary.photoStamp')}
                 </button>
                 {/* AI 模型没配好时不亮；这天有没有素材交给弹窗去说（健康/经济也能当来源） */}
@@ -459,6 +465,7 @@ export default function DiaryPage() {
                   title={!aiReady ? t('diary.hintNoModel') : undefined}
                   className={`${SOLID_BUTTON} disabled:opacity-40`}
                 >
+                  <Icon name="sparkles" />
                   {t('diary.compose')}
                 </button>
               </>
@@ -471,6 +478,7 @@ export default function DiaryPage() {
               }}
               className={SOLID_BUTTON}
             >
+              <Icon name="list" />
               {t('diary.batch')}
             </button>
           </>
@@ -481,6 +489,7 @@ export default function DiaryPage() {
           state={{ mode }}
           className={`${SOLID_BUTTON} ${batch.active ? 'col-span-2 sm:col-span-1' : ''}`}
         >
+          <Icon name="trash" />
           {t('diary.trash')}
         </Link>
       </ToolbarRow>
@@ -581,6 +590,7 @@ export default function DiaryPage() {
             disabled={selectedCount === 0}
             className={BAR_DANGER}
           >
+            <Icon name="trash" />
             {t('diary.delete')}
           </button>
           <button
@@ -589,6 +599,7 @@ export default function DiaryPage() {
             disabled={selectedCount === 0}
             className={BAR_BUTTON}
           >
+            <Icon name="calendar" />
             {t('diary.moveDate')}
           </button>
           <button
@@ -597,6 +608,7 @@ export default function DiaryPage() {
             disabled={selectedCount === 0}
             className={BAR_BUTTON}
           >
+            <Icon name="export" />
             {t('diary.export')}
           </button>
         </BatchActions>

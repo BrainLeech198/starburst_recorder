@@ -19,6 +19,7 @@ import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import BatchActions from '@/shared/ui/BatchActions'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import { BAR_BUTTON, BAR_DANGER, OUTLINE_BUTTON, SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { INPUT } from '@/shared/ui/inputStyles'
 import {
   diaryPresets,
@@ -134,11 +135,13 @@ export default function PresetsPage() {
       actions={
         <div className="flex items-center gap-2">
           <Link to="/diary/presets/trash" className={SOLID_BUTTON}>
+            <Icon name="trash" />
             {t('presets.trash')}
           </Link>
           {!batch.active && (
             <>
               <button type="button" onClick={openCreate} className={SOLID_BUTTON}>
+                <Icon name="plus" />
                 {t(tab === 'person' ? 'presets.addPerson' : 'presets.addPlace')}
               </button>
               <button
@@ -147,6 +150,7 @@ export default function PresetsPage() {
                 disabled={empty}
                 className={`${SOLID_BUTTON} disabled:opacity-40`}
               >
+                <Icon name="list" />
                 {t('presets.batch')}
               </button>
             </>
@@ -203,6 +207,7 @@ export default function PresetsPage() {
                 {!batch.active && (
                   <div className="flex shrink-0 gap-1">
                     <button type="button" onClick={() => openEdit(preset)} className={BAR_BUTTON}>
+                      <Icon name="edit" className="h-3.5 w-3.5 shrink-0" />
                       {t('presets.edit')}
                     </button>
                     <button
@@ -210,6 +215,7 @@ export default function PresetsPage() {
                       onClick={() => setPendingDelete(preset)}
                       className={BAR_DANGER}
                     >
+                      <Icon name="trash" className="h-3.5 w-3.5 shrink-0" />
                       {t('presets.delete')}
                     </button>
                   </div>
@@ -228,6 +234,7 @@ export default function PresetsPage() {
             disabled={batch.count === 0}
             className={BAR_DANGER}
           >
+            <Icon name="trash" />
             {t('presets.delete')}
           </button>
         </BatchActions>
@@ -276,6 +283,7 @@ export default function PresetsPage() {
               {t('common.cancel')}
             </button>
             <button type="button" onClick={() => void handleSave()} className={SOLID_BUTTON}>
+              <Icon name="check" />
               {t('presets.save')}
             </button>
           </div>

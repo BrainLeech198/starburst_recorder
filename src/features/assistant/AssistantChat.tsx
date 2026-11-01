@@ -19,6 +19,7 @@ import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import { loadReasoning, saveReasoning } from '@/features/ai/aiReasoning'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import Modal from '@/shared/ui/Modal'
 import { runAssistant } from './assistantAgent'
 import {
@@ -531,6 +532,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           <div className="rounded-xl border border-warning/40 bg-warning/10 p-3">
             <p className="m-0 text-sm text-fg">{t('assistant.needConfig')}</p>
             <Link to="/me/agent/ai" className={SOLID_BUTTON + ' mt-3'}>
+              <Icon name="settings" />
               {t('assistant.goSettings')}
             </Link>
           </div>

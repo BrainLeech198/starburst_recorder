@@ -10,6 +10,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import { choiceTile, GHOST_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 
 /** 画布内部分辨率：手机上按 CSS 宽度放大好几倍，线条不会糊 */
 const CANVAS_WIDTH = 1200
@@ -263,6 +264,7 @@ export default function SketchDialog({
           disabled={strokeCount === 0 || saving}
           className={`${SOLID_BUTTON} disabled:opacity-40`}
         >
+          <Icon name="check" />
           {t('common.done')}
         </button>
       </div>

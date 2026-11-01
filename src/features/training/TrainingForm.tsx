@@ -21,6 +21,7 @@ import {
   SOLID_SMALL_BUTTON,
   choiceTile,
 } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { FIELD, INPUT } from '@/shared/ui/inputStyles'
 import { useToast } from '@/app/providers/ToastProvider'
 import { COMMON_EXERCISES, findExercise, searchExercises } from './exerciseLibrary'
@@ -752,6 +753,7 @@ export default function TrainingForm({
             {t('common.cancel')}
           </button>
           <button type="button" onClick={() => void save()} className={SOLID_BUTTON}>
+            <Icon name="check" />
             {t('training.save')}
           </button>
         </div>

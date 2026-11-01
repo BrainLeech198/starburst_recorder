@@ -11,6 +11,7 @@ import { useI18n } from '@/shared/i18n/context'
 import { useToast } from '@/app/providers/ToastProvider'
 import Modal from '@/shared/ui/Modal'
 import { GHOST_BUTTON, SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import { Icon } from '@/shared/ui/icons'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { emptyProfile } from '@/features/health/healthMath'
 import { saveHealthProfile } from '@/features/health/healthRepo'
@@ -143,6 +144,7 @@ export default function TrainingPlanPanel({
           {t('common.cancel')}
         </button>
         <button type="button" onClick={() => void save()} className={SOLID_BUTTON}>
+          <Icon name="check" />
           {t('training.save')}
         </button>
       </div>
