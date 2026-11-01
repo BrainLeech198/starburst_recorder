@@ -42,7 +42,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.10.1',
+    'hero.cta': '下载 0.10.2',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -113,26 +113,25 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.10.1',
+    'open.version': '版本 0.10.2',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.10.1 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.10.2 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
     'download.android': 'Android APK',
-    'download.androidMeta': 'Android 10 以上 · 约 16 MB',
+    'download.androidMeta': 'Android 10 以上 · 约 61 MB',
     'download.androidDesc': '侧载安装，需要允许「安装未知来源应用」。手机上是同一套界面，数据留在本机。',
     'download.note': '两个仓库放的是同一份安装包，哪个快就用哪个。',
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '食物与套餐可以分享了：行菜单里的「分享」给一张二维码，对方扫码就能收下；二维码放不下的照片与细节，复制分享码或存成文件发过去，导入时原样带过去',
+      '长辈关怀的「高对比」修好了：之前只有默认深色主题下会生效，切到浅色、纸色、雾色等其他主题后开关就没了效果；现在所有主题下都能把次要文字与分隔线压得更清楚',
     'whatsnew.item2':
-      '食物库右上角新增「收下分享」：扫码或粘贴分享码，先看一遍内容再决定导入；同名食物自动复用，同名套餐自动编号，不会覆盖你已有的数据',
-    'whatsnew.item3':
-      '动作按钮配上了图标：新建、导入、导出、删除、编辑、扫描、分享都能扫一眼分辨',
+      '上一版的食物 / 套餐二维码分享照旧：行菜单里的「分享」给一张二维码，对方扫码就能收下；照片与细节放不进二维码时，复制分享码或存成文件发过去，导入时原样带过去',
+    'whatsnew.item3': '这一版是修 bug 的小版本，其余功能与 0.10.1 相同',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -141,7 +140,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.10.1',
+    'footer.version': '版本 0.10.2',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -184,7 +183,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.10.1',
+    'hero.cta': 'Download 0.10.2',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -260,29 +259,28 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.10.1',
+    'open.version': 'Version 0.10.2',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.10.1 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.10.2 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
       'Double-click to install, then find it in the Start menu. Desktop data is a SQLite file you can copy anywhere.',
     'download.android': 'Android APK',
-    'download.androidMeta': 'Android 10+ · about 16 MB',
+    'download.androidMeta': 'Android 10+ · about 61 MB',
     'download.androidDesc':
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.10.1",
+    'whatsnew.title': "What's new in 0.10.2",
     'whatsnew.item1':
-      'Foods and meals can be shared: the Share action in the row menu shows a QR code the other person can scan; when the QR code cannot hold the photos and detail, copy the share code or save a file and it imports exactly as it was',
+      'Elder-care high contrast is fixed: it only worked in the default dark theme before, and switching to light, paper, mist or any other palette made the toggle do nothing. Secondary text and dividers now get clearly stronger in every theme',
     'whatsnew.item2':
-      'A “receive a share” entry in the top-right corner of the food library: scan or paste a share code, preview what is inside, then import; foods with the same name are reused and duplicate meal names get a suffix, so nothing you have gets overwritten',
-    'whatsnew.item3':
-      'Action buttons carry icons: New, Import, Export, Delete, Edit, Scan and Share are now distinct at a glance',
+      'The food and meal QR sharing from the previous release still applies: Share in the row menu shows a QR code the other person can scan, and when photos and detail do not fit, copy the share code or save a file and it imports with photos intact',
+    'whatsnew.item3': 'This is a small bug-fix build; everything else is the same as 0.10.1',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -291,7 +289,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.10.1',
+    'footer.version': 'Version 0.10.2',
     'footer.tagline': 'Data stays on your device',
   },
 };

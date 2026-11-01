@@ -819,8 +819,11 @@ html[data-care-tap='on'] :is(button, a, [role='button'], [role='menuitem'], [rol
   min-height: 3rem;
 }
 
-/* 高对比：次要文字向正文靠拢、分隔线加重。用各主题自己的 fg/bg 混出来，深浅主题自动适配 */
-html[data-care-contrast='on'] {
+/* 高对比：次要文字向正文靠拢、分隔线加重。用各主题自己的 fg/bg 混出来，深浅主题自动适配。
+   选择器必须是 :root[data-care-contrast]，和上面的主题段 :root[data-theme='x'] 同级：
+   主题段会重写 --color-muted / --color-line，写成 html[...]（优先级更低）会被它们盖住，
+   浅色等显式主题下高对比就失效了。两段同级时靠位置取胜，所以这段要留在所有主题定义之后。 */
+:root[data-care-contrast='on'] {
   --color-muted: color-mix(in srgb, var(--color-fg) 75%, var(--color-bg));
   --color-line: color-mix(in srgb, var(--color-fg) 30%, var(--color-bg));
 }

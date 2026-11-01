@@ -1,3 +1,15 @@
+## 0.10.2 · 2026-11-01
+
+### 这一版有什么
+
+- **长辈关怀的「高对比」修好**：此前只有默认深色主题下会生效，切到浅色、纸色、雾色等显式主题后开关完全没有效果；现在所有主题下都会把次要文字与分隔线压得更清楚
+- 上一版的食物 / 套餐二维码分享照旧，没有改动
+
+### 下载
+
+- Windows 10/11：`starburst-recorder-0.10.2-setup.exe`（约 95 MB）
+- Android 10 以上：`starburst-recorder-0.10.2.apk`（约 61 MB，正式签名）
+
 ## 0.10.1 · 2026-11-01
 
 ### 这一版有什么
@@ -10,7 +22,7 @@
 ### 下载
 
 - Windows 10/11：`starburst-recorder-0.10.1-setup.exe`（约 95 MB）
-- Android 10 以上：`starburst-recorder-0.10.1.apk`（约 21 MB，正式签名）
+- Android 10 以上：`starburst-recorder-0.10.1.apk`（约 61 MB，正式签名）
 
 ## 0.10.0 · 2026-11-01
 

@@ -1,3 +1,15 @@
+## 0.10.2 · 2026-11-01
+
+### What's new
+
+- **Elder-care high contrast is fixed**: it used to work only in the default dark theme, and did nothing after switching to light, paper, mist or any other explicit palette; secondary text and dividers now get stronger in every theme
+- The food and meal QR sharing from the previous release is unchanged
+
+### Downloads
+
+- Windows 10/11: `starburst-recorder-0.10.2-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.10.2.apk` (~61 MB, release-signed)
+
 ## 0.10.1 · 2026-11-01
 
 ### What's new
@@ -10,7 +22,7 @@
 ### Downloads
 
 - Windows 10/11: `starburst-recorder-0.10.1-setup.exe` (~95 MB)
-- Android 10+: `starburst-recorder-0.10.1.apk` (~21 MB, release-signed)
+- Android 10+: `starburst-recorder-0.10.1.apk` (~61 MB, release-signed)
 
 ## 0.10.0 · 2026-11-01
 
