@@ -10,6 +10,16 @@ import PageShell from '@/shared/ui/PageShell'
 import { SettingBadge } from '@/shared/ui/SettingCard'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import { loadMemories } from '@/features/assistant/assistantMemory'
+import { loadSkills } from '@/features/assistant/assistantSkills'
+import { loadPermission, type AssistantPermission } from '@/features/assistant/assistantPermission'
+import { loadReasoning } from '@/features/ai/aiReasoning'
+import type { MessageKey } from '@/shared/i18n/messages/zh'
+
+const PERMISSION_LABEL_KEYS: Record<AssistantPermission, MessageKey> = {
+  readonly: 'permission.readonly',
+  confirm: 'permission.confirm',
+  auto: 'permission.auto',
+}
 
 export default function AgentMenuPage() {
   const { prefs } = useBall()
@@ -20,6 +30,9 @@ export default function AgentMenuPage() {
   const sizeLabel = sizeOption ? t(sizeOption.labelKey) : prefs.size
   const aiReady = isConfigured(loadAiConfig())
   const memoryCount = loadMemories().length
+  const skillCount = loadSkills().filter((skill) => skill.enabled).length
+  const permission = loadPermission()
+  const reasoning = loadReasoning()
 
   return (
     <PageShell
@@ -57,6 +70,27 @@ export default function AgentMenuPage() {
         title={t('agent.memory')}
         hint={t('agent.memoryHint')}
         value={<SettingBadge>{t('agent.memoryCount', { count: memoryCount })}</SettingBadge>}
+      />
+      <SettingRow
+        to="/me/agent/skills"
+        emoji="🧩"
+        title={t('agent.skills')}
+        hint={t('agent.skillsHint')}
+        value={<SettingBadge>{t('agent.skillCount', { count: skillCount })}</SettingBadge>}
+      />
+      <SettingRow
+        to="/me/agent/permission"
+        emoji="🔐"
+        title={t('agent.permission')}
+        hint={t('agent.permissionHint')}
+        value={<SettingBadge>{t(PERMISSION_LABEL_KEYS[permission])}</SettingBadge>}
+      />
+      <SettingRow
+        to="/me/agent/reasoning"
+        emoji="🧭"
+        title={t('agent.reasoning')}
+        hint={t('agent.reasoningHint')}
+        value={<SettingBadge>{reasoning ? t('reasoning.on') : t('reasoning.off')}</SettingBadge>}
       />
     </PageShell>
   )

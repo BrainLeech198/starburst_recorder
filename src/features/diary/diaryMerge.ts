@@ -272,12 +272,24 @@ function wakeEventsKey(sleep: HealthSleep) {
     .join(',')
 }
 
+/** 小憩只看开始与结束；顺序不同不算实质差异 */
+function napsKey(sleep: HealthSleep) {
+  return (sleep.naps ?? [])
+    .map((nap) => `${nap.start}/${nap.end}`)
+    .sort()
+    .join(',')
+}
+
 function sleepSummary(sleep: HealthSleep) {
   const parts = [sleep.dateKey + ' ' + sleep.bedtime + '\u2192' + sleep.wakeTime]
   if (sleep.quality !== null) parts.push('q' + sleep.quality)
   // 夜醒也算这一夜的内容：逐条时间、次数、累计分钟都要在冲突对比里看得到
   for (const event of sleep.wakeEvents ?? []) {
     parts.push('wake ' + event.time + ' ' + event.minutes + 'min')
+  }
+  // 白日小憩同样算内容，冲突时两边都能看出多了哪一次
+  for (const nap of sleep.naps ?? []) {
+    parts.push('nap ' + nap.start + '-' + nap.end)
   }
   if (sleep.wakeCount !== null && sleep.wakeCount !== undefined) {
     parts.push('wake ' + sleep.wakeCount)
@@ -296,6 +308,7 @@ function sleepDiffers(local: HealthSleep, incoming: HealthSleep) {
     local.wakeTime !== incoming.wakeTime ||
     (local.quality ?? null) !== (incoming.quality ?? null) ||
     wakeEventsKey(local) !== wakeEventsKey(incoming) ||
+    napsKey(local) !== napsKey(incoming) ||
     (local.wakeCount ?? null) !== (incoming.wakeCount ?? null) ||
     (local.wakeMinutes ?? null) !== (incoming.wakeMinutes ?? null) ||
     local.note !== incoming.note ||

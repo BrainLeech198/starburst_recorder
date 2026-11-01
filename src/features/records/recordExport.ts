@@ -18,7 +18,7 @@ import type {
   HealthSleep,
   WeighIn,
 } from '@/core/db/schema'
-import { sleepMinutes, sleepParts, sleepWakeStats } from '@/features/health/sleepMath'
+import { sleepMinutes, sleepNapStats, sleepParts, sleepWakeStats } from '@/features/health/sleepMath'
 import { sleepWakeMessage } from '@/features/health/healthViz'
 import { formatClock, formatDateCn, formatShortStamp, weekdayLabel } from '@/core/utils/dateKey'
 import { parseWeather, weatherLabel } from '@/features/diary/weather'
@@ -148,6 +148,7 @@ function sleepItems(sleeps: HealthSleep[]): RecordItem[] {
       const parts = sleepParts(sleepMinutes(sleep.bedtime, sleep.wakeTime))
       const wakeStats = sleepWakeStats(sleep)
       const wake = sleepWakeMessage(wakeStats.count, wakeStats.minutes)
+      const napStats = sleepNapStats(sleep.naps)
       return {
         kind: 'sleep' as const,
         id: sleep.id,
@@ -159,7 +160,10 @@ function sleepItems(sleeps: HealthSleep[]): RecordItem[] {
         detail:
           translate('records.sleepDetail', { h: parts.h, m: parts.m }) +
           (sleep.quality !== null ? ' \u00b7 ' + '\u2605'.repeat(sleep.quality) : '') +
-          (wake ? ' \u00b7 ' + translate(wake.key, wake.params) : ''),
+          (wake ? ' \u00b7 ' + translate(wake.key, wake.params) : '') +
+          (napStats.count > 0
+            ? ' \u00b7 ' + translate('records.sleepNaps', { n: napStats.count })
+            : ''),
       }
     })
 }

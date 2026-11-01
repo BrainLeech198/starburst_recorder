@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'vitest'
-import { sleepMinutes, sleepParts, sleepWakeStats, sortWakeEvents } from './sleepMath'
+import {
+  sleepMinutes,
+  sleepNapStats,
+  sleepParts,
+  sleepWakeStats,
+  sortNaps,
+  sortWakeEvents,
+} from './sleepMath'
 
 describe('sleepMinutes', () => {
   test('跨零点的觉自动加 24 小时', () => {
@@ -67,5 +74,31 @@ describe('sleepWakeStats', () => {
       minutes: 0,
     })
     expect(sleepWakeStats({})).toEqual({ count: null, minutes: null })
+  })
+})
+
+describe('白日小憩', () => {
+  test('按开始时刻排序，不依赖录入顺序', () => {
+    const sorted = sortNaps([
+      { start: '17:10', end: '17:30' },
+      { start: '12:30', end: '13:10' },
+      { start: '15:00', end: '15:20' },
+    ])
+    expect(sorted.map((nap) => nap.start)).toEqual(['12:30', '15:00', '17:10'])
+  })
+
+  test('汇总次数与总分钟，倒置或跨零点的时段按 0 分算', () => {
+    expect(
+      sleepNapStats([
+        { start: '13:00', end: '13:40' },
+        { start: '17:10', end: '17:30' },
+      ]),
+    ).toEqual({ count: 2, minutes: 60 })
+    expect(sleepNapStats([{ start: '13:00', end: '12:00' }])).toEqual({
+      count: 1,
+      minutes: 0,
+    })
+    expect(sleepNapStats([])).toEqual({ count: 0, minutes: 0 })
+    expect(sleepNapStats(undefined)).toEqual({ count: 0, minutes: 0 })
   })
 })

@@ -9,6 +9,7 @@ import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import type { AssistantMemoryKind } from './assistantMemory'
 import type { ChatActionState } from './assistantChatStore'
+import { categoryKey } from '@/features/finance/financeCategories'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 
 const KIND_KEYS: Record<AssistantMemoryKind, MessageKey> = {
@@ -87,8 +88,53 @@ export default function AssistantActionCard({ state, busy, onConfirm, onCancel, 
           grams: action.grams,
           kcal: action.kcal,
         })
+      case 'diaryEdit':
+        return t('assistant.action.diaryEdit', { date, content: preview(action.content) })
+      case 'stampEdit': {
+        const detail = [action.time ?? '', action.content ? preview(action.content) : '']
+          .filter((part) => part !== '')
+          .join(' · ')
+        return t('assistant.action.stampEdit', { date, detail })
+      }
+      case 'financeEdit': {
+        const detail = [
+          action.name ?? '',
+          action.amount === undefined ? '' : String(action.amount),
+          action.direction === undefined
+            ? ''
+            : t(
+                action.direction === 'income'
+                  ? 'assistant.action.financeIncome'
+                  : 'assistant.action.financeExpense',
+              ),
+          action.category === undefined ? '' : t(categoryKey(action.category)),
+          action.note ?? '',
+        ]
+          .filter((part) => part !== '')
+          .join(' · ')
+        return t('assistant.action.financeEdit', { date, detail })
+      }
+      case 'financeDelete':
+        return t('assistant.action.financeDelete', {
+          date,
+          name: action.name,
+          amount: action.amount,
+        })
+      case 'stampDelete':
+        return t('assistant.action.stampDelete', { date, content: preview(action.content) })
+      case 'intakeDelete':
+        return t('assistant.action.intakeDelete', { date, name: action.name, kcal: action.kcal })
+      case 'sleepDelete':
+        return t('assistant.action.sleepDelete', {
+          date,
+          bedtime: action.bedtime,
+          wakeTime: action.wakeTime,
+        })
     }
   })()
+
+  const isEdit = action.kind.endsWith('Edit')
+  const isDelete = action.kind.endsWith('Delete')
 
   const pending = state.status === 'pending' || state.status === 'failed'
   const tone = pending
@@ -105,7 +151,11 @@ export default function AssistantActionCard({ state, busy, onConfirm, onCancel, 
             ? t('assistant.action.memoryKind', {
                 kind: t(KIND_KEYS[action.memoryKind]),
               })
-            : t('assistant.action.title')}
+            : isDelete
+              ? t('assistant.action.deleteTitle')
+              : isEdit
+                ? t('assistant.action.editTitle')
+                : t('assistant.action.title')}
         </span>
         <span
           className={`rounded-full border border-line px-2 py-0.5 text-[10px] ${

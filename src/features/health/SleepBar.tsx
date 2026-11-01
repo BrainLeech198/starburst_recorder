@@ -1,6 +1,7 @@
 import type { HealthSleep } from '@/core/db/schema'
 import { useI18n } from '@/shared/i18n/context'
 import { sleepBarLayout } from './healthViz'
+import { sleepNapStats, sleepParts } from './sleepMath'
 
 /**
  * 今日睡眠条：0 点在正中间，左右各 12 小时。
@@ -19,6 +20,8 @@ export default function SleepBar({
   const bar = sleepBarLayout(sleep.bedtime, sleep.wakeTime, idealBedtime, idealWakeTime)
   const barWidth = Math.max(0, bar.endPct - bar.startPct)
   const idealWidth = Math.max(0, bar.idealEndPct - bar.idealStartPct)
+  const naps = sleepNapStats(sleep.naps)
+  const napParts = sleepParts(naps.minutes)
 
   return (
     <div className="mt-3">
@@ -45,6 +48,11 @@ export default function SleepBar({
         {t('health.sleepBedtime')} {sleep.bedtime} → {t('health.sleepWake')} {sleep.wakeTime} ·{' '}
         {t('health.idealTitle')} {idealBedtime} → {idealWakeTime}
       </p>
+      {naps.count > 0 && (
+        <p className="m-0 mt-0.5 text-[10px] tabular-nums text-muted">
+          {t('health.sleepNapTotal', { n: naps.count, h: napParts.h, m: napParts.m })}
+        </p>
+      )}
     </div>
   )
 }

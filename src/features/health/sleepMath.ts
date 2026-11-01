@@ -4,7 +4,7 @@
  * 只认 'HH:MM'（进库前 normalize 已经兜过底）。时长是派生值不落库：
  * 跨零点的觉（23:10 → 07:00）自动按第二天早上算。
  */
-import type { SleepWakeEvent } from '@/core/db/schema'
+import type { SleepNap, SleepWakeEvent } from '@/core/db/schema'
 
 function minutesOf(clock: string): number {
   const [hour, minute] = clock.split(':').map(Number)
@@ -54,5 +54,25 @@ export function sleepWakeStats(sleep: {
   return {
     count: typeof sleep.wakeCount === 'number' ? sleep.wakeCount : null,
     minutes: typeof sleep.wakeMinutes === 'number' ? sleep.wakeMinutes : null,
+  }
+}
+
+/** 小憩按开始时刻排序，展示时不会因为录入顺序乱掉 */
+export function sortNaps<T extends { start: string }>(naps: T[]): T[] {
+  return [...naps].sort((a, b) => minutesOf(a.start) - minutesOf(b.start))
+}
+
+/** 小憩是白天的同一次睡眠：结束必须晚于开始，跨零点或倒置都按 0 分算 */
+export function napMinutes(nap: SleepNap): number {
+  const diff = minutesOf(nap.end) - minutesOf(nap.start)
+  return diff > 0 ? diff : 0
+}
+
+/** 小憩次数与总分钟；小憩时长不混进夜间睡眠 */
+export function sleepNapStats(naps?: SleepNap[] | null): { count: number; minutes: number } {
+  const list = Array.isArray(naps) ? naps : []
+  return {
+    count: list.length,
+    minutes: list.reduce((sum, nap) => sum + napMinutes(nap), 0),
   }
 }

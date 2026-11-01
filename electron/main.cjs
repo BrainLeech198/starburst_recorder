@@ -399,6 +399,10 @@ ipcMain.handle('ai:chat', async (_event, request) => {
       requestBody.tools = request.tools
       requestBody.tool_choice = request?.tool_choice ?? 'auto'
     }
+    // 厂商特定字段（深度思考等）：调用方已经筛过厂商，这里只管并进请求体
+    if (request?.params && typeof request.params === 'object') {
+      Object.assign(requestBody, request.params)
+    }
 
     const response = await net.fetch(chatUrl(baseUrl), {
       method: 'POST',

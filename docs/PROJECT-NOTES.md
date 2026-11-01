@@ -196,15 +196,16 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 - **日记正文仍是纯文本**，图片用标记 `[[img:ULID]]` 占位（`features/diary/imageTokens.ts`，纯函数 + 单测）。锁定态渲染成真图；编辑态文本框里看到标记，另有缩略图一排可删。正文里没被标记引用的图（例如 AI 润色把标记弄丢）在末尾以「附图」显示，不会悄悄消失。
 - **压缩 / 原图两种存法**：默认长边 1600 + JPEG 0.82（复用 `aiVision.compressImage`），设置页「数据与备份 → 图片怎么存」可切原图（`localStorage: sb_image_quality`，`features/diary/imageAssets.ts`）。导出 Markdown / 纯文本与 AI 润色一律先 `stripImageTokens`；记录级 JSON 导出保留图。随记可以只有图、没有字。
 
-### 睡眠（2026-10-29 加，最小闭环）
+### 睡眠（2026-10-29 加，2026-11-01 补白日小憩）
 
 范本调研过 SleepDiaries（MIT，临床共识睡眠日记）、Gadgetbridge、Health Connect 的睡眠模型，取舍如下：
 
 - **一夜一行，`dateKey = 起床那天`**（用户拍板：周五晚睡周六起 → 记周六）。「昨晚睡了几小时」跟日常语感一致；表 `healthSleeps`（Dexie version(9) / SQLite 同名表），跟健康表同构（ULID id、7 位 code、软删除）。
-- **字段只做最小闭环**：就寝 `bedtime` / 起床 `wakeTime`（HH:MM）/ 质量 `quality` 1–5 / 逐条夜醒 `wakeEvents`（`[{ time: 'HH:MM', minutes }]`）/ 备注。**时长是派生值不落库**，跨零点自动 +24h（`features/health/sleepMath.ts` 纯函数 + 单测）。夜醒次数与累计分钟由事件汇总（`sleepWakeStats`）；旧记录只有 `wakeCount` / `wakeMinutes` 时继续按旧字段展示，补上具体时间后以事件为准。
+- **字段只做最小闭环**：就寝 `bedtime` / 起床 `wakeTime`（HH:MM）/ 质量 `quality` 1–5 / 逐条夜醒 `wakeEvents`（`[{ time: 'HH:MM', minutes }]`）/ 白日小憩 `naps`（`[{ start: 'HH:MM', end: 'HH:MM' }]`，一天可多次）/ 备注。**时长都是派生值不落库**：夜间跨零点自动 +24h，小憩要求结束晚于开始、只算白天（`features/health/sleepMath.ts` 纯函数 + 单测）。夜醒次数与累计分钟由事件汇总（`sleepWakeStats`）；旧记录只有 `wakeCount` / `wakeMinutes` 时继续按旧字段展示，补上具体时间后以事件为准。小憩单独汇总（`sleepNapStats`），**不混进夜间时长**，在睡眠详情和今日睡眠条各显示一行。
+- **小憩的旧数据兼容**：Dexie version(14) 给老记录补 `naps: []`；SQLite 老库自动 `ALTER TABLE` 加 `naps` 列；备份导入 `pickSleep` 缺字段也补空数组。
 - **入口是健康页「睡眠」卡片摘要 + `/health/sleeps` 一级页**（`HealthPage` 卡片、`SleepsPage` 明细 + `SleepDialog`），跟着 URL 里那一天走；删除软删 + 撤销，另有回收站页 `/health/sleeps/trash`（`SleepTrashPage`，逐条恢复 / 彻底删除 / 清空）；日历把「睡过觉」的日子和「记过摄入」一起标亮。健康档案没填也能记睡眠。
 - **睡眠跟着整条数据链走**：备份导出/导入（`diaryBackup` 的 health 块加 `sleeps`）、导入冲突逐条抉择（`diaryMerge` 的 `sleep` 类目）、挑选记录导出（第 5 类）、AI 整理原料（历史摘要与当天都带「睡眠」行，没记就不提）。
-- 行级校验 `pickSleep`：时刻必须是合法 HH:MM，坏的退回 '00:00'；评分只认 1–5，越界算没评。
+- 行级校验 `pickSleep`：时刻必须是合法 HH:MM，坏的退回 '00:00'；评分只认 1–5，越界算没评；小憩只收合法且结束晚于开始的时段，一天最多 10 次。
 
 ### 健康记录拆成一级页（2026-10-29）
 

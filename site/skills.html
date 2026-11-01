@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>星芒技能库</title>
+    <meta
+      name="description"
+      content="星芒记录者的助手技能库：下载 JSON 技能包，装进 App 就能用。"
+    />
+    <link rel="icon" href="assets/icon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="assets/icon.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="theme-color" content="#0a0d12" />
+    <style>
+      .skills-main {
+        min-height: 100vh;
+      }
+      .skill-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin: 20px 0 0;
+      }
+      .skill-item {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 18px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .skill-item h3 {
+        margin: 0 0 4px;
+        font-size: 1rem;
+      }
+      .skill-item p {
+        margin: 0;
+        font-size: 0.875rem;
+        opacity: 0.78;
+      }
+      .skill-item small {
+        display: block;
+        margin-top: 6px;
+        font-size: 0.75rem;
+        opacity: 0.55;
+      }
+      .skill-item .btn {
+        flex: none;
+      }
+      .skills-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 18px;
+        margin: 14px 0 0;
+        font-size: 0.8125rem;
+        opacity: 0.7;
+      }
+      @media (max-width: 640px) {
+        .skill-item {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="topbar__brand" href="index.html" aria-label="星芒记录者">
+        <svg width="28" height="28" viewBox="0 0 88 88" aria-hidden="true">
+          <circle cx="44" cy="44" r="34" fill="currentColor" fill-opacity="0.14" />
+          <path
+            d="M44 5 L52.5 35.5 L83 44 L52.5 52.5 L44 83 L35.5 52.5 L5 44 L35.5 35.5 Z"
+            fill="currentColor"
+          />
+        </svg>
+        <span data-i18n="app.name">星芒记录者</span>
+      </a>
+
+      <nav class="topbar__nav" aria-label="站点导航">
+        <a href="index.html" data-i18n="skillsPage.back">返回首页</a>
+      </nav>
+
+      <div class="lang" role="group" aria-label="Language / 语言">
+        <button type="button" class="lang__btn" data-lang="zh" aria-pressed="true">中</button>
+        <button type="button" class="lang__btn" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </header>
+
+    <main id="main" class="skills-main paper-section">
+      <div class="paper-section__inner">
+        <header class="section-head">
+          <p class="kicker" data-i18n="nav.skills">技能</p>
+          <h2 data-i18n="skillsPage.title">星芒技能库</h2>
+          <p class="section-head__desc" data-i18n="skillsPage.lead">
+            技能包决定助手怎么想、按什么步骤做事。下载后装进 App，助手遇到合适的任务就会照这套步骤来。
+          </p>
+        </header>
+
+        <div class="cards" style="margin-top: 20px">
+          <article class="card">
+            <span class="card__icon" aria-hidden="true">🧩</span>
+            <h3 data-i18n="skillsPage.howTitle">怎么装进 App</h3>
+            <p data-i18n="skillsPage.how">
+              打开 App → 设置 → 助手 → 技能，点「查看官网技能」，选一个就能装上；也可以下载 JSON 再点「从文件导入」。
+            </p>
+          </article>
+          <article class="card">
+            <span class="card__icon" aria-hidden="true">🛡️</span>
+            <h3 data-i18n="nav.skills">技能</h3>
+            <p data-i18n="skillsPage.trust">
+              技能只是提示词层面的方法包，不会获得你的记录，也不会多出任何数据权限；装之前可以先打开 JSON 看一眼。
+            </p>
+          </article>
+          <article class="card">
+            <span class="card__icon" aria-hidden="true">📦</span>
+            <h3 data-i18n="skillsPage.builtinTitle">内置技能</h3>
+            <p data-i18n="skillsPage.builtinNote">
+              头脑风暴、周复盘、睡眠教练、收支复盘、日记润色已经内置，不用下载。
+            </p>
+          </article>
+        </div>
+
+        <div class="skill-list" id="skill-list" aria-live="polite"></div>
+      </div>
+    </main>
+
+    <script src="i18n.js"></script>
+    <script>
+      (function () {
+        var dict = window.SITE_I18N || {};
+        var buttons = Array.prototype.slice.call(document.querySelectorAll('.lang__btn'));
+        var list = document.getElementById('skill-list');
+        var catalog = [];
+        var currentLang = 'zh';
+
+        function readLang() {
+          try {
+            var saved = localStorage.getItem('sb_locale');
+            if (saved === 'zh' || saved === 'en') return saved;
+          } catch (error) {
+            /* 隐私模式读不了就按默认 */
+          }
+          return 'zh';
+        }
+
+        function saveLang(lang) {
+          try {
+            localStorage.setItem('sb_locale', lang);
+          } catch (error) {
+            /* 存不了就只在本次生效 */
+          }
+        }
+
+        function t(key, lang) {
+          var messages = dict[lang] || dict.zh;
+          return (messages && messages[key]) || key;
+        }
+
+        function resolve(url) {
+          try {
+            return new URL(url, new URL('skills/index.json', location.href)).toString();
+          } catch (error) {
+            return url;
+          }
+        }
+
+        function itemNode(skill, lang) {
+          var article = document.createElement('article');
+          article.className = 'skill-item';
+
+          var info = document.createElement('div');
+          var title = document.createElement('h3');
+          title.textContent = skill.name;
+          var desc = document.createElement('p');
+          desc.textContent = skill.description;
+          var meta = document.createElement('small');
+          meta.textContent =
+            (skill.category || '') +
+            ' · ' +
+            t('skillsPage.version', lang) +
+            ' ' +
+            (skill.version || '1.0.0') +
+            ' · ' +
+            t('skillsPage.author', lang) +
+            ' ' +
+            (skill.author || '');
+          info.appendChild(title);
+          info.appendChild(desc);
+          info.appendChild(meta);
+
+          var link = document.createElement('a');
+          link.className = 'btn btn--ghost btn--sm';
+          link.href = resolve(skill.url);
+          link.download = skill.id + '.json';
+          link.textContent = t('skillsPage.download', lang);
+
+          article.appendChild(info);
+          article.appendChild(link);
+          return article;
+        }
+
+        function renderCatalog(lang) {
+          list.innerHTML = '';
+          if (catalog.length === 0) {
+            var empty = document.createElement('p');
+            empty.textContent = t('skillsPage.empty', lang);
+            list.appendChild(empty);
+            return;
+          }
+          catalog.forEach(function (skill) {
+            list.appendChild(itemNode(skill, lang));
+          });
+        }
+
+        function apply(lang) {
+          currentLang = lang;
+          var messages = dict[lang] || dict.zh || {};
+          document.querySelectorAll('[data-i18n]').forEach(function (node) {
+            var key = node.getAttribute('data-i18n');
+            if (messages[key] !== undefined) node.textContent = messages[key];
+          });
+          document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+          document.title = t('skillsPage.title', lang);
+          var meta = document.querySelector('meta[name="description"]');
+          if (meta) meta.setAttribute('content', t('skillsPage.meta', lang));
+          buttons.forEach(function (button) {
+            button.setAttribute('aria-pressed', String(button.dataset.lang === lang));
+          });
+          renderCatalog(lang);
+        }
+
+        buttons.forEach(function (button) {
+          button.addEventListener('click', function () {
+            var lang = button.dataset.lang;
+            saveLang(lang);
+            apply(lang);
+          });
+        });
+
+        fetch('skills/index.json', { headers: { Accept: 'application/json' } })
+          .then(function (response) {
+            return response.ok ? response.json() : null;
+          })
+          .then(function (body) {
+            catalog = body && Array.isArray(body.skills) ? body.skills : [];
+            renderCatalog(currentLang);
+            return null;
+          })
+          .catch(function () {
+            catalog = [];
+            renderCatalog(currentLang);
+          });
+
+        apply(readLang());
+      })();
+    </script>
+  </body>
+</html>

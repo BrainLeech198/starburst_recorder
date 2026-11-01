@@ -141,6 +141,7 @@ const SCHEMA = `
     wakeTime TEXT NOT NULL,
     quality INTEGER,
     wakeEvents TEXT NOT NULL DEFAULT '[]',
+    naps TEXT NOT NULL DEFAULT '[]',
     wakeCount INTEGER,
     wakeMinutes INTEGER,
     note TEXT NOT NULL DEFAULT '',
@@ -353,6 +354,7 @@ function sleepRow(row) {
     wakeTime: row.wakeTime,
     quality: num(row.quality),
     wakeEvents: wakeEventsFromDb(row.wakeEvents),
+    naps: napsFromDb(row.naps),
     wakeCount: num(row.wakeCount),
     wakeMinutes: num(row.wakeMinutes),
     note: row.note ?? '',
@@ -380,6 +382,29 @@ function wakeEventsFromDb(text) {
           item.minutes <= 1440,
       )
       .map((item) => ({ time: item.time, minutes: Math.floor(item.minutes) }))
+  } catch {
+    return []
+  }
+}
+
+/** 白日小憩：只认 { start: 'HH:MM', end: 'HH:MM' }，坏条目直接剔除 */
+function napsFromDb(text) {
+  if (typeof text !== 'string' || text.trim() === '') return []
+  try {
+    const list = JSON.parse(text)
+    if (!Array.isArray(list)) return []
+    return list
+      .filter(
+        (item) =>
+          item &&
+          typeof item.start === 'string' &&
+          /^([01]\d|2[0-3]):[0-5]\d$/.test(item.start) &&
+          typeof item.end === 'string' &&
+          /^([01]\d|2[0-3]):[0-5]\d$/.test(item.end) &&
+          item.end > item.start,
+      )
+      .slice(0, 10)
+      .map((item) => ({ start: item.start, end: item.end }))
   } catch {
     return []
   }
@@ -512,6 +537,8 @@ function createDatabase(file) {
     db.exec('ALTER TABLE healthSleeps ADD COLUMN wakeMinutes INTEGER')
   if (!sleepColumns.has('wakeEvents'))
     db.exec("ALTER TABLE healthSleeps ADD COLUMN wakeEvents TEXT NOT NULL DEFAULT '[]'")
+  if (!sleepColumns.has('naps'))
+    db.exec("ALTER TABLE healthSleeps ADD COLUMN naps TEXT NOT NULL DEFAULT '[]'")
   // 经济：老库补短编号、收支方向与分类，老数据按支出读取
   const financeColumns = new Set(
     db.prepare('PRAGMA table_info(financeEntries)').all().map((row) => row.name),
@@ -727,8 +754,8 @@ function createDatabase(file) {
     sleepDays: db.prepare('SELECT DISTINCT dateKey FROM healthSleeps WHERE deletedAt IS NULL'),
     upsertSleep: db.prepare(
       `INSERT INTO healthSleeps
-         (id, code, dateKey, bedtime, wakeTime, quality, wakeEvents, wakeCount, wakeMinutes, note, createdAt, updatedAt, deletedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (id, code, dateKey, bedtime, wakeTime, quality, wakeEvents, naps, wakeCount, wakeMinutes, note, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          code = excluded.code,
          dateKey = excluded.dateKey,
@@ -736,6 +763,7 @@ function createDatabase(file) {
          wakeTime = excluded.wakeTime,
          quality = excluded.quality,
          wakeEvents = excluded.wakeEvents,
+         naps = excluded.naps,
          wakeCount = excluded.wakeCount,
          wakeMinutes = excluded.wakeMinutes,
          note = excluded.note,
@@ -894,6 +922,7 @@ function createDatabase(file) {
       sleep.wakeTime,
       num(sleep.quality),
       JSON.stringify(Array.isArray(sleep.wakeEvents) ? sleep.wakeEvents : []),
+      JSON.stringify(Array.isArray(sleep.naps) ? sleep.naps : []),
       num(sleep.wakeCount),
       num(sleep.wakeMinutes),
       sleep.note ?? '',

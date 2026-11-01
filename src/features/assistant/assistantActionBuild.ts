@@ -46,6 +46,40 @@ export type AssistantAction =
       carbs: number
       fat: number
     }
+  | { kind: 'diaryEdit'; code: string; dateKey: string; content: string }
+  | {
+      kind: 'stampEdit'
+      code: string
+      dateKey: string
+      time?: string
+      content?: string
+    }
+  | {
+      kind: 'financeEdit'
+      code: string
+      dateKey: string
+      name?: string
+      amount?: number
+      direction?: FinanceKind
+      category?: string
+      note?: string
+    }
+  | {
+      kind: 'financeDelete'
+      code: string
+      dateKey: string
+      name: string
+      amount: number
+    }
+  | { kind: 'stampDelete'; code: string; dateKey: string; content: string }
+  | { kind: 'intakeDelete'; code: string; dateKey: string; name: string; kcal: number }
+  | {
+      kind: 'sleepDelete'
+      code: string
+      dateKey: string
+      bedtime: string
+      wakeTime: string
+    }
 
 export interface ActionBuildContext {
   data: BackupData
@@ -264,6 +298,150 @@ export function buildAssistantAction(
       }
     }
 
+    case 'update_diary': {
+      const code = textArg(args, 'code')
+      const entry = ctx.data.entries.find((item) => item.deletedAt === null && item.code === code)
+      if (!entry) return fail(`找不到编号 ${code || '（空）'} 的日记，先用 search_diary 查一下。`)
+      const content = textArg(args, 'content')
+      if (content === '') return fail('新的正文不能为空。')
+      return {
+        ok: true,
+        action: {
+          kind: 'diaryEdit',
+          code: entry.code,
+          dateKey: entry.dateKey,
+          content: content.slice(0, 20000),
+        },
+      }
+    }
+
+    case 'update_stamp': {
+      const code = textArg(args, 'code')
+      const stamp = ctx.data.stamps.find((item) => item.deletedAt === null && item.code === code)
+      if (!stamp) return fail(`找不到编号 ${code || '（空）'} 的随记，先用 search_stamps 查一下。`)
+      const time = textArg(args, 'time')
+      if (time !== '' && !CLOCK.test(time)) return fail('时刻要是 HH:MM，例如 14:30。')
+      const content = textArg(args, 'content')
+      if (time === '' && content === '') return fail('要改时刻还是内容？time 和 content 至少给一个。')
+      return {
+        ok: true,
+        action: {
+          kind: 'stampEdit',
+          code: stamp.code,
+          dateKey: stamp.dateKey,
+          ...(time === '' ? {} : { time }),
+          ...(content === '' ? {} : { content: content.slice(0, 2000) }),
+        },
+      }
+    }
+
+    case 'update_finance': {
+      const code = textArg(args, 'code')
+      const entry = ctx.data.finance.find((item) => item.deletedAt === null && item.code === code)
+      if (!entry) return fail(`找不到编号 ${code || '（空）'} 的收支，先用 finance_stats 查一下。`)
+      const name = textArg(args, 'name')
+      const amount = numberArg(args, 'amount')
+      if (amount !== null && (amount <= 0 || amount > 100000000)) {
+        return fail('金额要是大于 0 的数字。')
+      }
+      const rawDirection = textArg(args, 'direction')
+      const direction: FinanceKind | undefined =
+        rawDirection === 'income' || rawDirection === 'expense' ? rawDirection : undefined
+      const rawCategory = textArg(args, 'category')
+      const effectiveKind = direction ?? entry.kind
+      if (
+        rawCategory !== '' &&
+        !FINANCE_CATEGORIES.some((item) => item.id === rawCategory && item.kind === effectiveKind)
+      ) {
+        return fail(`分类 ${rawCategory} 跟${effectiveKind === 'income' ? '收入' : '支出'}对不上。`)
+      }
+      const hasNote = typeof args.note === 'string'
+      const changed =
+        name !== '' ||
+        amount !== null ||
+        direction !== undefined ||
+        rawCategory !== '' ||
+        hasNote
+      if (!changed) return fail('要改金额、名称、分类还是备注？至少给一个字段。')
+      return {
+        ok: true,
+        action: {
+          kind: 'financeEdit',
+          code: entry.code,
+          dateKey: entry.dateKey,
+          ...(name === '' ? {} : { name: name.slice(0, 120) }),
+          ...(amount === null ? {} : { amount: round(amount, 2) }),
+          ...(direction === undefined ? {} : { direction }),
+          ...(rawCategory === '' ? {} : { category: rawCategory }),
+          ...(hasNote ? { note: textArg(args, 'note').slice(0, 200) } : {}),
+        },
+      }
+    }
+
+    case 'delete_finance': {
+      const code = textArg(args, 'code')
+      const entry = ctx.data.finance.find((item) => item.deletedAt === null && item.code === code)
+      if (!entry) return fail(`找不到编号 ${code || '（空）'} 的收支，先用 finance_stats 查一下。`)
+      return {
+        ok: true,
+        action: {
+          kind: 'financeDelete',
+          code: entry.code,
+          dateKey: entry.dateKey,
+          name: entry.name,
+          amount: entry.amount,
+        },
+      }
+    }
+
+    case 'delete_stamp': {
+      const code = textArg(args, 'code')
+      const stamp = ctx.data.stamps.find((item) => item.deletedAt === null && item.code === code)
+      if (!stamp) return fail(`找不到编号 ${code || '（空）'} 的随记，先用 search_stamps 查一下。`)
+      return {
+        ok: true,
+        action: {
+          kind: 'stampDelete',
+          code: stamp.code,
+          dateKey: stamp.dateKey,
+          content: stamp.content.slice(0, 400),
+        },
+      }
+    }
+
+    case 'delete_intake': {
+      const code = textArg(args, 'code')
+      const intake = ctx.data.intakes.find((item) => item.deletedAt === null && item.code === code)
+      if (!intake) return fail(`找不到编号 ${code || '（空）'} 的摄入，先用 query_day 查一下。`)
+      return {
+        ok: true,
+        action: {
+          kind: 'intakeDelete',
+          code: intake.code,
+          dateKey: intake.dateKey,
+          name: intake.name,
+          kcal: Math.round(intake.kcal),
+        },
+      }
+    }
+
+    case 'delete_sleep': {
+      const day = dayArg(args, ctx)
+      if (!day) return fail('日期不对：需要 YYYY-MM-DD，且不能是未来。')
+      const sleep = ctx.data.sleeps.find((item) => item.deletedAt === null && item.dateKey === day)
+      if (!sleep) return fail(`${day} 没有睡眠记录。`)
+      return {
+        ok: true,
+        action: {
+          kind: 'sleepDelete',
+          code: sleep.code,
+          dateKey: sleep.dateKey,
+          bedtime: sleep.bedtime,
+          wakeTime: sleep.wakeTime,
+        },
+      }
+    }
+
     default:
       return fail(`没有叫 ${name} 的动作。`)
   }
@@ -290,5 +468,21 @@ export function describeAction(action: AssistantAction): string {
       return `${action.dateKey} 体重：${action.weightKg} kg`
     case 'intake':
       return `${action.dateKey} ${action.time} 摄入：${action.name} ${action.grams}g，${action.kcal} 千卡`
+    case 'diaryEdit':
+      return `${action.dateKey} 改写日记（${action.code}）：${action.content}`
+    case 'stampEdit':
+      return `${action.dateKey} 改随记（${action.code}）：${action.time ?? ''}${
+        action.time && action.content ? ' ' : ''
+      }${action.content ?? ''}`
+    case 'financeEdit':
+      return `${action.dateKey} 改收支（${action.code}）`
+    case 'financeDelete':
+      return `${action.dateKey} 删除收支：${action.name} ${action.amount} 元`
+    case 'stampDelete':
+      return `${action.dateKey} 删除随记：${action.content}`
+    case 'intakeDelete':
+      return `${action.dateKey} 删除摄入：${action.name}，${action.kcal} 千卡`
+    case 'sleepDelete':
+      return `${action.dateKey} 删除睡眠：${action.bedtime}→${action.wakeTime}`
   }
 }

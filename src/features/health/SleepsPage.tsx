@@ -28,7 +28,7 @@ import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import SleepDialog from './SleepDialog'
 import SleepBar from './SleepBar'
 import { sleepReviewKey, sleepWakeMessage } from './healthViz'
-import { sleepMinutes, sleepParts, sleepWakeStats, sortWakeEvents } from './sleepMath'
+import { sleepMinutes, sleepNapStats, sleepParts, sleepWakeStats, sortNaps, sortWakeEvents } from './sleepMath'
 import {
   exportAllData,
   healthProfile,
@@ -175,6 +175,8 @@ export default function SleepsPage() {
 
   const wakeSummary = sleep ? sleepWakeStats(sleep) : null
   const wakeEvents = sleep ? sortWakeEvents(sleep.wakeEvents ?? [], sleep.bedtime) : []
+  const naps = sleep ? sortNaps(sleep.naps ?? []) : []
+  const napStats = sleepNapStats(sleep?.naps)
   const review =
     sleep === null || sleep === undefined
       ? null
@@ -380,6 +382,25 @@ export default function SleepsPage() {
                   </li>
                 ))}
               </ul>
+            )}
+            {napStats.count > 0 && (
+              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                <span className="tabular-nums">
+                  {t('health.sleepNapTotal', {
+                    n: napStats.count,
+                    h: sleepParts(napStats.minutes).h,
+                    m: sleepParts(napStats.minutes).m,
+                  })}
+                </span>
+                {naps.map((nap, index) => (
+                  <span
+                    key={`${nap.start}-${nap.end}-${index}`}
+                    className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 tabular-nums"
+                  >
+                    {nap.start}–{nap.end}
+                  </span>
+                ))}
+              </div>
             )}
             <SleepBar
               sleep={sleep}

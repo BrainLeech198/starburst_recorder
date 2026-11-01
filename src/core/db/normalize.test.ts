@@ -168,6 +168,25 @@ describe('睡眠行：时刻坏了退回 00:00，评分只认 1–5', () => {
     ])
   })
 
+  it('小憩：只收合法的开始与结束，旧记录补空数组', () => {
+    expect(pickSleep(base)).toMatchObject({ naps: [] })
+    expect(
+      pickSleep({
+        ...base,
+        naps: [
+          { start: '13:00', end: '13:40' },
+          { start: '25:00', end: '13:00' },
+          { start: '17:10', end: '99:99' },
+          { start: '21:00', end: '20:00' },
+          { start: '19:00', end: '19:25' },
+        ],
+      })?.naps,
+    ).toEqual([
+      { start: '13:00', end: '13:40' },
+      { start: '19:00', end: '19:25' },
+    ])
+  })
+
   it('id 或日期缺失整行丢掉', () => {
     expect(pickSleep({ ...base, id: '' })).toBeNull()
     expect(pickSleep({ ...base, dateKey: '2026-13-40' })).toBeNull()

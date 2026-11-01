@@ -1,10 +1,11 @@
 /**
- * 记一夜睡眠的弹窗：就寝、起床、逐条夜醒、质量 1–5、备注。
+ * 记一夜睡眠的弹窗：就寝、起床、逐条夜醒、白日小憩、质量 1–5、备注。
  *
  * 归属日期 = 起床那天（dateKey 由外层给定，这里只显示不改）；
  * 时长是派生值，保存时不算、显示时才按跨零点算（sleepMath）。
  * 夜醒逐条记「几点醒 + 这次几分钟」，次数与累计分钟保存时由事件汇总；
  * 旧记录只有次数/分钟时照旧展示，补上具体时间后以新事件为准。
+ * 小憩记开始与结束，一天可以记多次，单独汇总，不混进夜间时长。
  * 改动只在点「保存」时落库，跟日记编辑区一个口径。
  */
 import { useState } from 'react'
@@ -21,17 +22,24 @@ import {
   choiceTile,
 } from '@/shared/ui/buttonStyles'
 import { INPUT } from '@/shared/ui/inputStyles'
-import { sleepMinutes, sleepParts, sortWakeEvents } from './sleepMath'
+import { sleepMinutes, sleepNapStats, sleepParts, sortNaps, sortWakeEvents } from './sleepMath'
 import { saveHealthSleep } from './healthRepo'
 
 const QUALITIES = [1, 2, 3, 4, 5]
 /** 一夜最多记这么多次夜醒，跟导入时的上限保持一致 */
 const MAX_WAKE_EVENTS = 20
+/** 一天最多记这么多次小憩，跟导入时的上限保持一致 */
+const MAX_NAPS = 10
 
 /** 弹窗里的夜醒行：分钟先用字符串收着，允许用户清空重填 */
 interface WakeDraft {
   time: string
   minutes: string
+}
+
+interface NapDraft {
+  start: string
+  end: string
 }
 
 function isClock(value: string) {
@@ -59,6 +67,9 @@ export default function SleepDialog({
       minutes: String(event.minutes),
     })),
   )
+  const [napDrafts, setNapDrafts] = useState<NapDraft[]>(
+    (sleep?.naps ?? []).map((nap) => ({ start: nap.start, end: nap.end })),
+  )
   const [note, setNote] = useState(sleep?.note ?? '')
 
   /** 每分钟数留空或不是 0–1440 的整数都算没填好 */
@@ -74,9 +85,13 @@ export default function SleepDialog({
     minutes: wakeMinutesOf(draft.minutes),
   }))
   const wakeValid = wakeEvents.every((event) => isClock(event.time) && event.minutes !== null)
+  const napsValid = napDrafts.every(
+    (nap) => isClock(nap.start) && isClock(nap.end) && nap.end > nap.start,
+  )
 
-  const valid = isClock(bedtime) && isClock(wakeTime) && wakeValid
+  const valid = isClock(bedtime) && isClock(wakeTime) && wakeValid && napsValid
   const parts = valid ? sleepParts(sleepMinutes(bedtime, wakeTime)) : null
+  const napStats = napsValid ? sleepNapStats(napDrafts) : null
 
   /** 旧记录只有次数/分钟、还没有具体时间时，保存时不要把它抹掉 */
   const keepLegacyWake =
@@ -97,6 +112,21 @@ export default function SleepDialog({
 
   function removeWake(index: number) {
     setWakeDrafts((current) => current.filter((_, position) => position !== index))
+  }
+
+  function addNap() {
+    if (napDrafts.length >= MAX_NAPS) return
+    setNapDrafts((current) => [...current, { start: '', end: '' }])
+  }
+
+  function updateNap(index: number, patch: Partial<NapDraft>) {
+    setNapDrafts((current) =>
+      current.map((draft, position) => (position === index ? { ...draft, ...patch } : draft)),
+    )
+  }
+
+  function removeNap(index: number) {
+    setNapDrafts((current) => current.filter((_, position) => position !== index))
   }
 
   async function handleSave() {
@@ -122,6 +152,7 @@ export default function SleepDialog({
       wakeTime,
       quality,
       wakeEvents: events,
+      naps: sortNaps(napDrafts.map((nap) => ({ start: nap.start, end: nap.end }))),
       wakeCount,
       wakeMinutes,
       note,
@@ -241,6 +272,76 @@ export default function SleepDialog({
         {keepLegacyWake && wakeDrafts.length === 0 && (
           <p className="m-0 mt-1 text-[11px] text-warning">{t('health.sleepWakeLegacy')}</p>
         )}
+      </div>
+
+      {/* 白日小憩：一天可以记多次，只记开始与结束，时长自动算，不混进夜间时长 */}
+      <div className="mt-4">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-muted">{t('health.sleepNaps')}</span>
+          <button
+            type="button"
+            onClick={addNap}
+            disabled={napDrafts.length >= MAX_NAPS}
+            className={SOLID_SMALL_BUTTON + ' disabled:opacity-40'}
+          >
+            {t('health.sleepNapsAdd')}
+          </button>
+        </div>
+
+        {napDrafts.length === 0 ? (
+          <p className="m-0 mt-2 text-[11px] text-muted">{t('health.sleepNapsEmpty')}</p>
+        ) : (
+          <>
+            <div className="mt-2 grid grid-cols-[1fr_1fr_auto] gap-2 text-[11px] text-muted">
+              <span>{t('health.sleepNapStart')}</span>
+              <span>{t('health.sleepNapEnd')}</span>
+              <span className="w-9" />
+            </div>
+            <ul className="m-0 mt-1 flex list-none flex-col gap-2 p-0">
+              {napDrafts.map((draft, index) => (
+                <li key={index} className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
+                  <input
+                    type="time"
+                    value={draft.start}
+                    aria-label={t('health.sleepNapStart')}
+                    onChange={(event) => updateNap(index, { start: event.target.value })}
+                    className={INPUT + ' w-full tabular-nums'}
+                  />
+                  <input
+                    type="time"
+                    value={draft.end}
+                    aria-label={t('health.sleepNapEnd')}
+                    onChange={(event) => updateNap(index, { end: event.target.value })}
+                    className={INPUT + ' w-full tabular-nums'}
+                  />
+                  <button
+                    type="button"
+                    aria-label={t('health.sleepNapRemove')}
+                    title={t('health.sleepNapRemove')}
+                    onClick={() => removeNap(index)}
+                    className={ROW_DANGER + ' h-9 w-9 px-0 text-base'}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {napStats && napStats.count > 0 && (
+          <p className="m-0 mt-1 text-[11px] tabular-nums text-muted">
+            {t('health.sleepNapTotal', {
+              n: napStats.count,
+              h: sleepParts(napStats.minutes).h,
+              m: sleepParts(napStats.minutes).m,
+            })}
+          </p>
+        )}
+        {!napsValid && (
+          <p className="m-0 mt-1 text-[11px] text-warning">{t('health.sleepNapInvalid')}</p>
+        )}
+        <p className="m-0 mt-1 text-[11px] text-muted">{t('health.sleepNapsHint')}</p>
       </div>
 
       <div className="mt-4">

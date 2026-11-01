@@ -27,6 +27,7 @@ import type {
   HealthSex,
   HealthSleep,
   IntakeComponent,
+  SleepNap,
   SleepWakeEvent,
   WeighIn,
 } from './schema'
@@ -57,6 +58,9 @@ function clockText(value: unknown, fallback: string) {
 /** 一夜最多记这么多次夜醒，防止手改的备份把弹窗撑爆 */
 const MAX_WAKE_EVENTS = 20
 
+/** 一天最多记这么多次小憩，同样挡住手改的备份 */
+const MAX_NAPS = 10
+
 /** 逐条夜醒：只保留时刻合法、分钟数是非负整数的条目，坏条目直接剔除 */
 function pickWakeEvents(value: unknown): SleepWakeEvent[] {
   if (!Array.isArray(value)) return []
@@ -71,6 +75,23 @@ function pickWakeEvents(value: unknown): SleepWakeEvent[] {
     events.push({ time, minutes: Math.floor(minutes) })
   }
   return events
+}
+
+/** 逐条小憩：开始与结束都必须是合法 HH:MM 且结束晚于开始，坏条目直接剔除 */
+function pickNaps(value: unknown): SleepNap[] {
+  if (!Array.isArray(value)) return []
+  const naps: SleepNap[] = []
+  for (const raw of value.slice(0, MAX_NAPS)) {
+    if (!raw || typeof raw !== 'object') continue
+    const item = raw as Record<string, unknown>
+    const start = text(item.start)
+    const end = text(item.end)
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(start)) continue
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(end)) continue
+    if (end <= start) continue
+    naps.push({ start, end })
+  }
+  return naps
 }
 
 function deletedAt(value: unknown): number | null {
@@ -382,6 +403,8 @@ export function pickSleep(raw: unknown): HealthSleep | null {
     quality: quality !== null && quality >= 1 && quality <= 5 ? quality : null,
     // 逐条夜醒；旧备份没有这个字段时留空数组，下面再用旧口径兜底
     wakeEvents: pickWakeEvents(item.wakeEvents),
+    // 白日小憩；旧备份没有这个字段时留空数组
+    naps: pickNaps(item.naps),
     wakeCount:
       wakeCount !== null && wakeCount >= 0 && wakeCount <= 99 ? Math.floor(wakeCount) : null,
     wakeMinutes:

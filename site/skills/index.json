@@ -1,0 +1,31 @@
+{
+  "skills": [
+    {
+      "id": "morning-brief",
+      "name": "晨间速览",
+      "description": "用一分钟说明昨天做了什么、今天有什么要注意。",
+      "version": "1.0.0",
+      "author": "星芒",
+      "category": "日常",
+      "url": "morning-brief.json"
+    },
+    {
+      "id": "meal-ideas",
+      "name": "吃什么",
+      "description": "按最近吃过什么和热量余额，给今天的三餐出主意。",
+      "version": "1.0.0",
+      "author": "星芒",
+      "category": "健康",
+      "url": "meal-ideas.json"
+    },
+    {
+      "id": "weekend-plan",
+      "name": "周末规划",
+      "description": "把想做的事、要休息的时间和不多的预算排进两天。",
+      "version": "1.0.0",
+      "author": "星芒",
+      "category": "规划",
+      "url": "weekend-plan.json"
+    }
+  ]
+}

@@ -1,3 +1,19 @@
+## 0.8.1 · 2026-11-01
+
+### What's new
+
+- **Daytime naps**: log several naps per day with their own start and end times; naps stay out of the nightly total and show up separately on the sleep page
+- **The assistant can edit and delete**: change diary entries, notes and finance records, and delete finance, notes, intakes and sleep entries. Deletions always ask first, go to the recycle bin and can be undone
+- **Three edit permissions**: read only, ask before changing, or change directly; additions and edits save at once under "change directly", while deletions still need confirmation
+- **A Claude Code-style conversation**: every lookup, its result summary and the elapsed time can be expanded, keeping process and answer apart
+- **Skills and multiple choice**: the assistant can ask you a multiple-choice question; skills published on the site can be installed from settings, and the site has a skill download page
+- **Deep thinking switch**: available in settings and above the chat input; providers that support reasoning flags get them
+
+### Download
+
+- Windows 10/11: `starburst-recorder-0.8.1-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.8.1.apk` (~16 MB, release-signed)
+
 ## 0.8.0 · 2026-11-01
 
 ### What's new

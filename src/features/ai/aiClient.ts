@@ -59,6 +59,8 @@ export async function chat(request: ChatRequest): Promise<ChatTransportResult> {
     bodyObj.tools = request.tools
     bodyObj.tool_choice = request.tool_choice ?? 'auto'
   }
+  // 厂商特定字段（深度思考等）：调用方负责只给认识它的厂商带
+  if (request.params) Object.assign(bodyObj, request.params)
   const body = JSON.stringify(bodyObj)
   const started = Date.now()
 

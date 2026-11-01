@@ -87,6 +87,7 @@ function sleep(
     wakeTime,
     quality,
     wakeEvents: [],
+    naps: [],
     wakeCount: null,
     wakeMinutes: null,
     note: '',

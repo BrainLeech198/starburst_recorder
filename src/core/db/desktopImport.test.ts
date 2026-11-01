@@ -154,4 +154,41 @@ describe('桌面端 SQLite 分块导入', () => {
     const after = call<{ foods: Array<{ photo: string | null }> }>('exportAllData')
     expect(after.foods[0].photo).toBe('data:image/png;base64,BBBB')
   })
+
+  it('睡眠分块往返后小憩一次不丢', () => {
+    const naps = [
+      { start: '13:00', end: '13:40' },
+      { start: '17:10', end: '17:30' },
+    ]
+    call('saveHealthSleep', {
+      id: 'sl1',
+      code: 'A000001',
+      dateKey: '2026-11-01',
+      bedtime: '23:10',
+      wakeTime: '07:05',
+      quality: 4,
+      wakeEvents: [],
+      naps,
+      wakeCount: null,
+      wakeMinutes: null,
+      note: '午后补觉',
+      createdAt: 1_700_000_000_000,
+      updatedAt: 1_700_000_000_000,
+      deletedAt: null,
+    })
+    const before = call<{ sleeps: unknown[] }>('exportAllData')
+
+    call('replaceSections', {
+      health: {
+        profile: null,
+        foods: [],
+        meals: [],
+        intakes: [],
+        sleeps: before.sleeps,
+      },
+    })
+
+    const after = call<{ sleeps: Array<{ naps: unknown }> }>('exportAllData')
+    expect(after.sleeps[0].naps).toEqual(naps)
+  })
 })

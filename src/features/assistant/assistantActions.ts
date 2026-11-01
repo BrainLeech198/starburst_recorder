@@ -9,22 +9,32 @@
  * 撤销信息可以序列化（recordId / previous），所以刷新页面后
  * 之前确认过的条目仍然能撤销。
  */
-import type { HealthProfile, HealthSleep } from '@/core/db/schema'
+import type {
+  DiaryEntry,
+  DiaryStamp,
+  FinanceEntry,
+  HealthProfile,
+  HealthSleep,
+} from '@/core/db/schema'
 import { newCode, newId } from '@/core/utils/id'
 import {
   addStamp,
   createEntry,
   removeEntry,
   removeStamp,
+  restoreStamp,
   updateContent,
   updateStamp,
 } from '@/features/diary/diaryRepo'
-import { addFinance, removeFinance } from '@/features/finance/financeRepo'
+import { addFinance, removeFinance, restoreFinance, saveFinance } from '@/features/finance/financeRepo'
 import {
   addIntake,
+  exportAllData,
   healthProfile,
   removeHealthSleep,
   removeIntake,
+  restoreHealthSleep,
+  restoreIntake,
   saveHealthProfile,
   saveHealthSleep,
   sleepOfDay,
@@ -56,6 +66,59 @@ export interface ActionDone {
  */
 export async function executeAssistantAction(action: AssistantAction): Promise<ActionDone> {
   const now = Date.now()
+  const data = await exportAllData()
+
+  if (action.kind === 'diaryEdit') {
+    const entry = data.entries.find((item) => item.deletedAt === null && item.code === action.code)
+    if (!entry) throw new Error('这篇日记已经不在了，刷新后再看一次。')
+    await updateContent(entry.id, action.content, entry.images)
+    return { recordId: entry.id, previous: entry }
+  }
+
+  if (action.kind === 'stampEdit') {
+    const stamp = data.stamps.find((item) => item.deletedAt === null && item.code === action.code)
+    if (!stamp) throw new Error('这条随记已经不在了，刷新后再看一次。')
+    await updateStamp(stamp.id, {
+      ...(action.time === undefined ? {} : { time: action.time }),
+      ...(action.content === undefined ? {} : { content: action.content }),
+    })
+    return { recordId: stamp.id, previous: stamp }
+  }
+
+  if (action.kind === 'financeEdit') {
+    const entry = data.finance.find((item) => item.deletedAt === null && item.code === action.code)
+    if (!entry) throw new Error('这笔收支已经不在了，刷新后再看一次。')
+    const patch: Partial<FinanceEntry> = {
+      ...(action.name === undefined ? {} : { name: action.name }),
+      ...(action.amount === undefined ? {} : { amount: action.amount }),
+      ...(action.direction === undefined ? {} : { kind: action.direction }),
+      ...(action.category === undefined ? {} : { category: action.category }),
+      ...(action.note === undefined ? {} : { note: action.note }),
+    }
+    await saveFinance({ ...entry, ...patch, updatedAt: now })
+    return { recordId: entry.id, previous: entry }
+  }
+
+  if (action.kind === 'financeDelete' || action.kind === 'stampDelete' || action.kind === 'intakeDelete') {
+    const record =
+      action.kind === 'financeDelete'
+        ? data.finance.find((item) => item.deletedAt === null && item.code === action.code)
+        : action.kind === 'stampDelete'
+          ? data.stamps.find((item) => item.deletedAt === null && item.code === action.code)
+          : data.intakes.find((item) => item.deletedAt === null && item.code === action.code)
+    if (!record) throw new Error('这条记录已经不在了，刷新后再看一次。')
+    if (action.kind === 'financeDelete') await removeFinance(record.id)
+    else if (action.kind === 'stampDelete') await removeStamp(record.id)
+    else await removeIntake(record.id)
+    return { recordId: record.id, previous: record }
+  }
+
+  if (action.kind === 'sleepDelete') {
+    const sleep = data.sleeps.find((item) => item.deletedAt === null && item.dateKey === action.dateKey)
+    if (!sleep) throw new Error('这天的睡眠记录已经不在了。')
+    await removeHealthSleep(sleep.id)
+    return { recordId: sleep.id, previous: sleep }
+  }
 
   if (action.kind === 'memory') {
     const before = loadMemories().find(
@@ -119,6 +182,7 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
           wakeTime: action.wakeTime,
           quality: action.quality,
           wakeEvents: [],
+          naps: [],
           wakeCount: null,
           wakeMinutes: null,
           note: action.note,
@@ -187,6 +251,44 @@ export async function undoAssistantAction(action: AssistantAction, done: ActionD
     } else if (done.recordId) {
       removeMemory(done.recordId)
     }
+    return
+  }
+
+  if (action.kind === 'diaryEdit') {
+    const previous = done.previous as DiaryEntry | null
+    if (previous) await updateContent(previous.id, previous.content, previous.images)
+    return
+  }
+
+  if (action.kind === 'stampEdit') {
+    const previous = done.previous as DiaryStamp | null
+    if (previous) await updateStamp(previous.id, { time: previous.time, content: previous.content })
+    return
+  }
+
+  if (action.kind === 'financeEdit') {
+    const previous = done.previous as FinanceEntry | null
+    if (previous) await saveFinance(previous)
+    return
+  }
+
+  if (action.kind === 'financeDelete') {
+    if (done.recordId) await restoreFinance(done.recordId)
+    return
+  }
+
+  if (action.kind === 'stampDelete') {
+    if (done.recordId) await restoreStamp(done.recordId)
+    return
+  }
+
+  if (action.kind === 'intakeDelete') {
+    if (done.recordId) await restoreIntake(done.recordId)
+    return
+  }
+
+  if (action.kind === 'sleepDelete') {
+    if (done.recordId) await restoreHealthSleep(done.recordId)
     return
   }
 

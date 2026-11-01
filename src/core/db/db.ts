@@ -161,3 +161,16 @@ db.version(13)
       })
       .then(() => undefined),
   )
+
+// 睡眠补白日小憩：表结构不变，老记录补空数组
+db.version(14)
+  .stores({})
+  .upgrade((tx) =>
+    tx
+      .table('healthSleeps')
+      .toCollection()
+      .modify((sleep: HealthSleep) => {
+        if (!Array.isArray(sleep.naps)) sleep.naps = []
+      })
+      .then(() => undefined),
+  )

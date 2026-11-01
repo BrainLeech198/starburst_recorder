@@ -7,10 +7,18 @@
  * 用一个小型外部 store + useSyncExternalStore：两个入口任何一边更新，
  * 另一边立刻看到。最多留 60 条，够接得上上下文，也不会把 localStorage 撑爆。
  */
-import type { AssistantStep } from './assistantAgent'
+import type { AssistantQuestion, AssistantStep } from './assistantAgent'
 import { describeAction, type AssistantAction } from './assistantActionBuild'
 
 export type ChatActionStatus = 'pending' | 'done' | 'undone' | 'canceled' | 'failed'
+export type ChatQuestionStatus = 'open' | 'answered' | 'skipped'
+
+/** 一道选择题在对话里的状态 */
+export interface ChatQuestionState extends AssistantQuestion {
+  status: ChatQuestionStatus
+  /** 用户选中的选项标签 */
+  selected?: string[]
+}
 
 /** 一张动作卡片在对话里的状态 */
 export interface ChatActionState {
@@ -31,7 +39,10 @@ export interface ChatMessageRecord {
   steps?: AssistantStep[]
   error?: boolean
   actions?: ChatActionState[]
+  question?: ChatQuestionState
   at: number
+  /** 这一轮从发出到出结果用了多久，显示在轨迹标题上 */
+  ms?: number
 }
 
 const KEY = 'sb_assistant_chat_v1'
@@ -45,6 +56,13 @@ const ACTION_KINDS = new Set([
   'sleep',
   'weigh',
   'intake',
+  'diaryEdit',
+  'stampEdit',
+  'financeEdit',
+  'financeDelete',
+  'stampDelete',
+  'intakeDelete',
+  'sleepDelete',
 ])
 
 const STATUSES = new Set<ChatActionStatus>(['pending', 'done', 'undone', 'canceled', 'failed'])
@@ -81,6 +99,41 @@ function normalizeAction(raw: unknown): ChatActionState | null {
   }
 }
 
+function normalizeQuestion(raw: unknown): ChatQuestionState | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  if (typeof item.question !== 'string' || item.question.trim() === '') return null
+  if (!Array.isArray(item.options)) return null
+  const options = item.options
+    .map((option) => {
+      if (!option || typeof option !== 'object') return null
+      const value = option as Record<string, unknown>
+      const label = typeof value.label === 'string' ? value.label.trim() : ''
+      if (label === '') return null
+      return {
+        label,
+        ...(typeof value.description === 'string' && value.description.trim() !== ''
+          ? { description: value.description.trim() }
+          : {}),
+      }
+    })
+    .filter((option): option is { label: string; description?: string } => option !== null)
+  if (options.length < 2) return null
+  const status =
+    item.status === 'answered' || item.status === 'skipped' ? item.status : 'open'
+  const selected = Array.isArray(item.selected)
+    ? item.selected.filter((value): value is string => typeof value === 'string')
+    : undefined
+  return {
+    header: typeof item.header === 'string' ? item.header : '',
+    question: item.question,
+    options,
+    multiSelect: item.multiSelect === true,
+    status,
+    ...(selected && selected.length > 0 ? { selected } : {}),
+  }
+}
+
 function normalizeMessage(raw: unknown): ChatMessageRecord | null {
   if (!raw || typeof raw !== 'object') return null
   const item = raw as Record<string, unknown>
@@ -100,6 +153,7 @@ function normalizeMessage(raw: unknown): ChatMessageRecord | null {
   const actions = Array.isArray(item.actions)
     ? item.actions.map(normalizeAction).filter((action): action is ChatActionState => action !== null)
     : undefined
+  const question = normalizeQuestion(item.question)
   return {
     id: item.id,
     role: item.role,
@@ -107,7 +161,9 @@ function normalizeMessage(raw: unknown): ChatMessageRecord | null {
     steps: steps && steps.length > 0 ? steps : undefined,
     error: item.error === true,
     actions: actions && actions.length > 0 ? actions : undefined,
+    question: question ?? undefined,
     at: typeof item.at === 'number' && Number.isFinite(item.at) ? item.at : Date.now(),
+    ...(typeof item.ms === 'number' && Number.isFinite(item.ms) ? { ms: item.ms } : {}),
   }
 }
 
@@ -175,6 +231,11 @@ export function createChatMessage(
 
 export function newChatMessageId() {
   return newMessageId()
+}
+
+/** 从一条消息创建到现在过了多久；放在这里是因为组件里不能直接调 Date.now */
+export function elapsedSince(at: number) {
+  return Date.now() - at
 }
 
 /** 已经确认写入的动作，拼成下一轮的系统提示 */

@@ -108,6 +108,7 @@ describe('add_stamp / add_diary / add_sleep', () => {
       wakeTime: '07:00',
       quality: 3,
       wakeEvents: [],
+      naps: [],
       wakeCount: null,
       wakeMinutes: null,
       note: '',
@@ -209,5 +210,150 @@ describe('remember / describeAction', () => {
 
   it('不认识的工具名不生成动作', () => {
     expect(buildAssistantAction('drop_table', {}, CTX).ok).toBe(false)
+  })
+})
+
+describe('改与删已有记录', () => {
+  function dataWithRecords(): BackupData {
+    const data = emptyData()
+    data.entries.push({
+      id: 'en_1',
+      code: 'a000001',
+      dateKey: '2026-10-20',
+      content: '旧日记',
+      images: [],
+      createdAt: 0,
+      updatedAt: 0,
+      deletedAt: null,
+    })
+    data.stamps.push({
+      id: 'st_1',
+      code: 'b000001',
+      dateKey: '2026-10-26',
+      time: '14:00',
+      content: '喝了杯咖啡',
+      images: [],
+      createdAt: 0,
+      updatedAt: 0,
+      deletedAt: null,
+    })
+    data.finance.push({
+      id: 'fi_1',
+      code: 'c000001',
+      dateKey: '2026-10-27',
+      kind: 'expense',
+      category: 'food',
+      name: '午饭',
+      amount: 30,
+      note: '',
+      createdAt: 0,
+      updatedAt: 0,
+      deletedAt: null,
+    })
+    data.intakes.push({
+      id: 'in_1',
+      code: 'd000001',
+      dateKey: '2026-10-27',
+      time: '12:00',
+      foodId: null,
+      name: '米饭',
+      grams: 200,
+      kcal: 230,
+      protein: 4,
+      carbs: 50,
+      fat: 1,
+      source: 'manual',
+      mealId: null,
+      components: null,
+      tdeeSnapshot: null,
+      targetKcalSnapshot: null,
+      proteinTargetSnapshot: null,
+      createdAt: 0,
+      updatedAt: 0,
+      deletedAt: null,
+    })
+    data.sleeps.push({
+      id: 'sl_1',
+      code: 'e000001',
+      dateKey: '2026-10-27',
+      bedtime: '23:30',
+      wakeTime: '07:10',
+      quality: 4,
+      wakeEvents: [],
+      naps: [],
+      wakeCount: null,
+      wakeMinutes: null,
+      note: '',
+      createdAt: 0,
+      updatedAt: 0,
+      deletedAt: null,
+    })
+    return data
+  }
+
+  const editCtx = { data: dataWithRecords(), today: '2026-10-28' }
+
+  it('改日记要能按 code 找到那一条', () => {
+    const result = buildAssistantAction(
+      'update_diary',
+      { code: 'a000001', content: '新的日记' },
+      editCtx,
+    )
+    expect(result.ok).toBe(true)
+    if (result.ok && result.action.kind === 'diaryEdit') {
+      expect(result.action).toMatchObject({ dateKey: '2026-10-20', content: '新的日记' })
+    }
+    expect(buildAssistantAction('update_diary', { code: 'nope', content: 'x' }, editCtx).ok).toBe(
+      false,
+    )
+  })
+
+  it('改随记至少要有内容或时刻', () => {
+    expect(buildAssistantAction('update_stamp', { code: 'b000001' }, editCtx).ok).toBe(false)
+    const result = buildAssistantAction(
+      'update_stamp',
+      { code: 'b000001', time: '15:30' },
+      editCtx,
+    )
+    expect(result.ok).toBe(true)
+    if (result.ok && result.action.kind === 'stampEdit') {
+      expect(result.action.time).toBe('15:30')
+      expect(result.action.content).toBeUndefined()
+    }
+  })
+
+  it('改收支只带要改的字段，并校验分类方向', () => {
+    const result = buildAssistantAction(
+      'update_finance',
+      { code: 'c000001', amount: 25.5 },
+      editCtx,
+    )
+    expect(result.ok).toBe(true)
+    if (result.ok && result.action.kind === 'financeEdit') {
+      expect(result.action.amount).toBe(25.5)
+      expect(result.action.name).toBeUndefined()
+    }
+    expect(
+      buildAssistantAction(
+        'update_finance',
+        { code: 'c000001', category: 'salary' },
+        editCtx,
+      ).ok,
+    ).toBe(false)
+  })
+
+  it('删除动作保留足够信息给卡片和撤销', () => {
+    const stamp = buildAssistantAction('delete_stamp', { code: 'b000001' }, editCtx)
+    expect(stamp.ok).toBe(true)
+    if (stamp.ok && stamp.action.kind === 'stampDelete') {
+      expect(stamp.action.content).toContain('咖啡')
+    }
+    const intake = buildAssistantAction('delete_intake', { code: 'd000001' }, editCtx)
+    expect(intake.ok).toBe(true)
+    if (intake.ok && intake.action.kind === 'intakeDelete') {
+      expect(intake.action).toMatchObject({ name: '米饭', kcal: 230 })
+    }
+    expect(buildAssistantAction('delete_sleep', { date: '2026-10-27' }, editCtx).ok).toBe(true)
+    expect(buildAssistantAction('delete_sleep', { date: '2026-10-26' }, editCtx).ok).toBe(false)
   })
 })

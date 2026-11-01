@@ -19,11 +19,30 @@ window.SITE_I18N = {
     'nav.ai': 'AI',
     'nav.shots': '截图',
     'nav.download': '下载',
+    'nav.skills': '技能',
+
+    'skillsPage.title': '星芒技能库',
+    'skillsPage.lead':
+      '技能包决定助手怎么想、按什么步骤做事。下载后装进 App，助手遇到合适的任务就会照这套步骤来。',
+    'skillsPage.howTitle': '怎么装进 App',
+    'skillsPage.how':
+      '打开 App → 设置 → 助手 → 技能，点「查看官网技能」，选一个就能装上；也可以下载 JSON 再点「从文件导入」。',
+    'skillsPage.builtinTitle': '内置技能',
+    'skillsPage.builtinNote':
+      '头脑风暴、周复盘、睡眠教练、收支复盘、日记润色已经内置，不用下载。',
+    'skillsPage.trust':
+      '技能只是提示词层面的方法包，不会获得你的记录，也不会多出任何数据权限；装之前可以先打开 JSON 看一眼。',
+    'skillsPage.download': '下载技能文件',
+    'skillsPage.version': '版本',
+    'skillsPage.author': '作者',
+    'skillsPage.empty': '技能目录没读出来，刷新页面再试一次。',
+    'skillsPage.back': '返回首页',
+    'skillsPage.meta': '星芒记录者的助手技能库：下载 JSON 技能包，装进 App 就能用。',
 
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.8.0',
+    'hero.cta': '下载 0.8.1',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -94,11 +113,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.8.0',
+    'open.version': '版本 0.8.1',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.8.0 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.8.1 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -109,11 +128,11 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      'AI 助手能动手：记一笔收支、写随记或日记、记睡眠、称重、记摄入，都先给预览，确认后才写入，刚写完可以撤销',
+      '白日小憩也能记了：一天可以记多次，开始和结束时刻分开记，不混进夜间睡眠时长',
     'whatsnew.item2':
-      '助手有了长期记忆，对话也会保存；悬浮球和整页助手共用同一段会话，不用每次重新交代',
+      '助手能改也能删，还多了三档编辑权限：只读、改前确认、直接改；删除始终要你确认',
     'whatsnew.item3':
-      '收支模块可用：分类、改删、按天汇总与本月结余；三个模块的日期栏统一成圆角矩形',
+      '对话界面更像 Claude Code：查了什么、结果和耗时都能展开；新增技能库、选择题与深度思考开关',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -122,7 +141,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.8.0',
+    'footer.version': '版本 0.8.1',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -141,11 +160,31 @@ window.SITE_I18N = {
     'nav.ai': 'AI',
     'nav.shots': 'Screenshots',
     'nav.download': 'Download',
+    'nav.skills': 'Skills',
+
+    'skillsPage.title': 'Starburst Skills',
+    'skillsPage.lead':
+      'Skill packs decide how the assistant thinks and what steps it follows. Install one in the app and it will use those steps whenever a task fits.',
+    'skillsPage.howTitle': 'How to install',
+    'skillsPage.how':
+      'Open the app → Settings → Assistant → Skills, tap “Browse site skills”, and install one. You can also download the JSON and use “Import from file”.',
+    'skillsPage.builtinTitle': 'Built-in skills',
+    'skillsPage.builtinNote':
+      'Brainstorm, weekly review, sleep coach, spending review and diary polish are built in — no download needed.',
+    'skillsPage.trust':
+      'A skill is only a prompt-level method pack. It never gets your records and grants no extra data access; open the JSON first if you want to check.',
+    'skillsPage.download': 'Download skill file',
+    'skillsPage.version': 'Version',
+    'skillsPage.author': 'Author',
+    'skillsPage.empty': 'Could not load the skill catalog. Refresh the page and try again.',
+    'skillsPage.back': 'Back to home',
+    'skillsPage.meta':
+      'Assistant skills for Starburst Recorder: download JSON skill packs and use them in the app.',
 
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.8.0',
+    'hero.cta': 'Download 0.8.1',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -221,12 +260,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.8.0',
+    'open.version': 'Version 0.8.1',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.8.0 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.8.1 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -237,13 +276,13 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.8.0",
+    'whatsnew.title': "What's new in 0.8.1",
     'whatsnew.item1':
-      'The assistant can act: log spending, write a note or diary entry, record sleep, weigh in or log food. Every write is previewed first, applied only after you confirm, and can be undone',
+      'Daytime naps: log several per day with their own start and end times; naps stay out of your nightly sleep total',
     'whatsnew.item2':
-      'The assistant keeps long-term memories, and conversations are saved — the floating ball and the full page share one thread',
+      'The assistant can edit and delete, with three edit permissions: read only, ask before changing, or change directly; deletions always need confirmation',
     'whatsnew.item3':
-      'Finance is ready: categories, edit and delete, daily totals and a monthly balance; the date bars in all three modules now share one rounded look',
+      'A Claude Code-style conversation: every lookup, result summary and elapsed time can be expanded; plus skills, multiple-choice questions and a deep-thinking switch',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -252,7 +291,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.8.0',
+    'footer.version': 'Version 0.8.1',
     'footer.tagline': 'Data stays on your device',
   },
 };

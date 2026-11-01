@@ -43,6 +43,8 @@ export interface ChatRequest {
   /** function calling 的工具声明；不支持 tool 的模型干脆不发 */
   tools?: unknown[]
   tool_choice?: 'auto'
+  /** 厂商特定的额外字段（例如深度思考的 enable_thinking），原样并进请求体 */
+  params?: Record<string, unknown>
 }
 
 /**

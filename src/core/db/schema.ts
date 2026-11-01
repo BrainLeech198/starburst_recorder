@@ -179,9 +179,18 @@ export interface SleepWakeEvent {
   minutes: number
 }
 
+/** 一次白日小憩：开始与结束时刻，时长由两者派生（跨零点按第二天算） */
+export interface SleepNap {
+  /** 开始时刻，'HH:MM' */
+  start: string
+  /** 结束时刻，'HH:MM' */
+  end: string
+}
+
 /**
  * 一夜睡眠：一行一夜，dateKey = 起床那天（周五晚睡周六起 → 记周六）。
  * 时长是派生值不存（跨零点自动 +24h）。夜醒按事件逐条记，次数与累计分钟由事件汇总。
+ * 白日小憩也挂在这一行上，可以记多次，不混进夜间时长。
  */
 export interface HealthSleep {
   id: string
@@ -197,6 +206,8 @@ export interface HealthSleep {
   quality: number | null
   /** 逐条夜醒记录；空数组表示没醒过，或者旧记录没补具体时间 */
   wakeEvents: SleepWakeEvent[]
+  /** 白日小憩，可以多次；空数组表示没记 */
+  naps: SleepNap[]
   /** 旧口径：夜醒次数，仍保留用于读取旧备份；新记录保存时由 wakeEvents 汇总 */
   wakeCount: number | null
   /** 旧口径：累计醒来分钟，仍保留用于读取旧备份；新记录保存时由 wakeEvents 汇总 */

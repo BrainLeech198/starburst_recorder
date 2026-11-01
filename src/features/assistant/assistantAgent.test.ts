@@ -187,6 +187,126 @@ describe('parseJsonAction', () => {
   })
 })
 
+describe('permission', () => {
+  it('只读档的提示词里没有写工具，也不给模型写工具', async () => {
+    const text = buildSystemPrompt('2026-10-28', false, [], [], [], [], 'readonly')
+    expect(text).toContain('【权限：只读】')
+    expect(text).not.toContain('add_finance')
+    expect(text).not.toContain('update_diary')
+
+    let sentTools = ''
+    await runAssistant({
+      config: CONFIG,
+      history: [],
+      data: emptyData(),
+      today: '2026-10-28',
+      permission: 'readonly',
+      request: async (request) => {
+        sentTools = JSON.stringify(request.tools ?? [])
+        return transport(body({ content: '只能看，不能改。' }))
+      },
+    })
+    expect(sentTools).not.toContain('add_finance')
+    expect(sentTools).not.toContain('delete_stamp')
+  })
+
+  it('只读档即便模型硬要写，也不生成卡片', async () => {
+    let round = 0
+    let toolResult = ''
+    const result = await runAssistant({
+      config: CONFIG,
+      history: [],
+      data: emptyData(),
+      today: '2026-10-28',
+      permission: 'readonly',
+      request: async (request) => {
+        round += 1
+        if (round === 1) {
+          return transport(
+            body({
+              tool_calls: [
+                {
+                  id: 'call_1',
+                  type: 'function',
+                  function: { name: 'add_finance', arguments: '{"name":"午饭","amount":28}' },
+                },
+              ],
+            }),
+          )
+        }
+        toolResult = String(request.messages.at(-1)?.content ?? '')
+        return transport(body({ content: '现在是只读权限，我不改记录。' }))
+      },
+    })
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.pending).toBeUndefined()
+    expect(toolResult).toContain('只读')
+  })
+
+  it('直接改档说明新增与修改不用确认，删除仍要确认', () => {
+    expect(buildSystemPrompt('2026-10-28', false, [], [], [], [], 'auto')).toContain(
+      '【权限：直接改】',
+    )
+    expect(buildSystemPrompt('2026-10-28', false)).toContain('【权限：改前确认】')
+  })
+})
+
+describe('reasoning', () => {
+  it('开启后提示词多一段，支持的厂商带上推理参数', async () => {
+    let sentParams: Record<string, unknown> | undefined
+    let system = ''
+    const result = await runAssistant({
+      config: { ...CONFIG, providerId: 'qwen' },
+      history: [],
+      data: emptyData(),
+      today: '2026-10-28',
+      reasoning: true,
+      request: async (request) => {
+        sentParams = request.params
+        system = String(request.messages[0]?.content ?? '')
+        return transport(body({ content: '好的。' }))
+      },
+    })
+    expect(result.ok).toBe(true)
+    expect(system).toContain('【深度思考】')
+    expect(sentParams).toEqual({ enable_thinking: true })
+  })
+
+  it('关闭时不带参数，提示词也没有那一段', async () => {
+    let sentParams: Record<string, unknown> | undefined
+    let system = ''
+    await runAssistant({
+      config: { ...CONFIG, providerId: 'qwen' },
+      history: [],
+      data: emptyData(),
+      today: '2026-10-28',
+      request: async (request) => {
+        sentParams = request.params
+        system = String(request.messages[0]?.content ?? '')
+        return transport(body({ content: '好的。' }))
+      },
+    })
+    expect(sentParams).toBeUndefined()
+    expect(system).not.toContain('【深度思考】')
+  })
+
+  it('不认识推理参数的厂商不瞎传字段', async () => {
+    let sentParams: Record<string, unknown> | undefined
+    await runAssistant({
+      config: CONFIG,
+      history: [],
+      data: emptyData(),
+      today: '2026-10-28',
+      reasoning: true,
+      request: async (request) => {
+        sentParams = request.params
+        return transport(body({ content: '好的。' }))
+      },
+    })
+    expect(sentParams).toBeUndefined()
+  })
+})
+
 describe('runAssistant', () => {
   it('tools 模式：先执行工具，再返回正文', async () => {
     const steps: string[] = []

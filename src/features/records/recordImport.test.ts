@@ -11,6 +11,7 @@ const SLEEP: HealthSleep = {
   wakeTime: '07:05',
   quality: 4,
   wakeEvents: [],
+  naps: [],
   wakeCount: null,
   wakeMinutes: null,
   note: '',
