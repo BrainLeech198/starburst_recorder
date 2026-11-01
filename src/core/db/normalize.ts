@@ -26,9 +26,14 @@ import type {
   HealthProfile,
   HealthSex,
   HealthSleep,
+  HealthTraining,
   IntakeComponent,
   SleepNap,
   SleepWakeEvent,
+  TrainingExercise,
+  TrainingKind,
+  TrainingPlan,
+  TrainingSet,
   WeighIn,
 } from './schema'
 import { newCode } from '@/core/utils/id'
@@ -244,6 +249,124 @@ export function pickWeighIns(raw: unknown): WeighIn[] {
   return deduped.slice(0, 120)
 }
 
+const TRAINING_KINDS: TrainingKind[] = ['strength', 'cardio', 'mobility', 'sport', 'other']
+
+/** 部位键固定英文，界面只在 i18n 里翻译 */
+const MUSCLES = [
+  'chest',
+  'back',
+  'legs',
+  'shoulders',
+  'arms',
+  'core',
+  'fullBody',
+  'cardio',
+  'other',
+]
+
+/** 一次训练最多收这么多个动作，手改的备份也不至于把页面撑爆 */
+const MAX_EXERCISES = 30
+
+/** 每个动作最多收这么多组 */
+const MAX_SETS = 30
+
+export function isTrainingKind(value: unknown): value is TrainingKind {
+  return TRAINING_KINDS.includes(value as TrainingKind)
+}
+
+/** 一组里的数字：负数、NaN、无穷大一律当没填（null），不静默留脏值 */
+function setNumber(value: unknown, min: number, max: number): number | null {
+  const parsed = nullableNumber(value)
+  if (parsed === null || parsed < min || parsed > max) return null
+  return parsed
+}
+
+function pickSets(raw: unknown): TrainingSet[] {
+  if (!Array.isArray(raw)) return []
+  return raw.slice(0, MAX_SETS).map((entry) => {
+    const item = entry && typeof entry === 'object' ? (entry as Record<string, unknown>) : {}
+    return {
+      reps: setNumber(item.reps, 0, 1000),
+      weightKg: setNumber(item.weightKg, 0, 1000),
+      durationSec: setNumber(item.durationSec, 0, 86400),
+      restSec: setNumber(item.restSec, 0, 3600),
+      rpe: setNumber(item.rpe, 1, 10),
+    }
+  })
+}
+
+export function pickExercises(raw: unknown): TrainingExercise[] {
+  if (!Array.isArray(raw)) return []
+  const list: TrainingExercise[] = []
+  for (const entry of raw.slice(0, MAX_EXERCISES)) {
+    if (!entry || typeof entry !== 'object') continue
+    const item = entry as Record<string, unknown>
+    const name = text(item.name).trim()
+    if (name === '') continue
+    const id = text(item.id)
+    const kind = text(item.kind)
+    const muscle = text(item.muscle)
+    list.push({
+      id: id === '' ? `ex-${newCode()}` : id,
+      name,
+      kind: isTrainingKind(kind) ? kind : 'other',
+      muscle: MUSCLES.includes(muscle) ? muscle : 'other',
+      sets: pickSets(item.sets),
+      durationMin: setNumber(item.durationMin, 0, 1440),
+      distanceKm: setNumber(item.distanceKm, 0, 1000),
+      note: text(item.note),
+    })
+  }
+  return list
+}
+
+export function pickTraining(raw: unknown): HealthTraining | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  const id = text(item.id)
+  const day = dateKey(item.dateKey)
+  if (id === '' || day === null) return null
+  const time = text(item.time)
+  const kind = text(item.kind)
+  return {
+    id,
+    code: text(item.code) || newCode(),
+    dateKey: day,
+    time: /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : '00:00',
+    kind: isTrainingKind(kind) ? kind : 'other',
+    title: text(item.title),
+    exercises: pickExercises(item.exercises),
+    durationMin: setNumber(item.durationMin, 0, 1440),
+    feeling: setNumber(item.feeling, 1, 5),
+    note: text(item.note),
+    createdAt: number(item.createdAt, Date.now()),
+    updatedAt: number(item.updatedAt, Date.now()),
+    deletedAt: deletedAt(item.deletedAt),
+  }
+}
+
+/** 训练提醒设置：没有字段就是 undefined；周几只认 1–7，坏值直接清空 */
+export function pickTrainingPlan(raw: unknown): TrainingPlan | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const item = raw as Record<string, unknown>
+  const weeklyDays = Array.isArray(item.weeklyDays)
+    ? [
+        ...new Set(
+          item.weeklyDays
+            .map((day) => Number(day))
+            .filter((day) => Number.isInteger(day) && day >= 1 && day <= 7),
+        ),
+      ].sort((a, b) => a - b)
+    : []
+  const nudge = nullableNumber(item.nudgeAfterDays)
+  return {
+    enabled: item.enabled === true,
+    weeklyDays,
+    time: clockText(item.time, '20:00'),
+    nudgeAfterDays: nudge !== null && nudge >= 0 && nudge <= 30 ? Math.floor(nudge) : 3,
+  }
+}
+
 export function pickProfile(raw: unknown): HealthProfile | null {
   if (!raw || typeof raw !== 'object') return null
   const item = raw as Record<string, unknown>
@@ -269,6 +392,7 @@ export function pickProfile(raw: unknown): HealthProfile | null {
     idealBedtime: clockText(item.idealBedtime, '23:00'),
     idealWakeTime: clockText(item.idealWakeTime, '07:00'),
     weighIns: pickWeighIns(item.weighIns),
+    trainingPlan: pickTrainingPlan(item.trainingPlan),
     updatedAt: number(item.updatedAt, Date.now()),
   }
 }
@@ -424,20 +548,37 @@ export function pickFinance(raw: unknown): FinanceEntry | null {
   const id = text(item.id)
   const day = dateKey(item.dateKey)
   if (id === '' || day === null) return null
+  const createdAt = number(item.createdAt, Date.now())
+  const time = text(item.time)
   return {
     id,
     code: text(item.code) || newCode(),
     dateKey: day,
+    // 旧备份没有 time：按创建时间补一个带秒的时刻
+    time: /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(time)
+      ? time.length === 5
+        ? `${time}:00`
+        : time
+      : clockSeconds(createdAt),
     // 旧占位数据没有方向，统一按支出口径读；金额一律收成正数
     kind: item.kind === 'income' ? 'income' : 'expense',
     category: text(item.category),
     name: text(item.name),
     amount: Math.abs(number(item.amount, 0)),
+    photo:
+      typeof item.photo === 'string' && item.photo.startsWith('data:image/') ? item.photo : null,
     note: text(item.note),
-    createdAt: number(item.createdAt, Date.now()),
+    createdAt,
     updatedAt: number(item.updatedAt, Date.now()),
     deletedAt: deletedAt(item.deletedAt),
   }
+}
+
+/** 把时间戳收成 'HH:MM:SS'，按设备本地时区 */
+function clockSeconds(ms: number) {
+  const date = new Date(ms)
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
 export function rows(value: unknown): unknown[] {

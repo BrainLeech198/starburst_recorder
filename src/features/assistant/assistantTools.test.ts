@@ -22,6 +22,7 @@ function emptyData(): BackupData {
     meals: [],
     intakes: [],
     sleeps: [],
+    trainings: [],
     finance: [],
   }
 }
@@ -102,10 +103,12 @@ function finance(dateKey: string, name: string, amount: number, note = ''): Fina
     id: `f_${name}`,
     code: 'f000001',
     dateKey,
+    time: '12:00:00',
     kind: 'expense',
     category: 'food',
     name,
     amount,
+    photo: null,
     note,
     createdAt: 0,
     updatedAt: 0,
@@ -431,5 +434,43 @@ describe('执行器的兜底', () => {
     )
     expect(text.length).toBe(2401)
     expect(text.endsWith('…')).toBe(true)
+  })
+
+  it('training_stats 汇总次数、容量与逐次记录', () => {
+    const data = emptyData()
+    data.trainings.push({
+      id: 't1',
+      code: 'T000001',
+      dateKey: '2026-10-27',
+      time: '19:00',
+      kind: 'strength',
+      title: '推日',
+      exercises: [
+        {
+          id: 'e1',
+          name: '卧推',
+          kind: 'strength',
+          muscle: 'chest',
+          sets: [{ reps: 8, weightKg: 40, durationSec: null, restSec: null, rpe: null }],
+          durationMin: null,
+          distanceKm: null,
+          note: '',
+        },
+      ],
+      durationMin: 45,
+      feeling: 4,
+      note: '',
+      createdAt: 0,
+      updatedAt: 0,
+      deletedAt: null,
+    })
+    const text = runAssistantTool(
+      'training_stats',
+      { from: '2026-10-26', to: '2026-11-01' },
+      { data, today: '2026-11-01' },
+    )
+    expect(text).toContain('训练 1 次')
+    expect(text).toContain('卧推')
+    expect(text).toContain('T000001')
   })
 })

@@ -83,6 +83,8 @@ export interface HealthProfile {
   idealWakeTime: string
   /** 空腹称重历史，新的在前，只留最近 120 条 */
   weighIns: WeighIn[]
+  /** 训练提醒设置；旧档案没有这个字段 */
+  trainingPlan?: TrainingPlan
   updatedAt: number
 }
 
@@ -218,6 +220,67 @@ export interface HealthSleep {
   deletedAt: number | null
 }
 
+/** 运动大类：决定表单显示哪些字段 */
+export type TrainingKind = 'strength' | 'cardio' | 'mobility' | 'sport' | 'other'
+
+/** 一组。没填的字段一律 null，不要用 0 冒充「没填」 */
+export interface TrainingSet {
+  reps: number | null
+  weightKg: number | null
+  durationSec: number | null
+  restSec: number | null
+  /** 自觉强度 1–10 */
+  rpe: number | null
+}
+
+/** 一个动作：一次训练里可以有多个，每个动作记若干组 */
+export interface TrainingExercise {
+  id: string
+  name: string
+  kind: TrainingKind
+  /** 部位：chest / back / legs / shoulders / arms / core / fullBody / cardio / other */
+  muscle: string
+  sets: TrainingSet[]
+  durationMin: number | null
+  distanceKm: number | null
+  note: string
+}
+
+/**
+ * 一次训练：一条记录就是一个完整文档，动作与组都嵌在里面，不拆表。
+ * 字段全部可空——只记了时长、只记了动作名都是合法记录。
+ */
+export interface HealthTraining {
+  id: string
+  /** 7 位十六进制短编号，和日记 / 随记一致 */
+  code: string
+  /** 'YYYY-MM-DD' */
+  dateKey: string
+  /** 开始时刻 HH:MM */
+  time: string
+  kind: TrainingKind
+  title: string
+  exercises: TrainingExercise[]
+  durationMin: number | null
+  /** 主观感受 1–5 */
+  feeling: number | null
+  note: string
+  createdAt: number
+  updatedAt: number
+  deletedAt: number | null
+}
+
+/** 训练提醒设置，挂在身体档案上；两个开关互相独立 */
+export interface TrainingPlan {
+  enabled: boolean
+  /** 1=周一 … 7=周日 */
+  weeklyDays: number[]
+  /** 'HH:MM' */
+  time: string
+  /** 连续多少天没练后提醒；0 表示关闭断档提醒 */
+  nudgeAfterDays: number
+}
+
 /** 一笔收支的方向：钱进来还是出去 */
 export type FinanceKind = 'expense' | 'income'
 
@@ -232,6 +295,8 @@ export interface FinanceEntry {
   /** 7 位十六进制短编号，跟日记、食物一样用来指代某一笔 */
   code: string
   dateKey: string
+  /** 发生时刻，'HH:MM:SS'；旧数据缺失时补 '00:00:00' */
+  time: string
   /** 支出还是收入 */
   kind: FinanceKind
   /** 分类 id；空串表示还没选分类 */
@@ -240,6 +305,8 @@ export interface FinanceEntry {
   name: string
   /** 金额，正数；方向看 kind */
   amount: number
+  /** 票据 / 小票缩略图，压缩后的 data URL；没有就 null */
+  photo: string | null
   note: string
   createdAt: number
   updatedAt: number

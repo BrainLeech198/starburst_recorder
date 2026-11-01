@@ -15,6 +15,7 @@ import type {
   HealthMeal,
   HealthProfile,
   HealthSleep,
+  HealthTraining,
   IntakeComponent,
 } from './schema'
 import type { DiaryStore, BackupData, BackupSections, ImportStats } from './store'
@@ -246,19 +247,31 @@ export const dexieStore: DiaryStore = {
   },
 
   async exportAllData(): Promise<BackupData> {
-    const [entries, stamps, days, presets, profile, foods, meals, intakes, sleeps, finance] =
-      await Promise.all([
-        db.diaryEntries.toArray(),
-        db.diaryStamps.toArray(),
-        db.diaryDays.toArray(),
-        db.diaryPresets.toArray(),
-        db.healthProfile.get('me'),
-        db.healthFoods.toArray(),
-        db.healthMeals.toArray(),
-        db.healthIntakes.toArray(),
-        db.healthSleeps.toArray(),
-        db.financeEntries.toArray(),
-      ])
+    const [
+      entries,
+      stamps,
+      days,
+      presets,
+      profile,
+      foods,
+      meals,
+      intakes,
+      sleeps,
+      trainings,
+      finance,
+    ] = await Promise.all([
+      db.diaryEntries.toArray(),
+      db.diaryStamps.toArray(),
+      db.diaryDays.toArray(),
+      db.diaryPresets.toArray(),
+      db.healthProfile.get('me'),
+      db.healthFoods.toArray(),
+      db.healthMeals.toArray(),
+      db.healthIntakes.toArray(),
+      db.healthSleeps.toArray(),
+      db.healthTrainings.toArray(),
+      db.financeEntries.toArray(),
+    ])
     return {
       entries,
       stamps,
@@ -269,6 +282,7 @@ export const dexieStore: DiaryStore = {
       meals,
       intakes,
       sleeps,
+      trainings,
       finance,
     }
   },
@@ -303,7 +317,14 @@ export const dexieStore: DiaryStore = {
   async clearHealthData() {
     await db.transaction(
       'rw',
-      [db.healthProfile, db.healthFoods, db.healthMeals, db.healthIntakes, db.healthSleeps],
+      [
+        db.healthProfile,
+        db.healthFoods,
+        db.healthMeals,
+        db.healthIntakes,
+        db.healthSleeps,
+        db.healthTrainings,
+      ],
       async () => {
         await Promise.all([
           db.healthProfile.clear(),
@@ -311,6 +332,7 @@ export const dexieStore: DiaryStore = {
           db.healthMeals.clear(),
           db.healthIntakes.clear(),
           db.healthSleeps.clear(),
+          db.healthTrainings.clear(),
         ])
       },
     )
@@ -335,13 +357,14 @@ export const dexieStore: DiaryStore = {
     const now = Date.now()
     await db.transaction(
       'rw',
-      [db.healthFoods, db.healthMeals, db.healthIntakes, db.healthSleeps],
+      [db.healthFoods, db.healthMeals, db.healthIntakes, db.healthSleeps, db.healthTrainings],
       async () => {
         await Promise.all([
           db.healthFoods.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
           db.healthMeals.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
           db.healthIntakes.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
           db.healthSleeps.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
+          db.healthTrainings.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
         ])
       },
     )
@@ -625,6 +648,73 @@ export const dexieStore: DiaryStore = {
     await db.healthSleeps.filter((sleep) => sleep.deletedAt !== null).delete()
   },
 
+  // ─────────── 训练 ───────────
+
+  async trainingOfDay(dateKey): Promise<HealthTraining[]> {
+    const rows = await db.healthTrainings
+      .where('dateKey')
+      .equals(dateKey)
+      .filter((training) => training.deletedAt === null)
+      .toArray()
+    return rows.sort((a, b) => a.time.localeCompare(b.time) || a.createdAt - b.createdAt)
+  },
+
+  async trainingsBetween(from: string, to: string): Promise<HealthTraining[]> {
+    const rows = await db.healthTrainings
+      .where('dateKey')
+      .between(from, to, true, true)
+      .filter((training) => training.deletedAt === null)
+      .toArray()
+    return rows.sort(
+      (a, b) => a.dateKey.localeCompare(b.dateKey) || a.time.localeCompare(b.time),
+    )
+  },
+
+  async trainingDays(): Promise<string[]> {
+    const rows = await db.healthTrainings
+      .filter((training) => training.deletedAt === null)
+      .toArray()
+    return [...new Set(rows.map((training) => training.dateKey))]
+  },
+
+  async latestTraining(): Promise<HealthTraining | undefined> {
+    const rows = await db.healthTrainings
+      .filter((training) => training.deletedAt === null)
+      .toArray()
+    return rows.sort(
+      (a, b) => b.dateKey.localeCompare(a.dateKey) || b.time.localeCompare(a.time),
+    )[0]
+  },
+
+  async saveHealthTraining(training) {
+    const next: HealthTraining = { ...training, updatedAt: Date.now() }
+    await db.healthTrainings.put(next)
+    return next
+  },
+
+  async removeHealthTraining(id) {
+    await db.healthTrainings.update(id, { deletedAt: Date.now() })
+  },
+
+  async restoreHealthTraining(id) {
+    await db.healthTrainings.update(id, { deletedAt: null })
+  },
+
+  async trashedHealthTrainings(): Promise<HealthTraining[]> {
+    const rows = await db.healthTrainings
+      .filter((training) => training.deletedAt !== null)
+      .toArray()
+    return rows.sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0))
+  },
+
+  async purgeHealthTraining(id) {
+    await db.healthTrainings.delete(id)
+  },
+
+  async purgeTrashedHealthTrainings() {
+    await db.healthTrainings.filter((training) => training.deletedAt !== null).delete()
+  },
+
   async financeOfMonth(monthKey: string): Promise<FinanceEntry[]> {
     const rows = await db.financeEntries
       .where('dateKey')
@@ -655,6 +745,21 @@ export const dexieStore: DiaryStore = {
 
   async restoreFinance(id) {
     await db.financeEntries.update(id, { deletedAt: null })
+  },
+
+  async trashedFinance(): Promise<FinanceEntry[]> {
+    const rows = await db.financeEntries
+      .filter((entry) => entry.deletedAt !== null)
+      .toArray()
+    return rows.sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0))
+  },
+
+  async purgeFinance(id) {
+    await db.financeEntries.delete(id)
+  },
+
+  async purgeTrashedFinance() {
+    await db.financeEntries.filter((entry) => entry.deletedAt !== null).delete()
   },
 }
 
@@ -714,6 +819,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
   const meals = health?.meals ?? []
   const intakes = health?.intakes ?? []
   const sleeps = health?.sleeps ?? []
+  const trainings = health?.trainings ?? []
   const finance = data.finance?.entries ?? []
 
   // 替换模式下这些表马上会被清空，覆盖数没有意义，直接不查
@@ -730,6 +836,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
         health?.profile ? db.healthProfile.get('me') : Promise.resolve(undefined),
         db.diaryPresets.bulkGet(presets.map((item) => item.id)),
         db.healthSleeps.bulkGet(sleeps.map((item) => item.id)),
+        db.healthTrainings.bulkGet(trainings.map((item) => item.id)),
       ])
 
   await db.transaction(
@@ -743,6 +850,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
       db.healthMeals,
       db.healthIntakes,
       db.healthSleeps,
+      db.healthTrainings,
       db.financeEntries,
       db.diaryPresets,
     ],
@@ -763,6 +871,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
             db.healthMeals.clear(),
             db.healthIntakes.clear(),
             db.healthSleeps.clear(),
+            db.healthTrainings.clear(),
           ])
         }
         if (data.finance) await db.financeEntries.clear()
@@ -779,6 +888,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
         await db.healthMeals.bulkPut(meals)
         await db.healthIntakes.bulkPut(intakes)
         await db.healthSleeps.bulkPut(sleeps)
+        await db.healthTrainings.bulkPut(trainings)
       }
       if (data.finance) await db.financeEntries.bulkPut(finance)
     },
@@ -797,6 +907,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
   stats.meals = { total: meals.length, overwritten: howMany(old?.[4]) }
   stats.intakes = { total: intakes.length, overwritten: howMany(old?.[5]) }
   stats.sleeps = { total: sleeps.length, overwritten: howMany(old?.[9]) }
+  stats.trainings = { total: trainings.length, overwritten: howMany(old?.[10]) }
   stats.finance = { total: finance.length, overwritten: howMany(old?.[6]) }
   return stats
 }

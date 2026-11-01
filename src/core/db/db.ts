@@ -12,6 +12,7 @@ import type {
   HealthMeal,
   HealthProfile,
   HealthSleep,
+  HealthTraining,
 } from './schema'
 
 export const db = new Dexie('starburst') as Dexie & {
@@ -24,6 +25,7 @@ export const db = new Dexie('starburst') as Dexie & {
   healthIntakes: EntityTable<HealthIntake, 'id'>
   healthMeals: EntityTable<HealthMeal, 'id'>
   healthSleeps: EntityTable<HealthSleep, 'id'>
+  healthTrainings: EntityTable<HealthTraining, 'id'>
   financeEntries: EntityTable<FinanceEntry, 'id'>
 }
 
@@ -171,6 +173,29 @@ db.version(14)
       .toCollection()
       .modify((sleep: HealthSleep) => {
         if (!Array.isArray(sleep.naps)) sleep.naps = []
+      })
+      .then(() => undefined),
+  )
+
+// 训练：一天可以多次，按天查，回收站靠 deletedAt
+db.version(15).stores({
+  healthTrainings: 'id, dateKey, deletedAt',
+})
+
+// 经济补时刻与票据缩略图：表结构不变，老记录按创建时间补上 HH:MM:SS
+db.version(16)
+  .stores({})
+  .upgrade((tx) =>
+    tx
+      .table('financeEntries')
+      .toCollection()
+      .modify((entry: FinanceEntry) => {
+        if (typeof entry.time !== 'string' || entry.time === '') {
+          const at = new Date(entry.createdAt ?? Date.now())
+          const pad = (value: number) => String(value).padStart(2, '0')
+          entry.time = `${pad(at.getHours())}:${pad(at.getMinutes())}:${pad(at.getSeconds())}`
+        }
+        if (typeof entry.photo !== 'string') entry.photo = null
       })
       .then(() => undefined),
   )

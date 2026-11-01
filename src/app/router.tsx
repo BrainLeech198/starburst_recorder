@@ -23,7 +23,10 @@ const FoodLibraryPage = lazy(() => import('@/features/health/FoodLibraryPage'))
 const FoodTrashPage = lazy(() => import('@/features/health/FoodTrashPage'))
 const IntakeTrashPage = lazy(() => import('@/features/health/IntakeTrashPage'))
 const SleepTrashPage = lazy(() => import('@/features/health/SleepTrashPage'))
+const TrainingPage = lazy(() => import('@/features/training/TrainingPage'))
+const TrainingTrashPage = lazy(() => import('@/features/training/TrainingTrashPage'))
 const FinancePage = lazy(() => import('@/features/finance/FinancePage'))
+const FinanceTrashPage = lazy(() => import('@/features/finance/FinanceTrashPage'))
 const AssistantPage = lazy(() => import('@/features/assistant/AssistantPage'))
 const CalendarPage = lazy(() => import('@/features/calendar/CalendarPage'))
 const MePage = lazy(() => import('@/features/me/MePage'))
@@ -67,9 +70,12 @@ export const router = createHashRouter([
       { path: 'health/intakes/trash', element: <IntakeTrashPage /> },
       { path: 'health/sleeps', element: <SleepsPage /> },
       { path: 'health/sleeps/trash', element: <SleepTrashPage /> },
+      { path: 'health/training', element: <TrainingPage /> },
+      { path: 'health/training/trash', element: <TrainingTrashPage /> },
       { path: 'health/weights', element: <WeightsPage /> },
       { path: 'health/weights/trend', element: <WeightTrendPage /> },
       { path: 'finance', element: <FinancePage /> },
+      { path: 'finance/trash', element: <FinanceTrashPage /> },
       { path: 'assistant', element: <AssistantPage /> },
       { path: 'calendar', element: <CalendarPage /> },
       { path: 'me', element: <MePage /> },

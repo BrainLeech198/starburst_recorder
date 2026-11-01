@@ -57,7 +57,9 @@ import ConflictDialog from '@/features/diary/ConflictDialog'
 import {
   duplicateFoodNames,
   findConflicts,
+  findFinanceConflicts,
   findHealthConflicts,
+  pickFinance,
   pickHealth,
   pickIncoming,
 } from '@/features/diary/diaryMerge'
@@ -682,10 +684,14 @@ export default function DataPage() {
         meals: local.meals,
         intakes: local.intakes,
         sleeps: local.sleeps,
+        trainings: local.trainings,
       }
 
       const conflicts: MergeConflict[] = []
       if (selected.has('diary')) conflicts.push(...findConflicts(scoped, localPayload))
+      if (selected.has('finance')) {
+        conflicts.push(...findFinanceConflicts(scoped.finance, localPayload.finance))
+      }
 
       let health: HealthPart | null = null
       if (selected.has('health')) {
@@ -695,6 +701,7 @@ export default function DataPage() {
           meals: scoped.meals,
           intakes: scoped.intakes,
           sleeps: scoped.sleeps,
+          trainings: scoped.trainings,
         }
         conflicts.push(...findHealthConflicts(health, localHealth))
       }
@@ -738,6 +745,7 @@ export default function DataPage() {
             meals: target.payload.meals,
             intakes: target.payload.intakes,
             sleeps: target.payload.sleeps,
+            trainings: target.payload.trainings,
           }
         }
         if (target.selected.has('finance')) {
@@ -757,7 +765,7 @@ export default function DataPage() {
           sections.health = pickHealth(target.health, target.keepLocal)
         }
         if (target.selected.has('finance')) {
-          sections.finance = { entries: onlySections(target.payload, ['finance']).finance }
+          sections.finance = { entries: pickFinance(target.payload.finance, target.keepLocal) }
         }
       }
 

@@ -59,6 +59,7 @@ import {
   saveHealthFood,
   saveHealthMeal,
 } from './healthRepo'
+import { addFinance } from '@/features/finance/financeRepo'
 
 
 /** 这一笔里的一项：普通食物，或者一个套餐（成分快照先算好） */
@@ -166,6 +167,8 @@ export default function IntakeDialog({
   const [step, setStep] = useState<Step>('list')
   const [items, setItems] = useState<DraftItem[]>([])
   const [time, setTime] = useState(() => formatClock(Date.now()))
+  /** 顺便记一笔支出：填了正数才写经济账，留空就只记饮食 */
+  const [costText, setCostText] = useState('')
 
   /** 正在配份量的那一项（普通食物） */
   const [food, setFood] = useState<DraftFood | null>(null)
@@ -814,6 +817,32 @@ export default function IntakeDialog({
       })
     }
     showToast({ message: t('intake.saved') })
+    // 联动记一笔经济：金额是正数才写，分类固定「餐饮」
+    const cost = Number(costText.replace(/,/g, ''))
+    if (costText.trim() !== '' && Number.isFinite(cost) && cost > 0) {
+      const name =
+        items.length === 1
+          ? items[0].name
+          : items
+              .map((item) => item.name)
+              .slice(0, 2)
+              .join('+')
+      await addFinance({
+        id: newId(),
+        code: newCode(),
+        dateKey,
+        time: `${time}:00`,
+        kind: 'expense',
+        category: 'food',
+        name,
+        amount: Math.round(cost * 100) / 100,
+        photo: null,
+        note: '',
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      })
+    }
     onClose()
   }
 
@@ -1063,6 +1092,20 @@ export default function IntakeDialog({
                 </div>
               </div>
             )}
+
+            {/* 顺带记支出：填了金额才写经济账，不填不影响饮食记录 */}
+            <label className="flex items-center gap-2">
+              <span className="shrink-0 text-xs text-muted">{t('intake.cost')}</span>
+              <span className="text-xs text-muted">{t('finance.currency')}</span>
+              <input
+                value={costText}
+                inputMode="decimal"
+                placeholder={t('intake.costPlaceholder')}
+                onChange={(event) => setCostText(event.target.value)}
+                className={`${INPUT_NARROW} min-w-0 flex-1 tabular-nums`}
+              />
+            </label>
+            <p className="m-0 -mt-1 text-[11px] text-muted">{t('intake.costHint')}</p>
 
             <div className="flex justify-end gap-2 pt-1">
               <button type="button" onClick={onClose} className={OUTLINE_BUTTON}>

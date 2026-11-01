@@ -20,6 +20,7 @@ import type {
   HealthMeal,
   HealthProfile,
   HealthSleep,
+  HealthTraining,
 } from '@/core/db/schema'
 import { newCode, newId } from '@/core/utils/id'
 import {
@@ -65,6 +66,11 @@ import {
   type AssistantMemory,
   type AssistantMemoryKind,
 } from './assistantMemory'
+import {
+  removeHealthTraining,
+  restoreHealthTraining,
+  saveHealthTraining,
+} from '@/features/training/trainingRepo'
 import type { AssistantAction } from './assistantActionBuild'
 
 export type { AssistantAction, ActionBuildContext } from './assistantActionBuild'
@@ -332,6 +338,63 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
     return { recordId: preset.id, previous: preset }
   }
 
+  if (action.kind === 'training') {
+    const record = {
+      id: newId(),
+      code: newCode(),
+      dateKey: action.dateKey,
+      time: action.time,
+      kind: action.trainingKind,
+      title: action.title,
+      exercises: action.exercises.map((exercise) => ({
+        id: newId(),
+        name: exercise.name,
+        kind: exercise.kind,
+        muscle: exercise.muscle,
+        sets: exercise.sets,
+        durationMin: exercise.durationMin,
+        distanceKm: exercise.distanceKm,
+        note: exercise.note,
+      })),
+      durationMin: action.durationMin,
+      feeling: action.feeling,
+      note: action.note,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    }
+    await saveHealthTraining(record)
+    return { recordId: record.id }
+  }
+
+  if (action.kind === 'trainingEdit') {
+    const previous = data.trainings.find(
+      (item) => item.deletedAt === null && item.code === action.code,
+    )
+    if (!previous) throw new Error('这次训练已经不在了，刷新后再看一次。')
+    await saveHealthTraining({
+      ...previous,
+      dateKey: action.dateKey,
+      ...(action.time === undefined ? {} : { time: action.time }),
+      ...(action.trainingKind === undefined ? {} : { kind: action.trainingKind }),
+      ...(action.title === undefined ? {} : { title: action.title }),
+      ...(action.durationMin === undefined ? {} : { durationMin: action.durationMin }),
+      ...(action.feeling === undefined ? {} : { feeling: action.feeling }),
+      ...(action.note === undefined ? {} : { note: action.note }),
+      updatedAt: now,
+    })
+    return { recordId: previous.id, previous }
+  }
+
+  if (action.kind === 'trainingDelete') {
+    const training = data.trainings.find(
+      (item) => item.deletedAt === null && item.code === action.code,
+    )
+    if (!training) throw new Error('这次训练已经不在了，刷新后再看一次。')
+    await removeHealthTraining(training.id)
+    return { recordId: training.id, previous: training }
+  }
+
   if (action.kind === 'profileEdit') {
     const profile = await healthProfile()
     if (!profile) throw new Error('用户还没有身体档案。')
@@ -395,10 +458,12 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
       id: newId(),
       code: newCode(),
       dateKey: action.dateKey,
+      time: new Date(now).toTimeString().slice(0, 8),
       kind: action.direction,
       category: action.category,
       name: action.name,
       amount: action.amount,
+      photo: null,
       note: action.note,
       createdAt: now,
       updatedAt: now,
@@ -659,6 +724,22 @@ export async function undoAssistantAction(action: AssistantAction, done: ActionD
 
   if (action.kind === 'presetDelete') {
     if (done.recordId) await restoreDiaryPreset(done.recordId)
+    return
+  }
+
+  if (action.kind === 'training') {
+    if (done.recordId) await removeHealthTraining(done.recordId)
+    return
+  }
+
+  if (action.kind === 'trainingEdit') {
+    const previous = done.previous as HealthTraining | null
+    if (previous) await saveHealthTraining(previous)
+    return
+  }
+
+  if (action.kind === 'trainingDelete') {
+    if (done.recordId) await restoreHealthTraining(done.recordId)
     return
   }
 

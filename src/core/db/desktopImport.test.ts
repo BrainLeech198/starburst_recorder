@@ -10,7 +10,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import type { DiaryEntry, DiaryImage, DiaryStamp } from './schema'
+import type { DiaryEntry, DiaryImage, DiaryStamp, HealthTraining } from './schema'
 
 const require = createRequire(import.meta.url)
 const { createDatabase } = require('../../../electron/database.cjs') as {
@@ -190,5 +190,129 @@ describe('桌面端 SQLite 分块导入', () => {
 
     const after = call<{ sleeps: Array<{ naps: unknown }> }>('exportAllData')
     expect(after.sleeps[0].naps).toEqual(naps)
+  })
+
+  it('训练分块往返后动作、每组数字与空值都还在', () => {
+    const training: HealthTraining = {
+      id: 'tr1',
+      code: 'T000001',
+      dateKey: '2026-11-01',
+      time: '19:30',
+      kind: 'strength',
+      title: '推日',
+      exercises: [
+        {
+          id: 'ex1',
+          name: '卧推',
+          kind: 'strength',
+          muscle: 'chest',
+          sets: [
+            { reps: 8, weightKg: 40, durationSec: null, restSec: 90, rpe: 8 },
+            { reps: 8, weightKg: 40, durationSec: null, restSec: null, rpe: null },
+            { reps: 6, weightKg: 42.5, durationSec: null, restSec: null, rpe: 9 },
+          ],
+          durationMin: null,
+          distanceKm: null,
+          note: '',
+        },
+        {
+          id: 'ex2',
+          name: '跑步',
+          kind: 'cardio',
+          muscle: 'cardio',
+          sets: [
+            { reps: null, weightKg: null, durationSec: 1200, restSec: null, rpe: null },
+            { reps: null, weightKg: null, durationSec: null, restSec: null, rpe: null },
+          ],
+          durationMin: 20,
+          distanceKm: 3.5,
+          note: '慢跑',
+        },
+      ],
+      durationMin: 45,
+      feeling: 4,
+      note: '状态不错',
+      createdAt: 1_700_000_000_000,
+      updatedAt: 1_700_000_000_000,
+      deletedAt: null,
+    }
+    call('saveHealthTraining', training)
+    const before = call<{ trainings: HealthTraining[] }>('exportAllData')
+    expect(before.trainings[0].exercises).toHaveLength(2)
+
+    call('replaceSections', {
+      health: {
+        profile: null,
+        foods: [],
+        meals: [],
+        intakes: [],
+        sleeps: [],
+        trainings: before.trainings,
+      },
+    })
+
+    const after = call<{ trainings: HealthTraining[] }>('exportAllData')
+    expect(after.trainings).toHaveLength(1)
+    expect(after.trainings[0]).toEqual(before.trainings[0])
+    expect(after.trainings[0].exercises[1].sets[1]).toEqual({
+      reps: null,
+      weightKg: null,
+      durationSec: null,
+      restSec: null,
+      rpe: null,
+    })
+  })
+
+  it('经济分块往返后时刻与票据照片都还在', () => {
+    call('addFinance', {
+      id: 'fi1',
+      code: 'F000001',
+      dateKey: '2026-11-01',
+      time: '12:34:56',
+      kind: 'expense',
+      category: 'food',
+      name: '午饭',
+      amount: 25,
+      photo: 'data:image/png;base64,CCCC',
+      note: '',
+      createdAt: 1_700_000_000_000,
+      updatedAt: 1_700_000_000_000,
+      deletedAt: null,
+    })
+    const before = call<{ finance: Array<Record<string, unknown>> }>('exportAllData')
+
+    call('replaceSections', { finance: { entries: before.finance } })
+
+    const after = call<{ finance: Array<Record<string, unknown>> }>('exportAllData')
+    expect(after.finance[0].time).toBe('12:34:56')
+    expect(after.finance[0].photo).toBe('data:image/png;base64,CCCC')
+  })
+
+  it('训练软删除后进回收站，恢复与彻底删除都能用', () => {
+    const training: HealthTraining = {
+      id: 'tr2',
+      code: 'T000002',
+      dateKey: '2026-11-01',
+      time: '07:00',
+      kind: 'cardio',
+      title: '',
+      exercises: [],
+      durationMin: 30,
+      feeling: null,
+      note: '',
+      createdAt: 1_700_000_000_000,
+      updatedAt: 1_700_000_000_000,
+      deletedAt: null,
+    }
+    call('saveHealthTraining', training)
+    call('removeHealthTraining', 'tr2')
+    expect(call<HealthTraining[]>('trainingOfDay', '2026-11-01')).toHaveLength(0)
+    expect(call<HealthTraining[]>('trashedHealthTrainings')).toHaveLength(1)
+
+    call('restoreHealthTraining', 'tr2')
+    expect(call<HealthTraining[]>('trainingOfDay', '2026-11-01')).toHaveLength(1)
+
+    call('purgeHealthTraining', 'tr2')
+    expect(call<{ trainings: HealthTraining[] }>('exportAllData').trainings).toHaveLength(0)
   })
 })

@@ -20,6 +20,7 @@ import type {
   HealthMeal,
   HealthProfile,
   HealthSleep,
+  HealthTraining,
 } from './schema'
 
 /** 一块数据的导入结果：一共多少条、其中多少条覆盖了库里已有的 */
@@ -38,6 +39,7 @@ export interface ImportStats {
   meals: SectionCount
   intakes: SectionCount
   sleeps: SectionCount
+  trainings: SectionCount
   finance: SectionCount
 }
 
@@ -52,6 +54,7 @@ export interface BackupData {
   meals: HealthMeal[]
   intakes: HealthIntake[]
   sleeps: HealthSleep[]
+  trainings: HealthTraining[]
   finance: FinanceEntry[]
 }
 
@@ -75,6 +78,8 @@ export interface BackupSections {
     intakes: HealthIntake[]
     /** 旧备份没有这个字段 */
     sleeps: HealthSleep[]
+    /** 旧备份没有这个字段 */
+    trainings: HealthTraining[]
   }
   finance?: { entries: FinanceEntry[] }
 }
@@ -92,6 +97,7 @@ export function zeroStats(): ImportStats {
     meals: zero(),
     intakes: zero(),
     sleeps: zero(),
+    trainings: zero(),
     finance: zero(),
   }
 }
@@ -279,6 +285,26 @@ export interface DiaryStore {
   purgeHealthSleep(id: string): Promise<void>
   purgeTrashedHealthSleeps(): Promise<void>
 
+  // ─────────── 训练 ───────────
+
+  /** 某一天的全部训练，按开始时刻升序，已软删除的不算 */
+  trainingOfDay(dateKey: string): Promise<HealthTraining[]>
+  /** 日期区间（含首尾）内的训练，按日期、时刻升序 */
+  trainingsBetween(from: string, to: string): Promise<HealthTraining[]>
+  /** 有训练记录的所有日期 */
+  trainingDays(): Promise<string[]>
+  /** 最近一次训练（不含回收站），用来算断档天数与「复制上次」 */
+  latestTraining(): Promise<HealthTraining | undefined>
+  /** 新增或整行覆盖；返回存进去的那一条 */
+  saveHealthTraining(training: HealthTraining): Promise<HealthTraining>
+  /** 软删除：只打标记，可撤销 */
+  removeHealthTraining(id: string): Promise<void>
+  restoreHealthTraining(id: string): Promise<void>
+  /** 回收站里的训练记录，按删除时间倒序 */
+  trashedHealthTrainings(): Promise<HealthTraining[]>
+  purgeHealthTraining(id: string): Promise<void>
+  purgeTrashedHealthTrainings(): Promise<void>
+
   /** 某个月的收支（按 dateKey 前 7 位），日期倒序、同一天按创建时间倒序 */
   financeOfMonth(monthKey: string): Promise<FinanceEntry[]>
   addFinance(entry: FinanceEntry): Promise<FinanceEntry>
@@ -287,4 +313,9 @@ export interface DiaryStore {
   /** 软删除：只打标记，可撤销 */
   removeFinance(id: string): Promise<void>
   restoreFinance(id: string): Promise<void>
+  /** 回收站里的收支，按删除时间倒序 */
+  trashedFinance(): Promise<FinanceEntry[]>
+  /** 从回收站彻底删掉一条，不可恢复 */
+  purgeFinance(id: string): Promise<void>
+  purgeTrashedFinance(): Promise<void>
 }

@@ -16,8 +16,10 @@ import type {
   HealthFood,
   HealthIntake,
   HealthSleep,
+  HealthTraining,
   WeighIn,
 } from '@/core/db/schema'
+import { summarizeDay, trainingLabel } from '@/features/training/trainingMath'
 import { sleepMinutes, sleepNapStats, sleepParts, sleepWakeStats } from '@/features/health/sleepMath'
 import { sleepWakeMessage } from '@/features/health/healthViz'
 import { formatClock, formatDateCn, formatShortStamp, weekdayLabel } from '@/core/utils/dateKey'
@@ -33,6 +35,7 @@ export type RecordKind =
   | 'stamp'
   | 'intake'
   | 'sleep'
+  | 'training'
   | 'weight'
   | 'finance'
   | 'food'
@@ -43,6 +46,7 @@ export const RECORD_KINDS: RecordKind[] = [
   'stamp',
   'intake',
   'sleep',
+  'training',
   'weight',
   'finance',
   'food',
@@ -53,7 +57,16 @@ export type RecordSelection = Record<RecordKind, string[]>
 
 /** 空文件、空勾选都从这份开始，免得各处手写一串空数组 */
 export function emptySelection(): RecordSelection {
-  return { diary: [], stamp: [], intake: [], sleep: [], weight: [], finance: [], food: [] }
+  return {
+    diary: [],
+    stamp: [],
+    intake: [],
+    sleep: [],
+    training: [],
+    weight: [],
+    finance: [],
+    food: [],
+  }
 }
 
 export function selectionSize(selection: RecordSelection): number {
@@ -190,12 +203,40 @@ function financeItems(entries: FinanceEntry[]): RecordItem[] {
       id: entry.id,
       code: entry.code,
       dateKey: entry.dateKey,
-      time: formatClock(entry.createdAt),
+      time: entry.time.slice(0, 5),
       createdAt: entry.createdAt,
       text: entry.name,
       detail:
-        (entry.kind === 'income' ? '收入' : '支出') + ' · ' + entry.amount.toFixed(2),
+        (entry.kind === 'income'
+          ? translate('finance.income')
+          : translate('finance.expense')) +
+        ' · ' +
+        entry.amount.toFixed(2),
     }))
+}
+
+function trainingItems(trainings: HealthTraining[]): RecordItem[] {
+  return trainings
+    .filter((training) => training.deletedAt === null)
+    .map((training) => {
+      const summary = summarizeDay([training])
+      return {
+        kind: 'training' as const,
+        id: training.id,
+        code: training.code,
+        dateKey: training.dateKey,
+        time: training.time,
+        createdAt: training.createdAt,
+        text:
+          trainingLabel(training) ||
+          translate(`training.kind.${training.kind}` as MessageKey),
+        detail: translate('records.trainingDetail', {
+          exercises: training.exercises.length,
+          sets: summary.totalSets,
+          minutes: summary.totalDurationMin,
+        }),
+      }
+    })
 }
 
 /** 食物库没有日期：条目本身不属于某一天，导出时单独成节 */
@@ -223,6 +264,7 @@ export function recordsOf(payload: BackupPayload, kind: RecordKind): RecordItem[
   if (kind === 'stamp') return stampItems(payload.stamps).sort(byTime)
   if (kind === 'intake') return intakeItems(payload.intakes).sort(byTime)
   if (kind === 'sleep') return sleepItems(payload.sleeps).sort(byTime)
+  if (kind === 'training') return trainingItems(payload.trainings).sort(byTime)
   if (kind === 'weight') return weightItems(payload.profile?.weighIns ?? []).sort(byTime)
   if (kind === 'finance') return financeItems(payload.finance).sort(byTime)
   return foodItems(payload.foods).sort((a, b) => a.text.localeCompare(b.text))
@@ -254,6 +296,7 @@ const KIND_TITLE_KEY: Record<RecordKind, MessageKey> = {
   stamp: 'records.kindStamp',
   intake: 'records.kindIntake',
   sleep: 'records.kindSleep',
+  training: 'records.kindTraining',
   weight: 'records.kindWeight',
   finance: 'records.kindFinance',
   food: 'records.kindFood',
@@ -333,6 +376,9 @@ export function buildRecordExport(
             : {}),
           ...(kept.has('sleep')
             ? { sleeps: payload.sleeps.filter((row) => selection.sleep.includes(row.id) && row.deletedAt === null) }
+            : {}),
+          ...(kept.has('training')
+            ? { trainings: payload.trainings.filter((row) => selection.training.includes(row.id) && row.deletedAt === null) }
             : {}),
           ...(kept.has('weight')
             ? {
@@ -439,12 +485,13 @@ export function buildRecordExport(
 /** JSON 里各类记录各自的字段名，与整库挑选导出保持一致 */
 const KIND_FIELD: Record<
   RecordKind,
-  'entries' | 'stamps' | 'intakes' | 'sleeps' | 'weights' | 'finance' | 'foods'
+  'entries' | 'stamps' | 'intakes' | 'sleeps' | 'trainings' | 'weights' | 'finance' | 'foods'
 > = {
   diary: 'entries',
   stamp: 'stamps',
   intake: 'intakes',
   sleep: 'sleeps',
+  training: 'trainings',
   weight: 'weights',
   finance: 'finance',
   food: 'foods',
@@ -456,7 +503,7 @@ const KIND_FIELD: Record<
  */
 export function buildSingleRecordExport(
   kind: RecordKind,
-  row: DiaryEntry | DiaryStamp | HealthIntake | HealthSleep | WeighIn | FinanceEntry | HealthFood,
+  row: DiaryEntry | DiaryStamp | HealthIntake | HealthSleep | HealthTraining | WeighIn | FinanceEntry | HealthFood,
   day?: DiaryDay | null,
 ): ExportFile {
   const now = new Date()

@@ -17,6 +17,7 @@ import type {
   HealthIntake,
   HealthProfile,
   HealthSleep,
+  HealthTraining,
   WeighIn,
 } from '@/core/db/schema'
 import {
@@ -26,6 +27,7 @@ import {
   pickIntake,
   pickSleep,
   pickStamp,
+  pickTraining,
   pickWeighIns,
   rows,
 } from '@/core/db/normalize'
@@ -54,6 +56,7 @@ export interface RecordsFile {
   stamps: DiaryStamp[]
   intakes: HealthIntake[]
   sleeps: HealthSleep[]
+  trainings: HealthTraining[]
   weights: WeighIn[]
   finance: FinanceEntry[]
   /** 食物库条目，照片随 photo（dataURL）一起进来 */
@@ -110,6 +113,7 @@ export function readRecordsFile(text: string): RecordsRead {
     stamps: collect(root.stamps, pickStamp),
     intakes: collect(root.intakes, pickIntake),
     sleeps: collect(root.sleeps, pickSleep),
+    trainings: collect(root.trainings, pickTraining),
     weights,
     finance: collect(root.finance, pickFinance),
     foods: collect(root.foods, pickFood),
@@ -184,6 +188,7 @@ export async function importRecords(
   const entries = want.has('diary') ? file.entries : []
   const stamps = want.has('stamp') ? file.stamps : []
   const intakes = want.has('intake') ? file.intakes : []
+  const trainings = want.has('training') ? file.trainings : []
   const foods = want.has('food') ? file.foods : []
   const finance = want.has('finance') ? file.finance : []
 
@@ -192,8 +197,14 @@ export async function importRecords(
     // 记录导出里没有 days / presets，这两个字段空着就行
     sections.diary = { entries, stamps, days: [], presets: [] }
   }
-  if (intakes.length > 0 || sleeps.length > 0 || foods.length > 0 || profile) {
-    sections.health = { profile, foods, meals: [], intakes, sleeps }
+  if (
+    intakes.length > 0 ||
+    sleeps.length > 0 ||
+    trainings.length > 0 ||
+    foods.length > 0 ||
+    profile
+  ) {
+    sections.health = { profile, foods, meals: [], intakes, sleeps, trainings }
   }
   if (finance.length > 0) sections.finance = { entries: finance }
 
@@ -217,6 +228,7 @@ export function recordsCount(file: RecordsFile, kinds: RecordKind[]): number {
     else if (kind === 'stamp') n += file.stamps.length
     else if (kind === 'intake') n += file.intakes.length
     else if (kind === 'sleep') n += file.sleeps.length
+    else if (kind === 'training') n += file.trainings.length
     else if (kind === 'weight') n += file.weights.length
     else if (kind === 'finance') n += file.finance.length
     else if (kind === 'food') n += file.foods.length

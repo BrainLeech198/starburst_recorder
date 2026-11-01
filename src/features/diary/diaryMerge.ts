@@ -13,11 +13,13 @@ import type {
   DiaryEntry,
   DiaryPreset,
   DiaryStamp,
+  FinanceEntry,
   HealthFood,
   HealthIntake,
   HealthMeal,
   HealthProfile,
   HealthSleep,
+  HealthTraining,
 } from '@/core/db/schema'
 import type { BackupPayload } from './diaryBackup'
 
@@ -30,7 +32,9 @@ export type ConflictKind =
   | 'meal'
   | 'intake'
   | 'sleep'
+  | 'training'
   | 'profile'
+  | 'finance'
 
 export interface MergeConflict {
   kind: ConflictKind
@@ -245,6 +249,7 @@ export interface HealthPart {
   meals: HealthMeal[]
   intakes: HealthIntake[]
   sleeps: HealthSleep[]
+  trainings: HealthTraining[]
 }
 
 function foodSummary(food: HealthFood) {
@@ -314,6 +319,37 @@ function sleepDiffers(local: HealthSleep, incoming: HealthSleep) {
     local.note !== incoming.note ||
     tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
   )
+}
+
+/** 训练记录的摘要：动作名 + 每组次数×负重，冲突时能一眼看出改了哪组 */
+function trainingSummary(training: HealthTraining) {
+  const parts = [
+    `${training.dateKey} ${training.time}`,
+    training.title || training.kind,
+  ]
+  for (const exercise of training.exercises ?? []) {
+    const sets = exercise.sets
+      .map((set) => {
+        const reps = set.reps === null ? '—' : String(set.reps)
+        const weight = set.weightKg === null ? '' : `×${set.weightKg}`
+        return `${reps}${weight}`
+      })
+      .join('/')
+    parts.push(sets === '' ? exercise.name : `${exercise.name} ${sets}`)
+  }
+  if (training.durationMin !== null) parts.push(`${training.durationMin}min`)
+  if (training.note !== '') parts.push(training.note)
+  return parts.join(' \u00b7 ')
+}
+
+/**
+ * 先比 updatedAt，不同就算差异；相同再比动作名序列与每组数字。
+ * 内容一致但 updatedAt 不同的情况还是会算冲突：用户至少能看见并自己选。
+ */
+function trainingDiffers(local: HealthTraining, incoming: HealthTraining) {
+  if (tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)) return true
+  if (local.updatedAt !== incoming.updatedAt) return true
+  return trainingSummary(local) !== trainingSummary(incoming)
 }
 
 function intakeSummary(intake: HealthIntake) {
@@ -420,7 +456,9 @@ function profileDiffers(local: HealthProfile, incoming: HealthProfile) {
     local.weighTime !== incoming.weighTime ||
     local.idealBedtime !== incoming.idealBedtime ||
     local.idealWakeTime !== incoming.idealWakeTime ||
-    weighInsKey(local.weighIns) !== weighInsKey(incoming.weighIns)
+    weighInsKey(local.weighIns) !== weighInsKey(incoming.weighIns) ||
+    // 训练提醒也住在档案里，漏比会被备份整份覆盖
+    JSON.stringify(local.trainingPlan ?? null) !== JSON.stringify(incoming.trainingPlan ?? null)
   )
 }
 
@@ -510,6 +548,25 @@ export function findHealthConflicts(
     })
   }
 
+  const localTrainings = new Map(local.trainings.map((item) => [item.id, item]))
+  for (const item of incoming.trainings) {
+    const mine = localTrainings.get(item.id)
+    if (!mine || !trainingDiffers(mine, item)) continue
+    conflicts.push({
+      kind: 'training',
+      key: item.id,
+      label: `${item.dateKey} \u00b7 ${item.time} \u00b7 ${item.title || item.kind}`,
+      localText: snippet(trainingSummary(mine)),
+      incomingText: snippet(trainingSummary(item)),
+      localBody: trainingSummary(mine),
+      incomingBody: trainingSummary(item),
+      localDeleted: isDeleted(mine.deletedAt),
+      incomingDeleted: isDeleted(item.deletedAt),
+      localAt: mine.updatedAt,
+      incomingAt: item.updatedAt,
+    })
+  }
+
   // 身体档案只有一份：两边都在又不一样时也给用户选
   if (
     incoming.profile &&
@@ -557,7 +614,70 @@ export function pickHealth(
     sleeps: incoming.sleeps.filter(
       (item) => !keepLocal.has(conflictKey({ kind: 'sleep', key: item.id })),
     ),
+    trainings: incoming.trainings.filter(
+      (item) => !keepLocal.has(conflictKey({ kind: 'training', key: item.id })),
+    ),
   }
+}
+
+/** 一条流水的摘要：日期、时刻、名称、方向与金额、票据、备注，冲突时能看出改了哪项 */
+function financeSummary(entry: FinanceEntry) {
+  const parts = [
+    `${entry.dateKey} ${entry.time}`,
+    entry.name,
+    `${entry.kind === 'income' ? '+' : '-'}${entry.amount.toFixed(2)}`,
+    entry.category,
+  ]
+  if (entry.photo !== null && entry.photo !== undefined) parts.push('photo')
+  if (entry.note !== '') parts.push(entry.note)
+  return parts.join(' \u00b7 ')
+}
+
+function financeDiffers(local: FinanceEntry, incoming: FinanceEntry) {
+  return (
+    local.dateKey !== incoming.dateKey ||
+    local.time !== incoming.time ||
+    local.kind !== incoming.kind ||
+    local.category !== incoming.category ||
+    local.name !== incoming.name ||
+    local.amount !== incoming.amount ||
+    (local.photo ?? null) !== (incoming.photo ?? null) ||
+    local.note !== incoming.note ||
+    tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
+  )
+}
+
+/** 收支的冲突：同 id 但内容不同就算一处，交给用户逐条决定留哪边 */
+export function findFinanceConflicts(
+  incoming: FinanceEntry[],
+  local: FinanceEntry[],
+): MergeConflict[] {
+  const conflicts: MergeConflict[] = []
+  const localEntries = new Map(local.map((item) => [item.id, item]))
+  for (const item of incoming) {
+    const mine = localEntries.get(item.id)
+    if (!mine || !financeDiffers(mine, item)) continue
+    conflicts.push({
+      kind: 'finance',
+      key: item.id,
+      label: `${item.dateKey} ${item.time} \u00b7 ${item.name}`,
+      localText: snippet(financeSummary(mine)),
+      incomingText: snippet(financeSummary(item)),
+      localBody: financeSummary(mine),
+      incomingBody: financeSummary(item),
+      localDeleted: isDeleted(mine.deletedAt),
+      incomingDeleted: isDeleted(item.deletedAt),
+      localAt: mine.updatedAt,
+      incomingAt: item.updatedAt,
+    })
+  }
+  return conflicts
+}
+
+/** 按用户的选择把「保留本地」的流水从备份里剔掉，其余按备份版本写库 */
+export function pickFinance(incoming: FinanceEntry[], keepLocal: Set<string>): FinanceEntry[] {
+  if (keepLocal.size === 0) return incoming
+  return incoming.filter((item) => !keepLocal.has(conflictKey({ kind: 'finance', key: item.id })))
 }
 
 /** 同名但 id 不同的食物：不自动合并，只提示导入后会多出一条 */

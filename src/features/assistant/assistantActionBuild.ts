@@ -10,9 +10,12 @@ import type {
   FinanceKind,
   HealthActivity,
   HealthSex,
+  HealthTraining,
   PresetKind,
+  TrainingKind,
 } from '@/core/db/schema'
 import { formatClock, isDateKey, shiftDay } from '@/core/utils/dateKey'
+import { trainingLabel } from '@/features/training/trainingMath'
 import { FINANCE_CATEGORIES } from '@/features/finance/financeCategories'
 import { findMemoryByText, type AssistantMemory, type AssistantMemoryKind } from './assistantMemory'
 
@@ -153,6 +156,29 @@ export type AssistantAction =
     }
   | { kind: 'weatherEdit'; dateKey: string; weather: string }
   | {
+      kind: 'training'
+      dateKey: string
+      time: string
+      trainingKind: TrainingKind
+      title: string
+      exercises: TrainingExerciseArg[]
+      durationMin: number | null
+      feeling: number | null
+      note: string
+    }
+  | {
+      kind: 'trainingEdit'
+      code: string
+      dateKey: string
+      time?: string
+      trainingKind?: TrainingKind
+      title?: string
+      durationMin?: number
+      feeling?: number
+      note?: string
+    }
+  | { kind: 'trainingDelete'; code: string; dateKey: string; label: string }
+  | {
       kind: 'memoryEdit'
       text: string
       newText?: string
@@ -165,6 +191,25 @@ export interface MealItemArg {
   foodId: string
   name: string
   grams: number
+}
+
+/** 训练的一组：没填的字段一律 null */
+export interface TrainingSetArg {
+  reps: number | null
+  weightKg: number | null
+  durationSec: number | null
+  restSec: number | null
+  rpe: number | null
+}
+
+export interface TrainingExerciseArg {
+  name: string
+  kind: TrainingKind
+  muscle: string
+  sets: TrainingSetArg[]
+  durationMin: number | null
+  distanceKm: number | null
+  note: string
 }
 
 export interface ActionBuildContext {
@@ -255,6 +300,40 @@ function checkMacro(value: number, label: string): string | null {
   return null
 }
 
+/**
+ * 三大营养素：模型有时平铺，有时套在 nutrition / macros / per100g 里，
+ * 键名也见过 protein_g、carbohydrates 这些写法。统一在这里收敛；
+ * 一个都没给就返回 null，交给调用方拒绝，而不是悄悄写成 0。
+ */
+function macroArgs(args: Record<string, unknown>): {
+  protein: number | null
+  carbs: number | null
+  fat: number | null
+  nested: Record<string, unknown>
+} {
+  // 三个嵌套对象可能同时出现（per100g 放热量、nutrition 放三大营养素），合并着找
+  const nestedParts = [args.per100g, args.macros, args.nutrition].filter(
+    (item): item is Record<string, unknown> =>
+      !!item && typeof item === 'object' && !Array.isArray(item),
+  )
+  const nested = Object.assign({}, ...nestedParts)
+  const pick = (keys: string[]) => {
+    for (const key of keys) {
+      const direct = numberArg(args, key)
+      if (direct !== null) return direct
+      const inner = numberArg(nested, key)
+      if (inner !== null) return inner
+    }
+    return null
+  }
+  return {
+    protein: pick(['protein', 'protein_g', 'proteinG', '蛋白质']),
+    carbs: pick(['carbs', 'carbohydrate', 'carbohydrates', 'carbs_g', '碳水']),
+    fat: pick(['fat', 'fat_g', 'fatG', '脂肪']),
+    nested,
+  }
+}
+
 /** 套餐成分：每一项都必须在食物库里，克数合理 */
 function mealItemsArg(
   raw: unknown,
@@ -293,6 +372,84 @@ function memoryArg(
  * 把工具名和参数变成一条待确认动作。
  * 不认识的工具、缺参数、库里查不到的食物都在这里拦住，并回一句人话给模型。
  */
+const TRAINING_KINDS: TrainingKind[] = ['strength', 'cardio', 'mobility', 'sport', 'other']
+const MUSCLE_KEYS = [
+  'chest',
+  'back',
+  'legs',
+  'shoulders',
+  'arms',
+  'core',
+  'fullBody',
+  'cardio',
+  'other',
+]
+
+function trainingKindArg(raw: string): TrainingKind {
+  return TRAINING_KINDS.includes(raw as TrainingKind) ? (raw as TrainingKind) : 'other'
+}
+
+function muscleArg(raw: string): string {
+  return MUSCLE_KEYS.includes(raw) ? raw : 'other'
+}
+
+/** 组里的数字：越界或坏值当没填，不让脏数字进库 */
+function boundedNumber(value: unknown, min: number, max: number): number | null {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN
+  return Number.isFinite(parsed) && parsed >= min && parsed <= max ? parsed : null
+}
+
+function trainingSetsArg(raw: unknown): TrainingSetArg[] {
+  if (!Array.isArray(raw)) return []
+  return raw.slice(0, 30).map((entry) => {
+    const record = entry && typeof entry === 'object' ? (entry as Record<string, unknown>) : {}
+    return {
+      reps: boundedNumber(record.reps, 0, 1000),
+      weightKg: boundedNumber(record.weightKg, 0, 1000),
+      durationSec: boundedNumber(record.durationSec, 0, 86400),
+      restSec: boundedNumber(record.restSec, 0, 3600),
+      rpe: boundedNumber(record.rpe, 1, 10),
+    }
+  })
+}
+
+function trainingExercisesArg(
+  raw: unknown,
+  fallbackKind: TrainingKind,
+): { ok: true; exercises: TrainingExerciseArg[] } | { ok: false; error: string } {
+  if (raw === undefined || raw === null) return { ok: true, exercises: [] }
+  if (!Array.isArray(raw)) return { ok: false, error: 'exercises 要是数组。' }
+  const exercises: TrainingExerciseArg[] = []
+  for (const entry of raw.slice(0, 30)) {
+    if (!entry || typeof entry !== 'object') continue
+    const record = entry as Record<string, unknown>
+    const name = textArg(record, 'name')
+    if (name === '') continue
+    exercises.push({
+      name: name.slice(0, 60),
+      kind: record.kind === undefined ? fallbackKind : trainingKindArg(textArg(record, 'kind')),
+      muscle: muscleArg(textArg(record, 'muscle')),
+      sets: trainingSetsArg(record.sets),
+      durationMin: boundedNumber(record.durationMin, 0, 1440),
+      distanceKm: boundedNumber(record.distanceKm, 0, 1000),
+      note: textArg(record, 'note'),
+    })
+  }
+  return { ok: true, exercises }
+}
+
+/** 按短编号找训练；编号为空时退回「最近一次」 */
+function trainingRef(ctx: ActionBuildContext, code: string): HealthTraining | null {
+  const alive = ctx.data.trainings.filter((item) => item.deletedAt === null)
+  if (code !== '') return alive.find((item) => item.code === code) ?? null
+  return alive.reduce<HealthTraining | null>((best, item) => {
+    if (!best) return item
+    if (item.dateKey > best.dateKey) return item
+    if (item.dateKey === best.dateKey && item.time > best.time) return item
+    return best
+  }, null)
+}
+
 export function buildAssistantAction(
   name: string,
   args: Record<string, unknown>,
@@ -432,9 +589,15 @@ export function buildAssistantAction(
       }
       const itemName = textArg(args, 'name')
       if (itemName === '') return fail('要记什么食物？name 不能为空。')
-      const kcal = numberArg(args, 'kcal')
+      const macros = macroArgs(args)
+      const kcal = numberArg(args, 'kcal') ?? numberArg(macros.nested, 'kcal')
       if (kcal === null || kcal < 0 || kcal > 5000) {
         return fail('热量要是不小于 0 的千卡数；不知道就先去食物库查。')
+      }
+      if (macros.protein === null || macros.carbs === null || macros.fat === null) {
+        return fail(
+          '这四项要一起给：kcal、protein、carbs、fat。缺的营养按食物名和克数用常识估一个数再调用；只有确实不含才写 0，不要省略，也不要再问用户。',
+        )
       }
       return {
         ok: true,
@@ -446,9 +609,9 @@ export function buildAssistantAction(
           name: itemName,
           grams: round(grams, 0),
           kcal: Math.round(kcal),
-          protein: Math.max(0, round(numberArg(args, 'protein') ?? 0, 1)),
-          carbs: Math.max(0, round(numberArg(args, 'carbs') ?? 0, 1)),
-          fat: Math.max(0, round(numberArg(args, 'fat') ?? 0, 1)),
+          protein: Math.max(0, round(macros.protein, 1)),
+          carbs: Math.max(0, round(macros.carbs, 1)),
+          fat: Math.max(0, round(macros.fat, 1)),
         },
       }
     }
@@ -456,15 +619,20 @@ export function buildAssistantAction(
     case 'add_food': {
       const foodName = textArg(args, 'name')
       if (foodName === '') return fail('食物名不能为空。')
-      const kcal = numberArg(args, 'kcal')
+      const macros = macroArgs(args)
+      const kcal = numberArg(args, 'kcal') ?? numberArg(macros.nested, 'kcal')
       if (kcal === null || kcal < 0 || kcal > 900) {
         return fail('热量要按每 100g 填，0–900 千卡之间。')
       }
-      const protein = numberArg(args, 'protein') ?? 0
-      const carbs = numberArg(args, 'carbs') ?? 0
-      const fat = numberArg(args, 'fat') ?? 0
+      if (macros.protein === null || macros.carbs === null || macros.fat === null) {
+        return fail(
+          '营养成分表四项都要按每 100g 给全：kcal、protein、carbs、fat。缺的按同类食物常识估一个数再调用；只有确实不含才写 0，不要省略，也不要再问用户。',
+        )
+      }
       const macroError =
-        checkMacro(protein, '蛋白质') ?? checkMacro(carbs, '碳水') ?? checkMacro(fat, '脂肪')
+        checkMacro(macros.protein, '蛋白质') ??
+        checkMacro(macros.carbs, '碳水') ??
+        checkMacro(macros.fat, '脂肪')
       if (macroError !== null) return fail(macroError)
       const servingName = textArg(args, 'servingName')
       const servingGrams = numberArg(args, 'servingGrams')
@@ -475,9 +643,9 @@ export function buildAssistantAction(
           kind: 'foodCreate',
           name: foodName.slice(0, 60),
           kcal: round(kcal, 1),
-          protein: round(protein, 1),
-          carbs: round(carbs, 1),
-          fat: round(fat, 1),
+          protein: round(macros.protein, 1),
+          carbs: round(macros.carbs, 1),
+          fat: round(macros.fat, 1),
           servingName: servingName === '' ? null : servingName.slice(0, 40),
           servingGrams: servingValid ? round(servingGrams, 0) : null,
         },
@@ -572,6 +740,86 @@ export function buildAssistantAction(
         return fail('要改档案的哪一项？至少给一个字段。')
       }
       return { ok: true, action }
+    }
+
+    case 'add_training': {
+      const day = dayArg(args, ctx)
+      if (day === null) return fail('日期不对，要 YYYY-MM-DD，且不能是未来。')
+      const trainingKind = trainingKindArg(textArg(args, 'kind'))
+      const parsed = trainingExercisesArg(args.exercises, trainingKind)
+      if (!parsed.ok) return fail(parsed.error)
+      const durationMin = boundedNumber(args.durationMin, 0, 1440)
+      if (parsed.exercises.length === 0 && durationMin === null) {
+        return fail('至少要有一个动作，或者一个整场时长（durationMin）。')
+      }
+      const feeling = boundedNumber(args.feeling, 1, 5)
+      return {
+        ok: true,
+        action: {
+          kind: 'training',
+          dateKey: day,
+          time: clockArg(args, ctx),
+          trainingKind,
+          title: textArg(args, 'title').slice(0, 60),
+          exercises: parsed.exercises,
+          durationMin,
+          feeling: feeling === null ? null : Math.round(feeling),
+          note: textArg(args, 'note'),
+        },
+      }
+    }
+
+    case 'update_training': {
+      const target = trainingRef(ctx, textArg(args, 'code'))
+      if (!target) return fail('找不到这次训练；先用 training_stats 查一下，或把 code 留空表示最近一次。')
+      const action: Extract<AssistantAction, { kind: 'trainingEdit' }> = {
+        kind: 'trainingEdit',
+        code: target.code,
+        dateKey: target.dateKey,
+      }
+      const day = textArg(args, 'date') || textArg(args, 'dateKey')
+      if (day !== '') {
+        if (!isDateKey(day) || day > ctx.today) return fail('日期不对，要 YYYY-MM-DD，且不能是未来。')
+        action.dateKey = day
+      }
+      const time = textArg(args, 'time')
+      if (time !== '') {
+        if (!CLOCK.test(time)) return fail('时刻要 HH:MM。')
+        action.time = time
+      }
+      if (args.kind !== undefined) action.trainingKind = trainingKindArg(textArg(args, 'kind'))
+      if (args.title !== undefined) action.title = textArg(args, 'title').slice(0, 60)
+      const duration = boundedNumber(args.durationMin, 0, 1440)
+      if (duration !== null) action.durationMin = duration
+      const feeling = boundedNumber(args.feeling, 1, 5)
+      if (feeling !== null) action.feeling = Math.round(feeling)
+      if (args.note !== undefined) action.note = textArg(args, 'note')
+      if (
+        action.time === undefined &&
+        action.trainingKind === undefined &&
+        action.title === undefined &&
+        action.durationMin === undefined &&
+        action.feeling === undefined &&
+        action.note === undefined &&
+        action.dateKey === target.dateKey
+      ) {
+        return fail('没有要改的字段。')
+      }
+      return { ok: true, action }
+    }
+
+    case 'delete_training': {
+      const target = trainingRef(ctx, textArg(args, 'code'))
+      if (!target) return fail('找不到这次训练；先用 training_stats 查一下，或把 code 留空表示最近一次。')
+      return {
+        ok: true,
+        action: {
+          kind: 'trainingDelete',
+          code: target.code,
+          dateKey: target.dateKey,
+          label: trainingLabel(target) || target.kind,
+        },
+      }
     }
 
     case 'update_weather': {
@@ -1063,6 +1311,17 @@ export function describeAction(action: AssistantAction): string {
       return `改预设（${action.code}）${action.name ? `：${action.name}` : ''}`
     case 'presetDelete':
       return `删除预设「${action.name}」`
+    case 'training': {
+      const label = action.title || action.exercises[0]?.name || '训练'
+      const sets = action.exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0)
+      return `${action.dateKey} ${action.time} 训练：${label}，${action.exercises.length} 个动作${
+        sets > 0 ? ` · ${sets} 组` : ''
+      }`
+    }
+    case 'trainingEdit':
+      return `${action.dateKey} 改训练（${action.code}）`
+    case 'trainingDelete':
+      return `${action.dateKey} 删除训练：${action.label}`
     case 'profileEdit':
       return '改身体档案'
     case 'weatherEdit':

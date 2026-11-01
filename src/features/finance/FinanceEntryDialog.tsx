@@ -4,18 +4,31 @@
  * 快捷优先：金额、收支方向、分类是必填，名称和备注都可以空着——
  * 名称留空时用分类名兜底，列表里不会出现一行空白。
  */
-import { useState } from 'react'
+import ErrorNote from '@/shared/ui/ErrorNote'
+import { useRef, useState } from 'react'
 import type { FinanceEntry, FinanceKind } from '@/core/db/schema'
 import { newCode, newId } from '@/core/utils/id'
 import { isDateKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
-import { GHOST_BUTTON, SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
+import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
+import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
+import { GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { categoriesOf, categoryKey } from './financeCategories'
 import { roundMoney } from './financeMath'
+import { compressFinancePhoto } from './financePhoto'
 import { addFinance, saveFinance } from './financeRepo'
+
+/** 本地 'HH:MM:SS'，旧记录只有分钟时补 :00 */
+function nowClock() {
+  return new Date().toTimeString().slice(0, 8)
+}
+
+function normalizeClock(value: string) {
+  return /^\d{2}:\d{2}$/.test(value) ? `${value}:00` : value
+}
 
 export default function FinanceEntryDialog({
   entry = null,
@@ -38,6 +51,13 @@ export default function FinanceEntryDialog({
   const [name, setName] = useState(entry?.name ?? '')
   const [note, setNote] = useState(entry?.note ?? '')
   const [dateKey, setDateKey] = useState(entry?.dateKey ?? defaultDate)
+  const [time, setTime] = useState(entry?.time ?? nowClock())
+  const [photo, setPhoto] = useState<string | null>(entry?.photo ?? null)
+  const [photoPicking, setPhotoPicking] = useState(false)
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoError, setPhotoError] = useState('')
+  const photoFileRef = useRef<HTMLInputElement>(null)
+  const photoCameraRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState('')
 
   const amount = Number(amountText.replace(/,/g, ''))
@@ -51,6 +71,29 @@ export default function FinanceEntryDialog({
     setCategory(categoriesOf(next)[0].id)
   }
 
+  async function uploadPhoto(file: File | undefined) {
+    if (!file) return
+    setPhotoUploading(true)
+    setPhotoError('')
+    try {
+      setPhoto(await compressFinancePhoto(file))
+    } catch (failure) {
+      setPhotoError((failure as Error).message || t('finance.photoFailed'))
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  async function takePhoto() {
+    setPhotoPicking(false)
+    if (!usesNativeCamera()) {
+      photoCameraRef.current?.click()
+      return
+    }
+    const shot = await takeNativePhoto()
+    if (shot) void uploadPhoto(shot)
+  }
+
   async function submit() {
     if (!valid) {
       setError(t('finance.invalidAmount'))
@@ -58,24 +101,29 @@ export default function FinanceEntryDialog({
     }
     const trimmed = name.trim()
     const displayName = trimmed === '' ? t(categoryKey(category)) : trimmed
+    const clock = normalizeClock(time)
     const record: FinanceEntry = entry
       ? {
           ...entry,
           dateKey,
+          time: clock,
           kind,
           category,
           name: displayName,
           amount: roundMoney(amount),
+          photo,
           note: note.trim(),
         }
       : {
           id: newId(),
           code: newCode(),
           dateKey,
+          time: clock,
           kind,
           category,
           name: displayName,
           amount: roundMoney(amount),
+          photo,
           note: note.trim(),
           createdAt: Date.now(),
           updatedAt: Date.now(),
@@ -151,16 +199,17 @@ export default function FinanceEntryDialog({
         </div>
       </div>
 
+      <label className="mt-3 block">
+        <span className="text-xs text-muted">{t('finance.name')}</span>
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder={t('finance.namePlaceholder')}
+          className={`${INPUT} mt-1 w-full`}
+        />
+      </label>
+
       <div className="mt-3 grid grid-cols-2 gap-3">
-        <label className="block">
-          <span className="text-xs text-muted">{t('finance.name')}</span>
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder={t('finance.namePlaceholder')}
-            className={`${INPUT} mt-1 w-full`}
-          />
-        </label>
         <label className="block">
           <span className="text-xs text-muted">{t('finance.date')}</span>
           <input
@@ -170,7 +219,93 @@ export default function FinanceEntryDialog({
             className={`${INPUT} mt-1 w-full tabular-nums`}
           />
         </label>
+        <label className="block">
+          <span className="text-xs text-muted">{t('finance.time')}</span>
+          <input
+            type="time"
+            step="1"
+            value={normalizeClock(time)}
+            onChange={(event) => setTime(event.target.value)}
+            className={`${INPUT} mt-1 w-full tabular-nums`}
+          />
+        </label>
       </div>
+
+      {/* 票据照片：只做缩略参考图，压缩后跟着记录走 */}
+      <div className="mt-3 flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-2.5">
+        {photo ? (
+          <img
+            src={photo}
+            alt={t('finance.photo')}
+            className="h-16 w-16 shrink-0 rounded-lg object-cover"
+          />
+        ) : (
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-line px-1 text-center text-[11px] text-muted">
+            {t('finance.photo')}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="m-0 text-[11px] text-muted">{t('finance.photoHint')}</p>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={photoUploading}
+              onClick={() => setPhotoPicking(true)}
+              className={`${OUTLINE_BUTTON} px-2 py-1 text-xs`}
+            >
+              {photoUploading
+                ? t('finance.photoUploading')
+                : photo
+                  ? t('finance.photoReplace')
+                  : t('finance.photoAdd')}
+            </button>
+            {photo && (
+              <button
+                type="button"
+                onClick={() => setPhoto(null)}
+                className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-danger"
+              >
+                {t('finance.photoRemove')}
+              </button>
+            )}
+          </div>
+          {photoError !== '' && <ErrorNote>{photoError}</ErrorNote>}
+        </div>
+      </div>
+
+      <input
+        ref={photoFileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          void uploadPhoto(file)
+        }}
+      />
+      <input
+        ref={photoCameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          void uploadPhoto(file)
+        }}
+      />
+      {photoPicking && (
+        <ImageSourceDialog
+          onTakePhoto={() => void takePhoto()}
+          onPickFile={() => {
+            setPhotoPicking(false)
+            photoFileRef.current?.click()
+          }}
+          onClose={() => setPhotoPicking(false)}
+        />
+      )}
 
       <label className="mt-3 block">
         <span className="text-xs text-muted">{t('finance.note')}</span>

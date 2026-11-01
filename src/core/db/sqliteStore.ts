@@ -18,6 +18,7 @@ import type {
   HealthMeal,
   HealthProfile,
   HealthSleep,
+  HealthTraining,
 } from './schema'
 import type { DiaryStore } from './store'
 
@@ -222,6 +223,9 @@ export const sqliteStore: DiaryStore = {
   restoreFinance: async (id) => {
     await call('restoreFinance', id)
   },
+  trashedFinance: () => call('trashedFinance'),
+  purgeFinance: (id) => call('purgeFinance', id),
+  purgeTrashedFinance: () => call('purgeTrashedFinance'),
   intakeDays: () => call('intakeDays'),
   addIntake: (intake) => call('insertIntake', intake),
   saveIntake: async (intake) => {
@@ -264,5 +268,29 @@ export const sqliteStore: DiaryStore = {
   },
   purgeTrashedHealthSleeps: async () => {
     await call('purgeTrashedHealthSleeps')
+  },
+
+  // ─────────── 训练 ───────────
+  trainingOfDay: (dateKey) => call('trainingOfDay', dateKey),
+  trainingsBetween: (from, to) => call('trainingsBetween', from, to),
+  trainingDays: () => call('trainingDays'),
+  latestTraining: () => call('latestTraining'),
+  saveHealthTraining: async (training) => {
+    const next: HealthTraining = { ...training, updatedAt: Date.now() }
+    await call('saveHealthTraining', next)
+    return next
+  },
+  removeHealthTraining: async (id) => {
+    await call('removeHealthTraining', id)
+  },
+  restoreHealthTraining: async (id) => {
+    await call('restoreHealthTraining', id)
+  },
+  trashedHealthTrainings: () => call('trashedHealthTrainings'),
+  purgeHealthTraining: async (id) => {
+    await call('purgeHealthTraining', id)
+  },
+  purgeTrashedHealthTrainings: async () => {
+    await call('purgeTrashedHealthTrainings')
   },
 }

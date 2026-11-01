@@ -31,6 +31,7 @@ function emptyData(): BackupData {
     meals: [],
     intakes: [],
     sleeps: [],
+    trainings: [],
     finance: [],
   }
 }

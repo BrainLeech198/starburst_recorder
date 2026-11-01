@@ -14,9 +14,11 @@ import type {
   HealthIntake,
   HealthMeal,
   HealthSleep,
+  HealthTraining,
 } from '@/core/db/schema'
 import { formatDateCn, isDateKey, shiftDay } from '@/core/utils/dateKey'
 import { sleepMinutes, sleepParts } from '@/features/health/sleepMath'
+import { summarizeDay, trainingLabel } from '@/features/training/trainingMath'
 import { findSkill, type AssistantSkill } from './assistantSkills'
 import type { AssistantMemory, AssistantMemoryKind } from './assistantMemory'
 
@@ -99,6 +101,14 @@ export const ASSISTANT_READ_TOOLS: AssistantToolSpec[] = [
         ...DATE_ARGS,
         keyword: { type: 'string', description: '关键词，可不填' },
       },
+    },
+  },
+  {
+    name: 'training_stats',
+    description: '统计一段时间的训练：次数、天数、容量、部位分布，以及每次练了什么。',
+    parameters: {
+      type: 'object',
+      properties: { ...DATE_ARGS },
     },
   },
   {
@@ -283,7 +293,7 @@ const ASSISTANT_WRITE_TOOLS: AssistantToolSpec[] = [
   {
     name: 'add_intake',
     description:
-      '记一笔饮食，放进待确认卡片。优先传食物库的 foodId 和克数；食物库没有时，必须由用户给出热量才能手记。',
+      '记一笔饮食，放进待确认卡片。优先传食物库的 foodId 和克数；食物库没有时，按食物名和克数估算热量、蛋白质、碳水、脂肪四项一起传，不要只传热量，也不要为了缺营养反复问用户。',
     parameters: {
       type: 'object',
       properties: {
@@ -293,9 +303,9 @@ const ASSISTANT_WRITE_TOOLS: AssistantToolSpec[] = [
         name: { type: 'string', description: '食物名；没有 foodId 时必填' },
         grams: { type: 'number', description: '吃了多少克' },
         kcal: { type: 'number', description: '没有 foodId 时的热量（千卡）' },
-        protein: { type: 'number', description: '蛋白质克数，可不填' },
-        carbs: { type: 'number', description: '碳水克数，可不填' },
-        fat: { type: 'number', description: '脂肪克数，可不填' },
+        protein: { type: 'number', description: '这一份的蛋白质克数；没有 foodId 时必填' },
+        carbs: { type: 'number', description: '这一份的碳水克数；没有 foodId 时必填' },
+        fat: { type: 'number', description: '这一份的脂肪克数；没有 foodId 时必填' },
       },
       required: ['grams'],
     },
@@ -303,25 +313,25 @@ const ASSISTANT_WRITE_TOOLS: AssistantToolSpec[] = [
   {
     name: 'add_food',
     description:
-      '往食物库里加一种食物，放进待确认卡片。营养按每 100g 填；用户只说了做法和热量时先问清，不要自己编。',
+      '往食物库里加「一种」食物（单一食材或一道菜），放进待确认卡片。营养按每 100g 填，kcal / protein / carbs / fat 四项都必须给；用户只发图片或只说了做法时，按图片和同类食物常识估，不要反复追问，也不要只填热量。多种食物组成的固定搭配要用 add_meal。',
     parameters: {
       type: 'object',
       properties: {
         name: { type: 'string', description: '食物名，例如「卤鸡腿」' },
-        kcal: { type: 'number', description: '每 100g 热量（千卡）' },
-        protein: { type: 'number', description: '每 100g 蛋白质克数' },
-        carbs: { type: 'number', description: '每 100g 碳水克数' },
-        fat: { type: 'number', description: '每 100g 脂肪克数' },
+        kcal: { type: 'number', description: '每 100g 热量（千卡），必填' },
+        protein: { type: 'number', description: '每 100g 蛋白质克数，必填；确实不含才写 0' },
+        carbs: { type: 'number', description: '每 100g 碳水克数，必填；确实不含才写 0' },
+        fat: { type: 'number', description: '每 100g 脂肪克数，必填；确实不含才写 0' },
         servingName: { type: 'string', description: '常用份量叫法，例如「1 个鸡腿」，可不填' },
         servingGrams: { type: 'number', description: '常用份量多少克，可不填' },
       },
-      required: ['name', 'kcal'],
+      required: ['name', 'kcal', 'protein', 'carbs', 'fat'],
     },
   },
   {
     name: 'add_meal',
     description:
-      '往套餐库里加一顿固定搭配（比如「沙县鸡腿饭」= 鸡腿 + 米饭），放进待确认卡片。成分用食物库的 foodId，先用 search_food 查。',
+      '往套餐库里加一份固定搭配（例如「沙县鸡腿饭」= 卤鸡腿 + 卤蛋 + 米饭），放进待确认卡片。判断标准：能拆成两样以上独立食物、平时当成一份一起吃的，做套餐；只有单独一样的，用 add_food。成分必须先用 search_food 找到 foodId，缺的成分先 add_food 补进食物库。',
     parameters: {
       type: 'object',
       properties: {
@@ -377,6 +387,92 @@ const ASSISTANT_WRITE_TOOLS: AssistantToolSpec[] = [
         idealBedtime: { type: 'string', description: '理想入睡时刻 HH:MM，可不填' },
         idealWakeTime: { type: 'string', description: '理想起床时刻 HH:MM，可不填' },
         note: { type: 'string', description: '计划或自我评价，可不填' },
+      },
+    },
+  },
+  {
+    name: 'add_training',
+    description:
+      '记一次训练，放进待确认卡片。exercises 每个动作给 name / kind / muscle / sets；每组是 reps（次数）、weightKg（负重）、durationSec（秒）、restSec（休息秒）、rpe（1–10），没有的传 null。只记时长也可以不传 exercises。',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: '日期 YYYY-MM-DD，不填就是今天' },
+        time: { type: 'string', description: '开始时刻 HH:MM，不填就是现在' },
+        kind: {
+          type: 'string',
+          enum: ['strength', 'cardio', 'mobility', 'sport', 'other'],
+          description: '运动大类',
+        },
+        title: { type: 'string', description: '标题，可不填' },
+        exercises: {
+          type: 'array',
+          description: '动作列表',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: '动作名，例如「卧推」' },
+              kind: {
+                type: 'string',
+                enum: ['strength', 'cardio', 'mobility', 'sport', 'other'],
+              },
+              muscle: {
+                type: 'string',
+                enum: ['chest', 'back', 'legs', 'shoulders', 'arms', 'core', 'fullBody', 'cardio', 'other'],
+              },
+              sets: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    reps: { type: 'number', description: '次数，没有传 null' },
+                    weightKg: { type: 'number', description: '负重 kg，没有传 null' },
+                    durationSec: { type: 'number', description: '这一组秒数，没有传 null' },
+                    restSec: { type: 'number', description: '休息秒数，没有传 null' },
+                    rpe: { type: 'number', description: '自觉强度 1–10，没有传 null' },
+                  },
+                },
+              },
+              durationMin: { type: 'number', description: '这个动作的时长（分钟），没有传 null' },
+              distanceKm: { type: 'number', description: '距离（公里），没有传 null' },
+              note: { type: 'string', description: '动作备注，可不填' },
+            },
+            required: ['name'],
+          },
+        },
+        durationMin: { type: 'number', description: '整场时长（分钟），可不填' },
+        feeling: { type: 'number', description: '感受 1–5，可不填' },
+        note: { type: 'string', description: '备注，可不填' },
+      },
+      required: ['exercises'],
+    },
+  },
+  {
+    name: 'update_training',
+    description:
+      '改一次已有训练，放进待确认卡片。code 来自读结果里的 [code]；留空表示最近一次训练。只传要改的字段。',
+    parameters: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: '训练的 7 位短编号，留空表示最近一次' },
+        date: { type: 'string', description: '改到哪一天 YYYY-MM-DD，可不填' },
+        time: { type: 'string', description: '开始时刻 HH:MM，可不填' },
+        kind: { type: 'string', enum: ['strength', 'cardio', 'mobility', 'sport', 'other'] },
+        title: { type: 'string', description: '标题，可不填' },
+        durationMin: { type: 'number', description: '整场时长，可不填' },
+        feeling: { type: 'number', description: '感受 1–5，可不填' },
+        note: { type: 'string', description: '备注，可不填' },
+      },
+    },
+  },
+  {
+    name: 'delete_training',
+    description:
+      '删一次训练，放进待确认卡片（删除始终要用户点确认）。code 来自读结果里的 [code]；留空表示最近一次。',
+    parameters: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: '训练的 7 位短编号，留空表示最近一次' },
       },
     },
   },
@@ -715,6 +811,13 @@ function sleepLine(item: HealthSleep) {
   }${item.note.trim() ? `，备注：${clip(item.note, 80)}` : ''} [${item.code}]`
 }
 
+function trainingLine(item: HealthTraining) {
+  const names = item.exercises.map((exercise) => exercise.name).join('、')
+  return `${item.time} ${trainingLabel(item) || item.kind}${names ? `（${names}）` : ''}${
+    item.durationMin === null ? '' : `，${item.durationMin} 分钟`
+  } [${item.code}]`
+}
+
 function sumKcal(items: HealthIntake[]) {
   return Math.round(items.reduce((sum, item) => sum + item.kcal, 0))
 }
@@ -753,6 +856,11 @@ function dayBlock(
     (item) => item.deletedAt === null && item.dateKey === dateKey,
   )
   if (finance.length > 0) lines.push(`收支：${finance.map(financeLine).join('；')}`)
+
+  const trainings = (data.trainings ?? []).filter(
+    (item) => item.deletedAt === null && item.dateKey === dateKey,
+  )
+  if (trainings.length > 0) lines.push(`训练：${trainings.map(trainingLine).join('；')}`)
 
   if (lines.length === 1) lines.push('这一天没有任何记录。')
   return lines
@@ -808,6 +916,39 @@ function sleepStats(from: string, to: string, data: BackupData) {
       .sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1))
       .map(sleepLine),
   ].join('\n')
+}
+
+function trainingStats(from: string, to: string, data: BackupData) {
+  const items = (data.trainings ?? [])
+    .filter((item) => item.deletedAt === null && inRange(item.dateKey, from, to))
+    .sort((a, b) => (a.dateKey < b.dateKey ? -1 : a.dateKey > b.dateKey ? 1 : a.time.localeCompare(b.time)))
+  if (items.length === 0) {
+    return `${formatDateCn(from)} 到 ${formatDateCn(to)}：没有任何训练记录。`
+  }
+
+  const summary = summarizeDay(items)
+  const days = new Set(items.map((item) => item.dateKey)).size
+  const muscleCount = new Map<string, number>()
+  for (const item of items) {
+    for (const exercise of item.exercises) {
+      muscleCount.set(exercise.muscle, (muscleCount.get(exercise.muscle) ?? 0) + 1)
+    }
+  }
+  const top = [...muscleCount.entries()].sort((a, b) => b[1] - a[1])
+
+  return [
+    `${formatDateCn(from)} 到 ${formatDateCn(to)}：训练 ${items.length} 次，覆盖 ${days} 天，总组数 ${summary.totalSets}，容量 ${Math.round(summary.volumeKg)} kg。`,
+    top.length > 0 ? `部位：${top.map(([muscle, count]) => `${muscle}（${count} 次）`).join('、')}` : '',
+    '逐次：',
+    ...items.map(
+      (item) =>
+        `${item.dateKey} ${item.time} [${item.code}] ${trainingLabel(item) || item.kind}，动作：${
+          item.exercises.map((exercise) => exercise.name).join('、') || '（没记动作）'
+        }`,
+    ),
+  ]
+    .filter((line) => line !== '')
+    .join('\n')
 }
 
 function financeStats(from: string, to: string, keyword: string, data: BackupData) {
@@ -1013,6 +1154,9 @@ export function runAssistantTool(
       break
     case 'finance_stats':
       text = financeStats(range.from, range.to, keyword, ctx.data)
+      break
+    case 'training_stats':
+      text = trainingStats(range.from, range.to, ctx.data)
       break
     case 'profile_stats':
       text = profileStats(ctx.data)

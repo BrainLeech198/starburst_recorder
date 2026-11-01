@@ -88,6 +88,36 @@ export default function AssistantActionCard({ state, busy, onConfirm, onCancel, 
           grams: action.grams,
           kcal: action.kcal,
         })
+      case 'training': {
+        const detail = action.exercises
+          .map((exercise) => {
+            const sets = exercise.sets
+              .map((set) => {
+                const reps = set.reps === null ? '—' : String(set.reps)
+                const weight = set.weightKg === null ? '' : `×${set.weightKg}`
+                return `${reps}${weight}`
+              })
+              .join('/')
+            return sets === '' ? exercise.name : `${exercise.name} ${sets}`
+          })
+          .join('，')
+        return `${t('training.actionAdd')} · ${date} ${action.time}${
+          detail === '' ? '' : ` · ${detail}`
+        }`
+      }
+      case 'trainingEdit': {
+        const detail = [
+          action.time ?? '',
+          action.title ?? '',
+          action.durationMin === undefined ? '' : `${action.durationMin} min`,
+          action.note ?? '',
+        ]
+          .filter((part) => part !== '')
+          .join(' · ')
+        return `${t('training.actionUpdate')}（${action.code}）${detail === '' ? '' : ` · ${detail}`}`
+      }
+      case 'trainingDelete':
+        return `${t('training.actionDelete')} · ${date} · ${action.label}`
       case 'diaryEdit':
         return t('assistant.action.diaryEdit', { date, content: preview(action.content) })
       case 'stampEdit': {

@@ -14,6 +14,7 @@ function emptyData(): BackupData {
     meals: [],
     intakes: [],
     sleeps: [],
+    trainings: [],
     finance: [],
   }
 }
@@ -162,17 +163,24 @@ describe('add_weigh / add_intake', () => {
     if (!result.ok) expect(result.error).toContain('search_food')
   })
 
-  it('手记必须带用户给的热量', () => {
+  it('手记必须带热量与三大营养素', () => {
     expect(buildAssistantAction('add_intake', { name: '外卖', grams: 300 }, CTX).ok).toBe(false)
+    // 只给热量不给三大营养素也要拦下，不能悄悄写成 0
+    expect(
+      buildAssistantAction('add_intake', { name: '外卖', grams: 300, kcal: 600 }, CTX).ok,
+    ).toBe(false)
     const result = buildAssistantAction(
       'add_intake',
-      { name: '外卖', grams: 300, kcal: 600 },
+      { name: '外卖', grams: 300, kcal: 600, protein: 25, carbs: 60, fat: 20 },
       CTX,
     )
     expect(result.ok).toBe(true)
     if (result.ok && result.action.kind === 'intake') {
       expect(result.action.foodId).toBeNull()
       expect(result.action.kcal).toBe(600)
+      expect(result.action.protein).toBe(25)
+      expect(result.action.carbs).toBe(60)
+      expect(result.action.fat).toBe(20)
     }
   })
 })
@@ -241,10 +249,12 @@ describe('改与删已有记录', () => {
       id: 'fi_1',
       code: 'c000001',
       dateKey: '2026-10-27',
+      time: '12:00:00',
       kind: 'expense',
       category: 'food',
       name: '午饭',
       amount: 30,
+      photo: null,
       note: '',
       createdAt: 0,
       updatedAt: 0,
@@ -482,6 +492,28 @@ describe('食物库、套餐、预设与记忆的增删改', () => {
     expect(buildAssistantAction('add_food', { name: '卤鸡腿', kcal: -1 }, ctx).ok).toBe(false)
   })
 
+  it('新增食物缺营养时直接拒绝，不再静默写成 0', () => {
+    const result = buildAssistantAction('add_food', { name: '卤鸡腿', kcal: 180 }, ctx)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error).toContain('protein')
+  })
+
+  it('新增食物接受 nutrition 嵌套与下划线键名', () => {
+    const result = buildAssistantAction(
+      'add_food',
+      {
+        name: '卤鸡腿',
+        per100g: { kcal: 180 },
+        nutrition: { protein_g: 20, carbohydrates: 2, fat_g: 11 },
+      },
+      ctx,
+    )
+    expect(result.ok).toBe(true)
+    if (result.ok && result.action.kind === 'foodCreate') {
+      expect(result.action).toMatchObject({ kcal: 180, protein: 20, carbs: 2, fat: 11 })
+    }
+  })
+
   it('改食物只带要改的字段', () => {
     const result = buildAssistantAction('update_food', { code: 'a000001', kcal: 140 }, ctx)
     expect(result.ok).toBe(true)
@@ -564,5 +596,93 @@ describe('食物库、套餐、预设与记忆的增删改', () => {
     expect(
       buildAssistantAction('delete_memory', { text: '不存在' }, memoryCtx).ok,
     ).toBe(false)
+  })
+})
+
+describe('训练动作', () => {
+  const trainingCtx = {
+    data: {
+      ...emptyData(),
+      trainings: [
+        {
+          id: 't1',
+          code: 'T000001',
+          dateKey: '2026-10-27',
+          time: '19:00',
+          kind: 'strength' as const,
+          title: '推日',
+          exercises: [],
+          durationMin: 45,
+          feeling: 4,
+          note: '',
+          createdAt: 0,
+          updatedAt: 0,
+          deletedAt: null,
+        },
+        {
+          id: 't2',
+          code: 'T000002',
+          dateKey: '2026-10-28',
+          time: '07:30',
+          kind: 'cardio' as const,
+          title: '',
+          exercises: [],
+          durationMin: 30,
+          feeling: null,
+          note: '',
+          createdAt: 0,
+          updatedAt: 0,
+          deletedAt: null,
+        },
+      ],
+    },
+    today: '2026-10-28',
+  }
+
+  it('记训练：动作与每组数字都收下，越界数字置空', () => {
+    const result = buildAssistantAction(
+      'add_training',
+      {
+        date: '2026-10-28',
+        time: '18:20',
+        kind: 'strength',
+        exercises: [
+          {
+            name: '卧推',
+            muscle: 'chest',
+            sets: [
+              { reps: 8, weightKg: 40 },
+              { reps: 6, weightKg: 10000 },
+            ],
+          },
+        ],
+        feeling: 4,
+      },
+      trainingCtx,
+    )
+    expect(result.ok).toBe(true)
+    if (result.ok && result.action.kind === 'training') {
+      expect(result.action).toMatchObject({ dateKey: '2026-10-28', time: '18:20', feeling: 4 })
+      expect(result.action.exercises[0].sets[0]).toMatchObject({ reps: 8, weightKg: 40 })
+      expect(result.action.exercises[0].sets[1].weightKg).toBeNull()
+    }
+  })
+
+  it('既没有动作也没有时长就拒绝', () => {
+    expect(buildAssistantAction('add_training', { exercises: [] }, trainingCtx).ok).toBe(false)
+  })
+
+  it('code 留空表示最近一次', () => {
+    const remove = buildAssistantAction('delete_training', {}, trainingCtx)
+    expect(remove.ok).toBe(true)
+    if (remove.ok && remove.action.kind === 'trainingDelete') {
+      expect(remove.action.code).toBe('T000002')
+    }
+    const edit = buildAssistantAction('update_training', { note: '改备注' }, trainingCtx)
+    expect(edit.ok).toBe(true)
+    if (edit.ok && edit.action.kind === 'trainingEdit') {
+      expect(edit.action).toMatchObject({ code: 'T000002', note: '改备注' })
+    }
+    expect(buildAssistantAction('update_training', {}, trainingCtx).ok).toBe(false)
   })
 })

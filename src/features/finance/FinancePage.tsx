@@ -9,7 +9,8 @@
  * 分类先用内置的那批，数据层只存分类 id；预算、账户、定期账单留到后面再加。
  */
 import EmptyState from '@/shared/ui/EmptyState'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import type { ChangeEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { FinanceEntry } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
@@ -17,7 +18,7 @@ import { formatMonthDay, todayKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
-import { SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { SOLID_BUTTON, OUTLINE_BUTTON } from '@/shared/ui/buttonStyles'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import {
   expenseByCategory,
@@ -28,8 +29,19 @@ import {
   summarizeFinance,
 } from './financeMath'
 import { categoryKey } from './financeCategories'
-import { financeOfMonth, removeFinance, restoreFinance } from './financeRepo'
+import { exportAllData, financeOfMonth, removeFinance, restoreFinance } from './financeRepo'
 import FinanceEntryDialog from './FinanceEntryDialog'
+import FinanceAiDialog from './FinanceAiDialog'
+import type { BackupData } from '@/core/db/store'
+import RecordExportDialog from '@/features/records/RecordExportDialog'
+import { buildSingleRecordExport } from '@/features/records/recordExport'
+import {
+  importRecords,
+  isRecordsFile,
+  readRecordsFile,
+  recordsCount,
+} from '@/features/records/recordImport'
+import { describeSave, saveTextFile } from '@/platform/saveFile'
 
 /** 日头用星期几：JS 的 0=周日，正好对上 date.weekdayShortN */
 function weekdayKey(dateKey: string): MessageKey {
@@ -79,7 +91,53 @@ export default function FinancePage() {
 
   /** 新增 / 编辑；date 是新增时预填的日期 */
   const [dialog, setDialog] = useState<{ entry: FinanceEntry | null; date: string } | null>(null)
+  const [aiOpen, setAiOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<FinanceEntry | null>(null)
+  /** 挑选导出时取来的整库数据；非 null 就打开挑选弹窗 */
+  const [exportData, setExportData] = useState<BackupData | null>(null)
+  /** 打开挑选弹窗时预选本月这些流水 */
+  const [exportInitial, setExportInitial] = useState<{ finance: string[] } | undefined>(undefined)
+  const importInputRef = useRef<HTMLInputElement | null>(null)
+
+  /** 单条导出：结构和「挑选记录导出」的 JSON 一样 */
+  async function handleExportEntry(entry: FinanceEntry) {
+    const file = buildSingleRecordExport('finance', entry)
+    const outcome = await saveTextFile(file)
+    showToast({
+      message: describeSave(outcome, t('records.exported', { count: 1, label: file.label }), t),
+    })
+  }
+
+  /** 挑选导出：把本月流水全部勾上，交给通用弹窗 */
+  async function handleOpenExport() {
+    if (rows.length === 0) return
+    setExportInitial({ finance: rows.map((row) => row.id) })
+    setExportData(await exportAllData())
+  }
+
+  /** 记录级 JSON 导入：只认收支，同 id 覆盖、其余追加 */
+  async function handleImportFile(event: ChangeEvent<HTMLInputElement>) {
+    const picked = event.target.files?.[0]
+    event.target.value = ''
+    if (!picked) return
+    const text = await picked.text()
+    if (!isRecordsFile(text)) {
+      showToast({ message: t('records.importBadFile') })
+      return
+    }
+    const result = readRecordsFile(text)
+    if (!result.ok || recordsCount(result.file, ['finance']) === 0) {
+      showToast({ message: t(result.ok ? 'records.importNone' : 'records.importBadFile') })
+      return
+    }
+    const done = await importRecords(result.file, ['finance'])
+    showToast({
+      message: t('records.importDone', {
+        total: done.stats.finance.total,
+        overwritten: done.stats.finance.overwritten,
+      }),
+    })
+  }
 
   function money(value: number) {
     return `${t('finance.currency')}${new Intl.NumberFormat(locale, {
@@ -114,15 +172,46 @@ export default function FinancePage() {
     <div className="w-full p-4">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="m-0 text-lg font-medium text-fg">{t('nav.finance')}</h1>
-        {monthKey !== currentMonth && (
+        <div className="flex flex-wrap items-center gap-2">
+          {monthKey !== currentMonth && (
+            <button
+              type="button"
+              onClick={() => setMonth(currentMonth)}
+              className="text-xs text-brand transition-opacity hover:opacity-80"
+            >
+              {t('finance.currentMonth')}
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => setMonth(currentMonth)}
-            className="text-xs text-brand transition-opacity hover:opacity-80"
+            onClick={() => void handleOpenExport()}
+            disabled={rows.length === 0}
+            className="text-xs text-muted transition-colors hover:text-brand disabled:opacity-40"
           >
-            {t('finance.currentMonth')}
+            {t('records.export')}
           </button>
-        )}
+          <button
+            type="button"
+            onClick={() => importInputRef.current?.click()}
+            className="text-xs text-muted transition-colors hover:text-brand"
+          >
+            {t('records.import')}
+          </button>
+          <Link
+            to="/finance/trash"
+            className="text-xs text-muted transition-colors hover:text-brand"
+          >
+            {t('finance.trash')}
+          </Link>
+          {/* 记录级 JSON 导入的隐藏文件框 */}
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={(event) => void handleImportFile(event)}
+          />
+        </div>
       </header>
 
       {/* 月份翻页：标题居中，左右各一个箭头 */}
@@ -180,13 +269,18 @@ export default function FinancePage() {
               {t('finance.entryCount', { n: rows.length })}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setDialog({ entry: null, date: defaultDate() })}
-            className={`${SOLID_BUTTON} shrink-0`}
-          >
-            {t('finance.add')}
-          </button>
+          <div className="flex shrink-0 flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => setDialog({ entry: null, date: defaultDate() })}
+              className={SOLID_BUTTON}
+            >
+              {t('finance.add')}
+            </button>
+            <button type="button" onClick={() => setAiOpen(true)} className={OUTLINE_BUTTON}>
+              {t('finance.aiAsk')}
+            </button>
+          </div>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 border-t border-dashed border-line pt-3">
           <div className="min-w-0">
@@ -320,14 +414,22 @@ export default function FinancePage() {
                     onClick={() => setDialog({ entry, date: entry.dateKey })}
                     className="flex min-w-0 flex-1 items-center gap-2 text-left"
                   >
+                    {entry.photo && (
+                      <img
+                        src={entry.photo}
+                        alt=""
+                        className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                      />
+                    )}
                     <span className="shrink-0 rounded-md border border-line px-1.5 py-0.5 text-[10px] text-muted">
                       {t(categoryKey(entry.category))}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm text-fg">{entry.name}</span>
-                      {entry.note !== '' && (
-                        <span className="block truncate text-[11px] text-muted">{entry.note}</span>
-                      )}
+                      <span className="block truncate text-[11px] tabular-nums text-muted">
+                        {entry.time}
+                        {entry.note !== '' && ` · ${entry.note}`}
+                      </span>
                     </span>
                   </button>
                   <span
@@ -338,6 +440,15 @@ export default function FinancePage() {
                     {entry.kind === 'income' ? '+' : '-'}
                     {money(entry.amount)}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => void handleExportEntry(entry)}
+                    title={t('records.export')}
+                    className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg px-1.5 font-mono text-[10px] text-muted transition-colors hover:text-brand"
+                  >
+                    JSON
+                    <span className="sr-only">{t('records.export')}</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => setPendingDelete(entry)}
@@ -363,6 +474,25 @@ export default function FinancePage() {
             const savedMonth = monthKeyOf(record.dateKey)
             if (savedMonth !== monthKey) setMonth(savedMonth)
           }}
+        />
+      )}
+
+      {aiOpen && (
+        <FinanceAiDialog
+          defaultDate={defaultDate()}
+          onClose={() => setAiOpen(false)}
+          onManual={() => {
+            setAiOpen(false)
+            setDialog({ entry: null, date: defaultDate() })
+          }}
+        />
+      )}
+
+      {exportData && (
+        <RecordExportDialog
+          data={exportData}
+          initial={exportInitial}
+          onClose={() => setExportData(null)}
         />
       )}
 

@@ -26,7 +26,9 @@ const KIND_LABEL: Record<ConflictKind, MessageKey> = {
   meal: 'data.conflictKindMeal',
   intake: 'data.conflictKindIntake',
   sleep: 'data.conflictKindSleep',
+  training: 'data.conflictKindTraining',
   profile: 'data.conflictKindProfile',
+  finance: 'data.conflictKindFinance',
 }
 
 /** 对照层里的一栏：谁、什么时候改的、多少字、删没删、全文 */

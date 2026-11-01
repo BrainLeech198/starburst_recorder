@@ -56,6 +56,7 @@ function systemPrompt(libraryNames: string[], mode: PhotoMode) {
 - servingName / servingGrams：标签写了「每份 XX g」就填「一份」和克数，否则两个都填空字符串
 - grams 填一份的克数，没有就填 100
 - 读不出来的字段填 0，不要编造
+- kcal / protein / carbs / fat 四项都必须给数值；只有确实不含才写 0，不许只给热量
 - matched 只能填上面「已有食物库」里出现过的名字；对不上就填空字符串
 
 格式：
@@ -69,6 +70,7 @@ function systemPrompt(libraryNames: string[], mode: PhotoMode) {
 - 只输出一个 JSON 对象，不要代码块、不要解释、不要开场白
 - name 用中文常见叫法，写具体一点，例如「红烧牛肉面」而不是「面条」
 - 营养一律按每 100g 给，单位 kcal 和 g；拿不准就按同类食物的常识值估
+- kcal / protein / carbs / fat 四项都必须给数值；只有确实不含才写 0，不许只给热量
 - grams 是你目测这一份的重量（克），不要填 100 了事
 - servingName / servingGrams 只在能看出明确份量时填（一碗约 300g），否则两个都填空字符串
 - matched 只能填上面「已有食物库」里出现过的名字；对不上就填空字符串
@@ -101,6 +103,21 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
 }
 
+/** 三大营养素与热量在不同模型里的键名：中文、带单位后缀、英文复数都收 */
+const KCAL_KEYS = ['kcal', 'calories', 'energyKcal', '热量', '能量']
+const PROTEIN_KEYS = ['protein', 'proteins', 'protein_g', 'proteinG', '蛋白质']
+const CARBS_KEYS = ['carbs', 'carbohydrate', 'carbohydrates', 'carbs_g', 'carbohydrate_g', '碳水', '碳水化合物']
+const FAT_KEYS = ['fat', 'fats', 'fat_g', 'fatG', '脂肪']
+
+/** 从对象里按一组可能的键名取第一个能认出来的数字 */
+function pickNumber(source: Record<string, unknown>, keys: string[]): number | null {
+  for (const key of keys) {
+    const value = toNumber(source[key])
+    if (value !== null) return value
+  }
+  return null
+}
+
 /**
  * 把模型回答解析成一份食物；认不出名字就返回 null。
  * 数字缺失时按 0 处理，异常值一律夹到合理区间，不让 NaN 流进存储。
@@ -120,16 +137,24 @@ export function parseFoodAnalysis(reply: string): FoodGuess | null {
   const name = typeof data.name === 'string' ? data.name.trim() : ''
   if (name === '') return null
 
-  // 有的模型会套一层 per100g
-  const per =
-    data.per100g && typeof data.per100g === 'object'
-      ? (data.per100g as Record<string, unknown>)
-      : data
+  // 有的模型套一层 per100g / nutrition / macros，也有的直接平铺；
+  // 几个嵌套对象可能同时出现，合并着找，别只认第一个
+  const nestedSources = ['per100g', 'per_100g', 'nutrition', 'macros', 'nutrients']
+    .map((key) => data[key])
+    .filter(
+      (item): item is Record<string, unknown> =>
+        !!item && typeof item === 'object' && !Array.isArray(item),
+    )
+  const per = Object.assign({}, ...nestedSources)
 
-  const kcal = clamp(toNumber(per.kcal) ?? 0, 0, 900)
-  const protein = clamp(toNumber(per.protein) ?? 0, 0, 100)
-  const carbs = clamp(toNumber(per.carbs) ?? 0, 0, 100)
-  const fat = clamp(toNumber(per.fat) ?? 0, 0, 100)
+  const kcal = clamp(pickNumber(per, KCAL_KEYS) ?? pickNumber(data, KCAL_KEYS) ?? 0, 0, 900)
+  const protein = clamp(
+    pickNumber(per, PROTEIN_KEYS) ?? pickNumber(data, PROTEIN_KEYS) ?? 0,
+    0,
+    100,
+  )
+  const carbs = clamp(pickNumber(per, CARBS_KEYS) ?? pickNumber(data, CARBS_KEYS) ?? 0, 0, 100)
+  const fat = clamp(pickNumber(per, FAT_KEYS) ?? pickNumber(data, FAT_KEYS) ?? 0, 0, 100)
 
   const rawGrams = toNumber(data.grams) ?? DEFAULT_GRAMS
   const grams = round2(clamp(rawGrams, 1, 5000))

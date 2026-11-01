@@ -3,7 +3,9 @@ import {
   diffText,
   duplicateFoodNames,
   findConflicts,
+  findFinanceConflicts,
   findHealthConflicts,
+  pickFinance,
   pickHealth,
   pickIncoming,
 } from './diaryMerge'
@@ -14,6 +16,7 @@ import type {
   DiaryDay,
   DiaryEntry,
   DiaryStamp,
+  FinanceEntry,
   HealthFood,
   HealthIntake,
   HealthMeal,
@@ -269,7 +272,7 @@ const profile = (extra: Partial<HealthProfile> = {}): HealthProfile => ({
 })
 
 function health(part: Partial<HealthPart> = {}): HealthPart {
-  return { profile: null, foods: [], meals: [], intakes: [], sleeps: [], ...part }
+  return { profile: null, foods: [], meals: [], intakes: [], sleeps: [], trainings: [], ...part }
 }
 
 describe('健康块的导入冲突', () => {
@@ -357,5 +360,49 @@ describe('健康块的导入冲突', () => {
       health({ foods: [food('f1')] }),
     )
     expect(names).toEqual(['鸡胸肉'])
+  })
+})
+
+const finance = (id: string, extra: Partial<FinanceEntry> = {}): FinanceEntry => ({
+  id,
+  code: id.padEnd(7, '0'),
+  dateKey: '2026-10-23',
+  time: '12:30:00',
+  kind: 'expense',
+  category: 'food',
+  name: '午饭',
+  amount: 25,
+  photo: null,
+  note: '',
+  createdAt: 100,
+  updatedAt: 100,
+  deletedAt: null,
+  ...extra,
+})
+
+describe('经济块的导入冲突', () => {
+  it('本地没有 / 两边完全一样 → 都不算冲突', () => {
+    expect(findFinanceConflicts([finance('f1')], [])).toHaveLength(0)
+    expect(findFinanceConflicts([finance('f1')], [finance('f1')])).toHaveLength(0)
+  })
+
+  it('同一笔改了金额或票据 → 一处冲突，摘要里能看出差别', () => {
+    const found = findFinanceConflicts(
+      [finance('f1', { amount: 30, photo: 'data:image/png;base64,x' })],
+      [finance('f1')],
+    )
+    expect(found).toHaveLength(1)
+    expect(found[0]).toMatchObject({ kind: 'finance', key: 'f1' })
+    expect(found[0].localText).toContain('-25.00')
+    expect(found[0].incomingText).toContain('-30.00')
+    expect(found[0].incomingBody).toContain('photo')
+  })
+
+  it('选了保留本地就从备份里剔掉，其余照常导入', () => {
+    const picked = pickFinance(
+      [finance('f1', { amount: 30 }), finance('f2')],
+      new Set(['finance:f1']),
+    )
+    expect(picked.map((item) => item.id)).toEqual(['f2'])
   })
 })

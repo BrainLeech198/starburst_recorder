@@ -45,6 +45,26 @@ describe('parseFoodAnalysis', () => {
     expect(guess?.protein).toBe(16.9)
   })
 
+  it('兼容 nutrition 嵌套与下划线键名', () => {
+    const guess = parseFoodAnalysis(
+      '{"name":"牛排","grams":200,"nutrition":{"calories":250,"protein_g":26,"carbohydrate_g":0,"fat_g":15}}',
+    )
+    expect(guess?.kcal).toBe(250)
+    expect(guess?.protein).toBe(26)
+    expect(guess?.carbs).toBe(0)
+    expect(guess?.fat).toBe(15)
+  })
+
+  it('兼容中文键名', () => {
+    const guess = parseFoodAnalysis(
+      '{"name":"鸡蛋","grams":50,"热量":144,"蛋白质":13.3,"碳水化合物":2.8,"脂肪":8.8}',
+    )
+    expect(guess?.kcal).toBe(144)
+    expect(guess?.protein).toBe(13.3)
+    expect(guess?.carbs).toBe(2.8)
+    expect(guess?.fat).toBe(8.8)
+  })
+
   it('缺名字就当没认出来', () => {
     expect(parseFoodAnalysis('{"grams":100,"kcal":100}')).toBeNull()
     expect(parseFoodAnalysis('{"name":"   "}')).toBeNull()

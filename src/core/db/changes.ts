@@ -92,6 +92,12 @@ const WRITE_METHODS = new Set([
   'restoreHealthSleep',
   'purgeHealthSleep',
   'purgeTrashedHealthSleeps',
+  // 训练
+  'saveHealthTraining',
+  'removeHealthTraining',
+  'restoreHealthTraining',
+  'purgeHealthTraining',
+  'purgeTrashedHealthTrainings',
   // 经济
   'addFinance',
   'saveFinance',

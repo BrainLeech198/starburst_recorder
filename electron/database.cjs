@@ -152,15 +152,36 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_sleeps_day ON healthSleeps(dateKey);
   CREATE INDEX IF NOT EXISTS idx_sleeps_trash ON healthSleeps(deletedAt);
 
+  -- 训练：一条记录一个完整文档，动作与组都以 JSON 存在 exercises 里
+  CREATE TABLE IF NOT EXISTS healthTrainings (
+    id TEXT PRIMARY KEY,
+    code TEXT NOT NULL DEFAULT '',
+    dateKey TEXT NOT NULL,
+    time TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    title TEXT NOT NULL DEFAULT '',
+    exercises TEXT NOT NULL DEFAULT '[]',
+    durationMin INTEGER,
+    feeling INTEGER,
+    note TEXT NOT NULL DEFAULT '',
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    deletedAt INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_trainings_day ON healthTrainings(dateKey);
+  CREATE INDEX IF NOT EXISTS idx_trainings_trash ON healthTrainings(deletedAt);
+
   -- 经济：一行一笔收支，金额统一存正数，方向看 kind
   CREATE TABLE IF NOT EXISTS financeEntries (
     id TEXT PRIMARY KEY,
     code TEXT,
     dateKey TEXT NOT NULL,
+    time TEXT NOT NULL DEFAULT '00:00:00',
     kind TEXT NOT NULL DEFAULT 'expense',
     category TEXT NOT NULL DEFAULT '',
     name TEXT NOT NULL DEFAULT '',
     amount REAL NOT NULL DEFAULT 0,
+    photo TEXT,
     note TEXT NOT NULL DEFAULT '',
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER NOT NULL,
@@ -410,6 +431,56 @@ function napsFromDb(text) {
   }
 }
 
+/** 训练行：exercises 是 JSON 文本，读出来还原成数组，坏了当空 */
+function exercisesFromDb(text) {
+  if (typeof text !== 'string' || text.trim() === '') return []
+  try {
+    const list = JSON.parse(text)
+    if (!Array.isArray(list)) return []
+    return list
+      .filter((item) => item && typeof item.name === 'string' && item.name.trim() !== '')
+      .map((item) => ({
+        id: typeof item.id === 'string' && item.id !== '' ? item.id : '',
+        name: item.name,
+        kind: typeof item.kind === 'string' ? item.kind : 'other',
+        muscle: typeof item.muscle === 'string' ? item.muscle : 'other',
+        sets: Array.isArray(item.sets)
+          ? item.sets.map((set) => ({
+              reps: num(set?.reps),
+              weightKg: num(set?.weightKg),
+              durationSec: num(set?.durationSec),
+              restSec: num(set?.restSec),
+              rpe: num(set?.rpe),
+            }))
+          : [],
+        durationMin: num(item.durationMin),
+        distanceKm: num(item.distanceKm),
+        note: typeof item.note === 'string' ? item.note : '',
+      }))
+  } catch {
+    return []
+  }
+}
+
+function trainingRow(row) {
+  if (!row) return undefined
+  return {
+    id: row.id,
+    code: row.code ?? '',
+    dateKey: row.dateKey,
+    time: row.time ?? '00:00',
+    kind: row.kind ?? 'other',
+    title: row.title ?? '',
+    exercises: exercisesFromDb(row.exercises),
+    durationMin: num(row.durationMin),
+    feeling: num(row.feeling),
+    note: row.note ?? '',
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    deletedAt: row.deletedAt ?? null,
+  }
+}
+
 /** 套餐的组合项：只认 { foodId: string, grams: number }，坏数据当空 */
 function mealItemsFromDb(text) {
   if (typeof text !== 'string' || text.trim() === '') return []
@@ -463,10 +534,12 @@ function financeRow(row) {
     id: row.id,
     code: row.code ?? '',
     dateKey: row.dateKey,
+    time: row.time ?? '00:00:00',
     kind: row.kind === 'income' ? 'income' : 'expense',
     category: row.category ?? '',
     name: row.name ?? '',
     amount: Math.abs(num(row.amount) ?? 0),
+    photo: typeof row.photo === 'string' && row.photo !== '' ? row.photo : null,
     note: row.note ?? '',
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -548,6 +621,9 @@ function createDatabase(file) {
     db.exec("ALTER TABLE financeEntries ADD COLUMN kind TEXT NOT NULL DEFAULT 'expense'")
   if (!financeColumns.has('category'))
     db.exec("ALTER TABLE financeEntries ADD COLUMN category TEXT NOT NULL DEFAULT ''")
+  if (!financeColumns.has('time'))
+    db.exec("ALTER TABLE financeEntries ADD COLUMN time TEXT NOT NULL DEFAULT '00:00:00'")
+  if (!financeColumns.has('photo')) db.exec('ALTER TABLE financeEntries ADD COLUMN photo TEXT')
   // 旧记录补上 7 位短编号；新记录写入时自己带
   const fillCode = "substr(lower(hex(randomblob(4))), 1, 7)"
   db.exec(`UPDATE healthFoods SET code = ${fillCode} WHERE code IS NULL OR code = ''`)
@@ -751,6 +827,11 @@ function createDatabase(file) {
     ),
     removeFinance: db.prepare('UPDATE financeEntries SET deletedAt = ? WHERE id = ?'),
     restoreFinance: db.prepare('UPDATE financeEntries SET deletedAt = NULL WHERE id = ?'),
+    trashedFinance: db.prepare(
+      'SELECT * FROM financeEntries WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC',
+    ),
+    purgeFinance: db.prepare('DELETE FROM financeEntries WHERE id = ?'),
+    purgeTrashedFinance: db.prepare('DELETE FROM financeEntries WHERE deletedAt IS NOT NULL'),
     sleepDays: db.prepare('SELECT DISTINCT dateKey FROM healthSleeps WHERE deletedAt IS NULL'),
     upsertSleep: db.prepare(
       `INSERT INTO healthSleeps
@@ -778,6 +859,43 @@ function createDatabase(file) {
     ),
     purgeSleep: db.prepare('DELETE FROM healthSleeps WHERE id = ?'),
     purgeTrashedSleeps: db.prepare('DELETE FROM healthSleeps WHERE deletedAt IS NOT NULL'),
+    trainingOfDay: db.prepare(
+      'SELECT * FROM healthTrainings WHERE dateKey = ? AND deletedAt IS NULL ORDER BY time ASC, createdAt ASC',
+    ),
+    trainingsBetween: db.prepare(
+      'SELECT * FROM healthTrainings WHERE dateKey >= ? AND dateKey <= ? AND deletedAt IS NULL ORDER BY dateKey ASC, time ASC',
+    ),
+    trainingDays: db.prepare(
+      'SELECT DISTINCT dateKey FROM healthTrainings WHERE deletedAt IS NULL',
+    ),
+    latestTraining: db.prepare(
+      'SELECT * FROM healthTrainings WHERE deletedAt IS NULL ORDER BY dateKey DESC, time DESC LIMIT 1',
+    ),
+    upsertTraining: db.prepare(
+      `INSERT INTO healthTrainings
+         (id, code, dateKey, time, kind, title, exercises, durationMin, feeling, note, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         code = excluded.code,
+         dateKey = excluded.dateKey,
+         time = excluded.time,
+         kind = excluded.kind,
+         title = excluded.title,
+         exercises = excluded.exercises,
+         durationMin = excluded.durationMin,
+         feeling = excluded.feeling,
+         note = excluded.note,
+         createdAt = excluded.createdAt,
+         updatedAt = excluded.updatedAt,
+         deletedAt = excluded.deletedAt`,
+    ),
+    removeTraining: db.prepare('UPDATE healthTrainings SET deletedAt = ? WHERE id = ?'),
+    restoreTraining: db.prepare('UPDATE healthTrainings SET deletedAt = NULL WHERE id = ?'),
+    trashedTrainings: db.prepare(
+      'SELECT * FROM healthTrainings WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC',
+    ),
+    purgeTraining: db.prepare('DELETE FROM healthTrainings WHERE id = ?'),
+    purgeTrashedTrainings: db.prepare('DELETE FROM healthTrainings WHERE deletedAt IS NOT NULL'),
     healthMeals: db.prepare('SELECT * FROM healthMeals WHERE deletedAt IS NULL ORDER BY name ASC'),
     trashedMeals: db.prepare(
       'SELECT * FROM healthMeals WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC',
@@ -802,25 +920,29 @@ function createDatabase(file) {
     everyMeal: db.prepare('SELECT * FROM healthMeals'),
     everyIntake: db.prepare('SELECT * FROM healthIntakes'),
     everySleep: db.prepare('SELECT * FROM healthSleeps'),
+    everyTraining: db.prepare('SELECT * FROM healthTrainings'),
     everyFinance: db.prepare('SELECT * FROM financeEntries'),
     allFoodIds: db.prepare('SELECT id FROM healthFoods'),
     allMealIds: db.prepare('SELECT id FROM healthMeals'),
     allIntakeIds: db.prepare('SELECT id FROM healthIntakes'),
     allSleepIds: db.prepare('SELECT id FROM healthSleeps'),
+    allTrainingIds: db.prepare('SELECT id FROM healthTrainings'),
     allFinanceIds: db.prepare('SELECT id FROM financeEntries'),
 
     // ─────────── 经济 ───────────
     upsertFinance: db.prepare(
       `INSERT INTO financeEntries
-         (id, code, dateKey, kind, category, name, amount, note, createdAt, updatedAt, deletedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (id, code, dateKey, time, kind, category, name, amount, photo, note, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          code = excluded.code,
          dateKey = excluded.dateKey,
+         time = excluded.time,
          kind = excluded.kind,
          category = excluded.category,
          name = excluded.name,
          amount = excluded.amount,
+         photo = excluded.photo,
          note = excluded.note,
          createdAt = excluded.createdAt,
          updatedAt = excluded.updatedAt,
@@ -933,16 +1055,37 @@ function createDatabase(file) {
     return sleep
   }
 
+  function saveTraining(training) {
+    q.upsertTraining.run(
+      training.id,
+      training.code ?? '',
+      training.dateKey,
+      training.time ?? '00:00',
+      training.kind ?? 'other',
+      training.title ?? '',
+      JSON.stringify(Array.isArray(training.exercises) ? training.exercises : []),
+      num(training.durationMin),
+      num(training.feeling),
+      training.note ?? '',
+      num(training.createdAt) ?? Date.now(),
+      num(training.updatedAt) ?? Date.now(),
+      num(training.deletedAt),
+    )
+    return training
+  }
+
   function saveFinance(entry) {
     const next = {
       id: entry.id,
       code: entry.code ?? '',
       dateKey: entry.dateKey,
+      time: entry.time ?? '00:00:00',
       kind: entry.kind === 'income' ? 'income' : 'expense',
       category: entry.category ?? '',
       name: entry.name ?? '',
       // 金额一律收成正数，方向只由 kind 决定
       amount: Math.abs(num(entry.amount) ?? 0),
+      photo: entry.photo ?? null,
       note: entry.note ?? '',
       createdAt: num(entry.createdAt) ?? Date.now(),
       updatedAt: num(entry.updatedAt) ?? Date.now(),
@@ -952,10 +1095,12 @@ function createDatabase(file) {
       next.id,
       next.code,
       next.dateKey,
+      next.time,
       next.kind,
       next.category,
       next.name,
       next.amount,
+      next.photo,
       next.note,
       next.createdAt,
       next.updatedAt,
@@ -1135,6 +1280,7 @@ function createDatabase(file) {
       meals: q.everyMeal.all().map(mealRow),
       intakes: q.everyIntake.all().map(intakeRow),
       sleeps: q.everySleep.all().map(sleepRow),
+      trainings: q.everyTraining.all().map(trainingRow),
       finance: q.everyFinance.all().map(financeRow),
     }
   }
@@ -1157,6 +1303,7 @@ function createDatabase(file) {
     const meals = Array.isArray(health && health.meals) ? health.meals : []
     const intakes = Array.isArray(health && health.intakes) ? health.intakes : []
     const sleeps = Array.isArray(health && health.sleeps) ? health.sleeps : []
+    const trainings = Array.isArray(health && health.trainings) ? health.trainings : []
     const finances = Array.isArray(finance && finance.entries) ? finance.entries : []
     const profile = health && health.profile ? health.profile : null
 
@@ -1168,6 +1315,7 @@ function createDatabase(file) {
     const oldMeals = replace ? new Set() : new Set(q.allMealIds.all().map((row) => row.id))
     const oldIntakes = replace ? new Set() : new Set(q.allIntakeIds.all().map((row) => row.id))
     const oldSleeps = replace ? new Set() : new Set(q.allSleepIds.all().map((row) => row.id))
+    const oldTrainings = replace ? new Set() : new Set(q.allTrainingIds.all().map((row) => row.id))
     const oldFinance = replace ? new Set() : new Set(q.allFinanceIds.all().map((row) => row.id))
     const hadProfile = replace ? false : Boolean(q.healthProfile.get())
 
@@ -1186,6 +1334,7 @@ function createDatabase(file) {
           db.exec('DELETE FROM healthMeals')
           db.exec('DELETE FROM healthIntakes')
           db.exec('DELETE FROM healthSleeps')
+          db.exec('DELETE FROM healthTrainings')
         }
         if (finance) db.exec('DELETE FROM financeEntries')
       }
@@ -1227,6 +1376,7 @@ function createDatabase(file) {
         for (const meal of meals) saveMeal(meal)
         for (const intake of intakes) insertIntake(intake)
         for (const sleep of sleeps) saveSleep(sleep)
+        for (const training of trainings) saveTraining(training)
       }
       if (finance) {
         for (const item of finances) {
@@ -1234,10 +1384,12 @@ function createDatabase(file) {
             item.id,
             item.code ?? '',
             item.dateKey,
+            item.time ?? '00:00:00',
             item.kind === 'income' ? 'income' : 'expense',
             item.category ?? '',
             item.name ?? '',
             Math.abs(num(item.amount) ?? 0),
+            item.photo ?? null,
             item.note ?? '',
             item.createdAt,
             item.updatedAt,
@@ -1261,6 +1413,7 @@ function createDatabase(file) {
       meals: { total: meals.length, overwritten: meals.filter((item) => oldMeals.has(item.id)).length },
       intakes: { total: intakes.length, overwritten: intakes.filter((item) => oldIntakes.has(item.id)).length },
       sleeps: { total: sleeps.length, overwritten: sleeps.filter((item) => oldSleeps.has(item.id)).length },
+      trainings: { total: trainings.length, overwritten: trainings.filter((item) => oldTrainings.has(item.id)).length },
       finance: { total: finances.length, overwritten: finances.filter((item) => oldFinance.has(item.id)).length },
     }
   }
@@ -1442,10 +1595,18 @@ function createDatabase(file) {
     clearDiaryData: () =>
       runClear(['diaryEntries', 'diaryStamps', 'diaryDays', 'diaryPresets']),
     clearHealthData: () =>
-      runClear(['healthProfile', 'healthFoods', 'healthMeals', 'healthIntakes', 'healthSleeps']),
+      runClear([
+        'healthProfile',
+        'healthFoods',
+        'healthMeals',
+        'healthIntakes',
+        'healthSleeps',
+        'healthTrainings',
+      ]),
     clearFinanceData: () => runClear(['financeEntries']),
     trashDiaryData: () => runTrash(['diaryEntries', 'diaryStamps', 'diaryPresets']),
-    trashHealthData: () => runTrash(['healthFoods', 'healthMeals', 'healthIntakes', 'healthSleeps']),
+    trashHealthData: () =>
+      runTrash(['healthFoods', 'healthMeals', 'healthIntakes', 'healthSleeps', 'healthTrainings']),
     trashFinanceData: () => runTrash(['financeEntries']),
 
     // ─────────── 健康 ───────────
@@ -1501,6 +1662,13 @@ function createDatabase(file) {
     restoreFinance: (id) => {
       q.restoreFinance.run(id)
     },
+    trashedFinance: () => q.trashedFinance.all().map(financeRow),
+    purgeFinance: (id) => {
+      q.purgeFinance.run(id)
+    },
+    purgeTrashedFinance: () => {
+      q.purgeTrashedFinance.run()
+    },
     sleepDays: () => q.sleepDays.all().map((row) => row.dateKey),
     saveHealthSleep: (sleep) => saveSleep(sleep),
     removeHealthSleep: (id) => {
@@ -1515,6 +1683,24 @@ function createDatabase(file) {
     },
     purgeTrashedHealthSleeps: () => {
       q.purgeTrashedSleeps.run()
+    },
+    trainingOfDay: (dateKey) => q.trainingOfDay.all(dateKey).map(trainingRow),
+    trainingsBetween: (from, to) => q.trainingsBetween.all(from, to).map(trainingRow),
+    trainingDays: () => q.trainingDays.all().map((row) => row.dateKey),
+    latestTraining: () => trainingRow(q.latestTraining.get()),
+    saveHealthTraining: (training) => saveTraining(training),
+    removeHealthTraining: (id) => {
+      q.removeTraining.run(Date.now(), id)
+    },
+    restoreHealthTraining: (id) => {
+      q.restoreTraining.run(id)
+    },
+    trashedHealthTrainings: () => q.trashedTrainings.all().map(trainingRow),
+    purgeHealthTraining: (id) => {
+      q.purgeTraining.run(id)
+    },
+    purgeTrashedHealthTrainings: () => {
+      q.purgeTrashedTrainings.run()
     },
     healthMeals: () => q.healthMeals.all().map(mealRow),
     saveHealthMeal: (meal) => saveMeal(meal),

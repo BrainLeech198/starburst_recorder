@@ -24,6 +24,16 @@ import { hasAcknowledgedDisclaimer } from './disclaimerAck'
 import { dayTargets, emptyProfile, formatNum, missingProfileFields, remainingKcal, sumMacros } from './healthMath'
 import { healthProfile, intakeDays, intakesOfDay, saveHealthProfile, sleepDays, sleepOfDay } from './healthRepo'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
+import { trainingOfDay, trainingsBetween, latestTraining } from '@/features/training/trainingRepo'
+import {
+  daysBetween,
+  formatDuration,
+  formatVolume,
+  summarizeDay,
+  summarizeWeek,
+  weekStartOf,
+} from '@/features/training/trainingMath'
+import { maybeNotifyTraining, syncTrainingReminder } from '@/features/training/trainingNotify'
 
 const FIELD_LABELS = {
   sex: 'profile.fieldSex',
@@ -58,6 +68,13 @@ export default function HealthPage() {
   const [disclaimerOpen, setDisclaimerOpen] = useState(() => !hasAcknowledgedDisclaimer())
   /** 这一夜的睡眠；null = 没记，undefined = 还在查 */
   const sleep = useLiveQuery(async () => (await sleepOfDay(dayKey)) ?? null, [dayKey])
+  // 训练卡：当天记录 + 本周汇总，点卡片进训练页
+  const trainings = useLiveQuery(() => trainingOfDay(dayKey), [dayKey])
+  const trainingWeekStart = weekStartOf(dayKey)
+  const trainingWeek = useLiveQuery(
+    () => trainingsBetween(trainingWeekStart, shiftDay(trainingWeekStart, 6)),
+    [trainingWeekStart],
+  )
   const derivedTdee = useDerivedTdee(profile)
   // 称重日提醒：应用内横幅由 WeighInCard 负责，这里补系统通知（桌面到点弹、安卓排本地通知）
   useEffect(() => {
@@ -110,6 +127,25 @@ export default function HealthPage() {
     totals.protein,
     targets.proteinTarget,
   )
+  const dayTrainingSummary = summarizeDay(trainings ?? [])
+  const weekTrainingSummary = summarizeWeek(trainingWeek ?? [], trainingWeekStart, dayKey)
+
+  // 训练提醒：计划改动后排安卓本地通知；前台按「今天」检查计划与断档，和训练页同一套规则
+  const latestTrainingRow = useLiveQuery(() => latestTraining(), [])
+  useEffect(() => {
+    void syncTrainingReminder(profile?.trainingPlan)
+  }, [profile?.trainingPlan])
+  useEffect(() => {
+    const check = () => {
+      const gap = latestTrainingRow
+        ? daysBetween(latestTrainingRow.dateKey, todayKey())
+        : -1
+      maybeNotifyTraining(profile?.trainingPlan, gap === 0, gap)
+    }
+    check()
+    const timer = window.setInterval(check, 60_000)
+    return () => window.clearInterval(timer)
+  }, [profile?.trainingPlan, latestTrainingRow])
   const sleepWakeSummary = sleep ? sleepWakeStats(sleep) : null
   const sleepWakeEvents = sleep ? sortWakeEvents(sleep.wakeEvents ?? [], sleep.bedtime) : []
   const sleepReview =
@@ -350,6 +386,36 @@ export default function HealthPage() {
             </button>
           )}
         </div>
+      </section>
+
+      {/* 训练卡：今天练了没有 + 本周次数，点进去是训练页 */}
+      <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="m-0 text-sm font-medium text-fg">{t('training.title')}</h2>
+          <Link
+            to={`/health/training?date=${dayKey}`}
+            className="shrink-0 text-xs text-brand transition-opacity hover:opacity-80"
+          >
+            {t('training.add')} ›
+          </Link>
+        </div>
+        {trainings === undefined ? null : trainings.length === 0 ? (
+          <p className="m-0 mt-2 text-xs text-muted">{t('training.dayEmpty')}</p>
+        ) : (
+          <p className="m-0 mt-2 text-2xl font-medium tabular-nums text-fg">
+            {dayTrainingSummary.volumeKg > 0
+              ? formatVolume(dayTrainingSummary.volumeKg)
+              : formatDuration(dayTrainingSummary.totalDurationMin, t)}
+          </p>
+        )}
+        <p className="m-0 mt-1 text-[11px] tabular-nums text-muted">
+          {t('training.weekSessions')} {weekTrainingSummary.sessions} ·{' '}
+          {t('training.weekDays')} {weekTrainingSummary.days} · {t('training.volume')}{' '}
+          {formatVolume(weekTrainingSummary.volumeKg)}
+        </p>
+        <Link to={`/health/training?date=${dayKey}`} className={`${OUTLINE_BUTTON} mt-3`}>
+          {t('training.title')}
+        </Link>
       </section>
 
       {/* 手机健康应用的数据只能从安卓端读，桌面和浏览器不显示这块 */}

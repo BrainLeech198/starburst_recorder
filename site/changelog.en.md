@@ -1,3 +1,19 @@
+## 0.10.0 · 2026-11-01
+
+### What's new
+
+- **Training**: log strength, cardio, mobility and ball sports, with an exercise library grouped by muscle; copy your last session, set a weekly plan with reminders, and see today's volume and this week's progress on the health home; the training page has a trash bin plus single-entry export and record-level import
+- **The assistant can manage training**: four new tools to read stats, log a session, edit and delete — one sentence is enough
+- **Finance is complete**: attach a receipt photo, keep time to the second, turn one sentence into an entry with AI, and add a meal expense while logging food; export a single entry as JSON, import at record level, or pick entries for this month; a new trash page; finance conflicts are listed one by one when merging a backup instead of silently overwriting
+- **Food-photo estimates are fixed**: calories, protein, carbs and fat all get values instead of calories only; AI estimates directly without repeated questions and decides whether to save a food or a meal
+- **Training reminders on the health home**: both the plan reminder and the inactivity nudge are checked there, without opening the training page first
+- Everything from the previous release still applies: multiple conversations, image and text attachments, suggested questions, the deep-thinking switch, the two Finance charts, and Android health import (experimental)
+
+### Download
+
+- Windows 10/11: `starburst-recorder-0.10.0-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.10.0.apk` (~21 MB, release-signed)
+
 ## 0.9.1 · 2026-11-01
 
 ### What's new

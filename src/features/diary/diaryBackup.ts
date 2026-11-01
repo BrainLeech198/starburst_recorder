@@ -24,6 +24,7 @@ import type {
   HealthMeal,
   HealthProfile,
   HealthSleep,
+  HealthTraining,
 } from '@/core/db/schema'
 import {
   pickDay,
@@ -36,6 +37,7 @@ import {
   pickProfile,
   pickSleep,
   pickStamp,
+  pickTraining,
   rows,
   bag,
 } from '@/core/db/normalize'
@@ -76,6 +78,7 @@ export interface BackupPayload {
   meals: HealthMeal[]
   intakes: HealthIntake[]
   sleeps: HealthSleep[]
+  trainings: HealthTraining[]
   finance: FinanceEntry[]
 }
 
@@ -90,6 +93,7 @@ export function emptyPayload(): BackupPayload {
     meals: [],
     intakes: [],
     sleeps: [],
+    trainings: [],
     finance: [],
   }
 }
@@ -107,6 +111,7 @@ export function onlySections(payload: BackupPayload, sections: BackupSection[]):
     meals: keep.has('health') ? payload.meals : [],
     intakes: keep.has('health') ? payload.intakes : [],
     sleeps: keep.has('health') ? payload.sleeps : [],
+    trainings: keep.has('health') ? payload.trainings : [],
     finance: keep.has('finance') ? payload.finance : [],
   }
 }
@@ -126,7 +131,8 @@ export function sectionSize(payload: BackupPayload, section: BackupSection): num
       payload.foods.length +
       payload.meals.length +
       payload.intakes.length +
-      payload.sleeps.length
+      payload.sleeps.length +
+      payload.trainings.length
     )
   }
   return payload.finance.length
@@ -182,6 +188,7 @@ export function buildBackup(
                   meals: data.meals,
                   intakes: data.intakes,
                   sleeps: data.sleeps,
+                  trainings: data.trainings,
                 },
               }
             : {}),
@@ -237,6 +244,7 @@ export function readBackup(text: string): BackupReadResult {
   const rawMeals = rows(healthBag.meals)
   const rawIntakes = rows(healthBag.intakes)
   const rawSleeps = rows(healthBag.sleeps)
+  const rawTrainings = rows(healthBag.trainings)
   const rawFinance = rows(financeBag.entries)
 
   const entries = rawEntries.map(pickEntry).filter((item): item is DiaryEntry => item !== null)
@@ -250,6 +258,9 @@ export function readBackup(text: string): BackupReadResult {
   const meals = rawMeals.map(pickMeal).filter((item): item is HealthMeal => item !== null)
   const intakes = rawIntakes.map(pickIntake).filter((item): item is HealthIntake => item !== null)
   const sleeps = rawSleeps.map(pickSleep).filter((item): item is HealthSleep => item !== null)
+  const trainings = rawTrainings
+    .map(pickTraining)
+    .filter((item): item is HealthTraining => item !== null)
   const finance = rawFinance
     .map(pickFinance)
     .filter((item): item is FinanceEntry => item !== null)
@@ -264,6 +275,7 @@ export function readBackup(text: string): BackupReadResult {
     meals,
     intakes,
     sleeps,
+    trainings,
     finance,
   }
 
@@ -281,10 +293,11 @@ export function readBackup(text: string): BackupReadResult {
     rawMeals.length +
     rawIntakes.length +
     rawSleeps.length +
+    rawTrainings.length +
     rawFinance.length +
     (healthBag.profile ? 1 : 0)
   const keptTotal =
-    entries.length + stamps.length + days.length + presets.length + foods.length + meals.length + intakes.length + sleeps.length + finance.length + (profile ? 1 : 0)
+    entries.length + stamps.length + days.length + presets.length + foods.length + meals.length + intakes.length + sleeps.length + trainings.length + finance.length + (profile ? 1 : 0)
 
   return {
     ok: true,
