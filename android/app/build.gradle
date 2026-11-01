@@ -16,9 +16,12 @@ android {
         if (!match.matches()) {
             throw new GradleException("版本号格式不对：${appVersion}（应形如 0.8.0 或 0.8.0-beta.1）")
         }
-        def channelCode = match.group(4) ? (match.group(4) as int) : 999
-        if (channelCode > 998) {
-            throw new GradleException("测试版序号超过 998，versionCode 会越过正式版")
+        def channelCode = 999
+        if (match.group(4)) {
+            channelCode = match.group(4) as int
+            if (channelCode > 998) {
+                throw new GradleException("测试版序号超过 998，versionCode 会越过正式版")
+            }
         }
         def baseCode = (match.group(1) as int) * 10000000 +
                 (match.group(2) as int) * 100000 +

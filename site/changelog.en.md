@@ -1,3 +1,18 @@
+## 0.8.0 · 2026-11-01
+
+### What's new
+
+- **The assistant can act**: log spending, write a note or diary entry, record sleep, weigh in or log food; every write is previewed, applied only after confirmation, and can be undone
+- **Long-term memory and saved conversations**: maintain preferences, goals, habits and facts under Assistant → Memory; the floating ball and the full page share one thread
+- **Finance is ready**: log income and spending, pick categories, edit or delete, see daily totals and a monthly balance; the month bar shows this/last month and a date range
+- **One date bar everywhere**: diary, health and finance share the same rounded date control
+- **Stable and beta channels**: switch under Settings → Version; betas ship on GitHub only
+
+### Download
+
+- Windows 10/11: `starburst-recorder-0.8.0-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.8.0.apk` (~16 MB, release-signed)
+
 ## 0.7.0 · 2026-10-31
 
 ### What's new

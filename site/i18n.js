@@ -23,7 +23,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.7.0',
+    'hero.cta': '下载 0.8.0',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -35,7 +35,7 @@ window.SITE_I18N = {
 
     'features.kicker': '功能',
     'features.title': '一张纸上的生活',
-    'features.desc': '日记和健康已经能天天用，财务和日历还在路上——没做完的功能，我们不会说它做完了。',
+    'features.desc': '日记、健康、财务已经能天天用，日历还在路上——没做完的功能，我们不会说它做完了。',
     'features.diary': '日记',
     'features.diaryDesc': '随手记一句、按天翻看，也能一次导入整页手写照片，让 AI 认成文字。',
     'features.health': '健康',
@@ -44,7 +44,7 @@ window.SITE_I18N = {
     'features.appearanceDesc':
       '六套主题模式配六种主题色，深浅冷暖都能调到顺眼；连纸上那支笔的颜色也跟着走。',
     'features.finance': '财务',
-    'features.financeDesc': '每一笔收支，都记在同一本本子上。',
+    'features.financeDesc': '记下每一笔收支，按月看结余，也能按天回看。',
     'features.calendar': '日历',
     'features.calendarDesc': '把日子摊开看：哪几天写了，哪几天空着。',
     'features.ready': '已可用',
@@ -53,7 +53,7 @@ window.SITE_I18N = {
     'ai.kicker': 'AI 整理',
     'ai.title': '随手记一句，剩下的交给 AI',
     'ai.desc':
-      '那天发生了什么、当时是什么心情——你不用写得完整，AI 会按你选的口气重组，确认之后才写进去。',
+      '那天发生了什么、当时是什么心情——你不用写得完整，AI 会按你选的口气重组，确认之后才写进去。也可以直接问助手，让它帮你记账、写随记或记睡眠。',
     'ai.before': '你写的',
     'ai.raw': '10.24 阴 早上去医院拿报告，医生说没事，回来的路上买了个红薯。',
     'ai.arrow': 'AI 整理',
@@ -94,11 +94,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.7.0',
+    'open.version': '版本 0.8.0',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.7.0 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.8.0 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -109,11 +109,11 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '体重趋势独立成页：近 7 / 30 / 90 天切换，点曲线或记录就能看某一天的走势与细节',
+      'AI 助手能动手：记一笔收支、写随记或日记、记睡眠、称重、记摄入，都先给预览，确认后才写入，刚写完可以撤销',
     'whatsnew.item2':
-      '趋势页补上更多健康指标：日均摄入、日均睡眠、蛋白达标、推算 TDEE，以及选中日的能量差与睡眠差',
+      '助手有了长期记忆，对话也会保存；悬浮球和整页助手共用同一段会话，不用每次重新交代',
     'whatsnew.item3':
-      '摄入编辑可只改这一条，也可同步写回食物库；套餐表单补上封面与成分缩略图',
+      '收支模块可用：分类、改删、按天汇总与本月结余；三个模块的日期栏统一成圆角矩形',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -122,7 +122,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.7.0',
+    'footer.version': '版本 0.8.0',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -145,7 +145,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.7.0',
+    'hero.cta': 'Download 0.8.0',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -158,7 +158,7 @@ window.SITE_I18N = {
     'features.kicker': 'Features',
     'features.title': 'A life kept on paper slips',
     'features.desc':
-      'Diary and health are ready for daily use; finance and calendar are still on the way. We will not call a feature finished before it is.',
+      'Diary, health and finance are ready for daily use; calendar is still on the way. We will not call a feature finished before it is.',
     'features.diary': 'Diary',
     'features.diaryDesc':
       'Jot a line, flip back by day, or import a photo of a handwritten page and let AI read it.',
@@ -169,7 +169,8 @@ window.SITE_I18N = {
     'features.appearanceDesc':
       'Six theme modes with six accent colours — tune the light, the warmth and even the ink on the page.',
     'features.finance': 'Finance',
-    'features.financeDesc': 'Every cent in and out, in the same notebook.',
+    'features.financeDesc':
+      'Log every bit of income and spending, see the monthly balance and look back day by day.',
     'features.calendar': 'Calendar',
     'features.calendarDesc': 'Lay the days out flat: which ones have entries, which are blank.',
     'features.ready': 'Ready',
@@ -178,7 +179,7 @@ window.SITE_I18N = {
     'ai.kicker': 'AI compose',
     'ai.title': 'One line in, a finished entry out',
     'ai.desc':
-      'What happened, how it felt — you do not have to write it whole. AI reshapes it in the tone you pick, and only writes in after you confirm.',
+      'What happened, how it felt — you do not have to write it whole. AI reshapes it in the tone you pick, and only writes in after you confirm. You can also ask the assistant to log spending, write a note or record your sleep.',
     'ai.before': 'You wrote',
     'ai.raw': '10.24 overcast Went to the hospital for the report, doctor said it is fine, bought a sweet potato on the way back.',
     'ai.arrow': 'AI reshapes',
@@ -220,12 +221,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.7.0',
+    'open.version': 'Version 0.8.0',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.7.0 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.8.0 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -236,13 +237,13 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.7.0",
+    'whatsnew.title': "What's new in 0.8.0",
     'whatsnew.item1':
-      'The weight trend gets its own page: switch between 7 / 30 / 90 days and tap a point or a record to inspect a day',
+      'The assistant can act: log spending, write a note or diary entry, record sleep, weigh in or log food. Every write is previewed first, applied only after you confirm, and can be undone',
     'whatsnew.item2':
-      'More health metrics: average intake, average sleep, protein-goal days, estimated TDEE, plus energy and sleep gaps for the selected day',
+      'The assistant keeps long-term memories, and conversations are saved — the floating ball and the full page share one thread',
     'whatsnew.item3':
-      'Edit an intake alone or sync it back to the food library; meal forms now show a cover and component thumbnails',
+      'Finance is ready: categories, edit and delete, daily totals and a monthly balance; the date bars in all three modules now share one rounded look',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -251,7 +252,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.7.0',
+    'footer.version': 'Version 0.8.0',
     'footer.tagline': 'Data stays on your device',
   },
 };
