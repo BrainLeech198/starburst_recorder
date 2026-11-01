@@ -42,7 +42,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.10.2',
+    'hero.cta': '下载 0.10.3',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -113,11 +113,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.10.2',
+    'open.version': '版本 0.10.3',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.10.2 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.10.3 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -128,10 +128,10 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '长辈关怀的「高对比」修好了：之前只有默认深色主题下会生效，切到浅色、纸色、雾色等其他主题后开关就没了效果；现在所有主题下都能把次要文字与分隔线压得更清楚',
+      '更新安装包不再重复下载：下载完安装包后不小心关掉安装界面，再点更新会先看本地有没有已经下好的完整安装包，有就直接打开，桌面和安卓都适用',
     'whatsnew.item2':
-      '上一版的食物 / 套餐二维码分享照旧：行菜单里的「分享」给一张二维码，对方扫码就能收下；照片与细节放不进二维码时，复制分享码或存成文件发过去，导入时原样带过去',
-    'whatsnew.item3': '这一版是修 bug 的小版本，其余功能与 0.10.1 相同',
+      '下载改为先写临时文件、完成后再改名，下载中断留下的半截文件不会被当成完整安装包',
+    'whatsnew.item3': '这一版是修 bug 的小版本，其余功能与 0.10.2 相同',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -140,7 +140,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.10.2',
+    'footer.version': '版本 0.10.3',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -183,7 +183,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.10.2',
+    'hero.cta': 'Download 0.10.3',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -259,12 +259,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.10.2',
+    'open.version': 'Version 0.10.3',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.10.2 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.10.3 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -275,12 +275,12 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.10.2",
+    'whatsnew.title': "What's new in 0.10.3",
     'whatsnew.item1':
-      'Elder-care high contrast is fixed: it only worked in the default dark theme before, and switching to light, paper, mist or any other palette made the toggle do nothing. Secondary text and dividers now get clearly stronger in every theme',
+      'Update installers are no longer downloaded twice: after a download, if you close the installer by accident, tapping update again looks for a complete installer already on disk and opens it directly, on desktop and Android alike',
     'whatsnew.item2':
-      'The food and meal QR sharing from the previous release still applies: Share in the row menu shows a QR code the other person can scan, and when photos and detail do not fit, copy the share code or save a file and it imports with photos intact',
-    'whatsnew.item3': 'This is a small bug-fix build; everything else is the same as 0.10.1',
+      'Downloads are written to a temporary file and renamed only when finished, so an interrupted download cannot pass as a complete installer',
+    'whatsnew.item3': 'This is a small bug-fix build; everything else is the same as 0.10.2',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -289,7 +289,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.10.2',
+    'footer.version': 'Version 0.10.3',
     'footer.tagline': 'Data stays on your device',
   },
 };

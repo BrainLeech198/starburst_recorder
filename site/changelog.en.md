@@ -1,3 +1,16 @@
+## 0.10.3 · 2026-11-01
+
+### What's new
+
+- **Update installers are no longer downloaded twice**: after a download, if you close the installer by accident, tapping update again now looks for a complete installer on disk and opens it directly — on desktop and Android alike
+- Downloads are written to a temporary file and renamed only when finished, so an interrupted download cannot pass as a complete installer
+- The elder-care high-contrast fix and food / meal QR sharing from the previous release are unchanged
+
+### Downloads
+
+- Windows 10/11: `starburst-recorder-0.10.3-setup.exe` (~95 MB)
+- Android 10+: `starburst-recorder-0.10.3.apk` (~61 MB, release-signed)
+
 ## 0.10.2 · 2026-11-01
 
 ### What's new
