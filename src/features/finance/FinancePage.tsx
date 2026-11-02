@@ -14,11 +14,12 @@ import type { ChangeEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { FinanceEntry } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
-import { formatMonthDay, todayKey } from '@/core/utils/dateKey'
+import { formatDate, formatMonthDay, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { SOLID_BUTTON, OUTLINE_BUTTON } from '@/shared/ui/buttonStyles'
+import Tab from '@/shared/ui/Tab'
 import { Icon } from '@/shared/ui/icons'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import {
@@ -50,16 +51,35 @@ function weekdayKey(dateKey: string): MessageKey {
   return ('date.weekdayShort' + day) as MessageKey
 }
 
+/** 日 / 月 / 年三种观察视角 */
+type FinanceView = 'day' | 'month' | 'year'
+
 export default function FinancePage() {
   const { t, locale } = useI18n()
   const { showToast } = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const currentMonth = monthKeyOf(todayKey())
+  const currentYear = Number(currentMonth.slice(0, 4))
+
+  /** 观察视角：日 / 月 / 年，跟着 URL 走，刷新与返回都停在同一视角 */
+  const viewParam = searchParams.get('view')
+  const view: FinanceView =
+    viewParam === 'day' ? 'day' : viewParam === 'year' ? 'year' : 'month'
+
+  const dateParam = searchParams.get('date')
+  const dayKey = isDateKey(dateParam) ? dateParam : todayKey()
   const monthParam = searchParams.get('month')
-  const monthKey = isMonthKey(monthParam) ? monthParam : currentMonth
-  const year = Number(monthKey.slice(0, 4))
-  const month = Number(monthKey.slice(5, 7))
+  const monthKey = isMonthKey(monthParam)
+    ? monthParam
+    : view === 'day'
+      ? monthKeyOf(dayKey)
+      : currentMonth
+  const monthYear = Number(monthKey.slice(0, 4))
+  const monthNumber = Number(monthKey.slice(5, 7))
+  const yearParam = searchParams.get('year')
+  const viewYear = /^\d{4}$/.test(yearParam ?? '') ? Number(yearParam) : currentYear
+
   const previousMonth = shiftMonth(currentMonth, -1)
   const relativeMonthKey: MessageKey | null =
     monthKey === currentMonth
@@ -67,26 +87,49 @@ export default function FinancePage() {
       : monthKey === previousMonth
         ? 'finance.lastMonth'
         : null
-  const lastDay = new Date(year, month, 0).getDate()
+  const lastDay = new Date(monthYear, monthNumber, 0).getDate()
   const monthRange = t('finance.monthRange', {
     from: formatMonthDay(`${monthKey}-01`, t),
     to: formatMonthDay(`${monthKey}-${String(lastDay).padStart(2, '0')}`, t),
   })
 
-  const entries = useLiveQuery(() => financeOfMonth(monthKey), [monthKey])
-  const rows = entries ?? []
+  // 年视图按月各查一次，跨库都是同一套读法；月视图只查一个月，日视图在那一个月里筛出当天
+  const yearMonths = Array.from(
+    { length: 12 },
+    (_, index) => `${viewYear}-${String(index + 1).padStart(2, '0')}`,
+  )
+  const period = useLiveQuery(
+    async () => {
+      if (view === 'year') {
+        const lists = await Promise.all(yearMonths.map((key) => financeOfMonth(key)))
+        return {
+          entries: lists.flat(),
+          months: lists.map((list) => ({ ...summarizeFinance(list), count: list.length })),
+        }
+      }
+      const list = await financeOfMonth(view === 'day' ? monthKeyOf(dayKey) : monthKey)
+      return { entries: list, months: null }
+    },
+    [view, viewYear, monthKey, dayKey],
+  )
+  const allRows = period?.entries ?? []
+  const rows =
+    view === 'day' ? allRows.filter((entry) => entry.dateKey === dayKey) : allRows
   const summary = summarizeFinance(rows)
   const days = groupFinanceByDay(rows)
   const slices = expenseByCategory(rows)
+  const isToday = dayKey === todayKey()
+  const isCurrentYear = viewYear === currentYear
 
   // 近半年趋势：每月各查一次汇总，跨年也按真实月份排
   const trendMonths = Array.from({ length: 6 }, (_, index) => shiftMonth(currentMonth, index - 5))
   const trend = useLiveQuery(
     async () => {
+      if (view !== 'month') return []
       const lists = await Promise.all(trendMonths.map((key) => financeOfMonth(key)))
       return trendMonths.map((key, index) => ({ monthKey: key, ...summarizeFinance(lists[index]) }))
     },
-    [currentMonth],
+    [currentMonth, view],
   )
   const trendMax = Math.max(1, ...(trend ?? []).map((item) => Math.max(item.income, item.expense)))
 
@@ -146,12 +189,39 @@ export default function FinancePage() {
     }).format(value)}`
   }
 
+  /** 年视图的月份名交给 Intl，中文“11月”、英文“Nov”，不用再补文案 */
+  const monthFormatter = new Intl.DateTimeFormat(locale, { month: 'short' })
+
   function setMonth(next: string) {
     setSearchParams({ month: next }, { replace: true })
   }
 
-  /** 看的是哪个月就往哪个月记；不在本月时默认落在 1 号 */
+  function setDayKey(next: string) {
+    setSearchParams({ view: 'day', date: next }, { replace: true })
+  }
+
+  function setYear(next: number) {
+    setSearchParams({ view: 'year', year: String(next) }, { replace: true })
+  }
+
+  /** 切视角时把当前停留的日期带过去，不让人重新找位置 */
+  function setView(next: FinanceView) {
+    if (next === 'day') setDayKey(view === 'day' ? dayKey : todayKey())
+    else if (next === 'year') setYear(view === 'year' ? viewYear : currentYear)
+    else setMonth(monthKey)
+  }
+
+  /** 当前视角下往前 / 往后翻一格：一天、一个月或一年 */
+  function step(delta: number) {
+    if (view === 'day') setDayKey(shiftDay(dayKey, delta))
+    else if (view === 'year') setYear(viewYear + delta)
+    else setMonth(shiftMonth(monthKey, delta))
+  }
+
+  /** 看的是哪段就往哪段记；不在当前时段时落在它的第一天 */
   function defaultDate() {
+    if (view === 'day') return dayKey
+    if (view === 'year') return isCurrentYear ? todayKey() : `${viewYear}-01-01`
     return monthKey === currentMonth ? todayKey() : `${monthKey}-01`
   }
 
@@ -174,7 +244,27 @@ export default function FinancePage() {
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="m-0 text-lg font-medium text-fg">{t('nav.finance')}</h1>
         <div className="flex flex-wrap items-center gap-2">
-          {monthKey !== currentMonth && (
+          {view === 'day' && !isToday && (
+            <button
+              type="button"
+              onClick={() => setDayKey(todayKey())}
+              className="inline-flex items-center text-xs text-brand transition-opacity hover:opacity-80"
+            >
+              <Icon name="calendar" className="mr-1 h-3.5 w-3.5 shrink-0" />
+              {t('finance.today')}
+            </button>
+          )}
+          {view === 'year' && !isCurrentYear && (
+            <button
+              type="button"
+              onClick={() => setYear(currentYear)}
+              className="inline-flex items-center text-xs text-brand transition-opacity hover:opacity-80"
+            >
+              <Icon name="calendar" className="mr-1 h-3.5 w-3.5 shrink-0" />
+              {t('finance.thisYear')}
+            </button>
+          )}
+          {view === 'month' && monthKey !== currentMonth && (
             <button
               type="button"
               onClick={() => setMonth(currentMonth)}
@@ -219,18 +309,37 @@ export default function FinancePage() {
         </div>
       </header>
 
-      {/* 月份翻页：标题居中，左右各一个箭头 */}
-      <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-line bg-surface px-2 py-1">
+      {/* 视角切换：日 / 月 / 年，和日记页的栏目切换同一套下划线样式 */}
+      <nav role="tablist" className="mt-3 flex items-center gap-1">
+        <Tab active={view === 'day'} onClick={() => setView('day')}>
+          {t('finance.viewDay')}
+        </Tab>
+        <Tab active={view === 'month'} onClick={() => setView('month')}>
+          {t('finance.viewMonth')}
+        </Tab>
+        <Tab active={view === 'year'} onClick={() => setView('year')}>
+          {t('finance.viewYear')}
+        </Tab>
+      </nav>
+
+      {/* 时段翻页：标题居中，左右各一个箭头，随视角换单位 */}
+      <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-line bg-surface px-2 py-1">
         <button
           type="button"
-          aria-label={t('finance.prevMonth')}
-          onClick={() => setMonth(shiftMonth(monthKey, -1))}
+          aria-label={
+            view === 'day'
+              ? t('finance.prevDay')
+              : view === 'year'
+                ? t('finance.prevYear')
+                : t('finance.prevMonth')
+          }
+          onClick={() => step(-1)}
           className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:text-brand"
         >
           ‹
         </button>
         <span className="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
-          {relativeMonthKey && (
+          {view === 'month' && relativeMonthKey && (
             <span
               className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium leading-none ${
                 relativeMonthKey === 'finance.thisMonth'
@@ -241,17 +350,43 @@ export default function FinancePage() {
               {t(relativeMonthKey)}
             </span>
           )}
+          {view === 'day' && isToday && (
+            <span className="shrink-0 rounded bg-success/15 px-1.5 py-0.5 text-[11px] font-medium leading-none text-success">
+              {t('finance.today')}
+            </span>
+          )}
+          {view === 'year' && isCurrentYear && (
+            <span className="shrink-0 rounded bg-success/15 px-1.5 py-0.5 text-[11px] font-medium leading-none text-success">
+              {t('finance.thisYear')}
+            </span>
+          )}
           <span className="text-sm font-medium tabular-nums text-fg">
-            {t('finance.monthTitle', { year, month })}
+            {view === 'day'
+              ? formatDate(dayKey, t)
+              : view === 'year'
+                ? t('finance.yearTitle', { year: viewYear })
+                : t('finance.monthTitle', { year: monthYear, month: monthNumber })}
           </span>
-          <span className="hidden shrink-0 text-xs tabular-nums text-muted min-[360px]:inline">
-            {monthRange}
-          </span>
+          {view === 'day' ? (
+            <span className="hidden shrink-0 text-xs text-muted min-[360px]:inline">
+              {t(weekdayKey(dayKey))}
+            </span>
+          ) : view === 'month' ? (
+            <span className="hidden shrink-0 text-xs tabular-nums text-muted min-[360px]:inline">
+              {monthRange}
+            </span>
+          ) : null}
         </span>
         <button
           type="button"
-          aria-label={t('finance.nextMonth')}
-          onClick={() => setMonth(shiftMonth(monthKey, 1))}
+          aria-label={
+            view === 'day'
+              ? t('finance.nextDay')
+              : view === 'year'
+                ? t('finance.nextYear')
+                : t('finance.nextMonth')
+          }
+          onClick={() => step(1)}
           className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:text-brand"
         >
           ›
@@ -262,7 +397,13 @@ export default function FinancePage() {
       <section className="mt-3 rounded-2xl border border-line bg-surface p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="m-0 text-[11px] text-muted">{t('finance.balance')}</p>
+            <p className="m-0 text-[11px] text-muted">
+              {view === 'day'
+                ? t('finance.balanceDay')
+                : view === 'year'
+                  ? t('finance.balanceYear')
+                  : t('finance.balance')}
+            </p>
             <p
               className={`m-0 mt-1 text-3xl font-medium tabular-nums ${
                 summary.balance < 0 ? 'text-danger' : 'text-fg'
@@ -305,7 +446,7 @@ export default function FinancePage() {
         </div>
       </section>
 
-      {/* 本月支出分类：按金额从大到小，条长就是占比 */}
+      {/* 当前时段的支出分类：按金额从大到小，条长就是占比 */}
       {slices.length > 0 && (
         <section className="mt-3 rounded-2xl border border-line bg-surface p-4">
           <h2 className="m-0 text-xs font-medium text-fg">{t('finance.breakdown')}</h2>
@@ -332,8 +473,9 @@ export default function FinancePage() {
         </section>
       )}
 
-      {/* 近半年收支：每月两根柱，同一标尺比较 */}
-      {trend &&
+      {/* 近半年收支：只在月视图出现，每月两根柱，同一标尺比较 */}
+      {view === 'month' &&
+        trend &&
         trend.some((item) => item.income > 0 || item.expense > 0) && (
           <section className="mt-3 rounded-2xl border border-line bg-surface p-4">
             <div className="flex items-center justify-between gap-2">
@@ -384,10 +526,60 @@ export default function FinancePage() {
           </section>
         )}
 
-      {entries === undefined ? null : days.length === 0 ? (
+      {period === undefined ? null : rows.length === 0 ? (
         <div className="mt-4">
-          <EmptyState icon="🧾" text={t('finance.empty')} />
+          <EmptyState
+            icon="🧾"
+            text={t(
+              view === 'day'
+                ? 'finance.emptyDay'
+                : view === 'year'
+                  ? 'finance.emptyYear'
+                  : 'finance.empty',
+            )}
+          />
         </div>
+      ) : view === 'year' ? (
+        <section className="mt-3 overflow-hidden rounded-2xl border border-line bg-surface">
+          <header className="flex items-center justify-between gap-2 bg-surface-2 px-3 py-2">
+            <h2 className="m-0 text-xs font-medium text-fg">{t('finance.yearMonths')}</h2>
+            <span className="text-[11px] tabular-nums text-muted">
+              {t('finance.entryCount', { n: rows.length })}
+            </span>
+          </header>
+          <ul className="m-0 list-none p-0">
+            {(period.months ?? [])
+              .map((item, index) => ({ ...item, monthValue: index + 1 }))
+              .filter((item) => item.count > 0)
+              .map((item) => (
+                <li key={item.monthValue}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMonth(`${viewYear}-${String(item.monthValue).padStart(2, '0')}`)
+                    }
+                    className="flex w-full items-center gap-3 border-t border-line px-3 py-2.5 text-left transition-colors hover:bg-surface-2"
+                  >
+                    <span className="w-14 shrink-0 text-sm text-fg">
+                      {monthFormatter.format(new Date(viewYear, item.monthValue - 1, 1))}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[11px] tabular-nums text-muted">
+                      <span className="text-brand">+{money(item.income)}</span>
+                      {' · '}
+                      <span className="text-fg">-{money(item.expense)}</span>
+                    </span>
+                    <span
+                      className={`shrink-0 text-sm tabular-nums ${
+                        item.balance < 0 ? 'text-danger' : 'text-fg'
+                      }`}
+                    >
+                      {money(item.balance)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+          </ul>
+        </section>
       ) : (
         days.map((day) => (
           <section
@@ -477,9 +669,16 @@ export default function FinancePage() {
           defaultDate={dialog.date}
           onClose={() => setDialog(null)}
           onSaved={(record) => {
-            // 记到别的月份时直接翻过去，不然刚记的一笔会“消失”
-            const savedMonth = monthKeyOf(record.dateKey)
-            if (savedMonth !== monthKey) setMonth(savedMonth)
+            // 记到别的时段时直接翻过去，不然刚记的一笔会“消失”
+            if (view === 'day') {
+              if (record.dateKey !== dayKey) setDayKey(record.dateKey)
+            } else if (view === 'year') {
+              const savedYear = Number(record.dateKey.slice(0, 4))
+              if (savedYear !== viewYear) setYear(savedYear)
+            } else {
+              const savedMonth = monthKeyOf(record.dateKey)
+              if (savedMonth !== monthKey) setMonth(savedMonth)
+            }
           }}
         />
       )}

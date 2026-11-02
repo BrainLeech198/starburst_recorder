@@ -113,6 +113,21 @@
         font-size: 12px;
       }
 
+      /* 点文件名直接下载；Gitee 镜像跟在尺寸后面 */
+      .ver__dl {
+        color: var(--brand);
+        text-decoration: none;
+        border-bottom: 1px dotted currentColor;
+      }
+
+      .ver__dl:hover {
+        border-bottom-style: solid;
+      }
+
+      .ver__dl code {
+        color: inherit;
+      }
+
       /* 两种语言各放一份正文，靠 html[lang] 切换：内容长，塞进 i18n 字典反而难维护 */
       html[lang='zh-CN'] .lang-en {
         display: none;
@@ -147,15 +162,56 @@
         <p class="kicker" data-i18n="changelog.kicker">更新日志</p>
         <h1 data-i18n="changelog.title">每一版改了什么</h1>
         <p class="section-head__desc lang-zh" style="margin: 10px 0 0">
-          从新到旧。下载文件在两个仓库都放着，哪个快用哪个。
+          从新到旧。每一版都直接给出安装包，点文件名就能下载；最新版 GitHub 与 Gitee 同步，旧版放在 GitHub Releases。
         </p>
         <p class="section-head__desc lang-en" style="margin: 10px 0 0">
-          Newest first. Every file is on both repositories — use whichever is faster.
+          Newest first. Each entry links straight to its installers — click a filename to download. The latest build is on both GitHub and Gitee; older ones live on GitHub Releases.
         </p>
         <a class="changelog__back" href="index.html#download" data-i18n="changelog.back">← 回到下载</a>
       </header>
 
-      <article class="ver">
+      <article class="ver" id="v0.11.1">
+        <div class="ver__head">
+          <span class="ver__tag">0.11.1</span>
+          <span class="ver__date">2026-11-02</span>
+        </div>
+        <div class="lang-zh">
+          <h3>这一版有什么</h3>
+          <ul>
+            <li><strong>经济页三种视角</strong>：日 / 月 / 年随时切换，翻页按当前视角走一天、一月或一年；切视角会保留正在看的日子</li>
+            <li><strong>年视图看全年</strong>：十二个月的收支与结余排在一张卡上，点某个月就回到那个月的流水</li>
+            <li><strong>体重趋势能点能读</strong>：点圆点浮出「日期 · 体重」，下面的当天内容跟着切换；首页小卡点哪个点，就带着那一天进趋势页</li>
+            <li><strong>图表补齐读数</strong>：详情页画出最高 / 中间 / 最低参考线，点数少时标出每个点的体重、密集时标最高最低，首中尾日期摊开显示</li>
+            <li><strong>小屏不再缩字</strong>：图上的数字改用固定字号覆盖层，手机窄屏也能看清</li>
+          </ul>
+          <h3>下载</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.11.1/starburst-recorder-0.11.1-setup.exe"><code>starburst-recorder-0.11.1-setup.exe</code></a>（约 96 MB） · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.11.1/starburst-recorder-0.11.1-setup.exe">Gitee</a></dd>
+            <dt>Android 10 以上</dt>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.11.1/starburst-recorder-0.11.1.apk"><code>starburst-recorder-0.11.1.apk</code></a>（约 62 MB，正式签名） · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.11.1/starburst-recorder-0.11.1.apk">Gitee</a></dd>
+          </dl>
+        </div>
+        <div class="lang-en">
+          <h3>What's new</h3>
+          <ul>
+            <li><strong>Three Finance views</strong> — switch between day, month and year; paging moves one day, one month or one year at a time, and the view keeps the date you were on</li>
+            <li><strong>A whole year at a glance</strong> — the yearly view lays out income, spending and balance for all twelve months; click a month to return to its entries</li>
+            <li><strong>The weight trend is now clickable and readable</strong> — tap a dot to see its date and weight, and the day panel below follows; on the home card each dot opens that exact day</li>
+            <li><strong>Charts carry their numbers</strong> — high / middle / low gridlines, a value on every point when the range is short, high and low labels when it is dense, and first / middle / last dates along the axis</li>
+            <li><strong>No more shrinking text on small phones</strong> — chart numbers use a fixed-size HTML layer, so they stay legible on narrow screens</li>
+          </ul>
+          <h3>Downloads</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.11.1/starburst-recorder-0.11.1-setup.exe"><code>starburst-recorder-0.11.1-setup.exe</code></a> (~96 MB) · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.11.1/starburst-recorder-0.11.1-setup.exe">Gitee</a></dd>
+            <dt>Android 10+</dt>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.11.1/starburst-recorder-0.11.1.apk"><code>starburst-recorder-0.11.1.apk</code></a> (~62 MB, release-signed) · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.11.1/starburst-recorder-0.11.1.apk">Gitee</a></dd>
+          </dl>
+        </div>
+      </article>
+
+      <article class="ver" id="v0.11.0">
         <div class="ver__head">
           <span class="ver__tag">0.11.0</span>
           <span class="ver__date">2026-11-02</span>
@@ -175,9 +231,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.11.0-setup.exe</code>（约 96 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.11.0/starburst-recorder-0.11.0-setup.exe"><code>starburst-recorder-0.11.0-setup.exe</code></a>（约 96 MB） · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.11.0/starburst-recorder-0.11.0-setup.exe">Gitee</a></dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.11.0.apk</code>（约 62 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.11.0/starburst-recorder-0.11.0.apk"><code>starburst-recorder-0.11.0.apk</code></a>（约 62 MB，正式签名） · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.11.0/starburst-recorder-0.11.0.apk">Gitee</a></dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -195,14 +251,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.11.0-setup.exe</code> (~96 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.11.0/starburst-recorder-0.11.0-setup.exe"><code>starburst-recorder-0.11.0-setup.exe</code></a> (~96 MB) · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.11.0/starburst-recorder-0.11.0-setup.exe">Gitee</a></dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.11.0.apk</code> (~62 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.11.0/starburst-recorder-0.11.0.apk"><code>starburst-recorder-0.11.0.apk</code></a> (~62 MB, release-signed) · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.11.0/starburst-recorder-0.11.0.apk">Gitee</a></dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.10.4">
         <div class="ver__head">
           <span class="ver__tag">0.10.4</span>
           <span class="ver__date">2026-11-01</span>
@@ -215,14 +271,13 @@
             <li><strong>批量操作栏不再消失</strong>：工具条挂到页面根节点，不再被内容区堆叠上下文或安卓底部导航压住；所有批量页面一并生效</li>
             <li><strong>睡眠条改为前后各 24 小时</strong>：白天补觉与跨天睡眠不再被截断，0 点仍居中</li>
             <li><strong>二级按钮补齐图标</strong>：版本页 emoji 换成统一图标，批量栏、行菜单与健康 / 训练 / 设置 / 财务的主操作都补上语义图标</li>
-            <li>上一版的更新安装包复用、长辈关怀高对比修复、二维码分享照旧</li>
           </ul>
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.10.4-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.4/starburst-recorder-0.10.4-setup.exe"><code>starburst-recorder-0.10.4-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.10.4.apk</code>（约 61 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.4/starburst-recorder-0.10.4.apk"><code>starburst-recorder-0.10.4.apk</code></a>（约 61 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -233,19 +288,18 @@
             <li><strong>The batch action bar no longer disappears</strong> — it is attached to the page root, so the content area's stacking context and the Android bottom navigation can no longer hide it, across all batch pages</li>
             <li><strong>The sleep bar now spans 24 hours on each side</strong> — naps and cross-day sleep draw in full, with midnight still centred</li>
             <li><strong>Secondary buttons gained icons</strong> — emoji on the version page became the shared icon set, and batch bar, row menu and primary actions across health / training / settings / finance now carry matching icons</li>
-            <li>Update-installer reuse, the elder-care high-contrast fix and QR sharing from earlier releases are unchanged</li>
           </ul>
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.10.4-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.4/starburst-recorder-0.10.4-setup.exe"><code>starburst-recorder-0.10.4-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.10.4.apk</code> (~61 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.4/starburst-recorder-0.10.4.apk"><code>starburst-recorder-0.10.4.apk</code></a> (~61 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.10.3">
         <div class="ver__head">
           <span class="ver__tag">0.10.3</span>
           <span class="ver__date">2026-11-01</span>
@@ -255,14 +309,13 @@
           <ul>
             <li><strong>更新安装包不再重复下载</strong>：下载完安装包后不小心关掉安装界面，再点更新会先看本地有没有已经下好的完整安装包，有就直接打开；桌面和安卓都适用</li>
             <li>下载改为先写临时文件、完成后再改名，下载中断留下的半截文件不会被当成完整安装包</li>
-            <li>上一版的长辈关怀高对比修复、食物 / 套餐二维码分享照旧</li>
           </ul>
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.10.3-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.3/starburst-recorder-0.10.3-setup.exe"><code>starburst-recorder-0.10.3-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.10.3.apk</code>（约 61 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.3/starburst-recorder-0.10.3.apk"><code>starburst-recorder-0.10.3.apk</code></a>（约 61 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -270,19 +323,18 @@
           <ul>
             <li><strong>Update installers are no longer downloaded twice</strong> — after a download, if you close the installer by accident, tapping update again looks for a complete installer on disk and opens it directly, on desktop and Android alike</li>
             <li>Downloads are written to a temporary file and renamed only when finished, so an interrupted download cannot pass as a complete installer</li>
-            <li>The elder-care high-contrast fix and food / meal QR sharing from the previous release are unchanged</li>
           </ul>
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.10.3-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.3/starburst-recorder-0.10.3-setup.exe"><code>starburst-recorder-0.10.3-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.10.3.apk</code> (~61 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.3/starburst-recorder-0.10.3.apk"><code>starburst-recorder-0.10.3.apk</code></a> (~61 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.10.2">
         <div class="ver__head">
           <span class="ver__tag">0.10.2</span>
           <span class="ver__date">2026-11-01</span>
@@ -291,33 +343,31 @@
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>长辈关怀的「高对比」修好</strong>：此前只有默认深色主题下生效，切到浅色、纸色、雾色等显式主题后开关完全没效果；现在所有主题下都会把次要文字与分隔线压得更清楚</li>
-            <li>上一版的食物 / 套餐二维码分享照旧，没有改动</li>
           </ul>
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.10.2-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.2/starburst-recorder-0.10.2-setup.exe"><code>starburst-recorder-0.10.2-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.10.2.apk</code>（约 61 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.2/starburst-recorder-0.10.2.apk"><code>starburst-recorder-0.10.2.apk</code></a>（约 61 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
           <h3>What's new</h3>
           <ul>
             <li><strong>Elder-care high contrast is fixed</strong> — it used to work only in the default dark theme and did nothing after switching to light, paper, mist or any other explicit palette; secondary text and dividers now get clearly stronger in every theme</li>
-            <li>The food and meal QR sharing from the previous release is unchanged</li>
           </ul>
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.10.2-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.2/starburst-recorder-0.10.2-setup.exe"><code>starburst-recorder-0.10.2-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.10.2.apk</code> (~61 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.2/starburst-recorder-0.10.2.apk"><code>starburst-recorder-0.10.2.apk</code></a> (~61 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.10.1">
         <div class="ver__head">
           <span class="ver__tag">0.10.1</span>
           <span class="ver__date">2026-11-01</span>
@@ -333,9 +383,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.10.1-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.1/starburst-recorder-0.10.1-setup.exe"><code>starburst-recorder-0.10.1-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.10.1.apk</code>（约 61 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.1/starburst-recorder-0.10.1.apk"><code>starburst-recorder-0.10.1.apk</code></a>（约 61 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -349,14 +399,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.10.1-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.1/starburst-recorder-0.10.1-setup.exe"><code>starburst-recorder-0.10.1-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.10.1.apk</code> (~61 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.1/starburst-recorder-0.10.1.apk"><code>starburst-recorder-0.10.1.apk</code></a> (~61 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.10.0">
         <div class="ver__head">
           <span class="ver__tag">0.10.0</span>
           <span class="ver__date">2026-11-01</span>
@@ -373,9 +423,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.10.0-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.0/starburst-recorder-0.10.0-setup.exe"><code>starburst-recorder-0.10.0-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.10.0.apk</code>（约 21 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.0/starburst-recorder-0.10.0.apk"><code>starburst-recorder-0.10.0.apk</code></a>（约 21 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -390,14 +440,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.10.0-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.0/starburst-recorder-0.10.0-setup.exe"><code>starburst-recorder-0.10.0-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.10.0.apk</code> (~21 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.0/starburst-recorder-0.10.0.apk"><code>starburst-recorder-0.10.0.apk</code></a> (~21 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.9.1">
         <div class="ver__head">
           <span class="ver__tag">0.9.1</span>
           <span class="ver__date">2026-11-01</span>
@@ -413,9 +463,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.9.1-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.9.1/starburst-recorder-0.9.1-setup.exe"><code>starburst-recorder-0.9.1-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.9.1.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.9.1/starburst-recorder-0.9.1.apk"><code>starburst-recorder-0.9.1.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -429,14 +479,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.9.1-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.9.1/starburst-recorder-0.9.1-setup.exe"><code>starburst-recorder-0.9.1-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.9.1.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.9.1/starburst-recorder-0.9.1.apk"><code>starburst-recorder-0.9.1.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.9.0">
         <div class="ver__head">
           <span class="ver__tag">0.9.0</span>
           <span class="ver__date">2026-11-01</span>
@@ -457,9 +507,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.9.0-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.9.0/starburst-recorder-0.9.0-setup.exe"><code>starburst-recorder-0.9.0-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.9.0.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.9.0/starburst-recorder-0.9.0.apk"><code>starburst-recorder-0.9.0.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -478,14 +528,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.9.0-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.9.0/starburst-recorder-0.9.0-setup.exe"><code>starburst-recorder-0.9.0-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.9.0.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.9.0/starburst-recorder-0.9.0.apk"><code>starburst-recorder-0.9.0.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.8.1">
         <div class="ver__head">
           <span class="ver__tag">0.8.1</span>
           <span class="ver__date">2026-11-01</span>
@@ -503,9 +553,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.8.1-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.8.1/starburst-recorder-0.8.1-setup.exe"><code>starburst-recorder-0.8.1-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.8.1.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.8.1/starburst-recorder-0.8.1.apk"><code>starburst-recorder-0.8.1.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -521,14 +571,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.8.1-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.8.1/starburst-recorder-0.8.1-setup.exe"><code>starburst-recorder-0.8.1-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.8.1.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.8.1/starburst-recorder-0.8.1.apk"><code>starburst-recorder-0.8.1.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.8.0">
         <div class="ver__head">
           <span class="ver__tag">0.8.0</span>
           <span class="ver__date">2026-11-01</span>
@@ -545,9 +595,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.8.0-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.8.0/starburst-recorder-0.8.0-setup.exe"><code>starburst-recorder-0.8.0-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.8.0.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.8.0/starburst-recorder-0.8.0.apk"><code>starburst-recorder-0.8.0.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -562,14 +612,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.8.0-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.8.0/starburst-recorder-0.8.0-setup.exe"><code>starburst-recorder-0.8.0-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.8.0.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.8.0/starburst-recorder-0.8.0.apk"><code>starburst-recorder-0.8.0.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.7.0">
         <div class="ver__head">
           <span class="ver__tag">0.7.0</span>
           <span class="ver__date">2026-10-31</span>
@@ -586,9 +636,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.7.0-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.7.0/starburst-recorder-0.7.0-setup.exe"><code>starburst-recorder-0.7.0-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.7.0.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.7.0/starburst-recorder-0.7.0.apk"><code>starburst-recorder-0.7.0.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -603,14 +653,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.7.0-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.7.0/starburst-recorder-0.7.0-setup.exe"><code>starburst-recorder-0.7.0-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.7.0.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.7.0/starburst-recorder-0.7.0.apk"><code>starburst-recorder-0.7.0.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.6.3">
         <div class="ver__head">
           <span class="ver__tag">0.6.3</span>
           <span class="ver__date">2026-10-31</span>
@@ -625,9 +675,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.6.3-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.3/starburst-recorder-0.6.3-setup.exe"><code>starburst-recorder-0.6.3-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.6.3.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.3/starburst-recorder-0.6.3.apk"><code>starburst-recorder-0.6.3.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -640,14 +690,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.6.3-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.3/starburst-recorder-0.6.3-setup.exe"><code>starburst-recorder-0.6.3-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.6.3.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.3/starburst-recorder-0.6.3.apk"><code>starburst-recorder-0.6.3.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.6.2">
         <div class="ver__head">
           <span class="ver__tag">0.6.2</span>
           <span class="ver__date">2026-10-31</span>
@@ -662,9 +712,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.6.2-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.2/starburst-recorder-0.6.2-setup.exe"><code>starburst-recorder-0.6.2-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.6.2.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.2/starburst-recorder-0.6.2.apk"><code>starburst-recorder-0.6.2.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -677,14 +727,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.6.2-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.2/starburst-recorder-0.6.2-setup.exe"><code>starburst-recorder-0.6.2-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.6.2.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.2/starburst-recorder-0.6.2.apk"><code>starburst-recorder-0.6.2.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.6.1">
         <div class="ver__head">
           <span class="ver__tag">0.6.1</span>
           <span class="ver__date">2026-10-31</span>
@@ -699,9 +749,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.6.1-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.1/starburst-recorder-0.6.1-setup.exe"><code>starburst-recorder-0.6.1-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.6.1.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.1/starburst-recorder-0.6.1.apk"><code>starburst-recorder-0.6.1.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -714,14 +764,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.6.1-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.1/starburst-recorder-0.6.1-setup.exe"><code>starburst-recorder-0.6.1-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.6.1.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.1/starburst-recorder-0.6.1.apk"><code>starburst-recorder-0.6.1.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.6.0">
         <div class="ver__head">
           <span class="ver__tag">0.6.0</span>
           <span class="ver__date">2026-10-31</span>
@@ -736,9 +786,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.6.0-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.0/starburst-recorder-0.6.0-setup.exe"><code>starburst-recorder-0.6.0-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.6.0.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.0/starburst-recorder-0.6.0.apk"><code>starburst-recorder-0.6.0.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -751,14 +801,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.6.0-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.0/starburst-recorder-0.6.0-setup.exe"><code>starburst-recorder-0.6.0-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.6.0.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.0/starburst-recorder-0.6.0.apk"><code>starburst-recorder-0.6.0.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.5.2">
         <div class="ver__head">
           <span class="ver__tag">0.5.2</span>
           <span class="ver__date">2026-10-31</span>
@@ -774,9 +824,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.5.2-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.5.2/starburst-recorder-0.5.2-setup.exe"><code>starburst-recorder-0.5.2-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.5.2.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.5.2/starburst-recorder-0.5.2.apk"><code>starburst-recorder-0.5.2.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -790,14 +840,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.5.2-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.5.2/starburst-recorder-0.5.2-setup.exe"><code>starburst-recorder-0.5.2-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.5.2.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.5.2/starburst-recorder-0.5.2.apk"><code>starburst-recorder-0.5.2.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.5.1">
         <div class="ver__head">
           <span class="ver__tag">0.5.1</span>
           <span class="ver__date">2026-10-30</span>
@@ -811,9 +861,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.5.1-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.5.1/starburst-recorder-0.5.1-setup.exe"><code>starburst-recorder-0.5.1-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.5.1.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.5.1/starburst-recorder-0.5.1.apk"><code>starburst-recorder-0.5.1.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -825,14 +875,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.5.1-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.5.1/starburst-recorder-0.5.1-setup.exe"><code>starburst-recorder-0.5.1-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.5.1.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.5.1/starburst-recorder-0.5.1.apk"><code>starburst-recorder-0.5.1.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.5.0">
         <div class="ver__head">
           <span class="ver__tag">0.5.0</span>
           <span class="ver__date">2026-10-30</span>
@@ -847,9 +897,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.5.0-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.5.0/starburst-recorder-0.5.0-setup.exe"><code>starburst-recorder-0.5.0-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.5.0.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.5.0/starburst-recorder-0.5.0.apk"><code>starburst-recorder-0.5.0.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -862,14 +912,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.5.0-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.5.0/starburst-recorder-0.5.0-setup.exe"><code>starburst-recorder-0.5.0-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.5.0.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.5.0/starburst-recorder-0.5.0.apk"><code>starburst-recorder-0.5.0.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.4.0">
         <div class="ver__head">
           <span class="ver__tag">0.4.0</span>
           <span class="ver__date">2026-10-30</span>
@@ -886,9 +936,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.4.0-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.4.0/starburst-recorder-0.4.0-setup.exe"><code>starburst-recorder-0.4.0-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.4.0.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.4.0/starburst-recorder-0.4.0.apk"><code>starburst-recorder-0.4.0.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -903,14 +953,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.4.0-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.4.0/starburst-recorder-0.4.0-setup.exe"><code>starburst-recorder-0.4.0-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.4.0.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.4.0/starburst-recorder-0.4.0.apk"><code>starburst-recorder-0.4.0.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.3.1">
         <div class="ver__head">
           <span class="ver__tag">0.3.1</span>
           <span class="ver__date">2026-10-29</span>
@@ -924,9 +974,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.3.1-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.3.1/starburst-recorder-0.3.1-setup.exe"><code>starburst-recorder-0.3.1-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.3.1.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.3.1/starburst-recorder-0.3.1.apk"><code>starburst-recorder-0.3.1.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -938,14 +988,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.3.1-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.3.1/starburst-recorder-0.3.1-setup.exe"><code>starburst-recorder-0.3.1-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.3.1.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.3.1/starburst-recorder-0.3.1.apk"><code>starburst-recorder-0.3.1.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.3.0">
         <div class="ver__head">
           <span class="ver__tag">0.3.0</span>
           <span class="ver__date">2026-10-29</span>
@@ -967,9 +1017,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.3.0-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.3.0/starburst-recorder-0.3.0-setup.exe"><code>starburst-recorder-0.3.0-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.3.0.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.3.0/starburst-recorder-0.3.0.apk"><code>starburst-recorder-0.3.0.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -989,14 +1039,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.3.0-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.3.0/starburst-recorder-0.3.0-setup.exe"><code>starburst-recorder-0.3.0-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.3.0.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.3.0/starburst-recorder-0.3.0.apk"><code>starburst-recorder-0.3.0.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.2.13">
         <div class="ver__head">
           <span class="ver__tag">0.2.13</span>
           <span class="ver__date">2026-10-29</span>
@@ -1014,9 +1064,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.13-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.13/starburst-recorder-0.2.13-setup.exe"><code>starburst-recorder-0.2.13-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.2.13.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.13/starburst-recorder-0.2.13.apk"><code>starburst-recorder-0.2.13.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -1032,14 +1082,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.13-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.13/starburst-recorder-0.2.13-setup.exe"><code>starburst-recorder-0.2.13-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.2.13.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.13/starburst-recorder-0.2.13.apk"><code>starburst-recorder-0.2.13.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.2.12">
         <div class="ver__head">
           <span class="ver__tag">0.2.12</span>
           <span class="ver__date">2026-10-28</span>
@@ -1055,9 +1105,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.12-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.12/starburst-recorder-0.2.12-setup.exe"><code>starburst-recorder-0.2.12-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.2.12.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.12/starburst-recorder-0.2.12.apk"><code>starburst-recorder-0.2.12.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -1071,14 +1121,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.12-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.12/starburst-recorder-0.2.12-setup.exe"><code>starburst-recorder-0.2.12-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.2.12.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.12/starburst-recorder-0.2.12.apk"><code>starburst-recorder-0.2.12.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.2.11">
         <div class="ver__head">
           <span class="ver__tag">0.2.11</span>
           <span class="ver__date">2026-10-28</span>
@@ -1096,9 +1146,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.11-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.11/starburst-recorder-0.2.11-setup.exe"><code>starburst-recorder-0.2.11-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.2.11.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.11/starburst-recorder-0.2.11.apk"><code>starburst-recorder-0.2.11.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -1114,14 +1164,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.11-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.11/starburst-recorder-0.2.11-setup.exe"><code>starburst-recorder-0.2.11-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.2.11.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.11/starburst-recorder-0.2.11.apk"><code>starburst-recorder-0.2.11.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.2.10">
         <div class="ver__head">
           <span class="ver__tag">0.2.10</span>
           <span class="ver__date">2026-10-26</span>
@@ -1136,9 +1186,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.10-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.10/starburst-recorder-0.2.10-setup.exe"><code>starburst-recorder-0.2.10-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.2.10.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.10/starburst-recorder-0.2.10.apk"><code>starburst-recorder-0.2.10.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -1151,14 +1201,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.10-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.10/starburst-recorder-0.2.10-setup.exe"><code>starburst-recorder-0.2.10-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.2.10.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.10/starburst-recorder-0.2.10.apk"><code>starburst-recorder-0.2.10.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.2.9">
         <div class="ver__head">
           <span class="ver__tag">0.2.9</span>
           <span class="ver__date">2026-10-26</span>
@@ -1173,9 +1223,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.9-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.9/starburst-recorder-0.2.9-setup.exe"><code>starburst-recorder-0.2.9-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.2.9.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.9/starburst-recorder-0.2.9.apk"><code>starburst-recorder-0.2.9.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -1188,14 +1238,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.9-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.9/starburst-recorder-0.2.9-setup.exe"><code>starburst-recorder-0.2.9-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.2.9.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.9/starburst-recorder-0.2.9.apk"><code>starburst-recorder-0.2.9.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.2.8">
         <div class="ver__head">
           <span class="ver__tag">0.2.8</span>
           <span class="ver__date">2026-10-26</span>
@@ -1212,9 +1262,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.8-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.8/starburst-recorder-0.2.8-setup.exe"><code>starburst-recorder-0.2.8-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.2.8.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.8/starburst-recorder-0.2.8.apk"><code>starburst-recorder-0.2.8.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -1229,14 +1279,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.8-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.8/starburst-recorder-0.2.8-setup.exe"><code>starburst-recorder-0.2.8-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.2.8.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.8/starburst-recorder-0.2.8.apk"><code>starburst-recorder-0.2.8.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.2.7">
         <div class="ver__head">
           <span class="ver__tag">0.2.7</span>
           <span class="ver__date">2026-10-26</span>
@@ -1253,9 +1303,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.7-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.7/starburst-recorder-0.2.7-setup.exe"><code>starburst-recorder-0.2.7-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.2.7.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.7/starburst-recorder-0.2.7.apk"><code>starburst-recorder-0.2.7.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -1270,14 +1320,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.7-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.7/starburst-recorder-0.2.7-setup.exe"><code>starburst-recorder-0.2.7-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.2.7.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.7/starburst-recorder-0.2.7.apk"><code>starburst-recorder-0.2.7.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.2.6">
         <div class="ver__head">
           <span class="ver__tag">0.2.6</span>
           <span class="ver__date">2026-10-26</span>
@@ -1296,9 +1346,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.6-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.6/starburst-recorder-0.2.6-setup.exe"><code>starburst-recorder-0.2.6-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.2.6.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.6/starburst-recorder-0.2.6.apk"><code>starburst-recorder-0.2.6.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -1315,14 +1365,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.6-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.6/starburst-recorder-0.2.6-setup.exe"><code>starburst-recorder-0.2.6-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.2.6.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.6/starburst-recorder-0.2.6.apk"><code>starburst-recorder-0.2.6.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.2.5">
         <div class="ver__head">
           <span class="ver__tag">0.2.5</span>
           <span class="ver__date">2026-10-26</span>
@@ -1337,9 +1387,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.5-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.5/starburst-recorder-0.2.5-setup.exe"><code>starburst-recorder-0.2.5-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.2.5.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.5/starburst-recorder-0.2.5.apk"><code>starburst-recorder-0.2.5.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -1352,14 +1402,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.5-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.5/starburst-recorder-0.2.5-setup.exe"><code>starburst-recorder-0.2.5-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.2.5.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.5/starburst-recorder-0.2.5.apk"><code>starburst-recorder-0.2.5.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.2.4">
         <div class="ver__head">
           <span class="ver__tag">0.2.4</span>
           <span class="ver__date">2026-10-26</span>
@@ -1372,9 +1422,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.4-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.4/starburst-recorder-0.2.4-setup.exe"><code>starburst-recorder-0.2.4-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.2.4.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.4/starburst-recorder-0.2.4.apk"><code>starburst-recorder-0.2.4.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -1385,14 +1435,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.4-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.4/starburst-recorder-0.2.4-setup.exe"><code>starburst-recorder-0.2.4-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.2.4.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.4/starburst-recorder-0.2.4.apk"><code>starburst-recorder-0.2.4.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.2.3">
         <div class="ver__head">
           <span class="ver__tag">0.2.3</span>
           <span class="ver__date">2026-10-26</span>
@@ -1409,9 +1459,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.3-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.3/starburst-recorder-0.2.3-setup.exe"><code>starburst-recorder-0.2.3-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.2.3.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.3/starburst-recorder-0.2.3.apk"><code>starburst-recorder-0.2.3.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -1426,14 +1476,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.3-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.3/starburst-recorder-0.2.3-setup.exe"><code>starburst-recorder-0.2.3-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.2.3.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.3/starburst-recorder-0.2.3.apk"><code>starburst-recorder-0.2.3.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.2.2">
         <div class="ver__head">
           <span class="ver__tag">0.2.2</span>
           <span class="ver__date">2026-10-25</span>
@@ -1447,9 +1497,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.2-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.2/starburst-recorder-0.2.2-setup.exe"><code>starburst-recorder-0.2.2-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.2.2.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.2/starburst-recorder-0.2.2.apk"><code>starburst-recorder-0.2.2.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -1461,14 +1511,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.2-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.2/starburst-recorder-0.2.2-setup.exe"><code>starburst-recorder-0.2.2-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.2.2.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.2/starburst-recorder-0.2.2.apk"><code>starburst-recorder-0.2.2.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.2.1">
         <div class="ver__head">
           <span class="ver__tag">0.2.1</span>
           <span class="ver__date">2026-10-25</span>
@@ -1483,9 +1533,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.1-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.1/starburst-recorder-0.2.1-setup.exe"><code>starburst-recorder-0.2.1-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.2.1.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.1/starburst-recorder-0.2.1.apk"><code>starburst-recorder-0.2.1.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -1498,14 +1548,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.1-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.1/starburst-recorder-0.2.1-setup.exe"><code>starburst-recorder-0.2.1-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.2.1.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.1/starburst-recorder-0.2.1.apk"><code>starburst-recorder-0.2.1.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.2.0">
         <div class="ver__head">
           <span class="ver__tag">0.2.0</span>
           <span class="ver__date">2026-10-25</span>
@@ -1520,9 +1570,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.0-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.0/starburst-recorder-0.2.0-setup.exe"><code>starburst-recorder-0.2.0-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.2.0.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.0/starburst-recorder-0.2.0.apk"><code>starburst-recorder-0.2.0.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -1535,14 +1585,14 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.2.0-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.0/starburst-recorder-0.2.0-setup.exe"><code>starburst-recorder-0.2.0-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.2.0.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.0/starburst-recorder-0.2.0.apk"><code>starburst-recorder-0.2.0.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>
 
-      <article class="ver">
+      <article class="ver" id="v0.1.0">
         <div class="ver__head">
           <span class="ver__tag">0.1.0</span>
           <span class="ver__date">2026-10-25</span>
@@ -1561,9 +1611,9 @@
           <h3>下载</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.1.0-setup.exe</code>（约 95 MB）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.1.0/starburst-recorder-0.1.0-setup.exe"><code>starburst-recorder-0.1.0-setup.exe</code></a>（约 95 MB）</dd>
             <dt>Android 10 以上</dt>
-            <dd><code>starburst-recorder-0.1.0.apk</code>（约 16 MB，正式签名）</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.1.0/starburst-recorder-0.1.0.apk"><code>starburst-recorder-0.1.0.apk</code></a>（约 16 MB，正式签名）</dd>
           </dl>
         </div>
         <div class="lang-en">
@@ -1580,9 +1630,9 @@
           <h3>Downloads</h3>
           <dl>
             <dt>Windows 10/11</dt>
-            <dd><code>starburst-recorder-0.1.0-setup.exe</code> (~95 MB)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.1.0/starburst-recorder-0.1.0-setup.exe"><code>starburst-recorder-0.1.0-setup.exe</code></a> (~95 MB)</dd>
             <dt>Android 10+</dt>
-            <dd><code>starburst-recorder-0.1.0.apk</code> (~16 MB, release-signed)</dd>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.1.0/starburst-recorder-0.1.0.apk"><code>starburst-recorder-0.1.0.apk</code></a> (~16 MB, release-signed)</dd>
           </dl>
         </div>
       </article>

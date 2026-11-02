@@ -42,7 +42,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.11.0',
+    'hero.cta': '下载 0.11.1',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -113,11 +113,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.11.0',
+    'open.version': '版本 0.11.1',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.11.0 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.11.1 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -128,20 +128,19 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '日历总览：月历用三色深浅表示日记、健康、收支记了多少，点一格进「一天一页」，有日程的日子另有小标记',
+      '经济页：日 / 月 / 年三种视角，年视图直接看每月收支与结余，点一个月份就回到当月流水',
     'whatsnew.item2':
-      '日程与定期任务：一次性、每天、每周都能记，到点在桌面或安卓弹提醒，删掉的条目在回收站里还能恢复',
+      '体重趋势：点圆点会显示日期与体重，并把当天的内容切过去；首页小卡点哪一天，就进哪一天的详情',
     'whatsnew.item3':
-      '周视图与月度回顾：一周摊开看每天的安排与记录，回顾页给出睡眠、训练、花销和定期任务完成率，还能直接生成 AI 周报 / 月报',
+      '图表读数补齐：最高 / 中间 / 最低刻度与数据点数值都画上，手机上改用固定字号，小屏也能看清',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
     'changelog.title': '每一版改了什么',
     'changelog.back': '← 回到下载',
-    'download.history': '历史版本',
-    'download.current': '当前',
+    'download.historyLink': '历史版本与更新日志，每版都附下载 →',
 
-    'footer.version': '版本 0.11.0',
+    'footer.version': '版本 0.11.1',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -184,7 +183,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.11.0',
+    'hero.cta': 'Download 0.11.1',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -260,12 +259,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.11.0',
+    'open.version': 'Version 0.11.1',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.11.0 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.11.1 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -276,22 +275,21 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.11.0",
+    'whatsnew.title': "What's new in 0.11.1",
     'whatsnew.item1':
-      'Calendar overview: a month grid shaded in three colours for diary, health and finance, with a dot for days that have schedules and a click straight into the day page',
+      'Finance: switch between day, month and year; the yearly view lists income and spending per month, and clicking a month returns to its entries',
     'whatsnew.item2':
-      'Schedules and recurring tasks: one-off, daily or weekly, with reminders on desktop and Android; deleted items rest in the trash until you restore them',
+      'Weight trend: tap a dot to see its date and weight, and the day panel below follows; on the home card every dot opens that exact day',
     'whatsnew.item3':
-      'Week view and monthly review: see each day at a glance, get sleep, training, spending and recurring-task completion in one place, and generate an AI weekly or monthly report',
+      'Charts now carry their numbers: high / middle / low gridlines and point values, with fixed-size labels that stay legible on small phones',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
     'changelog.title': 'What changed in each version',
     'changelog.back': '← Back to downloads',
-    'download.history': 'Previous versions',
-    'download.current': 'Current',
+    'download.historyLink': 'Previous versions and changelog, each with downloads →',
 
-    'footer.version': 'Version 0.11.0',
+    'footer.version': 'Version 0.11.1',
     'footer.tagline': 'Data stays on your device',
   },
 };

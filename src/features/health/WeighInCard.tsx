@@ -5,7 +5,7 @@
  * 改完即存，免得跟档案表单的未保存状态搅在一起。
  */
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import type { HealthProfile } from '@/core/db/schema'
 import { saveHealthProfile } from './healthRepo'
 import { formatNum, isWeighDay, round2 } from './healthMath'
@@ -33,6 +33,7 @@ export default function WeighInCard({
 }) {
   const { t } = useI18n()
   const { showToast } = useToast()
+  const navigate = useNavigate()
   const [weightText, setWeightText] = useState('')
   /** 趋势图区间，默认看最近一周 */
   const [range, setRange] = useState<TrendRange>(7)
@@ -134,10 +135,11 @@ export default function WeighInCard({
               ))}
             </div>
           </div>
-          {/* 整张图都能点开详情页：小卡片只放走势，细节留给趋势页 */}
-          <Link to="/health/weights/trend" className="block">
-            <WeightTrendChart items={trend} />
-          </Link>
+          {/* 点哪个圆点就直接带着那一天进详情页，不再只跳到默认的最新一条 */}
+          <WeightTrendChart
+            items={trend}
+            onSelect={(dateKey) => navigate(`/health/weights/trend?date=${dateKey}`)}
+          />
         </div>
       )}
     </div>
