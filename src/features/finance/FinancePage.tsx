@@ -33,6 +33,7 @@ import {
 import { categoryKey } from './financeCategories'
 import { exportAllData, financeOfMonth, removeFinance, restoreFinance } from './financeRepo'
 import FinanceEntryDialog from './FinanceEntryDialog'
+import FinanceDetailDialog from './FinanceDetailDialog'
 import FinanceAiDialog from './FinanceAiDialog'
 import type { BackupData } from '@/core/db/store'
 import RecordExportDialog from '@/features/records/RecordExportDialog'
@@ -135,6 +136,8 @@ export default function FinancePage() {
 
   /** 新增 / 编辑；date 是新增时预填的日期 */
   const [dialog, setDialog] = useState<{ entry: FinanceEntry | null; date: string } | null>(null)
+  /** 单击流水行打开的查看弹窗 */
+  const [viewEntry, setViewEntry] = useState<FinanceEntry | null>(null)
   const [aiOpen, setAiOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<FinanceEntry | null>(null)
   /** 挑选导出时取来的整库数据；非 null 就打开挑选弹窗 */
@@ -433,13 +436,13 @@ export default function FinancePage() {
         <div className="mt-3 grid grid-cols-2 gap-2 border-t border-dashed border-line pt-3">
           <div className="min-w-0">
             <p className="m-0 text-[11px] text-muted">{t('finance.income')}</p>
-            <p className="m-0 mt-0.5 truncate text-sm tabular-nums text-brand">
+            <p className="m-0 mt-0.5 truncate text-sm tabular-nums text-success">
               +{money(summary.income)}
             </p>
           </div>
           <div className="min-w-0 text-right">
             <p className="m-0 text-[11px] text-muted">{t('finance.expense')}</p>
-            <p className="m-0 mt-0.5 truncate text-sm tabular-nums text-fg">
+            <p className="m-0 mt-0.5 truncate text-sm tabular-nums text-danger">
               -{money(summary.expense)}
             </p>
           </div>
@@ -463,7 +466,7 @@ export default function FinancePage() {
                 </div>
                 <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-2">
                   <div
-                    className="h-full rounded-full bg-brand"
+                    className="h-full rounded-full bg-danger/60"
                     style={{ width: `${Math.max(2, slice.share * 100)}%` }}
                   />
                 </div>
@@ -482,7 +485,7 @@ export default function FinancePage() {
               <h2 className="m-0 text-xs font-medium text-fg">{t('finance.trend')}</h2>
               <div className="flex items-center gap-2 text-[10px] text-muted">
                 <span className="inline-flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-sm bg-brand" />
+                  <span className="h-2 w-2 rounded-sm bg-success" />
                   {t('finance.income')}
                 </span>
                 <span className="inline-flex items-center gap-1">
@@ -499,7 +502,7 @@ export default function FinancePage() {
                 >
                   <div className="flex h-20 w-full items-end justify-center gap-1">
                     <div
-                      className="w-2 rounded-t bg-brand"
+                      className="w-2 rounded-t bg-success"
                       style={{
                         height: `${(item.income / trendMax) * 100}%`,
                         minHeight: item.income > 0 ? 2 : 0,
@@ -564,9 +567,9 @@ export default function FinancePage() {
                       {monthFormatter.format(new Date(viewYear, item.monthValue - 1, 1))}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-[11px] tabular-nums text-muted">
-                      <span className="text-brand">+{money(item.income)}</span>
+                      <span className="text-success">+{money(item.income)}</span>
                       {' · '}
-                      <span className="text-fg">-{money(item.expense)}</span>
+                      <span className="text-danger">-{money(item.expense)}</span>
                     </span>
                     <span
                       className={`shrink-0 text-sm tabular-nums ${
@@ -610,7 +613,7 @@ export default function FinancePage() {
                 >
                   <button
                     type="button"
-                    onClick={() => setDialog({ entry, date: entry.dateKey })}
+                    onClick={() => setViewEntry(entry)}
                     className="flex min-w-0 flex-1 items-center gap-2 text-left"
                   >
                     {entry.photo && (
@@ -633,12 +636,21 @@ export default function FinancePage() {
                   </button>
                   <span
                     className={`shrink-0 text-sm tabular-nums ${
-                      entry.kind === 'income' ? 'text-brand' : 'text-fg'
+                      entry.kind === 'income' ? 'text-success' : 'text-danger'
                     }`}
                   >
                     {entry.kind === 'income' ? '+' : '-'}
                     {money(entry.amount)}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setDialog({ entry, date: entry.dateKey })}
+                    title={t('finance.editEntry')}
+                    aria-label={t('finance.editEntry')}
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm text-muted transition-colors hover:text-brand"
+                  >
+                    ✎
+                  </button>
                   <button
                     type="button"
                     onClick={() => void handleExportEntry(entry)}
@@ -661,6 +673,18 @@ export default function FinancePage() {
             </ul>
           </section>
         ))
+      )}
+
+      {viewEntry && (
+        <FinanceDetailDialog
+          entry={viewEntry}
+          money={money}
+          onClose={() => setViewEntry(null)}
+          onEdit={() => {
+            setDialog({ entry: viewEntry, date: viewEntry.dateKey })
+            setViewEntry(null)
+          }}
+        />
       )}
 
       {dialog && (

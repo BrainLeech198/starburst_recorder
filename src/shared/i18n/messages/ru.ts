@@ -559,6 +559,7 @@ export const ru: Record<MessageKey, string> = {
   'finance.add': 'Добавить',
   'finance.addTitle': 'Новая запись',
   'finance.editTitle': 'Изменить запись',
+  'finance.editEntry': 'Изменить',
   'finance.amount': 'Сумма',
   'finance.currency': '¥',
   'finance.category': 'Категория',

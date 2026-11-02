@@ -562,6 +562,7 @@ export const es: Record<MessageKey, string> = {
   'finance.add': 'Añadir',
   'finance.addTitle': 'Añadir registro',
   'finance.editTitle': 'Editar registro',
+  'finance.editEntry': 'Editar',
   'finance.amount': 'Importe',
   'finance.currency': '¥',
   'finance.category': 'Categoría',

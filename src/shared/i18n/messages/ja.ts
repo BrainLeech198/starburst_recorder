@@ -560,6 +560,7 @@ export const ja: Record<MessageKey, string> = {
   'finance.add': '記録する',
   'finance.addTitle': '記録する',
   'finance.editTitle': 'この記録を編集',
+  'finance.editEntry': '編集',
   'finance.amount': '金額',
   'finance.currency': '¥',
   'finance.category': 'カテゴリ',

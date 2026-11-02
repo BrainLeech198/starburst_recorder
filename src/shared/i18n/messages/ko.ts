@@ -559,6 +559,7 @@ export const ko: Record<MessageKey, string> = {
   'finance.add': '기록하기',
   'finance.addTitle': '기록하기',
   'finance.editTitle': '이 기록 편집',
+  'finance.editEntry': '편집',
   'finance.amount': '금액',
   'finance.currency': '¥',
   'finance.category': '분류',

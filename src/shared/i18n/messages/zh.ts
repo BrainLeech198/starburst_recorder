@@ -560,6 +560,7 @@ export const zh = {
   'finance.add': '记一笔',
   'finance.addTitle': '记一笔',
   'finance.editTitle': '改这一笔',
+  'finance.editEntry': '编辑',
   'finance.amount': '金额',
   'finance.currency': '¥',
   'finance.category': '分类',

@@ -584,6 +584,7 @@ export const en: Record<MessageKey, string> = {
   'finance.add': 'Add entry',
   'finance.addTitle': 'Add an entry',
   'finance.editTitle': 'Edit entry',
+  'finance.editEntry': 'Edit',
   'finance.amount': 'Amount',
   'finance.currency': '¥',
   'finance.category': 'Category',

@@ -560,6 +560,7 @@ export const de: Record<MessageKey, string> = {
   'finance.add': 'Eintrag erfassen',
   'finance.addTitle': 'Eintrag erfassen',
   'finance.editTitle': 'Eintrag bearbeiten',
+  'finance.editEntry': 'Bearbeiten',
   'finance.amount': 'Betrag',
   'finance.currency': '¥',
   'finance.category': 'Kategorie',

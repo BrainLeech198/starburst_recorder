@@ -558,6 +558,7 @@ export const zhTW: Record<MessageKey, string> = {
   'finance.add': '記一筆',
   'finance.addTitle': '記一筆',
   'finance.editTitle': '改這一筆',
+  'finance.editEntry': '編輯',
   'finance.amount': '金額',
   'finance.currency': '¥',
   'finance.category': '分類',
