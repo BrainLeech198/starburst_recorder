@@ -9,6 +9,7 @@ import type {
   HealthProfile,
   HealthSex,
 } from '@/core/db/schema'
+import { todayKey } from '@/core/utils/dateKey'
 
 /** 活动系数：Mifflin-St Jeor 之后乘上去，档位只给四档，少一点更好选 */
 export const ACTIVITY_FACTORS: Record<HealthActivity, number> = {
@@ -339,9 +340,14 @@ export function derivedTdee(params: {
   intakeKcalByDay: Record<string, number>
   /** 回看窗口（天），默认两周——每周称重一次刚好两三个点 */
   windowDays?: number
+  /** 排除尚未结束的当天；测试可显式传入固定日期。 */
+  todayDateKey?: string
 }): number | null {
   const windowDays = params.windowDays ?? 14
-  const points = [...params.weighIns].sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+  const todayDateKey = params.todayDateKey ?? todayKey()
+  const points = params.weighIns
+    .filter((point) => point.dateKey < todayDateKey)
+    .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
   if (points.length < 2) return null
   const endN = dayNumber(points[points.length - 1].dateKey)
   if (!Number.isFinite(endN)) return null

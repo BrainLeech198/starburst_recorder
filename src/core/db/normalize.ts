@@ -478,6 +478,8 @@ export function pickMeal(raw: unknown): HealthMeal | null {
     id,
     name,
     items: pickMealItems(item.items),
+    photo:
+      typeof item.photo === 'string' && item.photo.startsWith('data:image/') ? item.photo : null,
     createdAt: number(item.createdAt, Date.now()),
     updatedAt: number(item.updatedAt, Date.now()),
     deletedAt: deletedAt(item.deletedAt),

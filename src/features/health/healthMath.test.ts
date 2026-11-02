@@ -325,6 +325,20 @@ describe('推算 TDEE（能量收支法）', () => {
     })
     expect(result).toBe(2000)
   })
+
+  it('排除今天尚未完整的摄入和称重数据', () => {
+    const result = derivedTdee({
+      todayDateKey: '2026-10-15',
+      weighIns: [
+        { dateKey: '2026-10-01', weightKg: 63 },
+        { dateKey: '2026-10-14', weightKg: 62 },
+        { dateKey: '2026-10-15', weightKg: 60 },
+      ],
+      intakeKcalByDay: intakeFull('2026-10-01', 15, 2000),
+    })
+    // 用 10/1 到 10/14 的完整 13 天数据推算；10/15 的低体重与摄入不计入。
+    expect(result).toBe(2592.31)
+  })
 })
 
 describe('称重日判断', () => {

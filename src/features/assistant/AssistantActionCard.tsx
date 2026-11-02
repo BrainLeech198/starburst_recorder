@@ -48,6 +48,29 @@ export default function AssistantActionCard({ state, busy, onConfirm, onCancel, 
 
   const body = (() => {
     switch (action.kind) {
+      case 'scheduleCreate': {
+        const days = action.weeklyDays.map((day) => t((`date.weekdayShort${day % 7}`) as MessageKey)).join('、')
+        const repeat = action.repeat === 'daily'
+          ? t('schedule.everyDay')
+          : action.repeat === 'weekly'
+            ? t('schedule.everyWeek', { days })
+            : t('schedule.onlyOnce')
+        return `${t('schedule.addTitle')} · ${date}${action.time ? ` ${action.time}` : ''} · ${preview(action.title)} · ${repeat}${action.remind ? ` · ${t('schedule.remindOn')}` : ''}${action.note ? ` · ${preview(action.note, 100)}` : ''}`
+      }
+      case 'scheduleEdit': {
+        const details = [
+          action.newDateKey ? `${t('schedule.fieldDate')} ${formatDate(action.newDateKey, t)}` : '',
+          action.time === undefined ? '' : `${t('schedule.fieldTime')} ${action.time || '—'}`,
+          action.newTitle ? `${t('schedule.fieldTitle')} ${preview(action.newTitle)}` : '',
+          action.note === undefined ? '' : `${t('schedule.fieldNote')} ${preview(action.note, 100) || '—'}`,
+          action.repeat ? `${t('schedule.fieldRepeat')} ${t(action.repeat === 'daily' ? 'schedule.repeatDaily' : action.repeat === 'weekly' ? 'schedule.repeatWeekly' : 'schedule.repeatNone')}` : '',
+          action.weeklyDays?.length ? action.weeklyDays.map((day) => t((`date.weekdayShort${day % 7}`) as MessageKey)).join('、') : '',
+          action.remind === undefined ? '' : `${t('schedule.fieldRemind')} ${action.remind ? t('schedule.remindOn') : '—'}`,
+        ].filter(Boolean).join(' · ')
+        return `${t('schedule.editTitle')} · ${date} · ${preview(action.title)}（${action.code}） · ${details}`
+      }
+      case 'scheduleDelete':
+        return `${t('schedule.deleteTitle')} · ${date} · ${preview(action.title)}（${action.code}）`
       case 'memory':
         return t('assistant.action.memory', { text: preview(action.text) })
       case 'finance':
@@ -81,6 +104,8 @@ export default function AssistantActionCard({ state, busy, onConfirm, onCancel, 
         }`
       case 'weigh':
         return t('assistant.action.weigh', { date, weight: action.weightKg })
+      case 'weighEdit':
+        return `${t('assistant.action.weigh', { date, weight: action.weightKg })}（${action.previousKg} → ${action.weightKg} kg）`
       case 'intake':
         return t('assistant.action.intake', {
           date,
@@ -119,6 +144,28 @@ export default function AssistantActionCard({ state, busy, onConfirm, onCancel, 
       }
       case 'trainingDelete':
         return `${t('training.actionDelete')} · ${date} · ${action.label}`
+      case 'profileCreate':
+      case 'profileEdit': {
+        const fields = [
+          action.sex === undefined ? '' : `${t('profile.sex')} ${t(action.sex === 'male' ? 'profile.male' : 'profile.female')}`,
+          action.age === undefined ? '' : `${t('profile.age')} ${action.age}`,
+          action.heightCm === undefined ? '' : `${t('profile.height')} ${action.heightCm}`,
+          action.weightKg === undefined ? '' : `${t('profile.weight')} ${action.weightKg}`,
+          action.activity === undefined ? '' : `${t('profile.activity')} ${t(({
+            sedentary: 'profile.activitySedentary', light: 'profile.activityLight',
+            moderate: 'profile.activityModerate', high: 'profile.activityHigh',
+          } as const)[action.activity])}`,
+          action.tdee === undefined ? '' : `${t('profile.tdee')} ${action.tdee}`,
+          action.targetKcal === undefined ? '' : `${t('profile.target')} ${action.targetKcal}`,
+          action.proteinTarget === undefined ? '' : `${t('profile.proteinTarget')} ${action.proteinTarget}`,
+          action.idealBedtime === undefined ? '' : `${t('health.idealBedtime')} ${action.idealBedtime}`,
+          action.idealWakeTime === undefined ? '' : `${t('health.idealWake')} ${action.idealWakeTime}`,
+          action.note === undefined ? '' : `${t('profile.note')} ${preview(action.note, 100)}`,
+        ].filter(Boolean)
+        return `${t('profile.title')} · ${fields.join(' · ')}`
+      }
+      case 'profileDelete':
+        return `${t('assistant.action.deleteTitle')} · ${t('profile.title')} · ${t('health.trendHistory')} ${action.weighCount}`
       case 'diaryEdit':
         return t('assistant.action.diaryEdit', { date, content: preview(action.content) })
       case 'stampEdit': {

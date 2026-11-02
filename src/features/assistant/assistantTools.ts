@@ -5,7 +5,7 @@
  * 每个工具都是「整库快照 + 参数」的纯函数，返回一段给模型看的文本；
  * 模型只能看到这段文本，看不到原始对象，也不会拿到 id 以外的敏感字段。
  */
-import type { BackupData } from '@/core/db/store'
+import type { BackupData, DayActivity } from '@/core/db/store'
 import type {
   DiaryEntry,
   DiaryStamp,
@@ -15,10 +15,19 @@ import type {
   HealthMeal,
   HealthSleep,
   HealthTraining,
+  ScheduleItem,
 } from '@/core/db/schema'
 import { formatDateCn, isDateKey, shiftDay } from '@/core/utils/dateKey'
+import { isDoneOn, occurrencesOn } from '@/features/schedule/scheduleMath'
+import { expenseByCategory, isMonthKey, shiftMonth, summarizeFinance } from '@/features/finance/financeMath'
+import { bmiValue, trendWeighIns, weightTrendStats, type TrendRange } from '@/features/health/healthViz'
+import { healthRangeSummary } from '@/features/health/healthViz'
+import { derivedTdee } from '@/features/health/healthMath'
+import { isMonthKey as isReviewMonthKey, monthRange } from '@/features/calendar/calendarData'
+import { averageSleepMinutes, recordCountOf, scheduleProgress, summarizeMonth } from '@/features/review/reviewMath'
 import { sleepMinutes, sleepParts } from '@/features/health/sleepMath'
-import { summarizeDay, trainingLabel } from '@/features/training/trainingMath'
+import { summarizeDay, summarizeWeek, trainingLabel, weekRange } from '@/features/training/trainingMath'
+import { planOfProfile } from '@/features/training/trainingPlan'
 import { findSkill, type AssistantSkill } from './assistantSkills'
 import type { AssistantMemory, AssistantMemoryKind } from './assistantMemory'
 
@@ -46,8 +55,53 @@ const DATE_ARGS = {
 
 export const ASSISTANT_READ_TOOLS: AssistantToolSpec[] = [
   {
+    name: 'data_inventory',
+    description: '查看用户整库有哪些记录：每类有效记录与回收站数量、称重史和长期记忆数量。先用它判断该查哪类。',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'browse_records',
+    description: '逐页浏览一类记录，含过去和未来；每页 5 条，可继续翻页。图片只标注数量，不传 dataURL。',
+    parameters: {
+      type: 'object',
+      properties: {
+        kind: { type: 'string', enum: ['diary', 'stamps', 'weather', 'presets', 'schedules', 'foods', 'meals', 'intakes', 'sleeps', 'trainings', 'finance', 'weigh', 'profile', 'memory'], description: '记录类别' },
+        page: { type: 'number', description: '页码，从 1 开始，默认 1' },
+        trash: { type: 'boolean', description: '只看回收站，默认 false' },
+      },
+      required: ['kind'],
+    },
+  },
+  {
+    name: 'read_record',
+    description: '按短编号、记录 id 或日期读取一条记录的完整文字字段；长内容按 offset 分段续读。图片只返回元数据。',
+    parameters: {
+      type: 'object',
+      properties: {
+        kind: { type: 'string', enum: ['diary', 'stamps', 'weather', 'presets', 'schedules', 'foods', 'meals', 'intakes', 'sleeps', 'trainings', 'finance', 'weigh', 'profile', 'memory'], description: '记录类别' },
+        ref: { type: 'string', description: '列表里的 [code]、记录 id 或日期；身体档案可不填' },
+        trash: { type: 'boolean', description: '读取回收站记录时设为 true，默认 false' },
+        offset: { type: 'number', description: '续读起点，默认 0；使用上一段给出的 nextOffset' },
+      },
+      required: ['kind'],
+    },
+  },
+  {
+    name: 'read_record_photo',
+    description: '只在用户本轮明确要求分析某条旧记录的照片时使用；必须指定记录编号或日期与第几张。选中照片会压缩后发给已配置的 AI 服务。普通查记录不要调用。',
+    parameters: {
+      type: 'object',
+      properties: {
+        kind: { type: 'string', enum: ['diary', 'stamps', 'finance', 'foods', 'meals'], description: '照片所属记录类别' },
+        ref: { type: 'string', description: '记录短编号、日期或食物/套餐名称' },
+        index: { type: 'number', description: '第几张，从 1 开始' },
+      },
+      required: ['kind', 'ref', 'index'],
+    },
+  },
+  {
     name: 'query_day',
-    description: '按日期看用户这一天的完整记录：天气、日记、随记、摄入、睡眠、收支。',
+    description: '按日期看用户这一天的记录：天气、日记、随记、日程、摄入、睡眠、收支和训练。',
     parameters: {
       type: 'object',
       properties: { date: { type: 'string', description: '日期，YYYY-MM-DD' } },
@@ -74,6 +128,14 @@ export const ASSISTANT_READ_TOOLS: AssistantToolSpec[] = [
         ...DATE_ARGS,
         keyword: { type: 'string', description: '关键词，可不填' },
       },
+    },
+  },
+  {
+    name: 'search_schedules',
+    description: '按日期区间查看日程和定期任务的实际发生日期、完成状态与短编号，可按标题或备注筛选。',
+    parameters: {
+      type: 'object',
+      properties: { ...DATE_ARGS, keyword: { type: 'string', description: '标题或备注关键词，可不填' } },
     },
   },
   {
@@ -104,6 +166,14 @@ export const ASSISTANT_READ_TOOLS: AssistantToolSpec[] = [
     },
   },
   {
+    name: 'finance_chart',
+    description: '读取经济页图表：指定月份的支出分类占比，以及截至该月近六个月逐月收入和支出。',
+    parameters: {
+      type: 'object',
+      properties: { month: { type: 'string', description: '结束月份，YYYY-MM；不填为本月' } },
+    },
+  },
+  {
     name: 'training_stats',
     description: '统计一段时间的训练：次数、天数、容量、部位分布，以及每次练了什么。',
     parameters: {
@@ -112,9 +182,41 @@ export const ASSISTANT_READ_TOOLS: AssistantToolSpec[] = [
     },
   },
   {
+    name: 'training_week_chart',
+    description: '读取训练页本周进度环：训练次数/计划天数、训练天数、本周与上周容量，以及当天小结。',
+    parameters: {
+      type: 'object',
+      properties: { date: { type: 'string', description: '所看的日期 YYYY-MM-DD；不填为今天' } },
+    },
+  },
+  {
     name: 'profile_stats',
     description: '看身体档案和最近的称重记录（体重趋势、TDEE、目标热量）。',
     parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'weight_chart',
+    description: '读取健康页体重趋势图：近 7、30 或 90 天的称重点、首尾变化、周均趋势、平均体重及 BMI。',
+    parameters: {
+      type: 'object',
+      properties: { days: { type: 'number', enum: [7, 30, 90], description: '区间天数；默认 30 天' } },
+    },
+  },
+  {
+    name: 'health_overview_chart',
+    description: '读取体重趋势详情页的区间健康概览：有记录日的平均摄入、有记录夜的平均睡眠、蛋白达标天数和推算 TDEE。',
+    parameters: {
+      type: 'object',
+      properties: { days: { type: 'number', enum: [7, 30, 90], description: '近 7、30 或 90 天；默认 30 天' } },
+    },
+  },
+  {
+    name: 'month_review_chart',
+    description: '读取月度回顾页的概览、每日记录小格数量和定期任务完成情况；与回顾页使用同一汇总函数。',
+    parameters: {
+      type: 'object',
+      properties: { month: { type: 'string', description: '月份 YYYY-MM；不填为本月' } },
+    },
   },
   {
     name: 'search_food',
@@ -201,7 +303,65 @@ export const ASSISTANT_ASK_TOOL: AssistantToolSpec = {
  * 新增类写工具。模型调用它们时不会立刻写库，
  * 而是变成一张「待确认卡片」，等用户点确认后才执行。
  */
+const PROFILE_TOOL_PROPERTIES = {
+  sex: { type: 'string', enum: ['male', 'female'], description: '性别，可不填' },
+  age: { type: 'number', description: '年龄，可不填' },
+  heightCm: { type: 'number', description: '身高（厘米），可不填' },
+  weightKg: { type: 'number', description: '体重（公斤），可不填' },
+  activity: { type: 'string', enum: ['sedentary', 'light', 'moderate', 'high'], description: '活动量，可不填' },
+  tdee: { type: 'number', description: '维持热量（千卡），可不填' },
+  targetKcal: { type: 'number', description: '目标热量（千卡），可不填' },
+  proteinTarget: { type: 'number', description: '蛋白质目标（克），可不填' },
+  idealBedtime: { type: 'string', description: '理想入睡时刻 HH:MM，可不填' },
+  idealWakeTime: { type: 'string', description: '理想起床时刻 HH:MM，可不填' },
+  note: { type: 'string', description: '计划或自我评价，可不填' },
+}
+
 const ASSISTANT_WRITE_TOOLS: AssistantToolSpec[] = [
+  {
+    name: 'add_schedule',
+    description: '新增一次性日程或每天、每周重复的任务。生成待确认卡片，用户确认后保存。',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: '开始日期 YYYY-MM-DD；不填为今天，可填未来日期' },
+        time: { type: 'string', description: '时刻 HH:MM；空串为全天，默认 09:00' },
+        title: { type: 'string', description: '日程标题' },
+        note: { type: 'string', description: '备注，可不填' },
+        repeat: { type: 'string', enum: ['none', 'daily', 'weekly'], description: '重复方式，默认不重复' },
+        weeklyDays: { type: 'array', items: { type: 'number' }, description: '每周重复时必填，1=周一至7=周日' },
+        remind: { type: 'boolean', description: '是否到点提醒，默认关闭' },
+      },
+      required: ['title'],
+    },
+  },
+  {
+    name: 'update_schedule',
+    description: '原地修改日程或定期任务。先用 search_schedules 获取 [code]，只传要改的字段；必须让用户确认。',
+    parameters: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: '日程短编号 [code]' },
+        date: { type: 'string', description: '新的开始日期 YYYY-MM-DD，可不填' },
+        time: { type: 'string', description: '新的时刻 HH:MM；空串表示全天，可不填' },
+        title: { type: 'string', description: '新的标题，可不填' },
+        note: { type: 'string', description: '新的备注；空串表示清空，可不填' },
+        repeat: { type: 'string', enum: ['none', 'daily', 'weekly'], description: '新的重复方式，可不填' },
+        weeklyDays: { type: 'array', items: { type: 'number' }, description: '每周重复的星期，1=周一至7=周日，可不填' },
+        remind: { type: 'boolean', description: '是否到点提醒，可不填' },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'delete_schedule',
+    description: '删除一条日程或定期任务，先放进回收站。先用 search_schedules 获取 [code]；删除必须让用户确认。',
+    parameters: {
+      type: 'object',
+      properties: { code: { type: 'string', description: '日程短编号 [code]' } },
+      required: ['code'],
+    },
+  },
   {
     name: 'remember',
     description:
@@ -280,7 +440,7 @@ const ASSISTANT_WRITE_TOOLS: AssistantToolSpec[] = [
   },
   {
     name: 'add_weigh',
-    description: '记一次体重，放进待确认卡片。需要先有身体档案。',
+    description: '新增某一天的称重；那天已有称重时请用 update_weigh。需要先有身体档案。',
     parameters: {
       type: 'object',
       properties: {
@@ -288,6 +448,18 @@ const ASSISTANT_WRITE_TOOLS: AssistantToolSpec[] = [
         weightKg: { type: 'number', description: '体重，公斤' },
       },
       required: ['weightKg'],
+    },
+  },
+  {
+    name: 'update_weigh',
+    description: '修改某一天已有的称重。先用 profile_stats 或 browse_records 确认日期；覆盖前必须让用户确认。',
+    parameters: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: '要修改的称重日期 YYYY-MM-DD' },
+        weightKg: { type: 'number', description: '新的体重，公斤' },
+      },
+      required: ['date', 'weightKg'],
     },
   },
   {
@@ -366,29 +538,23 @@ const ASSISTANT_WRITE_TOOLS: AssistantToolSpec[] = [
     },
   },
   {
+    name: 'create_profile',
+    description: '用户还没有身体档案时创建一份，只填用户明确提供的字段；需要确认后保存。',
+    parameters: { type: 'object', properties: PROFILE_TOOL_PROPERTIES },
+  },
+  {
     name: 'update_profile',
     description:
       '改身体档案里的基础信息（性别、年龄、身高、体重、活动量、TDEE、目标热量、蛋白质目标、理想作息、自述）。只传要改的字段；数值必须是用户自己说的。',
     parameters: {
       type: 'object',
-      properties: {
-        sex: { type: 'string', enum: ['male', 'female'], description: '性别，可不填' },
-        age: { type: 'number', description: '年龄，可不填' },
-        heightCm: { type: 'number', description: '身高（厘米），可不填' },
-        weightKg: { type: 'number', description: '体重（公斤），可不填' },
-        activity: {
-          type: 'string',
-          enum: ['sedentary', 'light', 'moderate', 'high'],
-          description: '活动量：久坐 / 轻度 / 中等 / 高强度，可不填',
-        },
-        tdee: { type: 'number', description: '维持热量（千卡），可不填' },
-        targetKcal: { type: 'number', description: '目标热量（千卡），可不填' },
-        proteinTarget: { type: 'number', description: '蛋白质目标（克），可不填' },
-        idealBedtime: { type: 'string', description: '理想入睡时刻 HH:MM，可不填' },
-        idealWakeTime: { type: 'string', description: '理想起床时刻 HH:MM，可不填' },
-        note: { type: 'string', description: '计划或自我评价，可不填' },
-      },
+      properties: PROFILE_TOOL_PROPERTIES,
     },
+  },
+  {
+    name: 'delete_profile',
+    description: '删除整份身体档案以及其中所有称重历史；先读档案确认称重条数，必须让用户确认，可撤销。其他健康记录不受影响。',
+    parameters: { type: 'object', properties: {} },
   },
   {
     name: 'add_training',
@@ -794,6 +960,34 @@ function stampLine(item: DiaryStamp) {
   return `${formatDateCn(item.dateKey)} ${item.time} [${item.code}] ${clip(item.content, 200)}`
 }
 
+function scheduleLine(item: ScheduleItem, dateKey: string) {
+  const time = item.time || '全天'
+  const done = isDoneOn(item, dateKey) ? '已完成' : '未完成'
+  return `${formatDateCn(dateKey)} ${time} ${item.title}（${done}）${item.note.trim() ? `，备注：${clip(item.note, 80)}` : ''} [${item.code}]`
+}
+
+function searchSchedules(from: string, to: string, keyword: string, data: BackupData) {
+  const lines: string[] = []
+  for (let dateKey = from; dateKey <= to; dateKey = shiftDay(dateKey, 1)) {
+    for (const item of occurrencesOn(data.schedules, dateKey)) {
+      if (!matches(`${item.title} ${item.note}`, keyword)) continue
+      lines.push(scheduleLine(item, dateKey))
+      if (lines.length >= 60) return `${formatDateCn(from)} 到 ${formatDateCn(to)}：前 60 项日程：\n${lines.join('\n')}`
+    }
+  }
+  return lines.length === 0
+    ? `${formatDateCn(from)} 到 ${formatDateCn(to)}：没有符合条件的日程。`
+    : `${formatDateCn(from)} 到 ${formatDateCn(to)}：找到 ${lines.length} 项日程。\n${lines.join('\n')}`
+}
+
+/** 日程允许查未来；最多展开一年，避免长期重复任务生成无限结果。 */
+function resolveScheduleRange(from: string, to: string, today: string) {
+  const start = isDateKey(from) ? from : today
+  const requestedEnd = isDateKey(to) && to >= start ? to : shiftDay(start, 6)
+  const limit = shiftDay(start, 365)
+  return { from: start, to: requestedEnd > limit ? limit : requestedEnd }
+}
+
 function financeLine(item: FinanceEntry) {
   const note = item.note.trim()
   const kind = item.kind === 'income' ? '收入' : '支出'
@@ -840,6 +1034,9 @@ function dayBlock(
     .filter((item) => item.deletedAt === null && item.dateKey === dateKey)
     .sort((a, b) => (a.time < b.time ? -1 : 1))
   if (stamps.length > 0) lines.push(`随记：${stamps.map(stampLine).join('；')}`)
+
+  const schedules = occurrencesOn(data.schedules, dateKey)
+  if (schedules.length > 0) lines.push(`日程：${schedules.map((item) => scheduleLine(item, dateKey)).join('；')}`)
 
   const intakes = data.intakes
     .filter((item) => item.deletedAt === null && item.dateKey === dateKey)
@@ -951,6 +1148,24 @@ function trainingStats(from: string, to: string, data: BackupData) {
     .join('\n')
 }
 
+function trainingWeekChart(dateKey: string, data: BackupData) {
+  const week = weekRange(dateKey)
+  const previousStart = shiftDay(week.from, -7)
+  const trainings = data.trainings.filter((item) => inRange(item.dateKey, previousStart, week.to))
+  const summary = summarizeWeek(trainings, week.from, dateKey)
+  const day = summarizeDay(trainings.filter((item) => item.dateKey === dateKey))
+  const planDays = planOfProfile(data.profile ?? undefined).weeklyDays.length || 3
+  const percent = Math.min(100, Math.round(summary.sessions / planDays * 100))
+  const change = summary.previousVolumeKg > 0
+    ? `${Math.round((summary.volumeKg - summary.previousVolumeKg) / summary.previousVolumeKg * 100)}%`
+    : '上周无容量记录'
+  return [
+    `${week.from} 到 ${week.to}：本周训练进度 ${summary.sessions}/${planDays} 次（进度环 ${percent}%），覆盖 ${summary.days} 天。`,
+    `本周容量 ${summary.volumeKg} kg，上周 ${summary.previousVolumeKg} kg；比上周 ${change}。`,
+    `${dateKey}：${day.sessions} 次，${day.totalSets} 组，${day.totalReps} 次，容量 ${day.volumeKg} kg，时长 ${day.totalDurationMin} 分钟。`,
+  ].join('\n')
+}
+
 function financeStats(from: string, to: string, keyword: string, data: BackupData) {
   const items = data.finance.filter(
     (item) =>
@@ -966,6 +1181,96 @@ function financeStats(from: string, to: string, keyword: string, data: BackupDat
     ...items
       .sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1))
       .map(financeLine),
+  ].join('\n')
+}
+
+function financeChart(month: string, data: BackupData) {
+  const months = Array.from({ length: 6 }, (_, index) => shiftMonth(month, index - 5))
+  const monthly = months.map((key) => ({
+    month: key,
+    summary: summarizeFinance(data.finance.filter((item) => item.dateKey.startsWith(`${key}-`))),
+  }))
+  const current = data.finance.filter((item) => item.dateKey.startsWith(`${month}-`))
+  const slices = expenseByCategory(current)
+  return [
+    `${month} 支出分类占比：${slices.length === 0 ? '没有支出' : slices.map((item) => `${item.category} ${item.amount} 元（${Math.round(item.share * 100)}%）`).join('、')}`,
+    '近六个月收支：',
+    ...monthly.map(({ month: key, summary }) => `${key} 收入 ${summary.income} 元，支出 ${summary.expense} 元，结余 ${summary.balance} 元`),
+  ].join('\n')
+}
+
+function weightChart(range: TrendRange, today: string, data: BackupData) {
+  const profile = data.profile
+  if (!profile) return '用户还没有填写身体档案。'
+  const items = trendWeighIns(profile.weighIns ?? [], range, today)
+  const stats = weightTrendStats(items)
+  if (!stats) return `近 ${range} 天没有称重记录。`
+  const bmi = bmiValue(stats.latest, profile.heightCm)
+  return [
+    `近 ${range} 天体重趋势：${items.length} 个点，最新 ${stats.latest} kg，首尾变化 ${stats.delta} kg，平均 ${stats.average} kg，最低 ${stats.min} kg，最高 ${stats.max} kg。`,
+    `首尾相隔 ${stats.spanDays} 天；每周趋势：${stats.weekly === null ? '数据不足' : `${stats.weekly} kg/周`}；BMI：${bmi === null ? '身高数据不足' : bmi}。`,
+    '图上称重点（从旧到新）：',
+    ...items.slice(-30).map((item) => `${item.dateKey} ${item.weightKg} kg`),
+    ...(items.length > 30 ? [`仅列出最近 30 个点；区间统计仍使用全部 ${items.length} 个点。`] : []),
+  ].join('\n')
+}
+
+function healthOverviewChart(range: TrendRange, today: string, data: BackupData) {
+  const from = shiftDay(today, -(range - 1))
+  const intakes = data.intakes.filter((item) => item.deletedAt === null && inRange(item.dateKey, from, today))
+  const sleeps = data.sleeps.filter((item) => item.deletedAt === null && inRange(item.dateKey, from, today))
+  const summary = healthRangeSummary({ intakes, sleeps, proteinTarget: data.profile?.proteinTarget ?? null })
+  const intakeKcalByDay: Record<string, number> = {}
+  for (const intake of intakes) {
+    intakeKcalByDay[intake.dateKey] = (intakeKcalByDay[intake.dateKey] ?? 0) + intake.kcal
+  }
+  const derived = data.profile
+    ? derivedTdee({ weighIns: data.profile.weighIns, intakeKcalByDay, todayDateKey: today })
+    : null
+  return [
+    `${from} 到 ${today} 的区间健康概览（与趋势页同一口径）：`,
+    `日均摄入：${summary.avgKcal === null ? '无记录' : `${summary.avgKcal} 千卡`}（有记录 ${summary.intakeDays} 天）。`,
+    `日均睡眠：${summary.avgSleepMinutes === null ? '无记录' : `${Math.round(summary.avgSleepMinutes / 60 * 10) / 10} 小时`}（有记录 ${summary.sleepNights} 夜，夜醒 ${summary.wakeNights} 夜）。`,
+    `蛋白达标：${summary.proteinDays === 0 ? '没有足够数据或未设置目标' : `${summary.proteinHitDays}/${summary.proteinDays} 天`}。`,
+    `推算 TDEE：${derived === null ? '数据不足' : `${derived} 千卡`}；今天尚未结束，推算时排除今天的称重与摄入。`,
+  ].join('\n')
+}
+
+function monthReviewChart(month: string, today: string, data: BackupData) {
+  const { from, to } = monthRange(month)
+  const map = new Map<string, DayActivity>()
+  type CountField = keyof Omit<DayActivity, 'dateKey'>
+  const bump = (dateKey: string, field: CountField) => {
+    if (!inRange(dateKey, from, to)) return
+    const row = map.get(dateKey) ?? {
+      dateKey, entries: 0, stamps: 0, intakes: 0, sleeps: 0,
+      trainings: 0, finance: 0, weighIns: 0,
+    }
+    row[field] += 1
+    map.set(dateKey, row)
+  }
+  for (const item of data.entries) if (item.deletedAt === null) bump(item.dateKey, 'entries')
+  for (const item of data.stamps) if (item.deletedAt === null) bump(item.dateKey, 'stamps')
+  for (const item of data.intakes) if (item.deletedAt === null) bump(item.dateKey, 'intakes')
+  for (const item of data.sleeps) if (item.deletedAt === null) bump(item.dateKey, 'sleeps')
+  for (const item of data.trainings) if (item.deletedAt === null) bump(item.dateKey, 'trainings')
+  for (const item of data.finance) if (item.deletedAt === null) bump(item.dateKey, 'finance')
+  for (const item of data.profile?.weighIns ?? []) bump(item.dateKey, 'weighIns')
+  const activities = [...map.values()].sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+  const summary = summarizeMonth({
+    activities,
+    finance: data.finance.filter((item) => inRange(item.dateKey, from, to)),
+    sleeps: data.sleeps.filter((item) => inRange(item.dateKey, from, to)),
+    trainings: data.trainings.filter((item) => inRange(item.dateKey, from, to)),
+  })
+  const progress = scheduleProgress(data.schedules, month, today)
+  const avgSleep = averageSleepMinutes(summary)
+  return [
+    `${month} 月度回顾：有记录 ${summary.daysWithRecords} 天，日记 ${summary.entries} 篇，随记 ${summary.stamps} 条，摄入 ${summary.intakes} 笔，称重 ${summary.weighIns} 次。`,
+    `收支：收入 ${summary.income} 元，支出 ${summary.expense} 元，结余 ${summary.balance} 元，共 ${summary.financeRecords} 笔。`,
+    `睡眠：${summary.sleepNights} 夜，平均 ${avgSleep === null ? '无数据' : `${avgSleep} 分钟`}；训练 ${summary.trainingSessions} 次，共 ${summary.trainingMinutes} 分钟。`,
+    `每日小格（日期：记录数）：${activities.length === 0 ? '没有记录' : activities.map((day) => `${day.dateKey.slice(8)}:${recordCountOf(day)}`).join('、')}`,
+    `定期任务：${progress.length === 0 ? '没有' : progress.slice(0, 10).map((row) => `${row.item.title} ${row.done}/${row.total}，连续 ${row.streak}`).join('；')}${progress.length > 10 ? `；其余 ${progress.length - 10} 项可用 search_schedules 查询` : ''}`,
   ].join('\n')
 }
 
@@ -1087,6 +1392,93 @@ function listMemory(memories: AssistantMemory[]) {
   ].join('\n')
 }
 
+function dataInventory(ctx: ToolRunContext) {
+  const { data } = ctx
+  const rows: { name: string; items: { deletedAt: number | null }[] }[] = [
+    { name: '日记', items: data.entries },
+    { name: '随记', items: data.stamps },
+    { name: '日记预设', items: data.presets },
+    { name: '日程', items: data.schedules },
+    { name: '食物', items: data.foods },
+    { name: '套餐', items: data.meals },
+    { name: '摄入', items: data.intakes },
+    { name: '睡眠', items: data.sleeps },
+    { name: '训练', items: data.trainings },
+    { name: '收支', items: data.finance },
+  ]
+  const weather = data.days.filter((item) => (item.weather ?? '').trim() !== '').length
+  return [
+    '整库数据目录（有效 / 回收站）：',
+    ...rows.map(({ name, items }) => `${name} ${items.filter((item) => item.deletedAt === null).length} / ${items.filter((item) => item.deletedAt !== null).length}`),
+    `天气 ${weather}；身体档案 ${data.profile ? 1 : 0}；称重史 ${data.profile?.weighIns?.length ?? 0}；长期记忆 ${ctx.memories?.length ?? 0}。`,
+    '图片随记录保存，目录只统计记录数量，不传图片内容。',
+  ].join('\n')
+}
+
+function browseRecords(kind: string, page: number, trash: boolean, ctx: ToolRunContext) {
+  const { data } = ctx
+  const visible = <T extends { deletedAt: number | null }>(items: T[]) =>
+    items.filter((item) => trash ? item.deletedAt !== null : item.deletedAt === null)
+  const newest = <T extends { dateKey: string }>(items: T[]) =>
+    [...items].sort((a, b) => b.dateKey.localeCompare(a.dateKey))
+  let rows: string[]
+  switch (kind) {
+    case 'diary': rows = newest(visible(data.entries)).map((item) => `${diaryLine(item)}（图片 ${item.images.length} 张）`); break
+    case 'stamps': rows = newest(visible(data.stamps)).map((item) => `${stampLine(item)}（图片 ${item.images.length} 张）`); break
+    case 'weather': rows = trash ? [] : newest(data.days.filter((item) => (item.weather ?? '').trim() !== '')).map((item) => `${item.dateKey} 天气：${item.weather}`); break
+    case 'presets': rows = visible(data.presets).map((item) => `${item.kind === 'person' ? '人名' : '地名'}：${item.name} [${item.code}]`); break
+    case 'schedules': rows = newest(visible(data.schedules)).map((item) => `${item.dateKey} ${item.time || '全天'} ${item.title} [${item.code}]（${item.repeat}）${item.note ? ` ${item.note}` : ''}`); break
+    case 'foods': rows = visible(data.foods).map((item) => `${foodLine(item)}（图片 ${item.photo ? 1 : 0} 张）`); break
+    case 'meals': rows = visible(data.meals).map((item) => `${mealLine(item, data.foods)}（独立封面 ${item.photo ? 1 : 0} 张）`); break
+    case 'intakes': rows = newest(visible(data.intakes)).map((item) => `${item.dateKey} ${intakeLine(item)}`); break
+    case 'sleeps': rows = newest(visible(data.sleeps)).map(sleepLine); break
+    case 'trainings': rows = newest(visible(data.trainings)).map((item) => `${item.dateKey} ${trainingLine(item)}`); break
+    case 'finance': rows = newest(visible(data.finance)).map((item) => `${financeLine(item)}（图片 ${item.photo ? 1 : 0} 张）`); break
+    case 'weigh': rows = trash ? [] : newest(data.profile?.weighIns ?? []).map((item) => `${item.dateKey} ${item.weightKg} kg`); break
+    case 'profile': rows = trash || !data.profile ? [] : ['身体档案 [me]']; break
+    case 'memory': rows = trash ? [] : (ctx.memories ?? []).map((item) => `${MEMORY_KIND_LABEL[item.kind]}：${item.text}（id=${item.id}）`); break
+    default: return '记录类别不认识。'
+  }
+  const pages = Math.max(1, Math.ceil(rows.length / 5))
+  if (page > pages) return `${kind} 共 ${rows.length} 条，只有 ${pages} 页。`
+  const picked = rows.slice((page - 1) * 5, page * 5).map((line) => clip(line, 350))
+  return [`${kind}${trash ? '（回收站）' : ''}共 ${rows.length} 条，第 ${page}/${pages} 页。`, ...picked, ...(page < pages ? [`下一页请传 page=${page + 1}。`] : [])].join('\n')
+}
+
+function readRecord(kind: string, ref: string, trash: boolean, offset: number, ctx: ToolRunContext) {
+  const { data } = ctx
+  const find = <T extends { id: string; code?: string; deletedAt: number | null }>(items: T[]) =>
+    items.find((item) => (item.code === ref || item.id === ref) && (trash ? item.deletedAt !== null : item.deletedAt === null))
+  let record: unknown
+  switch (kind) {
+    case 'diary': record = find(data.entries); break
+    case 'stamps': record = find(data.stamps); break
+    case 'presets': record = find(data.presets); break
+    case 'schedules': record = find(data.schedules); break
+    case 'foods': record = find(data.foods); break
+    case 'meals': record = find(data.meals); break
+    case 'intakes': record = find(data.intakes); break
+    case 'sleeps': record = find(data.sleeps); break
+    case 'trainings': record = find(data.trainings); break
+    case 'finance': record = find(data.finance); break
+    case 'weather': record = trash ? undefined : data.days.find((item) => item.dateKey === ref); break
+    case 'weigh': record = trash ? undefined : data.profile?.weighIns.find((item) => item.dateKey === ref); break
+    case 'profile': record = trash ? undefined : data.profile; break
+    case 'memory': record = trash ? undefined : ctx.memories?.find((item) => item.id === ref || item.text === ref); break
+    default: return '记录类别不认识。'
+  }
+  if (!record) return `找不到 ${kind} 中编号或日期为 ${ref || '（空）'} 的记录。`
+  const json = JSON.stringify(record, (key, value: unknown) => {
+    if (key === 'dataUrl' && typeof value === 'string') return '[图片内容省略]'
+    if (key === 'photo' && typeof value === 'string' && value.startsWith('data:image/')) return '[图片内容省略]'
+    return value
+  }, 2)
+  const chars = Array.from(json)
+  const body = chars.slice(offset, offset + 1700).join('')
+  const nextOffset = offset + Array.from(body).length
+  return `${kind} ${ref || '档案'}，字符 ${offset + 1}–${nextOffset}/${chars.length}：\n${body}${nextOffset < chars.length ? `\n还有内容；续读请传 offset=${nextOffset}。` : ''}`
+}
+
 /** 工具执行器：名字不认识就返回一句人话，不让模型拿着空结果瞎编 */
 export function runAssistantTool(
   name: string,
@@ -1100,6 +1492,23 @@ export function runAssistantTool(
 
   let text: string
   switch (name) {
+    case 'data_inventory':
+      text = dataInventory(ctx)
+      break
+    case 'browse_records': {
+      const page = args.page === undefined ? 1 : Number(args.page)
+      text = Number.isInteger(page) && page >= 1
+        ? browseRecords(argText(args, 'kind'), page, args.trash === true, ctx)
+        : '页码必须是从 1 开始的整数。'
+      break
+    }
+    case 'read_record': {
+      const offset = args.offset === undefined ? 0 : Number(args.offset)
+      text = Number.isInteger(offset) && offset >= 0
+        ? readRecord(argText(args, 'kind'), argText(args, 'ref'), args.trash === true, offset, ctx)
+        : '续读位置 offset 必须是非负整数。'
+      break
+    }
     case 'query_day': {
       const date = argText(args, 'date')
       if (!isDateKey(date)) {
@@ -1146,6 +1555,12 @@ export function runAssistantTool(
               .join('\n')}`
       break
     }
+    case 'search_schedules':
+      {
+        const scheduleRange = resolveScheduleRange(from, to, ctx.today)
+        text = searchSchedules(scheduleRange.from, scheduleRange.to, keyword, ctx.data)
+      }
+      break
     case 'intake_stats':
       text = intakeStats(range.from, range.to, ctx.data)
       break
@@ -1155,12 +1570,47 @@ export function runAssistantTool(
     case 'finance_stats':
       text = financeStats(range.from, range.to, keyword, ctx.data)
       break
+    case 'finance_chart': {
+      const requested = argText(args, 'month')
+      text = requested && !isMonthKey(requested)
+        ? '月份格式不对，需要 YYYY-MM。'
+        : financeChart(requested || ctx.today.slice(0, 7), ctx.data)
+      break
+    }
     case 'training_stats':
       text = trainingStats(range.from, range.to, ctx.data)
       break
+    case 'training_week_chart': {
+      const requested = argText(args, 'date')
+      text = requested && !isDateKey(requested)
+        ? '日期格式不对，需要 YYYY-MM-DD。'
+        : trainingWeekChart(requested || ctx.today, ctx.data)
+      break
+    }
     case 'profile_stats':
       text = profileStats(ctx.data)
       break
+    case 'weight_chart': {
+      const days = args.days === undefined ? 30 : Number(args.days)
+      text = days === 7 || days === 30 || days === 90
+        ? weightChart(days, ctx.today, ctx.data)
+        : '区间只能选 7、30 或 90 天。'
+      break
+    }
+    case 'health_overview_chart': {
+      const days = args.days === undefined ? 30 : Number(args.days)
+      text = days === 7 || days === 30 || days === 90
+        ? healthOverviewChart(days, ctx.today, ctx.data)
+        : '区间只能选 7、30 或 90 天。'
+      break
+    }
+    case 'month_review_chart': {
+      const requested = argText(args, 'month')
+      text = requested && !isReviewMonthKey(requested)
+        ? '月份格式不对，需要 YYYY-MM。'
+        : monthReviewChart(requested || ctx.today.slice(0, 7), ctx.today, ctx.data)
+      break
+    }
     case 'search_food':
       text = searchFood(keyword, ctx.data)
       break

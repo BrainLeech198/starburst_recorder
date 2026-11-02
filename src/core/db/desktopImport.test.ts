@@ -12,6 +12,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { countRecords, type TableTotals } from './store'
 import type { DiaryEntry, DiaryImage, DiaryStamp, HealthTraining, ScheduleItem } from './schema'
+import { pickProfile } from './normalize'
 
 const require = createRequire(import.meta.url)
 const { createDatabase } = require('../../../electron/database.cjs') as {
@@ -75,6 +76,21 @@ afterEach(() => {
 })
 
 describe('桌面端 SQLite 分块导入', () => {
+  it('只删除身体档案，保存的快照可恢复称重历史', () => {
+    call('insertEntry', entry)
+    const initial = pickProfile({
+      weighIns: [{ dateKey: '2026-10-30', weightKg: 70, createdAt: 1 }],
+    })
+    if (!initial) throw new Error('测试档案准备失败')
+    call('saveHealthProfile', initial)
+    const previous = call<NonNullable<ReturnType<typeof pickProfile>>>('healthProfile')
+    call('deleteHealthProfile')
+    expect(call('healthProfile')).toBeUndefined()
+    expect(exportAll().entries).toHaveLength(1)
+    call('saveHealthProfile', previous)
+    expect(call<NonNullable<ReturnType<typeof pickProfile>>>('healthProfile').weighIns).toEqual(previous.weighIns)
+  })
+
   it('替换导入保留日记与随记的图片', () => {
     call('insertEntry', entry)
     call('insertStamp', stamp)
@@ -136,6 +152,15 @@ describe('桌面端 SQLite 分块导入', () => {
       updatedAt: 1_700_000_000_000,
       deletedAt: null,
     })
+    call('saveHealthMeal', {
+      id: 'm1',
+      name: '米饭套餐',
+      items: [{ foodId: 'f1', grams: 150 }],
+      photo: 'data:image/png;base64,CCCC',
+      createdAt: 1_700_000_000_000,
+      updatedAt: 1_700_000_000_000,
+      deletedAt: null,
+    })
     const before = call<{
       profile: unknown
       foods: unknown[]
@@ -154,8 +179,13 @@ describe('桌面端 SQLite 分块导入', () => {
       },
     })
 
-    const after = call<{ foods: Array<{ photo: string | null }> }>('exportAllData')
+    const after = call<{
+      foods: Array<{ photo: string | null }>
+      meals: Array<{ photo: string | null; items: unknown[] }>
+    }>('exportAllData')
     expect(after.foods[0].photo).toBe('data:image/png;base64,BBBB')
+    expect(after.meals[0].photo).toBe('data:image/png;base64,CCCC')
+    expect(after.meals[0].items).toEqual([{ foodId: 'f1', grams: 150 }])
   })
 
   it('睡眠分块往返后小憩一次不丢', () => {

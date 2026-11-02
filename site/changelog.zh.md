@@ -1,3 +1,23 @@
+## 0.12.0 · 2026-11-02
+
+### 这一版有什么
+
+- **AI 助手能动手了**：能查十四类记录、读图表和旧照片，也能新增、修改、删除日程、日记、随记、收支、饮食、睡眠、训练、体重与身体档案；每次写入先给预览卡片，删除始终要确认，完成的写入可以撤销
+- **自动保存只留给新增**：编辑权限里的「新增自动保存」改成白名单，只有纯新增动作免确认；修改与删除不会再被一句话直接覆盖
+- **AI 估营养可以带参考图**：食物与套餐的 AI 对话最多附三张照片（营养成分表或实物），只有最后一条用户消息带图
+- **套餐有了自己的封面**：可上传或拍一张封面，没设时仍回退到第一个有照片的成分；分享码与备份都会带上
+- **日记与随记的全部记录**：新增总列表，每页 20 条、日期倒序；日记直接进编辑，随记定位到当天
+- **日历与周视图可以滑**：月视图左右滑换月，周视图左右滑换周，和翻页按钮使用同一套日期逻辑
+- **推算 TDEE 不看今天**：排除尚未结束的当天称重与摄入，健康页和趋势页同一口径
+- **悬浮球可以换成自己的图**：设置里选图并压缩，球上实时预览，随时恢复默认；半藏时至少留 44px
+- **搜索与账本**：全局搜索覆盖十类记录，标签可精确匹配；经济页可批量多选、滑动翻时段、撤销删除，收支用红绿区分
+- **稳定性与安全**：桌面 AI 请求与更新下载加了超时和路径守卫；回收站彻底删除后列表立即刷新；日程与训练的备份分区拆得更细
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.12.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.12.0/starburst-recorder-0.12.0-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.12.0/starburst-recorder-0.12.0-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.12.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.12.0/starburst-recorder-0.12.0.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.12.0/starburst-recorder-0.12.0.apk)
+
 ## 0.11.1 · 2026-11-02
 
 ### 这一版有什么

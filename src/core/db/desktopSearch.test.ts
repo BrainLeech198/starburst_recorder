@@ -160,6 +160,7 @@ function fill(call: <T>(method: string, ...args: unknown[]) => T) {
     id: 'm1',
     name: '黄焖鸡套餐',
     items: [{ foodId: 'fd1', grams: 120 }],
+    photo: null,
     createdAt: T,
     updatedAt: T,
     deletedAt: null,

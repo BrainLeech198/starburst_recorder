@@ -127,6 +127,7 @@ const SCHEMA = `
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     items TEXT NOT NULL DEFAULT '[]',
+    photo TEXT,
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER NOT NULL,
     deletedAt INTEGER
@@ -582,6 +583,7 @@ function mealRow(row) {
     id: row.id,
     name: row.name,
     items: mealItemsFromDb(row.items),
+    photo: typeof row.photo === 'string' && row.photo !== '' ? row.photo : null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
@@ -700,6 +702,10 @@ function createDatabase(file) {
   )
   if (!foodColumns.has('code')) db.exec('ALTER TABLE healthFoods ADD COLUMN code TEXT')
   if (!foodColumns.has('photo')) db.exec('ALTER TABLE healthFoods ADD COLUMN photo TEXT')
+  const mealColumns = new Set(
+    db.prepare('PRAGMA table_info(healthMeals)').all().map((row) => row.name),
+  )
+  if (!mealColumns.has('photo')) db.exec('ALTER TABLE healthMeals ADD COLUMN photo TEXT')
   if (!intakeColumns.has('code')) db.exec('ALTER TABLE healthIntakes ADD COLUMN code TEXT')
   const stampColumns = new Set(
     db.prepare('PRAGMA table_info(diaryStamps)').all().map((row) => row.name),
@@ -1080,11 +1086,12 @@ function createDatabase(file) {
       'SELECT * FROM healthMeals WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC',
     ),
     upsertMeal: db.prepare(
-      `INSERT INTO healthMeals (id, name, items, createdAt, updatedAt, deletedAt)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO healthMeals (id, name, items, photo, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          name = excluded.name,
          items = excluded.items,
+         photo = excluded.photo,
          createdAt = excluded.createdAt,
          updatedAt = excluded.updatedAt,
          deletedAt = excluded.deletedAt`,
@@ -1381,6 +1388,7 @@ function createDatabase(file) {
       meal.id,
       meal.name,
       JSON.stringify(items),
+      meal.photo ?? null,
       meal.createdAt,
       meal.updatedAt,
       meal.deletedAt ?? null,
@@ -1389,6 +1397,7 @@ function createDatabase(file) {
     return {
       ...meal,
       items,
+      photo: meal.photo ?? null,
       deletedAt: meal.deletedAt ?? null,
     }
   }
@@ -2022,6 +2031,7 @@ function createDatabase(file) {
     // ─────────── 健康 ───────────
     healthProfile: () => profileRow(q.healthProfile.get()),
     saveHealthProfile: (profile) => saveProfile(profile),
+    deleteHealthProfile: () => db.prepare("DELETE FROM healthProfile WHERE id = 'me'").run(),
     healthFoods: () => q.healthFoods.all().map(foodRow),
     saveHealthFood: (food) => saveFood(food),
     mergeHealthFoods: (sourceId, targetId) => mergeFoods(sourceId, targetId),

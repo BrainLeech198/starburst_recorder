@@ -10,6 +10,8 @@ import { compressImage } from '@/features/ai/aiVision'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
 import FoodAiChat from './FoodAiChat'
+import AiImageAttachments from './AiImageAttachments'
+import { addReferenceImage } from './aiImages'
 import { compressFoodPhoto } from './foodPhoto'
 import { analyzeFoodPhoto, type PhotoMode } from './foodVision'
 import { parseAmount } from './parseAmount'
@@ -56,6 +58,8 @@ export default function FoodForm({
   const [aiOpen, setAiOpen] = useState(false)
   // 第一次打开后就不再卸载对话面板：收起只是藏起来，记录和进行中的请求都留着
   const [aiMounted, setAiMounted] = useState(false)
+  /** 给 AI 对话的图片参考；拍照识别过的图会自动进来，不落库 */
+  const [aiImages, setAiImages] = useState<string[]>([])
   const [photoOpen, setPhotoOpen] = useState(false)
   /** 正在识别哪张图；null 表示空闲 */
   const [photoBusy, setPhotoBusy] = useState<PhotoMode | null>(null)
@@ -104,6 +108,8 @@ export default function FoodForm({
     setPhotoNote('')
     try {
       const dataUrl = await compressImage(file)
+      // 识别过的那张图顺手放进附件：结果不满意时，还能带着图继续和 AI 聊
+      setAiImages((current) => addReferenceImage(current, dataUrl))
       const result = await analyzeFoodPhoto(loadAiConfig(), dataUrl, [], mode)
       if (!result.ok || !result.guess) {
         setPhotoError(result.error || t('foods.photoFailed'))
@@ -292,6 +298,8 @@ export default function FoodForm({
         />
       )}
 
+      <AiImageAttachments images={aiImages} onChange={setAiImages} />
+
       {!aiOpen && (
         <button type="button" onClick={openAi} className={`${OUTLINE_BUTTON} w-full`}>
           <Icon name="sparkles" />
@@ -303,6 +311,7 @@ export default function FoodForm({
           <FoodAiChat
             open={aiOpen}
             initialName={name}
+            images={aiImages}
             onApply={applyAi}
             onClose={() => setAiOpen(false)}
           />

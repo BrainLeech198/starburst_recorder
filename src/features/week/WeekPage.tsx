@@ -6,6 +6,7 @@
  * 点日期进一天一页，点日程进日程页，也可以直接在这一天加一条。
  */
 import { useState } from 'react'
+import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import { Link, useNavigate, useParams } from 'react-router'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import type { ScheduleItem } from '@/core/db/schema'
@@ -81,8 +82,18 @@ export default function WeekPage() {
     await saveSchedule({ ...item, ...donePatch(item, date, !isDoneOn(item, date)) })
   }
 
+  const swipe = useDaySwipe(
+    () => navigate(`/week/${shiftWeek(dayKey, -1)}`, { replace: true }),
+    () => navigate(`/week/${shiftWeek(dayKey, 1)}`, { replace: true }),
+  )
+
   return (
-    <div className="mx-auto w-full max-w-2xl p-4">
+    <div
+      className={`mx-auto w-full max-w-2xl p-4 ${swipe.animationClass}`}
+      onTouchStart={swipe.onTouchStart}
+      onTouchEnd={swipe.onTouchEnd}
+      onAnimationEnd={swipe.onAnimationEnd}
+    >
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="m-0 flex items-center gap-1.5 text-lg font-medium text-fg">
           <Icon name="calendar" className="h-4 w-4 shrink-0" />

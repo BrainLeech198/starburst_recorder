@@ -530,7 +530,11 @@ export default function IntakeDialog({
   }
 
   /** 「新的套餐」：跟食物库同一套表单，存好后直接进这一餐的份量页 */
-  async function saveNewMeal(draft: { name: string; items: HealthMealItem[] }) {
+  async function saveNewMeal(draft: {
+    name: string
+    photo: string | null
+    items: HealthMealItem[]
+  }) {
     const duplicated = (meals ?? []).some(
       (item) => item.name.toLowerCase() === draft.name.toLowerCase(),
     )
@@ -543,6 +547,7 @@ export default function IntakeDialog({
       id: newId(),
       name: draft.name,
       items: draft.items,
+      photo: draft.photo,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -777,6 +782,7 @@ export default function IntakeDialog({
       id: newId(),
       name,
       items: recipe,
+      photo: null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,

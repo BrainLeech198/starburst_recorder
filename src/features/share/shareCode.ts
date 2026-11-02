@@ -39,6 +39,8 @@ export interface ShareMealItemConfig {
 
 export interface ShareMealConfig {
   name: string
+  /** 套餐自己的封面；没有就由接收端按成分回退 */
+  photo: string | null
   items: ShareMealItemConfig[]
 }
 
@@ -132,7 +134,12 @@ function parseMealConfig(value: unknown): ShareMealConfig | null {
     if (!isFiniteNumber(grams) || grams <= 0 || grams > 100_000) return null
     items.push({ food, grams })
   }
-  return { name, items }
+  const photo = optionalText(value.photo, 3_000_000)
+  return {
+    name,
+    photo: photo && photo.startsWith('data:image/') ? photo : null,
+    items,
+  }
 }
 
 function parseDoc(value: unknown): ShareDoc {
@@ -224,6 +231,7 @@ export function stripSharePhotos(doc: ShareDoc): ShareDoc {
     ...doc,
     data: {
       ...doc.data,
+      photo: null,
       items: doc.data.items.map((item) => ({ ...item, food: { ...item.food, photo: null } })),
     },
   }
@@ -231,7 +239,7 @@ export function stripSharePhotos(doc: ShareDoc): ShareDoc {
 
 export function hasSharePhotos(doc: ShareDoc): boolean {
   if (doc.kind === 'food') return !!doc.data.photo
-  return doc.data.items.some((item) => !!item.food.photo)
+  return !!doc.data.photo || doc.data.items.some((item) => !!item.food.photo)
 }
 
 export function fitsShareQr(text: string): boolean {

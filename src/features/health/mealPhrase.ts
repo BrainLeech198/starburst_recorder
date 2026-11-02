@@ -14,6 +14,7 @@ import { chat, explainFailure, pickReply } from '@/features/ai/aiClient'
 import type { AiConfig } from '@/features/ai/aiConfig'
 import { translate } from '@/shared/i18n/context'
 import { formatNum, round2 } from './healthMath'
+import { MAX_REFERENCE_IMAGES, referenceImageParts } from './aiImages'
 
 /** 一句话里拆出来的一项 */
 export interface PhraseItem {
@@ -77,6 +78,7 @@ function systemPrompt(foods: HealthFood[]) {
   return `你在帮用户把一句话里说的食物，拆成可以记进饮食账的条目。只做两件事：拆项、换算份量。
 
 用户会这样写：「一拳米饭 + 一个卤鸡腿 + 0.8 拳花菜」，有时带时间和地点（17:10、沙县、食堂）。
+用户也可能附上照片：照片里能看清的食物也要一起拆项，和文字里重复的只留一项；看不清的不要编。
 
 已有食物库（格式：名称 每100g 热量/蛋白/碳水/脂肪，单位 kcal 和 g）：
 ${library}
@@ -163,14 +165,22 @@ export async function analyzeMealPhrase(
   config: AiConfig,
   phrase: string,
   foods: HealthFood[],
+  images: string[] = [],
 ): Promise<MealPhraseResult> {
+  const imageParts = referenceImageParts(images.slice(0, MAX_REFERENCE_IMAGES))
   const result = await chat({
     baseUrl: config.baseUrl.trim(),
     apiKey: config.apiKey.trim(),
     model: config.model.trim(),
     messages: [
       { role: 'system', content: systemPrompt(foods) },
-      { role: 'user', content: phrase },
+      {
+        role: 'user',
+        content:
+          imageParts.length === 0
+            ? phrase
+            : [{ type: 'text', text: phrase || '请参考这些照片拆项。' }, ...imageParts],
+      },
     ],
     temperature: 0.2,
   })

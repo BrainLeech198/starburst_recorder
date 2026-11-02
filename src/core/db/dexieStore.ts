@@ -533,6 +533,9 @@ export const dexieStore: DiaryStore = {
     await db.healthProfile.put(next)
     return next
   },
+  async deleteHealthProfile() {
+    await db.healthProfile.delete('me')
+  },
 
   healthFoods(): Promise<HealthFood[]> {
     return db.healthFoods

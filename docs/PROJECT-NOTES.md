@@ -527,3 +527,7 @@ vitest.config.ts               单测配置：node 环境，只测纯逻辑
 **旧目录已清理（2026-10-29）**：核对过新路径的 git 历史、`android/`、`capacitor.config.ts`、`src/core/desktop.ts`（已搬到 `src/platform/desktop.ts`）和两份文档，确认无遗漏后执行——旧项目整体挪到 `D:\File\archive\starburst_recorder_20261029`（保留可回退，确认不要了再整个删），临时联接 `D:\sb_probe` 已删除。
 
 
+
+## AI 协作与界面排版约定（2026-11-02）
+
+本项目采用小步、可追踪的 AI 协作流程，要求与完成标准见 [`AGENTS.md`](../AGENTS.md)。可复用技能保存在本机：`D:\File\skills\vibe-coding-guardrails\SKILL.md` 与 `D:\File\skills\settings-layout\SKILL.md`。设置界面遵循分组标题和留白建立层级，简单偏好行左右布局，复杂表单上下布局；复用项目组件与 i18n，并检查窄屏。

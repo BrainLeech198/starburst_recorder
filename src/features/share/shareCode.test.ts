@@ -43,6 +43,7 @@ function mealDoc(): ShareDoc {
     createdAt: 2,
     data: {
       name: '鸡腿饭',
+      photo: PHOTO,
       items: [
         {
           food: {
@@ -90,12 +91,26 @@ describe('shareCode', () => {
     await expect(decodeShare(JSON.stringify(doc))).resolves.toEqual(doc)
   })
 
+  it('旧版套餐分享没有封面字段也能读，照片按 null 处理', async () => {
+    const doc = mealDoc()
+    if (doc.kind !== 'meal') throw new Error('kind changed')
+    const legacy = {
+      ...doc,
+      data: { name: doc.data.name, items: doc.data.items },
+    }
+    const parsed = await decodeShare(JSON.stringify(legacy))
+    if (parsed.kind !== 'meal') throw new Error('kind changed')
+    expect(parsed.data.photo).toBeNull()
+    expect(parsed.data.items).toHaveLength(2)
+  })
+
   it('去照片版本只清掉图片，其余不变', () => {
     const doc = mealDoc()
     expect(hasSharePhotos(doc)).toBe(true)
     const thin = stripSharePhotos(doc)
     expect(hasSharePhotos(thin)).toBe(false)
     if (thin.kind !== 'meal') throw new Error('kind changed')
+    expect(thin.data.photo).toBeNull()
     expect(thin.data.items.map((item) => item.food.name)).toEqual(['鸡腿', '米饭'])
     expect(thin.data.items[0].grams).toBe(150)
   })

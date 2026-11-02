@@ -81,12 +81,16 @@ const MAX_SESSIONS = 20
 const MAX_ATTACHMENTS = 3
 
 const ACTION_KINDS = new Set([
+  'scheduleCreate',
+  'scheduleEdit',
+  'scheduleDelete',
   'memory',
   'finance',
   'stamp',
   'diary',
   'sleep',
   'weigh',
+  'weighEdit',
   'intake',
   'diaryEdit',
   'stampEdit',
@@ -109,9 +113,14 @@ const ACTION_KINDS = new Set([
   'presetEdit',
   'presetDelete',
   'profileEdit',
+  'profileCreate',
+  'profileDelete',
   'weatherEdit',
   'memoryEdit',
   'memoryDelete',
+  'training',
+  'trainingEdit',
+  'trainingDelete',
 ])
 
 const STATUSES = new Set<ChatActionStatus>(['pending', 'done', 'undone', 'canceled', 'failed'])

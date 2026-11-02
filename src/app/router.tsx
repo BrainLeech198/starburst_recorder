@@ -9,6 +9,7 @@ import RouteError from './RouteError'
  */
 const HomePage = lazy(() => import('@/features/home/HomePage'))
 const DiaryPage = lazy(() => import('@/features/diary/DiaryPage'))
+const DiaryArchivePage = lazy(() => import('@/features/diary/DiaryArchivePage'))
 const DiaryEditPage = lazy(() => import('@/features/diary/DiaryEditPage'))
 const TrashPage = lazy(() => import('@/features/diary/TrashPage'))
 const PresetsPage = lazy(() => import('@/features/diary/PresetsPage'))
@@ -62,6 +63,7 @@ export const router = createHashRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'diary', element: <DiaryPage /> },
+      { path: 'diary/all', element: <DiaryArchivePage /> },
       { path: 'diary/trash', element: <TrashPage /> },
       // 静态段优先于 :code，别把 new 当成一条 7 位编号去查
       { path: 'diary/new', element: <DiaryEditPage /> },

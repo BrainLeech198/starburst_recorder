@@ -917,8 +917,10 @@ export default function DataPage() {
 
   return (
     <PageShell title={t('data.title')} description={t('data.description')}>
-      <SettingCard title={t('data.statsTitle')} description={t('data.statsDesc')}>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <SettingCard title={t('data.statsTitle')}>
+        <details>
+          <summary className="cursor-pointer text-sm text-muted">{t('data.statsDesc')}</summary>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
             { key: 'entries', label: t('data.statEntries'), value: counts?.entries ?? 0 },
             { key: 'stamps', label: t('data.statStamps'), value: counts?.stamps ?? 0 },
@@ -941,7 +943,8 @@ export default function DataPage() {
               <p className="m-0 mt-0.5 text-[11px] text-muted">{stat.label}</p>
             </div>
           ))}
-        </div>
+          </div>
+        </details>
       </SettingCard>
 
       <SettingCard
@@ -1048,6 +1051,8 @@ export default function DataPage() {
         </SettingGroup>
       </SettingCard>
 
+      <ImageQualityCard />
+
       <SettingCard
         title={t('data.clearTitle')}
         description={t('data.clearDesc')}
@@ -1090,7 +1095,6 @@ export default function DataPage() {
         </SettingGroup>
       </SettingCard>
 
-      <ImageQualityCard />
       <DataFolderCard />
       <LegacyCard />
 

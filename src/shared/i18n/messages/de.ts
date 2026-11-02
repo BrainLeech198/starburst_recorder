@@ -10,7 +10,7 @@ export const de: Record<MessageKey, string> = {
   'home.diaryDesc': 'Halte den Tag fest',
   'home.healthDesc': 'Schlaf · Stimmung · Gewicht',
   'home.financeDesc': 'Jede Einnahme und Ausgabe',
-  'home.calendarDesc': 'Noch in Planung',
+  'home.calendarDesc': 'Monat · Woche · Termine',
 
   // ─────────── Gesundheit ───────────
   'health.setupNeeded': 'Dein Körperprofil ist noch unvollständig, Kalorien lassen sich noch nicht berechnen.',
@@ -323,9 +323,10 @@ export const de: Record<MessageKey, string> = {
   'foods.mealEdit': 'Menü bearbeiten',
   'foods.mealCover': 'Menü-Cover',
   'foods.mealCoverHint':
-    'Nimmt das erste Lebensmittel mit Foto; ändere das Foto dieses Lebensmittels, um es zu wechseln.',
+    'Du kannst ein eigenes Titelbild hochladen; ohne Upload wird das erste Lebensmittel mit Foto verwendet.',
   'foods.mealAiAsk': 'Mit KI diese Mahlzeit aufteilen',
-  'foods.mealAiHint': 'Sage z. B. „eine Schale Rindernudeln mit einem marinierten Ei“, die KI teilt es in Lebensmittel und Gramm auf und ergänzt es unten.',
+  'foods.mealAiHint':
+    'Sage z. B. „eine Schale Rindernudeln mit einem marinierten Ei“, die KI teilt es in Lebensmittel und Gramm auf und ergänzt es unten. Du kannst auch ein Referenzfoto anhängen.',
   'foods.mealAiPlaceholder': 'z. B. eine Schale Rindernudeln, ein mariniertes Ei',
   'foods.mealAiAdded': '{n} hinzugefügt. Noch etwas?',
   'foods.mealAiNothing': 'Daraus wurde nichts erkannt. Schreib es genauer und versuch es nochmal.',
@@ -337,8 +338,16 @@ export const de: Record<MessageKey, string> = {
   'foods.mealPhotoDone': '{n} aus dem Foto hinzugefügt, Gramm kannst du noch anpassen.',
   'foods.aiAsk': 'Mit KI reden und Nährwerte genauer schätzen',
   'foods.aiTitle': 'KI-Nährwertschätzung',
-  'foods.aiDesc': 'Beschreibe das Lebensmittel, die KI fragt nach Zubereitung und Portion und gibt dann Nährwerte pro 100 g.',
-  'foods.aiGreeting': 'Was möchtest du schätzen? Je genauer, desto besser, z. B. „Hähnchenreis, eine Portion“.',
+  'foods.aiDesc':
+    'Beschreibe das Lebensmittel oder füge ein Referenzfoto hinzu. Die KI fragt nach Zubereitung und Portion und gibt dann Nährwerte pro 100 g.',
+  'foods.aiGreeting':
+    'Was möchtest du schätzen? Je genauer, desto besser, z. B. „Hähnchenreis, eine Portion“. Ein Foto der Verpackung oder des Gerichts hilft.',
+  'foods.aiAttachTitle': 'Bildreferenz',
+  'foods.aiAttachHint':
+    'Bis zu 3 Bilder. Das zuerst gescannte Foto wird automatisch übernommen, du kannst auch eigene hinzufügen. Bilder gehen nur an diesen Chat und werden nicht in der Lebensmittelbibliothek gespeichert.',
+  'foods.aiAttachAdd': 'Bild hinzufügen',
+  'foods.aiAttachRemove': 'Dieses Bild entfernen',
+  'foods.aiAttachFull': 'Bis zu 3 Bilder',
   'foods.aiPlaceholder': 'z. B. Hähnchenreis, eine Portion',
   'foods.aiSend': 'Senden',
   'foods.aiThinking': 'Wird geschätzt …',
@@ -757,7 +766,7 @@ export const de: Record<MessageKey, string> = {
   'assistant.needConfig': 'Es ist noch kein KI-Modell verfügbar.',
   'assistant.goSettings': 'Modell einrichten',
   'assistant.intro':
-    'Frag mich nach deinem Tagebuch, Notizen, Essen, Schlaf, Ausgaben und Gewicht. Ich kann auch Ausgaben, Mahlzeiten, Schlaf oder Notizen für dich eintragen – geschrieben wird erst nach deiner Bestätigung.',
+    'Frag mich nach deinem Tagebuch, Notizen, Essen, Schlaf, Ausgaben und Gewicht. Ich kann auch Einträge für dich erstellen. Ob neue Einträge automatisch gespeichert werden, hängt von der Bearbeitungsberechtigung ab.',
   'assistant.example1': 'Wie hat sich mein Gewicht in den letzten 7 Tagen entwickelt?',
   'assistant.example2': 'Worüber habe ich mir letzte Woche Sorgen gemacht?',
   'assistant.example3': 'Wofür ging mein Geld diesen Monat aus?',
@@ -949,16 +958,16 @@ export const de: Record<MessageKey, string> = {
 
   'permission.title': 'Was der Assistent darf',
   'permission.description':
-    'Legt fest, wie der Assistent an deine Einträge kommt: nur lesen, vorher fragen oder direkt übernehmen.',
+    'Wähle nur Lesen, Bestätigung vor dem Schreiben oder automatisches Speichern neuer Einträge.',
   'permission.readonly': 'Nur lesen',
   'permission.readonlyHint': 'Nur nachschauen und antworten, nichts hinzufügen, ändern oder löschen',
   'permission.confirm': 'Vorher fragen',
   'permission.confirmHint': 'Hinzufügen, Ändern und Löschen brauchen zuerst deine Bestätigung',
-  'permission.auto': 'Direkt ändern',
+  'permission.auto': 'Neue Einträge automatisch speichern',
   'permission.autoHint':
-    'Hinzufügen und Ändern werden sofort gespeichert; Löschen braucht weiterhin deine Bestätigung',
+    'Neue Einträge werden automatisch gespeichert; Änderungen, Überschreiben und Löschen brauchen weiterhin eine Bestätigung',
   'permission.deleteNote':
-    'Löschen braucht in jeder Stufe deine Bestätigung; Gelöschtes landet im Papierkorb und lässt sich wiederherstellen.',
+    'Löschen braucht immer deine Bestätigung. Einträge mit Papierkorb landen dort; andere Löschungen lassen sich direkt danach rückgängig machen.',
 
   'reasoning.title': 'Tiefes Nachdenken',
   'reasoning.description':
@@ -1025,6 +1034,11 @@ export const de: Record<MessageKey, string> = {
 
   'ball.description': 'Die Kugel sitzt am Bildschirmrand – tippe sie an, um den Assistenten zu öffnen. Zieh sie zum Verschieben; bleibt sie lange liegen, dockt sie am Rand an und zeigt nur die Hälfte.',
   'ball.shape': 'Form',
+  'ball.customImage': 'Eigenes Bild',
+  'ball.uploadImage': 'Bild hochladen',
+  'ball.replaceImage': 'Bild ersetzen',
+  'ball.resetImage': 'Standard wiederherstellen',
+  'ball.imageFailed': 'Das Bild konnte nicht verarbeitet werden. Versuche ein anderes Bild.',
   'ball.size': 'Größe',
   'ball.shape.star4': 'Vierzackiger Stern',
   'ball.shape.star8': 'Achtzackiger Stern',
@@ -1512,6 +1526,13 @@ export const de: Record<MessageKey, string> = {
 
   'diary.tabDiary': 'Tagebuch',
   'diary.tabStamp': 'Notizen',
+  'diary.allRecords': 'Alle Einträge',
+  'diary.noAllRecords': 'Keine Tagebucheinträge oder Notizen',
+  'diary.archiveCount': '{count} Einträge · Seite {page} von {pages}',
+  'diary.previousPage': 'Zurück',
+  'diary.nextPage': 'Weiter',
+  'diary.pageOf': 'Seite {page} von {pages}',
+  'diary.pagination': 'Seitennavigation',
   'diary.prevDay': 'Vortag',
   'diary.nextDay': 'Folgetag',
   'diary.today': 'Heute',

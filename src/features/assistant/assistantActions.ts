@@ -21,6 +21,7 @@ import type {
   HealthProfile,
   HealthSleep,
   HealthTraining,
+  ScheduleItem,
 } from '@/core/db/schema'
 import { newCode, newId } from '@/core/utils/id'
 import {
@@ -38,10 +39,12 @@ import {
   updateStamp,
 } from '@/features/diary/diaryRepo'
 import { addFinance, removeFinance, restoreFinance, saveFinance } from '@/features/finance/financeRepo'
+import { removeSchedule, restoreSchedule, saveSchedule } from '@/features/schedule/scheduleRepo'
 import {
   addIntake,
   exportAllData,
   healthProfile,
+  deleteHealthProfile,
   removeHealthFood,
   removeHealthMeal,
   removeHealthSleep,
@@ -72,6 +75,8 @@ import {
   saveHealthTraining,
 } from '@/features/training/trainingRepo'
 import type { AssistantAction } from './assistantActionBuild'
+import { undoWeighWrite } from './assistantWeighUndo'
+import { emptyProfile } from '@/features/health/healthMath'
 
 export type { AssistantAction, ActionBuildContext } from './assistantActionBuild'
 export {
@@ -92,6 +97,44 @@ export interface ActionDone {
 export async function executeAssistantAction(action: AssistantAction): Promise<ActionDone> {
   const now = Date.now()
   const data = await exportAllData()
+
+  if (action.kind === 'scheduleCreate') {
+    const item: ScheduleItem = {
+      id: newId(), code: newCode(), dateKey: action.dateKey, time: action.time,
+      title: action.title, note: action.note, repeat: action.repeat,
+      weeklyDays: action.weeklyDays, remind: action.remind,
+      doneAt: null, doneDays: [], createdAt: now, updatedAt: now, deletedAt: null,
+    }
+    await saveSchedule(item)
+    return { recordId: item.id }
+  }
+
+  if (action.kind === 'scheduleEdit') {
+    const item = data.schedules.find((row) => row.deletedAt === null && row.code === action.code)
+    if (!item) throw new Error('这条日程已经不在了，刷新后再看一次。')
+    const repeat = action.repeat ?? item.repeat
+    const weeklyDays = repeat === 'weekly' ? (action.weeklyDays ?? item.weeklyDays) : []
+    if (repeat === 'weekly' && weeklyDays.length === 0) throw new Error('每周重复时至少选一个星期。')
+    await saveSchedule({
+      ...item,
+      dateKey: action.newDateKey ?? item.dateKey,
+      time: action.time ?? item.time,
+      title: action.newTitle ?? item.title,
+      note: action.note ?? item.note,
+      repeat,
+      weeklyDays,
+      remind: action.remind ?? item.remind,
+      updatedAt: now,
+    })
+    return { recordId: item.id, previous: item }
+  }
+
+  if (action.kind === 'scheduleDelete') {
+    const item = data.schedules.find((row) => row.deletedAt === null && row.code === action.code)
+    if (!item) throw new Error('这条日程已经不在了，刷新后再看一次。')
+    await removeSchedule(item.id)
+    return { recordId: item.id, previous: item }
+  }
 
   if (action.kind === 'diaryEdit') {
     const entry = data.entries.find((item) => item.deletedAt === null && item.code === action.code)
@@ -274,6 +317,7 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
       id: newId(),
       name: action.name,
       items: action.items.map((item) => ({ foodId: item.foodId, grams: item.grams })),
+      photo: null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -395,15 +439,17 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
     return { recordId: training.id, previous: training }
   }
 
-  if (action.kind === 'profileEdit') {
+  if (action.kind === 'profileCreate' || action.kind === 'profileEdit') {
     const profile = await healthProfile()
-    if (!profile) throw new Error('用户还没有身体档案。')
+    if (action.kind === 'profileCreate' && profile) throw new Error('身体档案已经存在，刷新后再看一次。')
+    if (action.kind === 'profileEdit' && !profile) throw new Error('身体档案已经不在了，刷新后再看一次。')
+    const base = profile ?? emptyProfile()
     const next: HealthProfile = {
-      ...profile,
+      ...base,
       ...(action.sex === undefined ? {} : { sex: action.sex }),
       ...(action.age === undefined ? {} : { age: action.age }),
       ...(action.heightCm === undefined ? {} : { heightCm: action.heightCm }),
-      ...(action.weightKg === undefined ? {} : { weightKg: action.weightKg }),
+      ...(action.weightKg === undefined ? {} : { weightKg: action.weightKg, weightAt: action.weightKg === base.weightKg ? base.weightAt : now }),
       ...(action.activity === undefined ? {} : { activity: action.activity }),
       ...(action.tdee === undefined ? {} : { tdee: action.tdee }),
       ...(action.targetKcal === undefined ? {} : { targetKcal: action.targetKcal }),
@@ -413,7 +459,20 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
       ...(action.note === undefined ? {} : { note: action.note }),
       updatedAt: now,
     }
-    await saveHealthProfile(next)
+    const saved = await saveHealthProfile(next)
+    return {
+      recordId: saved.id,
+      previous: profile ?? { createdProfile: saved },
+    }
+  }
+
+  if (action.kind === 'profileDelete') {
+    const profile = await healthProfile()
+    if (!profile) throw new Error('身体档案已经不在了，刷新后再看一次。')
+    if (profile.updatedAt !== action.expectedUpdatedAt || profile.weighIns.length !== action.weighCount) {
+      throw new Error('身体档案已变化，请重新读取后再删除。')
+    }
+    await deleteHealthProfile()
     return { recordId: profile.id, previous: profile }
   }
 
@@ -516,9 +575,14 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
     return { recordId: next.id, previous: existing ?? null }
   }
 
-  if (action.kind === 'weigh') {
+  if (action.kind === 'weigh' || action.kind === 'weighEdit') {
     const profile = await healthProfile()
     if (!profile) throw new Error('还没有身体档案，先补几项基本信息再记体重。')
+    const existing = profile.weighIns.find((item) => item.dateKey === action.dateKey)
+    if (action.kind === 'weigh' && existing) throw new Error('这天已有称重，请改用修改称重。')
+    if (action.kind === 'weighEdit' && (!existing || existing.weightKg !== action.previousKg)) {
+      throw new Error('这天的称重已变化，刷新后再确认。')
+    }
     const weighIns = [
       { dateKey: action.dateKey, weightKg: action.weightKg, createdAt: now },
       ...profile.weighIns.filter((item) => item.dateKey !== action.dateKey),
@@ -531,7 +595,7 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
       updatedAt: now,
     }
     await saveHealthProfile(next)
-    return { recordId: profile.id, previous: profile }
+    return { recordId: profile.id, previous: { profile, appliedAt: now } }
   }
 
   const intake = {
@@ -562,6 +626,19 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
 
 /** 撤回一条已经写入的动作；找不到原记录时安静结束，不弹一堆「已经没了」 */
 export async function undoAssistantAction(action: AssistantAction, done: ActionDone) {
+  if (action.kind === 'scheduleCreate') {
+    if (done.recordId) await removeSchedule(done.recordId)
+    return
+  }
+  if (action.kind === 'scheduleEdit') {
+    const previous = done.previous as ScheduleItem | null
+    if (previous) await saveSchedule(previous)
+    return
+  }
+  if (action.kind === 'scheduleDelete') {
+    if (done.recordId) await restoreSchedule(done.recordId)
+    return
+  }
   if (action.kind === 'memory') {
     const previous = done.previous as {
       id?: string
@@ -614,31 +691,18 @@ export async function undoAssistantAction(action: AssistantAction, done: ActionD
     return
   }
 
-  if (action.kind === 'weigh') {
-    const previous = done.previous as HealthProfile | null
+  if (action.kind === 'weigh' || action.kind === 'weighEdit') {
+    const snapshot = done.previous as { profile: HealthProfile; appliedAt: number } | HealthProfile | null
+    const previous = snapshot && 'profile' in snapshot ? snapshot.profile : snapshot
+    const appliedAt = snapshot && 'profile' in snapshot ? snapshot.appliedAt : null
     const current = await healthProfile()
     if (!current) {
       if (previous) await saveHealthProfile(previous)
       return
     }
-    // 只摘掉这次加的那一条，别把用户之后改过的档案整体覆盖回去
-    const weighIns = current.weighIns.filter(
-      (item) => !(item.dateKey === action.dateKey && item.weightKg === action.weightKg),
-    )
-    const latest = weighIns[0]
-    if (latest) {
-      await saveHealthProfile({
-        ...current,
-        weightKg: latest.weightKg,
-        weightAt: latest.createdAt,
-        weighIns,
-        updatedAt: Date.now(),
-      })
-    } else if (previous) {
-      await saveHealthProfile(previous)
-    } else {
-      await saveHealthProfile({ ...current, weighIns, updatedAt: Date.now() })
-    }
+    if (!previous) return
+    const restored = undoWeighWrite(current, previous, action.dateKey, action.weightKg, appliedAt, Date.now())
+    if (restored) await saveHealthProfile(restored)
     return
   }
 
@@ -746,6 +810,22 @@ export async function undoAssistantAction(action: AssistantAction, done: ActionD
   if (action.kind === 'profileEdit') {
     const previous = done.previous as HealthProfile | null
     if (previous) await saveHealthProfile(previous)
+    return
+  }
+
+  if (action.kind === 'profileCreate') {
+    const current = await healthProfile()
+    const created = (done.previous as { createdProfile?: HealthProfile } | undefined)?.createdProfile
+    if (current && created && JSON.stringify(current) === JSON.stringify(created)) await deleteHealthProfile()
+    else throw new Error('身体档案已变化，不能直接撤销创建。')
+    return
+  }
+
+  if (action.kind === 'profileDelete') {
+    const previous = done.previous as HealthProfile | null
+    if (!previous) return
+    if (await healthProfile()) throw new Error('已经有新的身体档案，不能覆盖恢复。')
+    await saveHealthProfile(previous)
     return
   }
 

@@ -140,6 +140,7 @@ function meal(over: Partial<HealthMeal> = {}): HealthMeal {
     id: 'm1',
     name: '',
     items: [],
+    photo: null,
     createdAt: T,
     updatedAt: T,
     deletedAt: null,

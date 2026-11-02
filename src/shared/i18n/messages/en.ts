@@ -10,7 +10,7 @@ export const en: Record<MessageKey, string> = {
   'home.diaryDesc': 'Jot down today',
   'home.healthDesc': 'Sleep · Mood · Weight',
   'home.financeDesc': 'Every income & expense',
-  'home.calendarDesc': 'To be designed',
+  'home.calendarDesc': 'Month · Week · Schedule',
 
   // ─────────── Health ───────────
   'health.setupNeeded': 'Your body profile is incomplete, so calorie tracking is off.',
@@ -332,10 +332,10 @@ export const en: Record<MessageKey, string> = {
   'foods.mealEdit': 'Edit meal',
   'foods.mealCover': 'Meal cover',
   'foods.mealCoverHint':
-    'Uses the first component that has a photo; change that food’s photo to update the cover.',
+    'Upload your own cover; without one, the first component with a photo is used.',
   'foods.mealAiAsk': 'Chat with AI to split this meal',
   'foods.mealAiHint':
-    'Say something like “a bowl of beef noodles and a marinated egg”; AI splits it into foods and grams and adds them below.',
+    'Say something like “a bowl of beef noodles and a marinated egg”; AI splits it into foods and grams and adds them below. You can also attach a photo for reference.',
   'foods.mealAiPlaceholder': 'e.g. a bowl of beef noodles, one marinated egg',
   'foods.mealAiAdded': 'Added {n} items. Anything else?',
   'foods.mealAiNothing': 'No food recognized from that. Be more specific and try again.',
@@ -349,9 +349,15 @@ export const en: Record<MessageKey, string> = {
   'foods.aiAsk': 'Chat with AI to estimate nutrition',
   'foods.aiTitle': 'AI nutrition estimate',
   'foods.aiDesc':
-    'Describe the food. AI asks about how it is cooked and the portion, then gives per-100 g nutrition.',
+    'Describe the food, or attach a photo for reference. AI asks about how it is cooked and the portion, then gives per-100 g nutrition.',
   'foods.aiGreeting':
-    'What food would you like to estimate? More detail helps, e.g. “chicken rice set, one portion”.',
+    'What food would you like to estimate? More detail helps, e.g. “chicken rice set, one portion”; attach a package or dish photo if you have one.',
+  'foods.aiAttachTitle': 'Image reference',
+  'foods.aiAttachHint':
+    'Up to 3 images. The first photo you scanned is added automatically, and you can add your own; images are sent only for this chat and are not saved to the food library.',
+  'foods.aiAttachAdd': 'Add image',
+  'foods.aiAttachRemove': 'Remove this image',
+  'foods.aiAttachFull': 'Up to 3 images',
   'foods.aiPlaceholder': 'e.g. chicken rice set, one portion',
   'foods.aiSend': 'Send',
   'foods.aiThinking': 'Estimating…',
@@ -781,7 +787,7 @@ export const en: Record<MessageKey, string> = {
   'assistant.needConfig': 'No AI model is available yet.',
   'assistant.goSettings': 'Set up a model',
   'assistant.intro':
-    'Ask me about your diary, quick notes, food, sleep, spending and weight. I can also log expenses, meals, sleep or quick notes for you — nothing is written until you confirm.',
+    'Ask me about your diary, quick notes, food, sleep, spending and weight. I can also log expenses, meals, sleep or quick notes. Your editing permission decides whether new records save automatically.',
   'assistant.example1': 'How has my weight moved in the last 7 days?',
   'assistant.example2': 'What was I worried about last week?',
   'assistant.example3': 'Where did my money go this month?',
@@ -975,15 +981,15 @@ export const en: Record<MessageKey, string> = {
 
   'permission.title': 'What the assistant may do',
   'permission.description':
-    'Decide how the assistant touches your records: read only, ask before changing, or apply changes directly.',
+    'Choose read only, confirmation before writing, or automatic saving for new records.',
   'permission.readonly': 'Read only',
   'permission.readonlyHint': 'Can look things up and answer, but cannot add, change or delete anything',
   'permission.confirm': 'Ask before changing',
   'permission.confirmHint': 'Adding, changing and deleting all need your confirmation first',
-  'permission.auto': 'Change directly',
-  'permission.autoHint': 'Additions and edits are saved at once; deletions still need your confirmation',
+  'permission.auto': 'Auto-save new records',
+  'permission.autoHint': 'New records save automatically; edits, overwrites and deletions still need confirmation',
   'permission.deleteNote':
-    'Deletions always need your confirmation, and deleted records go to the recycle bin where they can be restored.',
+    'Deletions always need confirmation. Records with a recycle bin go there; other deletions can be undone after the action.',
 
   'reasoning.title': 'Deep thinking',
   'reasoning.description':
@@ -1050,6 +1056,11 @@ export const en: Record<MessageKey, string> = {
   'ball.description':
     'The ball sits at the screen edge — tap it to open the assistant. Drag it to move; left alone for a while, it docks to the edge showing only half.',
   'ball.shape': 'Shape',
+  'ball.customImage': 'Custom image',
+  'ball.uploadImage': 'Upload image',
+  'ball.replaceImage': 'Replace image',
+  'ball.resetImage': 'Use default',
+  'ball.imageFailed': 'Could not process the image. Try another one.',
   'ball.size': 'Size',
   'ball.shape.star4': '4-point star',
   'ball.shape.star8': '8-point star',
@@ -1574,6 +1585,13 @@ export const en: Record<MessageKey, string> = {
 
   'diary.tabDiary': 'Diary',
   'diary.tabStamp': 'Stamps',
+  'diary.allRecords': 'All records',
+  'diary.noAllRecords': 'No diary entries or notes',
+  'diary.archiveCount': '{count} records · Page {page} of {pages}',
+  'diary.previousPage': 'Previous',
+  'diary.nextPage': 'Next',
+  'diary.pageOf': 'Page {page} of {pages}',
+  'diary.pagination': 'Pagination',
   'diary.prevDay': 'Previous',
   'diary.nextDay': 'Next',
   'diary.today': 'Today',

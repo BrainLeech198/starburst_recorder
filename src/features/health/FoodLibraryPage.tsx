@@ -212,7 +212,11 @@ export default function FoodLibraryPage() {
     else showToast({ message: t('share.mealEmpty') })
   }
 
-  async function handleMealSubmit(draft: { name: string; items: { foodId: string; grams: number }[] }) {
+  async function handleMealSubmit(draft: {
+    name: string
+    photo: string | null
+    items: { foodId: string; grams: number }[]
+  }) {
     const duplicated = (meals ?? []).some(
       (meal) => meal.id !== editingMeal?.id && meal.name.toLowerCase() === draft.name.toLowerCase(),
     )
@@ -225,6 +229,7 @@ export default function FoodLibraryPage() {
       id: editingMeal?.id ?? newId(),
       name: draft.name,
       items: draft.items,
+      photo: draft.photo,
       createdAt: editingMeal?.createdAt ?? now,
       updatedAt: now,
       deletedAt: null,

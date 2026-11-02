@@ -66,12 +66,12 @@ export default function SettingCard({
   return (
     <div className="rounded-2xl border border-line bg-surface p-4">
       {hasHeader && (
-        <div className="flex items-start justify-between gap-3">
-          <div>
+        <div>
+          <div className="flex items-start justify-between gap-3">
             {title && <h2 className="text-sm font-medium text-fg">{title}</h2>}
-            {description && <p className="mt-1 text-xs text-muted">{description}</p>}
+            {badge}
           </div>
-          {badge}
+          {description && <p className="mt-1 text-xs text-muted">{description}</p>}
         </div>
       )}
       {children}

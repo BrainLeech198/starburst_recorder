@@ -334,7 +334,7 @@ export default function FinancePage() {
             type="button"
             onClick={() => void handleOpenExport()}
             disabled={rows.length === 0}
-            className="inline-flex items-center text-xs text-muted transition-colors hover:text-brand disabled:opacity-40"
+            className="inline-flex min-h-9 items-center rounded-lg px-2 text-xs text-muted transition-colors hover:text-brand disabled:opacity-40"
           >
             <Icon name="export" className="mr-1 h-3.5 w-3.5 shrink-0" />
             {t('records.export')}
@@ -342,14 +342,14 @@ export default function FinancePage() {
           <button
             type="button"
             onClick={() => importInputRef.current?.click()}
-            className="inline-flex items-center text-xs text-muted transition-colors hover:text-brand"
+            className="inline-flex min-h-9 items-center rounded-lg px-2 text-xs text-muted transition-colors hover:text-brand"
           >
             <Icon name="import" className="mr-1 h-3.5 w-3.5 shrink-0" />
             {t('records.import')}
           </button>
           <Link
             to="/finance/trash"
-            className="inline-flex items-center text-xs text-muted transition-colors hover:text-brand"
+            className="inline-flex min-h-9 items-center rounded-lg px-2 text-xs text-muted transition-colors hover:text-brand"
           >
             <Icon name="trash" className="mr-1 h-3.5 w-3.5 shrink-0" />
             {t('finance.trash')}
@@ -442,7 +442,7 @@ export default function FinancePage() {
       )}
 
       {/* 按钮条：记一笔 / 批量 / 问 AI 收进同一条，和摄入页的按钮行一个结构 */}
-      <ToolbarRow className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+      <ToolbarRow className="mt-2 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
         {!batch.active ? (
           <>
             <button
@@ -468,7 +468,7 @@ export default function FinancePage() {
             </button>
           </>
         ) : (
-          <span className="col-span-2 px-1 text-xs text-muted">{t('finance.batchHint')}</span>
+          <span className="col-span-3 px-1 text-xs text-muted">{t('finance.batchHint')}</span>
         )}
       </ToolbarRow>
 
@@ -668,7 +668,7 @@ export default function FinancePage() {
                 return (
                   <li
                     key={entry.id}
-                    className={`flex items-center gap-3 rounded-xl border p-3 ${
+                    className={`flex flex-wrap items-center gap-3 rounded-xl border p-3 sm:flex-nowrap ${
                       selected ? 'border-brand bg-brand/10' : 'border-line bg-surface'
                     }`}
                   >
@@ -688,7 +688,7 @@ export default function FinancePage() {
                         className="h-11 w-11 shrink-0 rounded-lg border border-line/60 object-cover"
                       />
                     )}
-                    <span className="shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] tabular-nums text-muted">
+                    <span className="hidden shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] tabular-nums text-muted sm:inline-flex">
                       {entry.time}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -698,12 +698,15 @@ export default function FinancePage() {
                         onClick={() => setViewEntry(entry)}
                         className="block w-full rounded text-left transition-colors hover:text-brand disabled:cursor-default"
                       >
-                        <p className="m-0 flex items-baseline gap-2 text-sm text-fg">
+                        <p className="m-0 text-sm text-fg">
                           <span className="min-w-0 truncate">{entry.name}</span>
-                          <span className="shrink-0 font-mono text-[10px] text-muted">
+                        </p>
+                        <p className="m-0 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
+                          <span className="tabular-nums sm:hidden">{entry.time}</span>
+                          <span className="font-mono">
                             {entry.code}
                           </span>
-                          <span className="shrink-0 rounded-md border border-line px-1.5 py-0.5 text-[10px] text-muted">
+                          <span className="rounded-md border border-line px-1.5 py-0.5">
                             {t(categoryKey(entry.category))}
                           </span>
                         </p>
@@ -722,7 +725,7 @@ export default function FinancePage() {
                       {money(entry.amount)}
                     </span>
                     {!batch.active && (
-                      <div className="flex shrink-0 items-center gap-1">
+                      <div className="flex w-full items-center justify-end gap-1 border-t border-line/60 pt-2 sm:w-auto sm:border-0 sm:pt-0">
                         <button
                           type="button"
                           onClick={() => setDialog({ entry, date: entry.dateKey })}

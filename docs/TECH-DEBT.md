@@ -22,20 +22,38 @@
 
 ## 1. 第 0 档：已经在骗用户的 bug（全部 S，建议本周内修完）
 
-1. **彻底删除后界面不刷新。** 变更总线白名单 [src/core/db/changes.ts:60-106](../src/core/db/changes.ts) 漏登记
+1. **彻底删除后界面不刷新。** ✅ **已修（`cb4d1dd`）**。变更总线白名单 [src/core/db/changes.ts](../src/core/db/changes.ts) 漏登记
    `purgeIntake` / `purgeTrashedIntakes` / `purgeFinance` / `purgeTrashedFinance`，而
    [FinanceTrashPage.tsx:47](../src/features/finance/FinanceTrashPage.tsx) 与摄入回收站页正在调用 → 删完不收行，
    要等下一次别处的写才恢复。
    口径：把 `store.ts` 契约里的 93 个写方法逐一对过白名单，缺口只有这 4 个（其余命中是 `trashed*` 读方法的前缀误判）。
-2. **"删除必须确认"靠命名后缀判定。** [assistantPermission.ts:35-41](../src/features/assistant/assistantPermission.ts)
-   只认 `kind.endsWith('Delete')`。动作 kind 全集里 `weatherEdit` / `sleepEdit` / `profileEdit` / `weigh` 在「直接改」档
-   **不经确认落库**，而它们能把已有天气清空、覆盖当天已有的睡眠记录——与文件头注释的意图相反。
-3. **AI 全链路没有取消与超时。** 唯一出口 `chat()` 不带 AbortSignal（[aiClient.ts:49-98](../src/features/ai/aiClient.ts)、
-   主进程 `net.fetch` 同样无 signal，`electron/main.cjs` 约 408 行）→ 服务商挂起则界面永久 busy，卸载不 abort；429 只翻译文案不重试。
-4. **桌面端两个 IPC 缺纵深防御。** `update:download` 接受任意 URL、`update:install` 把渲染层给的路径直接
-   `shell.openPath`（`electron/main.cjs` 约 643 / 711 行）。主进程里已有一条现成的 `UPDATE_INSTALLER` 正则（清理缓存那段在用），
-   复用它即可把安装路径锁在「下载」目录 + 文件名匹配；下载 URL 限 GitHub / Gitee release 域。
-   同处缺口：无 CSP（`index.html` 无 meta，`protocol.handle('app')` 不设响应头）、全仓无 `will-navigate` / `setWindowOpenHandler`。
+   同批补了第 2 节要的那道闸门：[src/core/db/changeBus.test.ts](../src/core/db/changeBus.test.ts) 双向比对契约与白名单。
+2. **"删除必须确认"靠命名后缀判定。** ✅ **已修（2026-11-02）**。[assistantPermission.ts:34-55](../src/features/assistant/assistantPermission.ts)
+   改成新增白名单：只有 `AUTO_CREATE_KINDS` 里的纯新增动作能在「新增自动保存」档免确认，
+   `weatherEdit` / `sleepEdit` / `profileEdit` / `weigh` 等修改动作一律走确认；
+   删除仍全部要求确认，并在 [assistantActions.ts:475](../src/features/assistant/assistantActions.ts) 落库前校验档案版本号，
+   撤销快照可恢复档案与记忆。回归用例在 [assistantPermission.test.ts](../src/features/assistant/assistantPermission.test.ts)
+   与 [assistantActionBuild.test.ts](../src/features/assistant/assistantActionBuild.test.ts)。
+3. **AI 全链路没有取消与超时。** ✅ **传输层已补（本轮）**。三条路现在都带期限：
+   主进程那一路抽成不依赖 electron 的 [electron/aiRequest.cjs](../electron/aiRequest.cjs)
+   （`CHAT_TIMEOUT_MS` 5 分钟 / `MODELS_TIMEOUT_MS` 20 秒，用例在 [aiRequest.test.ts](../src/features/ai/aiRequest.test.ts)）；
+   渲染层直连与开发转发用 [src/features/ai/aiDeadline.ts](../src/features/ai/aiDeadline.ts) 合流「调用方 signal + 兜底定时器」，
+   用例在 [aiDeadline.test.ts](../src/features/ai/aiDeadline.test.ts)。
+   `chat(request, signal?)` / `listModels(..., signal?)` 可选收一个 AbortSignal，桌面端靠流水号转成一次 `ai:cancel`
+   （`electron/main.cjs` 的 `inFlight` 在飞表，`preload.cjs` 多递一个 requestId）。
+   **还差两件**：① 17 个调用点一个都没传 signal，「卸载不 abort」只在 [ModelForm.tsx:78](../src/features/ai/ModelForm.tsx) 这类
+   靠 `alive` 旗标兜住的地方算完，界面上也还没有「停止」按钮——顺带说一句：`viaDesktop` 交回的是主进程那份带
+   `cancelled` 标记的结果，渲染层不再自己计时，所以 [aiClient.ts](../src/features/ai/aiClient.ts) 的 `explainFailure()`
+   目前读不到它，接「停止」按钮时要先补一条取消的文案（要动九语言表，属发版占用面）。② 429 仍然只翻译文案不重试。
+   期限那两个数是粗兜底、**待标定**：等 `ai.chat.done` 日志里的 ms 分布攒够一批再收紧。
+4. **桌面端两个 IPC 缺纵深防御。** ✅ **已修（本轮）**。守卫集中在
+   [electron/updateGuards.cjs](../electron/updateGuards.cjs)（纯函数，不起窗口就能测）：
+   下载 URL 只认我们仓库的 GitHub release 路径与 Gitee 域、落盘文件名必须是安装包形状、
+   安装路径只能落在「下载」目录**这一层**（`.part` 与子目录、`..\` 全否）。
+   用例在 [src/features/update/updateGuards.test.ts](../src/features/update/updateGuards.test.ts)。
+   **同处缺口仍在**：无 CSP（`index.html` 无 meta，`protocol.handle('app')` 不设响应头）、
+   全仓无 `will-navigate` / `setWindowOpenHandler`。
+
 
 ## 2. 第 1 档：把"手工同步 N 份副本"变成机器检查（本轮最划算）
 
@@ -44,7 +62,7 @@
 | 闸门 | 治的漂移 | 改动量 |
 |---|---|---|
 | **Dexie / SQLite 双实现一致性测试**（同一组用例跑两边） | 排序漂移（`diaryPresets`：Dexie 用 `localeCompare`，SQLite 走二进制 `ORDER BY`，中文名两端序不同；`stampsOfDay`/`trainings` 同值无 tiebreak）；`mergeHealthFoods` 语义相反（SQLite 对回收站中的食物抛错，Dexie 不查 `deletedAt`）；**Dexie 侧目前 0 个测试** | L（要引 fake-indexeddb） |
-| **变更总线白名单 = 契约写方法** 断言测试 | 第 1 节第 1 条那类漏注册，永不再犯 | S |
+| **变更总线白名单 = 契约写方法** 断言测试 | ✅ 已建（`cb4d1dd`，[changeBus.test.ts](../src/core/db/changeBus.test.ts)）：第 1 节第 1 条那类漏注册，永不再犯 | S |
 | **i18n 孤儿 key 检查 + 动态 key 前缀白名单** | 现测得 **68 个孤儿 key**（×9 语言≈600 条死文案，含少量 `training.kind.${x}` 式动态 key 的可能误判）；key *完整性*已由类型兜住（[context.ts:39](../src/shared/i18n/context.ts) 是 `Record<MessageKey, string>`），缺的是反向检查与 `{name}` 占位符一致性 | S/M |
 | **发版版本一致性脚本**（`package.json` ↔ `android/app/build.gradle` ↔ `site/notes.zh.md` ↔ 更新日志） | PACKAGING 文档自己列的"最容易错三处"目前全靠肉眼 | M |
 

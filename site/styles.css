@@ -637,6 +637,10 @@ html[lang='en'] .download h3 {
   color: var(--ink-soft);
 }
 
+.note + .note {
+  margin-top: 14px;
+}
+
 .steps {
   margin-top: 40px;
   max-width: 68ch;

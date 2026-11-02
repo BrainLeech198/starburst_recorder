@@ -60,7 +60,7 @@ export function buildMealShare(meal: HealthMeal, foods: HealthFood[]): ShareMeal
     kind: 'meal',
     title: meal.name,
     createdAt: Date.now(),
-    data: { name: meal.name, items },
+    data: { name: meal.name, photo: meal.photo ?? null, items },
   }
 }
 
@@ -124,6 +124,7 @@ async function importSharedMeal(doc: ShareMealDoc, t: Translate): Promise<string
     id: newId(),
     name,
     items,
+    photo: doc.data.photo,
     createdAt: now,
     updatedAt: now,
     deletedAt: null,

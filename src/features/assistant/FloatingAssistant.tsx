@@ -14,6 +14,8 @@ import AssistantChat from './AssistantChat'
 const POS_KEY = 'starburst.ball.pos'
 const EDGE = 8
 const DRAG_THRESHOLD = 5
+/** 贴边时至少留出 44px，手指仍有足够的可点区域。 */
+const PEEK_VISIBLE_PX = 44
 /** 多久没有交互后，吉祥物自动贴到最近的边、只露半边 */
 const PEEK_DELAY_MS = 30_000
 
@@ -50,10 +52,11 @@ function clampToViewport(point: Point, size: number): Point {
   }
 }
 
-/** 贴到最近的一条边，只露半边 */
+/** 贴到最近的一条边，至少露出 44px */
 function peekTarget(point: Point, size: number): Point {
   const width = window.innerWidth
   const height = window.innerHeight
+  const visible = Math.min(size, PEEK_VISIBLE_PX)
   const gaps = [
     { edge: 'left', value: point.x },
     { edge: 'right', value: width - (point.x + size) },
@@ -62,10 +65,10 @@ function peekTarget(point: Point, size: number): Point {
   ] as const
   const nearest = gaps.reduce((a, b) => (b.value < a.value ? b : a))
 
-  if (nearest.edge === 'left') return { x: -size / 2, y: point.y }
-  if (nearest.edge === 'right') return { x: width - size / 2, y: point.y }
-  if (nearest.edge === 'top') return { x: point.x, y: -size / 2 }
-  return { x: point.x, y: height - size / 2 }
+  if (nearest.edge === 'left') return { x: visible - size, y: point.y }
+  if (nearest.edge === 'right') return { x: width - visible, y: point.y }
+  if (nearest.edge === 'top') return { x: point.x, y: visible - size }
+  return { x: point.x, y: height - visible }
 }
 
 export default function FloatingAssistant() {
@@ -78,7 +81,7 @@ export default function FloatingAssistant() {
   const [open, setOpen] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [hovering, setHovering] = useState(false)
-  const [peeking, setPeeking] = useState(false)
+  const [peeking, setPeeking] = useState(() => readPos() === null)
   const [tick, setTick] = useState(0)
 
   const dragStart = useRef<Point | null>(null)
@@ -110,9 +113,9 @@ export default function FloatingAssistant() {
     setTick((value) => value + 1)
   }
 
-  function handlePointerEnter() {
+  function handlePointerEnter(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.pointerType !== 'mouse') return
     setHovering(true)
-    if (peeking) wake()
   }
 
   function handlePointerLeave() {
@@ -120,9 +123,10 @@ export default function FloatingAssistant() {
   }
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    // 半藏状态下先叫出来，不进入拖拽
+    // 半藏时直接打开：球的位置会在唤醒时移动，不能依赖移动后的 click 命中。
     if (peeking) {
       wake()
+      setOpen(true)
       return
     }
     setDragging(true)
@@ -201,7 +205,11 @@ export default function FloatingAssistant() {
         ].join(' ')}
         style={{ left: shown.x, top: shown.y, width: size, height: size }}
       >
-        <Mascot shape={prefs.shape} color={accent} size={size} className="animate-breathe" />
+        {prefs.image ? (
+          <img src={prefs.image} alt="" className="h-full w-full rounded-full border border-line object-cover shadow-lg animate-breathe motion-reduce:animate-none" />
+        ) : (
+          <Mascot shape={prefs.shape} color={accent} size={size} className="animate-breathe" />
+        )}
       </div>
 
       {open && <AssistantSheet onClose={() => setOpen(false)} />}

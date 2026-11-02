@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { BackupData } from '@/core/db/store'
-import type { HealthFood } from '@/core/db/schema'
+import type { HealthFood, HealthProfile, ScheduleItem } from '@/core/db/schema'
 import { buildAssistantAction, describeAction } from './assistantActionBuild'
+import { emptyProfile } from '@/features/health/healthMath'
 
 function emptyData(): BackupData {
   return {
@@ -40,6 +41,84 @@ function food(overrides: Partial<HealthFood> = {}): HealthFood {
 }
 
 const CTX = { data: emptyData(), today: '2026-10-28', now: new Date(2026, 9, 28, 9, 5).getTime() }
+
+describe('身体档案创建和删除', () => {
+  it('空档案可创建，已有档案只可修改，删除卡片列出称重条数', () => {
+    const data = emptyData()
+    const ctx = { data, today: '2026-10-28' }
+    const created = buildAssistantAction('create_profile', { heightCm: 170 }, ctx)
+    expect(created.ok).toBe(true)
+    if (created.ok) expect(created.action.kind).toBe('profileCreate')
+    expect(buildAssistantAction('update_profile', { heightCm: 170 }, ctx).ok).toBe(false)
+    data.profile = { ...emptyProfile(), updatedAt: 42, weighIns: [{ dateKey: '2026-10-28', weightKg: 70, createdAt: 1 }] }
+    expect(buildAssistantAction('create_profile', { heightCm: 170 }, ctx).ok).toBe(false)
+    const deleted = buildAssistantAction('delete_profile', {}, ctx)
+    expect(deleted.ok).toBe(true)
+    if (deleted.ok && deleted.action.kind === 'profileDelete') {
+      expect(deleted.action).toMatchObject({ expectedUpdatedAt: 42, weighCount: 1 })
+      expect(describeAction(deleted.action)).toContain('1 条称重')
+    }
+  })
+})
+
+describe('add_schedule', () => {
+  it('允许未来每周任务，并在预览中显示重复和提醒', () => {
+    const result = buildAssistantAction('add_schedule', {
+      date: '2026-11-02', time: '09:30', title: ' 周会 ', repeat: 'weekly',
+      weeklyDays: [3, 1, 1], remind: true,
+    }, CTX)
+    expect(result.ok).toBe(true)
+    if (result.ok && result.action.kind === 'scheduleCreate') {
+      expect(result.action).toMatchObject({ dateKey: '2026-11-02', title: '周会', weeklyDays: [1, 3] })
+      expect(describeAction(result.action)).toContain('每周 1、3')
+      expect(describeAction(result.action)).toContain('到点提醒')
+    }
+  })
+
+  it('拦住非法日期、时间与空的每周重复日', () => {
+    expect(buildAssistantAction('add_schedule', { title: '会', date: '2026-13-02' }, CTX).ok).toBe(false)
+    expect(buildAssistantAction('add_schedule', { title: '会', time: '25:99' }, CTX).ok).toBe(false)
+    expect(buildAssistantAction('add_schedule', { title: '会', repeat: 'weekly' }, CTX).ok).toBe(false)
+  })
+})
+
+describe('update_schedule / delete_schedule', () => {
+  const existing: ScheduleItem = {
+    id: 'schedule-1', code: 'd000001', dateKey: '2026-11-02', time: '09:00',
+    title: '周会', note: '带周报', repeat: 'weekly', weeklyDays: [1], remind: true,
+    doneAt: null, doneDays: ['2026-11-02'], createdAt: 1, updatedAt: 1, deletedAt: null,
+  }
+  const data = emptyData()
+  data.schedules.push(existing)
+  const ctx = { data, today: '2026-11-02' }
+
+  it('只携带要改的字段，保留其它字段给执行层原地更新', () => {
+    const result = buildAssistantAction('update_schedule', { code: 'd000001', time: '10:00' }, ctx)
+    expect(result.ok).toBe(true)
+    if (result.ok && result.action.kind === 'scheduleEdit') {
+      expect(result.action).toMatchObject({ code: 'd000001', time: '10:00', title: '周会' })
+      expect(result.action.repeat).toBeUndefined()
+      expect(result.action.weeklyDays).toBeUndefined()
+      expect(describeAction(result.action)).toContain('时刻 10:00')
+    }
+  })
+
+  it('无改动、非法重复日和不存在的编号不出卡片', () => {
+    expect(buildAssistantAction('update_schedule', { code: 'd000001' }, ctx).ok).toBe(false)
+    expect(buildAssistantAction('update_schedule', { code: 'd000001', weeklyDays: [8] }, ctx).ok).toBe(false)
+    expect(buildAssistantAction('update_schedule', { code: 'd000001', weeklyDays: [] }, ctx).ok).toBe(false)
+    expect(buildAssistantAction('delete_schedule', { code: 'missing' }, ctx).ok).toBe(false)
+  })
+
+  it('删除卡片显示目标，实际删除留给确认后的执行层', () => {
+    const result = buildAssistantAction('delete_schedule', { code: 'd000001' }, ctx)
+    expect(result.ok).toBe(true)
+    if (result.ok && result.action.kind === 'scheduleDelete') {
+      expect(describeAction(result.action)).toContain('周会')
+      expect(describeAction(result.action)).toContain('回收站')
+    }
+  })
+})
 
 describe('add_finance', () => {
   it('默认记今天、收正数金额、只认匹配方向的分类', () => {
@@ -135,6 +214,26 @@ describe('add_weigh / add_intake', () => {
     expect(buildAssistantAction('add_weigh', { weightKg: 65.44 }, CTX).ok).toBe(true)
     expect(buildAssistantAction('add_weigh', { weightKg: 5 }, CTX).ok).toBe(false)
     expect(buildAssistantAction('add_weigh', { weightKg: 500 }, CTX).ok).toBe(false)
+  })
+
+  it('已有称重不能作为新增覆盖，修改须指定日期并显示旧值', () => {
+    const data = emptyData()
+    const profile: HealthProfile = {
+      id: 'me', sex: null, age: null, heightCm: null, weightKg: 70, weightAt: 1,
+      activity: null, tdee: null, targetKcal: null, proteinTarget: null, plan: '', note: '',
+      weighDay: null, weighTime: '07:00', idealBedtime: '23:00', idealWakeTime: '07:00',
+      weighIns: [{ dateKey: '2026-10-28', weightKg: 70, createdAt: 1 }], updatedAt: 1,
+    }
+    data.profile = profile
+    const ctx = { data, today: '2026-10-28' }
+    expect(buildAssistantAction('add_weigh', { weightKg: 69 }, ctx).ok).toBe(false)
+    expect(buildAssistantAction('update_weigh', { weightKg: 69 }, ctx).ok).toBe(false)
+    const result = buildAssistantAction('update_weigh', { date: '2026-10-28', weightKg: 69 }, ctx)
+    expect(result.ok).toBe(true)
+    if (result.ok && result.action.kind === 'weighEdit') {
+      expect(result.action).toMatchObject({ previousKg: 70, weightKg: 69 })
+      expect(describeAction(result.action)).toContain('70 → 69')
+    }
   })
 
   it('从食物库按克数换算营养', () => {
@@ -463,6 +562,7 @@ describe('食物库、套餐、预设与记忆的增删改', () => {
       id: 'meal_1',
       name: '鸡腿饭',
       items: [{ foodId: 'food_1', grams: 120 }],
+      photo: null,
       createdAt: 0,
       updatedAt: 0,
       deletedAt: null,

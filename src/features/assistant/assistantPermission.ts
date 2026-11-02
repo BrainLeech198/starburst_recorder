@@ -1,8 +1,8 @@
 /**
- * 助手能对记录做什么：只读、改前确认、直接改。
+ * 助手能对记录做什么：只读、改前确认、新增自动保存。
  *
  * 这一层只管「给不给工具、要不要确认」，不碰数据库；
- * 删除类动作即便选了「直接改」也要过一遍确认，避免一句话把记录删掉。
+ * 修改与删除即便选了「新增自动保存」也要过一遍确认，避免一句话覆盖记录。
  */
 export type AssistantPermission = 'readonly' | 'confirm' | 'auto'
 
@@ -31,12 +31,25 @@ export function canWrite(permission: AssistantPermission) {
   return permission !== 'readonly'
 }
 
-/** 删除类动作永远要确认，哪怕开了「直接改」 */
+/** 只有明确列在这里的纯新增动作可在「新增自动保存」档免确认。 */
+const AUTO_CREATE_KINDS = new Set([
+  'memory', 'finance', 'stamp', 'diary', 'intake',
+  'foodCreate', 'mealCreate', 'presetCreate', 'training',
+])
+
+/** 只用于生成准确的删除提示；确认策略由上面的新增白名单决定。 */
+const DELETE_KINDS = new Set([
+  'scheduleDelete',
+  'profileDelete',
+  'financeDelete', 'stampDelete', 'intakeDelete', 'sleepDelete', 'diaryDelete',
+  'weighDelete', 'foodDelete', 'mealDelete', 'presetDelete', 'trainingDelete', 'memoryDelete',
+])
+
 export function isDeleteKind(kind: string) {
-  return kind.endsWith('Delete')
+  return DELETE_KINDS.has(kind)
 }
 
 /** 这一档下，这条动作是不是可以不经确认直接执行 */
 export function runsWithoutConfirm(permission: AssistantPermission, kind: string) {
-  return permission === 'auto' && canWrite(permission) && !isDeleteKind(kind)
+  return permission === 'auto' && AUTO_CREATE_KINDS.has(kind)
 }

@@ -68,6 +68,7 @@ export const WRITE_METHODS = new Set([
   'trashFinanceData',
   // 健康
   'saveHealthProfile',
+  'deleteHealthProfile',
   'saveHealthFood',
   'mergeHealthFoods',
   'removeHealthFood',

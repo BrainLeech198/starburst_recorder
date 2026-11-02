@@ -10,7 +10,7 @@ export const es: Record<MessageKey, string> = {
   'home.diaryDesc': 'Anota tu día en un momento',
   'home.healthDesc': 'Sueño · Ánimo · Peso',
   'home.financeDesc': 'Cada ingreso y gasto',
-  'home.calendarDesc': 'Por diseñar',
+  'home.calendarDesc': 'Mes · Semana · Agenda',
 
   // ─────────── Salud ───────────
   'health.setupNeeded': 'Tu perfil corporal está incompleto, así que el cálculo de calorías no está disponible.',
@@ -324,9 +324,10 @@ export const es: Record<MessageKey, string> = {
   'foods.mealEdit': 'Editar menú',
   'foods.mealCover': 'Portada del conjunto',
   'foods.mealCoverHint':
-    'Usa el primer componente con foto; cambia la foto de ese alimento para actualizarla.',
+    'Puedes subir tu propia portada; si no, se usa el primer componente con foto.',
   'foods.mealAiAsk': 'Habla con la IA para dividir esta comida',
-  'foods.mealAiHint': 'Di algo como «un bol de fideos con ternera y un huevo marinado»; la IA lo divide en alimentos y gramos y los añade abajo.',
+  'foods.mealAiHint':
+    'Di algo como «un bol de fideos con ternera y un huevo marinado»; la IA lo divide en alimentos y gramos y los añade abajo. También puedes adjuntar una foto de referencia.',
   'foods.mealAiPlaceholder': 'p. ej., un bol de fideos con ternera, un huevo marinado',
   'foods.mealAiAdded': 'Se añadieron {n} elementos. ¿Algo más?',
   'foods.mealAiNothing': 'No se reconoció ningún alimento. Sé más concreto e inténtalo de nuevo.',
@@ -338,8 +339,16 @@ export const es: Record<MessageKey, string> = {
   'foods.mealPhotoDone': 'Se añadieron {n} elementos desde la foto; puedes ajustar los gramos.',
   'foods.aiAsk': 'Habla con la IA para estimar la nutrición',
   'foods.aiTitle': 'Estimación nutricional con IA',
-  'foods.aiDesc': 'Describe el alimento. La IA preguntará cómo está hecho y la ración, y dará la nutrición por 100 g.',
-  'foods.aiGreeting': '¿Qué alimento quieres estimar? Cuanto más concreto, mejor, por ejemplo «pollo con arroz, una ración».',
+  'foods.aiDesc':
+    'Describe el alimento o adjunta una foto de referencia. La IA preguntará cómo está hecho y la ración, y dará la nutrición por 100 g.',
+  'foods.aiGreeting':
+    '¿Qué alimento quieres estimar? Cuanto más concreto, mejor, por ejemplo «pollo con arroz, una ración». Una foto del envase o del plato ayuda.',
+  'foods.aiAttachTitle': 'Imagen de referencia',
+  'foods.aiAttachHint':
+    'Hasta 3 imágenes. La primera foto escaneada se añade automáticamente y puedes añadir las tuyas; solo se envían a esta conversación y no se guardan en la biblioteca.',
+  'foods.aiAttachAdd': 'Añadir imagen',
+  'foods.aiAttachRemove': 'Quitar esta imagen',
+  'foods.aiAttachFull': 'Hasta 3 imágenes',
   'foods.aiPlaceholder': 'p. ej., pollo con arroz, una ración',
   'foods.aiSend': 'Enviar',
   'foods.aiThinking': 'Estimando…',
@@ -759,7 +768,7 @@ export const es: Record<MessageKey, string> = {
   'assistant.needConfig': 'Aún no hay ningún modelo de IA disponible.',
   'assistant.goSettings': 'Configurar un modelo',
   'assistant.intro':
-    'Pregúntame sobre tu diario, notas, comidas, sueño, gastos y peso. También puedo apuntar gastos, comidas, sueño o notas: nada se guarda hasta que lo confirmes.',
+    'Pregúntame sobre tu diario, notas, comidas, sueño, gastos y peso. También puedo crear registros. El permiso de edición decide si los registros nuevos se guardan automáticamente.',
   'assistant.example1': '¿Cómo ha evolucionado mi peso en los últimos 7 días?',
   'assistant.example2': '¿De qué me preocupé la semana pasada?',
   'assistant.example3': '¿En qué se fue el dinero este mes?',
@@ -952,16 +961,16 @@ export const es: Record<MessageKey, string> = {
 
   'permission.title': 'Qué puede hacer el asistente',
   'permission.description':
-    'Define cómo el asistente toca tus registros: solo lectura, confirmar antes de cambiar o aplicar directamente.',
+    'Elige solo lectura, confirmación antes de escribir o guardado automático de registros nuevos.',
   'permission.readonly': 'Solo lectura',
   'permission.readonlyHint': 'Puede consultar y responder, pero no añadir, cambiar ni eliminar nada',
   'permission.confirm': 'Confirmar antes',
   'permission.confirmHint': 'Añadir, cambiar y eliminar muestran una tarjeta que debes confirmar',
-  'permission.auto': 'Cambiar directamente',
+  'permission.auto': 'Guardar nuevos registros automáticamente',
   'permission.autoHint':
-    'Los añadidos y cambios se guardan al momento; las eliminaciones siguen pidiendo confirmación',
+    'Los registros nuevos se guardan automáticamente; los cambios, sustituciones y eliminaciones requieren confirmación',
   'permission.deleteNote':
-    'Las eliminaciones siempre necesitan tu confirmación; lo eliminado va a la papelera y se puede restaurar.',
+    'Eliminar siempre requiere confirmación. Los registros con papelera van allí; las demás eliminaciones se pueden deshacer después.',
 
   'reasoning.title': 'Pensamiento profundo',
   'reasoning.description':
@@ -1028,6 +1037,11 @@ export const es: Record<MessageKey, string> = {
   'ball.description':
     'La bola se queda en el borde de la pantalla: tócala para abrir el asistente. Arrástrala para moverla; si la dejas quieta, se pega al borde mostrando solo la mitad.',
   'ball.shape': 'Forma',
+  'ball.customImage': 'Imagen personalizada',
+  'ball.uploadImage': 'Subir imagen',
+  'ball.replaceImage': 'Cambiar imagen',
+  'ball.resetImage': 'Restablecer',
+  'ball.imageFailed': 'No se pudo procesar la imagen. Prueba con otra.',
   'ball.size': 'Tamaño',
   'ball.shape.star4': 'Estrella de 4 puntas',
   'ball.shape.star8': 'Estrella de 8 puntas',
@@ -1536,6 +1550,13 @@ export const es: Record<MessageKey, string> = {
 
   'diary.tabDiary': 'Diario',
   'diary.tabStamp': 'Notas',
+  'diary.allRecords': 'Todos los registros',
+  'diary.noAllRecords': 'No hay diarios ni notas',
+  'diary.archiveCount': '{count} registros · página {page} de {pages}',
+  'diary.previousPage': 'Anterior',
+  'diary.nextPage': 'Siguiente',
+  'diary.pageOf': 'Página {page} de {pages}',
+  'diary.pagination': 'Paginación',
   'diary.prevDay': 'Anterior',
   'diary.nextDay': 'Siguiente',
   'diary.today': 'Hoy',

@@ -8,6 +8,7 @@ export type MascotSize = 'sm' | 'md' | 'lg'
 export interface BallPrefs {
   shape: MascotShape
   size: MascotSize
+  image: string | null
 }
 
 export const MASCOT_SHAPES: { id: MascotShape; labelKey: MessageKey }[] = [
@@ -25,7 +26,7 @@ export const MASCOT_SIZES: { id: MascotSize; labelKey: MessageKey }[] = [
   { id: 'lg', labelKey: 'ball.size.lg' },
 ]
 
-const DEFAULT_PREFS: BallPrefs = { shape: 'star8', size: 'md' }
+const DEFAULT_PREFS: BallPrefs = { shape: 'star8', size: 'md', image: null }
 const PREFS_KEY = 'starburst.ball'
 
 function readPrefs(): BallPrefs {
@@ -33,7 +34,11 @@ function readPrefs(): BallPrefs {
     const raw = localStorage.getItem(PREFS_KEY)
     if (!raw) return DEFAULT_PREFS
     const parsed = JSON.parse(raw) as Partial<BallPrefs>
-    return { shape: parsed.shape ?? DEFAULT_PREFS.shape, size: parsed.size ?? DEFAULT_PREFS.size }
+    return {
+      shape: parsed.shape ?? DEFAULT_PREFS.shape,
+      size: parsed.size ?? DEFAULT_PREFS.size,
+      image: typeof parsed.image === 'string' && parsed.image.startsWith('data:image/') ? parsed.image : null,
+    }
   } catch {
     return DEFAULT_PREFS
   }

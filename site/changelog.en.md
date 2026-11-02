@@ -1,3 +1,23 @@
+## 0.12.0 · 2026-11-02
+
+### What's new
+
+- **The AI assistant can now act** — it searches all fourteen record types, reads charts and old photos, and adds, edits or deletes schedules, diary entries, notes, spending, food, sleep, training, weigh-ins and the health profile. Every write shows a preview card first; deletes always ask for confirmation, and completed writes can be undone.
+- **Auto-save is for creates only** — the "save new entries automatically" permission is now an allow-list, so edits and deletes can no longer be written straight from a sentence.
+- **Nutrition estimates can use reference photos** — food and meal AI chats take up to three images (nutrition label or the dish itself), and only the latest user message carries them.
+- **Meals have their own cover** — upload or take a cover photo; without one it falls back to the first component photo. Share codes and backups carry it.
+- **All diary entries and notes in one list** — 20 per page, newest first; a diary row opens its editor, a note row jumps to that day.
+- **Calendar and week views swipe** — swipe the month grid to change months and the week view to change weeks, using the same date logic as the paging buttons.
+- **TDEE no longer counts today** — today's unfinished weigh-ins and intake are excluded, and the health page and trend page share the same calculation.
+- **Use your own floating-ball image** — pick and compress an image, preview it live and restore the default; when peeking it keeps at least 44px on screen.
+- **Search and the ledger** — global search covers ten record types with exact tag matching; the finance page supports batch selection, swiping between periods, undoable deletes and red / green income and expense colours.
+- **Stability and safety** — desktop AI requests and update downloads gained timeouts and path guards; purging from the trash refreshes the list immediately; schedule and training backups are split into finer sections.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.12.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.12.0/starburst-recorder-0.12.0-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.12.0/starburst-recorder-0.12.0-setup.exe)
+- Android 10+: [`starburst-recorder-0.12.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.12.0/starburst-recorder-0.12.0.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.12.0/starburst-recorder-0.12.0.apk)
+
 ## 0.11.1 · 2026-11-02
 
 ### What's new

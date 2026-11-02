@@ -15,8 +15,9 @@ import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
 import { chat, explainFailure, pickReply } from '@/features/ai/aiClient'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
-import type { ChatMessage } from '@/platform/desktop'
+import type { ChatContentPart, ChatMessage } from '@/platform/desktop'
 import type { FoodDraft } from './FoodForm'
+import { MAX_REFERENCE_IMAGES, referenceImageParts } from './aiImages'
 import { parseFoodAnalysis } from './foodVision'
 import { round2 } from './healthMath'
 
@@ -26,6 +27,8 @@ const MAX_ROUNDS = 8
 const SYSTEM_PROMPT = `你是一位营养估算助手，正在帮用户把一道食物估成可以存进食物库的数据。
 
 目标：尽量准。做法（油炸、清蒸、红烧）、放油和糖的多少、配料比例、份量都会明显改变营养。
+
+用户可能附上照片：包装上的营养成分表或食物实物都可以作为主要依据，文字只作补充；照片里看不清的不要编。
 
 用户可能直接给出配料和份量（例如「1拳米饭、一个卤鸡腿、一个卤蛋」）。这时必须：
 - 逐项采用用户给的配料与份量，不许漏掉其中任何一项，也不许换成别的食材；
@@ -47,7 +50,17 @@ const SYSTEM_PROMPT = `你是一位营养估算助手，正在帮用户把一道
 per100g 里 kcal / protein / carbs / fat 四项必须都有数值；只有确实不含该营养素时才写 0，绝对不许只给热量、把其余三项留空或都写成 0。
 parts 列出这一份里的每一项、克数和热量，让用户能核对；实在拆不出来就省略 parts。`
 
-type Turn = { role: 'ai' | 'user'; text: string }
+type Turn = { role: 'ai' | 'user'; text: string; images?: string[] }
+
+/**
+ * 只有最后一条用户消息带图片：旧图每轮都重发，上下文会被图片吃光。
+ * 刚附上的参考图仍然留在界面上，方便换一张或继续追问。
+ */
+function turnContent(turn: Turn, withImages: boolean): string | ChatContentPart[] {
+  const images = withImages && turn.role === 'user' ? referenceImageParts(turn.images ?? []) : []
+  if (images.length === 0) return turn.text
+  return [{ type: 'text', text: turn.text || '（图片）' }, ...images]
+}
 
 /** 结论里的「按份拆解」明细，只用来让用户核对，不回填表单 */
 interface ProposalPart {
@@ -146,6 +159,7 @@ function parseReply(raw: string): { question?: string; proposal?: Proposal } {
 export default function FoodAiChat({
   open = true,
   initialName,
+  images = [],
   onApply,
   onClose,
 }: {
@@ -153,6 +167,8 @@ export default function FoodAiChat({
   open?: boolean
   /** 表单里已经填的名字，打开时直接拿去问 */
   initialName?: string
+  /** 随下一条消息一起发给模型的图片参考 */
+  images?: string[]
   onApply: (draft: FoodDraft) => void
   onClose: () => void
 }) {
@@ -175,7 +191,11 @@ export default function FoodAiChat({
     if (!configured || startedRef.current) return
     startedRef.current = true
     const name = initialName?.trim() ?? ''
-    if (name !== '') void ask(`我想估一下「${name}」的营养`)
+    if (name !== '') {
+      void ask(`我想估一下「${name}」的营养${images.length > 0 ? '，可以参考我附的照片' : ''}`)
+    } else if (images.length > 0) {
+      void ask('请参考我附的照片，估一下这份食物的营养')
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -187,16 +207,21 @@ export default function FoodAiChat({
   async function ask(answer?: string) {
     setLoading(true)
     setError('')
-    if (answer !== undefined) {
-      setTurns((current) => [...current, { role: 'user', text: answer }])
-    }
+    const sentImages = answer !== undefined ? images.slice(0, MAX_REFERENCE_IMAGES) : []
+    const nextTurns: Turn[] =
+      answer !== undefined ? [...turns, { role: 'user', text: answer, images: sentImages }] : turns
+    if (answer !== undefined) setTurns(nextTurns)
 
-    const history: ChatMessage[] = turns.map(
-      (turn) => ({ role: turn.role === 'ai' ? 'assistant' : 'user', content: turn.text } as ChatMessage),
+    const lastUserIndex = nextTurns.reduce(
+      (latest, turn, index) => (turn.role === 'user' ? index : latest),
+      -1,
     )
-    if (answer !== undefined) history.push({ role: 'user', content: answer })
+    const history: ChatMessage[] = nextTurns.map((turn, index) => ({
+      role: turn.role === 'ai' ? 'assistant' : 'user',
+      content: turnContent(turn, index === lastUserIndex),
+    }))
 
-    const answered = turns.filter((turn) => turn.role === 'user').length + (answer !== undefined ? 1 : 0)
+    const answered = nextTurns.filter((turn) => turn.role === 'user').length
     const atLimit = answered >= MAX_ROUNDS
 
     async function request(force: boolean) {
@@ -298,7 +323,19 @@ export default function FoodAiChat({
                     : 'self-end rounded-tr-sm bg-brand/10 text-fg'
                 }`}
               >
-                {turn.text}
+                {(turn.images?.length ?? 0) > 0 && (
+                  <div className="mb-1 flex flex-wrap gap-1">
+                    {turn.images?.map((image, imageIndex) => (
+                      <img
+                        key={`${imageIndex}-${image.slice(-16)}`}
+                        src={image}
+                        alt=""
+                        className="h-14 w-14 rounded-lg border border-line object-cover"
+                      />
+                    ))}
+                  </div>
+                )}
+                {turn.text !== '' && <p className="m-0 whitespace-pre-wrap">{turn.text}</p>}
               </div>
             ))}
             {loading && (

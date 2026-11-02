@@ -128,6 +128,8 @@ export interface HealthMeal {
   id: string
   name: string
   items: HealthMealItem[]
+  /** 套餐自己的封面照片，压缩后的 data URL；没有就回退到第一个有照片的成分 */
+  photo: string | null
   createdAt: number
   updatedAt: number
   deletedAt: number | null

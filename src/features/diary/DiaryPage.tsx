@@ -101,9 +101,9 @@ export default function DiaryPage() {
   function setDateKey(next: string) {
     // 换天要退出批量：选中的 id 属于旧的那天，留着会删到看不见的记录
     batch.exit()
-    setSearchParams({ date: next }, { replace: true })
+    setSearchParams({ date: next, ...(mode === 'stamp' ? { mode } : {}) }, { replace: true })
   }
-  const [mode, setMode] = useState<'diary' | 'stamp'>('diary')
+  const mode = searchParams.get('mode') === 'stamp' ? 'stamp' : 'diary'
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<DiaryEntry | null>(null)
   const [hint, setHint] = useState('')
@@ -154,7 +154,7 @@ export default function DiaryPage() {
   function switchMode(next: 'diary' | 'stamp') {
     if (next === mode) return
     batch.exit()
-    setMode(next)
+    setSearchParams({ date: dateKey, ...(next === 'stamp' ? { mode: next } : {}) }, { replace: true })
   }
 
   /** 新增：只开一份内存草稿，进编辑页点了保存才落盘 */
@@ -416,6 +416,12 @@ export default function DiaryPage() {
               <Icon name="folder" className="mr-1 h-3.5 w-3.5 shrink-0" />
               {t('diary.presets')}
             </Link>
+            <Link
+              to="/diary/all"
+              className="ml-1 inline-flex h-8 items-center rounded-lg border border-line px-2 text-xs text-muted transition-colors hover:text-fg"
+            >
+              {t('diary.allRecords')}
+            </Link>
           </>
         }
       />
@@ -429,7 +435,6 @@ export default function DiaryPage() {
             {mode === 'diary' ? (
               <>
                 <button type="button" onClick={handleCreate} className={SOLID_BUTTON}>
-                  <Icon name="plus" />
                   {t('diary.new')}
                 </button>
                 <button
@@ -446,7 +451,6 @@ export default function DiaryPage() {
             ) : (
               <>
                 <button type="button" onClick={handleAddStamp} className={SOLID_BUTTON}>
-                  <Icon name="plus" />
                   {t('diary.addStamp')}
                 </button>
                 <button

@@ -245,11 +245,69 @@ describe('permission', () => {
     expect(toolResult).toContain('只读')
   })
 
-  it('直接改档说明新增与修改不用确认，删除仍要确认', () => {
-    expect(buildSystemPrompt('2026-10-28', false, [], [], [], [], 'auto')).toContain(
-      '【权限：直接改】',
-    )
+  it('新增自动保存档只让纯新增免确认，修改和删除仍要确认', () => {
+    const prompt = buildSystemPrompt('2026-10-28', false, [], [], [], [], 'auto')
+    expect(prompt).toContain('【权限：新增自动保存】')
+    expect(prompt).toContain('纯新增记录会在卡片生成后自动保存')
+    expect(prompt).toContain('修改已有记录、覆盖同一天的数据和删除都需要用户点「确认」')
     expect(buildSystemPrompt('2026-10-28', false)).toContain('【权限：改前确认】')
+  })
+})
+
+describe('旧记录照片', () => {
+  it('只在用户明确指定照片时把选中的一张放进后续模型请求', async () => {
+    const data = emptyData()
+    data.entries.push({
+      id: 'd1', code: 'D000001', dateKey: '2026-10-28', content: '图', tags: [],
+      images: [{ id: 'i1', dataUrl: 'data:image/png;base64,AAAA', width: 10, height: 10 }],
+      createdAt: 1, updatedAt: 1, deletedAt: null,
+    })
+    let round = 0
+    let sent = ''
+    const result = await runAssistant({
+      config: CONFIG, data, today: '2026-10-28',
+      history: [{ role: 'user', content: '请分析 2026-10-28 日记的照片' }],
+      prepareRecordImage: async (source) => source,
+      request: async (request) => {
+        round += 1
+        if (round === 1) return transport(body({ tool_calls: [{
+          id: 'photo_1', type: 'function',
+          function: { name: 'read_record_photo', arguments: '{"kind":"diary","ref":"D000001","index":1}' },
+        }] }))
+        sent = JSON.stringify(request.messages)
+        return transport(body({ content: '看到了照片。' }))
+      },
+    })
+    expect(result.ok).toBe(true)
+    expect(sent).toContain('data:image/png;base64,AAAA')
+    expect(sent).toContain('image_url')
+  })
+
+  it('普通查询即使模型主动要照片也不发送像素', async () => {
+    const data = emptyData()
+    data.entries.push({
+      id: 'd1', code: 'D000001', dateKey: '2026-10-28', content: '图', tags: [],
+      images: [{ id: 'i1', dataUrl: 'data:image/png;base64,SECRET', width: 10, height: 10 }],
+      createdAt: 1, updatedAt: 1, deletedAt: null,
+    })
+    let round = 0
+    let sent = ''
+    await runAssistant({
+      config: CONFIG, data, today: '2026-10-28',
+      history: [{ role: 'user', content: '总结 2026-10-28 的日记' }],
+      prepareRecordImage: async () => { throw new Error('不该处理图片') },
+      request: async (request) => {
+        round += 1
+        if (round === 1) return transport(body({ tool_calls: [{
+          id: 'photo_1', type: 'function',
+          function: { name: 'read_record_photo', arguments: '{"kind":"diary","ref":"D000001","index":1}' },
+        }] }))
+        sent = JSON.stringify(request.messages)
+        return transport(body({ content: '只看文字。' }))
+      },
+    })
+    expect(sent).not.toContain('SECRET')
+    expect(sent).not.toContain('image_url')
   })
 })
 

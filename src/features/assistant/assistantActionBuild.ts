@@ -10,6 +10,7 @@ import type {
   FinanceKind,
   HealthActivity,
   HealthSex,
+  ScheduleRepeat,
   HealthTraining,
   PresetKind,
   TrainingKind,
@@ -19,7 +20,24 @@ import { trainingLabel } from '@/features/training/trainingMath'
 import { FINANCE_CATEGORIES } from '@/features/finance/financeCategories'
 import { findMemoryByText, type AssistantMemory, type AssistantMemoryKind } from './assistantMemory'
 
+type ProfileFields = {
+  sex?: HealthSex
+  age?: number
+  heightCm?: number
+  weightKg?: number
+  activity?: HealthActivity
+  tdee?: number
+  targetKcal?: number
+  proteinTarget?: number
+  idealBedtime?: string
+  idealWakeTime?: string
+  note?: string
+}
+
 export type AssistantAction =
+  | { kind: 'scheduleCreate'; dateKey: string; time: string; title: string; note: string; repeat: ScheduleRepeat; weeklyDays: number[]; remind: boolean }
+  | { kind: 'scheduleEdit'; code: string; dateKey: string; title: string; time?: string; newDateKey?: string; newTitle?: string; note?: string; repeat?: ScheduleRepeat; weeklyDays?: number[]; remind?: boolean }
+  | { kind: 'scheduleDelete'; code: string; dateKey: string; title: string }
   | { kind: 'memory'; text: string; memoryKind: AssistantMemoryKind }
   | {
       kind: 'finance'
@@ -43,6 +61,7 @@ export type AssistantAction =
       overwrite: boolean
     }
   | { kind: 'weigh'; dateKey: string; weightKg: number }
+  | { kind: 'weighEdit'; dateKey: string; weightKg: number; previousKg: number }
   | {
       kind: 'intake'
       dateKey: string
@@ -140,20 +159,9 @@ export type AssistantAction =
   | { kind: 'presetCreate'; presetKind: PresetKind; name: string }
   | { kind: 'presetEdit'; code: string; name?: string; presetKind?: PresetKind }
   | { kind: 'presetDelete'; code: string; name: string; presetKind: PresetKind }
-  | {
-      kind: 'profileEdit'
-      sex?: HealthSex
-      age?: number
-      heightCm?: number
-      weightKg?: number
-      activity?: HealthActivity
-      tdee?: number
-      targetKcal?: number
-      proteinTarget?: number
-      idealBedtime?: string
-      idealWakeTime?: string
-      note?: string
-    }
+  | ({ kind: 'profileCreate' } & ProfileFields)
+  | ({ kind: 'profileEdit' } & ProfileFields)
+  | { kind: 'profileDelete'; weighCount: number; expectedUpdatedAt: number }
   | { kind: 'weatherEdit'; dateKey: string; weather: string }
   | {
       kind: 'training'
@@ -456,6 +464,77 @@ export function buildAssistantAction(
   ctx: ActionBuildContext,
 ): ActionBuildResult {
   switch (name) {
+    case 'update_schedule': {
+      const code = textArg(args, 'code')
+      const item = ctx.data.schedules.find((row) => row.deletedAt === null && row.code === code)
+      if (!item) return fail(`找不到编号 ${code || '（空）'} 的日程，先用 search_schedules 查一下。`)
+      const action: Extract<AssistantAction, { kind: 'scheduleEdit' }> = {
+        kind: 'scheduleEdit', code: item.code, dateKey: item.dateKey, title: item.title,
+      }
+      if (args.date !== undefined) {
+        const date = textArg(args, 'date')
+        if (!isDateKey(date)) return fail('日期不对：需要 YYYY-MM-DD。')
+        action.newDateKey = date
+      }
+      if (args.time !== undefined) {
+        const time = textArg(args, 'time')
+        if (time !== '' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return fail('时刻不对：需要 HH:MM，或留空表示全天。')
+        action.time = time
+      }
+      if (args.title !== undefined) {
+        const title = textArg(args, 'title')
+        if (!title) return fail('日程标题不能为空。')
+        action.newTitle = title.slice(0, 120)
+      }
+      if (args.note !== undefined) action.note = textArg(args, 'note').slice(0, 1000)
+      if (args.repeat !== undefined) {
+        const repeat = textArg(args, 'repeat')
+        if (repeat !== 'none' && repeat !== 'daily' && repeat !== 'weekly') return fail('重复方式不对。')
+        action.repeat = repeat
+      }
+      if (args.weeklyDays !== undefined) {
+        if (!Array.isArray(args.weeklyDays)) return fail('每周重复日需要是 1 到 7 的列表。')
+        const days = args.weeklyDays
+        if (days.some((day) => !Number.isInteger(day) || day < 1 || day > 7)) return fail('每周重复日只能是 1 到 7。')
+        action.weeklyDays = [...new Set(days as number[])].sort()
+      }
+      if (args.remind !== undefined) {
+        if (typeof args.remind !== 'boolean') return fail('提醒只能是开或关。')
+        action.remind = args.remind
+      }
+      if (Object.keys(action).length === 4) return fail('至少提供一个要改的字段。')
+      const repeat = action.repeat ?? item.repeat
+      const days = action.weeklyDays ?? item.weeklyDays
+      if (repeat === 'weekly' && days.length === 0) return fail('每周重复时至少选一个星期。')
+      if (repeat !== 'weekly') action.weeklyDays = []
+      return { ok: true, action }
+    }
+    case 'delete_schedule': {
+      const code = textArg(args, 'code')
+      const item = ctx.data.schedules.find((row) => row.deletedAt === null && row.code === code)
+      if (!item) return fail(`找不到编号 ${code || '（空）'} 的日程，先用 search_schedules 查一下。`)
+      return { ok: true, action: { kind: 'scheduleDelete', code: item.code, dateKey: item.dateKey, title: item.title } }
+    }
+    case 'add_schedule': {
+      const dateKey = textArg(args, 'date') || ctx.today
+      if (!isDateKey(dateKey)) return fail('日期不对：需要 YYYY-MM-DD。')
+      const title = textArg(args, 'title')
+      if (!title) return fail('日程标题不能为空。')
+      const time = args.time === undefined ? '09:00' : textArg(args, 'time')
+      if (time !== '' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return fail('时刻不对：需要 HH:MM，或留空表示全天。')
+      const rawRepeat = textArg(args, 'repeat')
+      if (rawRepeat && rawRepeat !== 'none' && rawRepeat !== 'daily' && rawRepeat !== 'weekly') return fail('重复方式不对。')
+      const repeat: ScheduleRepeat = rawRepeat === 'daily' || rawRepeat === 'weekly' ? rawRepeat : 'none'
+      const weeklyDays = Array.isArray(args.weeklyDays)
+        ? [...new Set(args.weeklyDays.filter((day): day is number => Number.isInteger(day) && day >= 1 && day <= 7))].sort()
+        : []
+      if (repeat === 'weekly' && weeklyDays.length === 0) return fail('每周重复时至少选一个星期。')
+      return { ok: true, action: {
+        kind: 'scheduleCreate', dateKey, time, title: title.slice(0, 120),
+        note: textArg(args, 'note').slice(0, 1000), repeat,
+        weeklyDays: repeat === 'weekly' ? weeklyDays : [], remind: args.remind === true,
+      } }
+    }
     case 'remember': {
       const text = textArg(args, 'text')
       if (text === '') return fail('要记住的内容是空的。')
@@ -556,7 +635,21 @@ export function buildAssistantAction(
       if (weightKg === null || weightKg < 20 || weightKg > 400) {
         return fail('体重看起来不对：需要在 20–400 kg 之间。')
       }
+      if (ctx.data.profile?.weighIns.some((item) => item.dateKey === day)) {
+        return fail(`${day} 已有称重；要改这一天的值请用 update_weigh。`)
+      }
       return { ok: true, action: { kind: 'weigh', dateKey: day, weightKg: round(weightKg, 1) } }
+    }
+
+    case 'update_weigh': {
+      const day = explicitDayArg(args, ctx)
+      if (!day) return fail('修改称重要指明日期（YYYY-MM-DD）。')
+      const item = ctx.data.profile?.weighIns.find((entry) => entry.dateKey === day)
+      if (!item) return fail(`${day} 没有称重记录，先用 profile_stats 或 browse_records 查一下。`)
+      const weightKg = numberArg(args, 'weightKg')
+      if (weightKg === null || weightKg < 20 || weightKg > 400) return fail('体重需要在 20–400 kg 之间。')
+      if (round(weightKg, 1) === item.weightKg) return fail('新体重与原记录相同。')
+      return { ok: true, action: { kind: 'weighEdit', dateKey: day, weightKg: round(weightKg, 1), previousKg: item.weightKg } }
     }
 
     case 'add_intake': {
@@ -674,8 +767,13 @@ export function buildAssistantAction(
       }
     }
 
+    case 'create_profile':
     case 'update_profile': {
-      const action: Extract<AssistantAction, { kind: 'profileEdit' }> = { kind: 'profileEdit' }
+      if (name === 'create_profile' && ctx.data.profile) return fail('身体档案已经存在，请用 update_profile 修改。')
+      if (name === 'update_profile' && !ctx.data.profile) return fail('还没有身体档案，请用 create_profile 创建。')
+      const action: Extract<AssistantAction, { kind: 'profileCreate' | 'profileEdit' }> = {
+        kind: name === 'create_profile' ? 'profileCreate' : 'profileEdit',
+      }
       const rawSex = textArg(args, 'sex')
       if (rawSex !== '') {
         if (rawSex !== 'male' && rawSex !== 'female') return fail('性别只能是 male 或 female。')
@@ -737,10 +835,15 @@ export function buildAssistantAction(
       }
       if (typeof args.note === 'string') action.note = textArg(args, 'note').slice(0, 500)
       if (Object.keys(action).length === 1) {
-        return fail('要改档案的哪一项？至少给一个字段。')
+        return fail('至少提供一个要填写的档案字段。')
       }
       return { ok: true, action }
     }
+
+    case 'delete_profile':
+      return ctx.data.profile
+        ? { ok: true, action: { kind: 'profileDelete', weighCount: ctx.data.profile.weighIns.length, expectedUpdatedAt: ctx.data.profile.updatedAt } }
+        : fail('身体档案已经不存在。')
 
     case 'add_training': {
       const day = dayArg(args, ctx)
@@ -1241,6 +1344,20 @@ export function buildAssistantAction(
 /** 给模型看的动作描述（中文固定），也用于「已确认写入」的上下文 */
 export function describeAction(action: AssistantAction): string {
   switch (action.kind) {
+    case 'scheduleCreate':
+      return `${action.dateKey} ${action.time || '全天'} 新增日程「${action.title}」${action.repeat === 'none' ? '' : action.repeat === 'daily' ? '（每天）' : `（每周 ${action.weeklyDays.join('、')}）`}${action.remind ? '，到点提醒' : ''}`
+    case 'scheduleEdit':
+      return `修改日程（${action.code}）「${action.title}」：${[
+        action.newDateKey ? `日期 ${action.newDateKey}` : '',
+        action.time === undefined ? '' : `时刻 ${action.time || '全天'}`,
+        action.newTitle ? `标题 ${action.newTitle}` : '',
+        action.note === undefined ? '' : `备注 ${action.note || '清空'}`,
+        action.repeat ? `重复 ${action.repeat}` : '',
+        action.weeklyDays ? `周几 ${action.weeklyDays.join('、') || '无'}` : '',
+        action.remind === undefined ? '' : `提醒 ${action.remind ? '开' : '关'}`,
+      ].filter(Boolean).join('；')}`
+    case 'scheduleDelete':
+      return `${action.dateKey} 删除日程「${action.title}」（${action.code}），移入回收站`
     case 'memory':
       return `记住「${action.text}」`
     case 'finance':
@@ -1257,6 +1374,8 @@ export function describeAction(action: AssistantAction): string {
       }`
     case 'weigh':
       return `${action.dateKey} 体重：${action.weightKg} kg`
+    case 'weighEdit':
+      return `${action.dateKey} 修改体重：${action.previousKg} → ${action.weightKg} kg`
     case 'intake':
       return `${action.dateKey} ${action.time} 摄入：${action.name} ${action.grams}g，${action.kcal} 千卡`
     case 'diaryEdit':
@@ -1324,6 +1443,10 @@ export function describeAction(action: AssistantAction): string {
       return `${action.dateKey} 删除训练：${action.label}`
     case 'profileEdit':
       return '改身体档案'
+    case 'profileCreate':
+      return '新建身体档案'
+    case 'profileDelete':
+      return `删除身体档案及 ${action.weighCount} 条称重记录`
     case 'weatherEdit':
       return `${action.dateKey} 天气：${action.weather || '清空'}`
     case 'memoryEdit':

@@ -7,6 +7,7 @@ import { store } from '@/core/db'
 export const {
   healthProfile,
   saveHealthProfile,
+  deleteHealthProfile,
   healthFoods,
   trashedHealthFoods,
   saveHealthFood,

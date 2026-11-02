@@ -14,6 +14,7 @@ export const LOG_TEXT = {
   'app.boot': '应用启动 | 版本 {version} | 平台 {platform}',
   'ai.chat.done': 'AI 请求完成 | 模型 {model} | 状态 {status} | 耗时 {ms} ms',
   'ai.chat.failed': 'AI 请求失败 | 模型 {model} | 状态 {status} | {reason}',
+  'ai.chat.cancelled': 'AI 请求已取消 | 模型 {model} | 已经等 {ms} ms',
   'ai.models.done': '模型列表 | {count} 个模型 | 耗时 {ms} ms',
   'ai.models.failed': '模型列表拉取失败 | 状态 {status} | 耗时 {ms} ms | 用户可手填模型名',
   'update.check.done': '检查更新 | 通道 {channel} | 结果 {result}',

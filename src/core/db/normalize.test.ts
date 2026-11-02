@@ -88,6 +88,18 @@ describe('行级校验：可选字段补默认', () => {
     expect(meal!.items[0]).toEqual({ foodId: 'x', grams: 150 })
   })
 
+  it('套餐封面只认 data:image，旧备份没有照片就是 null', () => {
+    const photo = 'data:image/webp;base64,AAAA'
+    expect(
+      pickMeal({ id: 'a', name: '鸡腿饭', items: [], photo })!.photo,
+    ).toBe(photo)
+    expect(pickMeal({ id: 'a', name: '鸡腿饭', items: [] })!.photo).toBeNull()
+    expect(
+      pickMeal({ id: 'a', name: '鸡腿饭', items: [], photo: 'https://example.com/a.png' })!
+        .photo,
+    ).toBeNull()
+  })
+
   it('天没写天气就是 null，不是空串', () => {
     expect(pickDay({ dateKey: '2026-10-25' })?.weather).toBeNull()
     expect(pickDay({ dateKey: '2026-10-25', weather: '' })?.weather).toBeNull()

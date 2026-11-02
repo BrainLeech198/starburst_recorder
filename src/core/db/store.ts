@@ -308,6 +308,8 @@ export interface DiaryStore {
   healthProfile(): Promise<HealthProfile | undefined>
   /** 整行覆盖保存，不做字段级合并：页面拿到的就是完整一份 */
   saveHealthProfile(profile: HealthProfile): Promise<HealthProfile>
+  /** 只删除固定 id='me' 的档案；调用方负责确认与撤销快照。 */
+  deleteHealthProfile(): Promise<void>
   /** 食物库，按名称排序，已软删除的不算 */
   healthFoods(): Promise<HealthFood[]>
   /** 回收站里的食物，按删除时间倒序 */

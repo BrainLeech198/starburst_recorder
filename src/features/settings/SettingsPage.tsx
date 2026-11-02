@@ -16,6 +16,7 @@ import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import SettingRow from '@/shared/ui/SettingRow'
 import PageShell from '@/shared/ui/PageShell'
 import { SettingBadge } from '@/shared/ui/SettingCard'
+import { countRecords } from '@/core/db/store'
 import { totals } from '@/features/diary/diaryRepo'
 import { clearAppCache, formatCacheSize } from './cacheService'
 
@@ -98,7 +99,10 @@ export default function SettingsPage() {
         hint={t('settings.dataHint')}
         value={
           <SettingBadge>
-            {t('settings.dataCount', { entries: counts?.entries ?? 0, stamps: counts?.stamps ?? 0 })}
+            {t('settings.dataCount', {
+              total: counts ? countRecords(counts) : 0,
+              entries: counts?.entries ?? 0,
+            })}
           </SettingBadge>
         }
       />

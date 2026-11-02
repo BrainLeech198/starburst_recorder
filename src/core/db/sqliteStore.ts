@@ -176,6 +176,7 @@ export const sqliteStore: DiaryStore = {
     await call('saveHealthProfile', next)
     return next
   },
+  deleteHealthProfile: () => call('deleteHealthProfile'),
   healthFoods: () => call('healthFoods'),
   saveHealthFood: async (food) => {
     const next: HealthFood = { ...food, updatedAt: Date.now() }

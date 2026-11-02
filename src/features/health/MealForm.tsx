@@ -18,10 +18,13 @@ import { Icon } from '@/shared/ui/icons'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
 import type { FoodDraft } from './FoodForm'
+import AiImageAttachments from './AiImageAttachments'
+import { MAX_REFERENCE_IMAGES, addReferenceImage } from './aiImages'
 import { analyzeMealPhrase, analyzeMealPhoto } from './mealPhrase'
 import type { PhraseItem } from './mealPhrase'
 import { foodMacros, formatNum, mealTotals } from './healthMath'
 import { componentPhoto } from './mealPhoto'
+import { compressFoodPhoto } from './foodPhoto'
 
 interface Part {
   key: string
@@ -45,7 +48,7 @@ export default function MealForm({
   initial?: HealthMeal
   foods: HealthFood[]
   submitLabel: string
-  onSubmit: (draft: { name: string; items: HealthMealItem[] }) => void
+  onSubmit: (draft: { name: string; photo: string | null; items: HealthMealItem[] }) => void
   onCancel: () => void
   /** AI 拆出来、食物库里没有的项：入库并返回新食物，没有这个回调就只能加库里的 */
   onCreateFood?: (draft: FoodDraft) => Promise<HealthFood>
@@ -58,12 +61,22 @@ export default function MealForm({
   /** 这次表单里 AI 新建的食物：不等 live 查询刷新，先并入可选池 */
   const [extraFoods, setExtraFoods] = useState<HealthFood[]>([])
 
+  /** 套餐自己的封面；没有就回退到第一个有照片的成分 */
+  const [coverPhoto, setCoverPhoto] = useState<string | null>(initial?.photo ?? null)
+  const [coverPicking, setCoverPicking] = useState(false)
+  const [coverUploading, setCoverUploading] = useState(false)
+  const [coverError, setCoverError] = useState('')
+  const coverFileRef = useRef<HTMLInputElement>(null)
+  const coverCameraRef = useRef<HTMLInputElement>(null)
+
   /** AI 对话 */
   const [aiOpen, setAiOpen] = useState(false)
   const [aiMounted, setAiMounted] = useState(false)
-  const [chat, setChat] = useState<{ role: 'you' | 'ai'; text: string }[]>([])
+  const [chat, setChat] = useState<{ role: 'you' | 'ai'; text: string; images?: string[] }[]>([])
   const [askText, setAskText] = useState('')
   const [aiBusy, setAiBusy] = useState(false)
+  /** 给 AI 对话的图片参考；拍照识别过的图会自动进来，不落库 */
+  const [aiImages, setAiImages] = useState<string[]>([])
 
   /** 图片导入 */
   const [photoOpen, setPhotoOpen] = useState(false)
@@ -86,8 +99,8 @@ export default function MealForm({
     parts.map((part) => ({ foodId: part.foodId, grams: Number(part.grams) || 0 })),
     allFoods,
   )
-  /** 套餐没有独立封面：跟食物库、摄入列表一样，取第一个有照片的成分 */
-  const cover = componentPhoto(parts, allFoods)
+  /** 自己的封面优先；没上传就跟列表、摄入一样，取第一个有照片的成分 */
+  const cover = coverPhoto ?? componentPhoto(parts, allFoods)
 
   function addPart(food: HealthFood) {
     setParts((current) => [
@@ -129,19 +142,20 @@ export default function MealForm({
     return made.length
   }
 
-  function pushChat(role: 'you' | 'ai', text: string) {
-    setChat((current) => [...current, { role, text }])
+  function pushChat(role: 'you' | 'ai', text: string, images?: string[]) {
+    setChat((current) => [...current, { role, text, images }])
   }
 
   /** 一句话描述这一餐，AI 拆完直接补进套餐 */
   async function ask() {
     const text = askText.trim()
     if (text === '' || aiBusy) return
-    pushChat('you', text)
+    const sentImages = aiImages.slice(0, MAX_REFERENCE_IMAGES)
+    pushChat('you', text, sentImages)
     setAskText('')
     setAiBusy(true)
     try {
-      const result = await analyzeMealPhrase(loadAiConfig(), text, allFoods)
+      const result = await analyzeMealPhrase(loadAiConfig(), text, allFoods, sentImages)
       if (!result.ok) {
         pushChat('ai', result.error || t('foods.mealAiFailed'))
         return
@@ -162,6 +176,8 @@ export default function MealForm({
     setPhotoNote('')
     try {
       const dataUrl = await compressImage(file)
+      // 识别过的那张图顺手放进附件：结果不满意时，还能带着图继续和 AI 聊
+      setAiImages((current) => addReferenceImage(current, dataUrl))
       const result = await analyzeMealPhoto(loadAiConfig(), dataUrl, allFoods)
       if (!result.ok) {
         setPhotoError(result.error || t('foods.photoFailed'))
@@ -189,6 +205,29 @@ export default function MealForm({
     if (shot) void importPhoto(shot)
   }
 
+  /** 只压图、不识别：作为套餐自己的封面 */
+  async function uploadCover(file: File | undefined) {
+    if (!file) return
+    setCoverUploading(true)
+    setCoverError('')
+    try {
+      setCoverPhoto(await compressFoodPhoto(file))
+    } catch (failure) {
+      setCoverError((failure as Error).message || t('foods.photoFailed'))
+    } finally {
+      setCoverUploading(false)
+    }
+  }
+
+  async function takeCoverPhoto() {
+    if (!usesNativeCamera()) {
+      coverCameraRef.current?.click()
+      return
+    }
+    const shot = await takeNativePhoto()
+    if (shot) void uploadCover(shot)
+  }
+
   function submit() {
     const trimmed = name.trim()
     if (!trimmed) {
@@ -213,7 +252,7 @@ export default function MealForm({
       items.push({ foodId: part.foodId, grams })
     }
     setError('')
-    onSubmit({ name: trimmed, items })
+    onSubmit({ name: trimmed, photo: coverPhoto, items })
   }
 
   return (
@@ -228,7 +267,7 @@ export default function MealForm({
         />
       </label>
 
-      {/* 套餐封面：成分里第一张有照片的食物，跟列表、选择器保持一致 */}
+      {/* 套餐封面：可以自己上传；没有就用第一个有照片的成分 */}
       <div className="flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-2.5">
         {cover ? (
           <img
@@ -241,8 +280,69 @@ export default function MealForm({
             {t('foods.mealCover')}
           </span>
         )}
-        <p className="m-0 min-w-0 flex-1 text-[11px] text-muted">{t('foods.mealCoverHint')}</p>
+        <div className="min-w-0 flex-1">
+          <p className="m-0 text-xs text-fg">{t('foods.mealCover')}</p>
+          <p className="m-0 mt-0.5 text-[11px] text-muted">{t('foods.mealCoverHint')}</p>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={coverUploading}
+              onClick={() => setCoverPicking(true)}
+              className={`${OUTLINE_BUTTON} px-2 py-1 text-xs`}
+            >
+              <Icon name="image" />
+              {coverUploading
+                ? t('foods.photoUploading')
+                : coverPhoto
+                  ? t('foods.photoReplace')
+                  : t('foods.photoAdd')}
+            </button>
+            {coverPhoto && (
+              <button
+                type="button"
+                onClick={() => setCoverPhoto(null)}
+                className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-danger"
+              >
+                {t('foods.photoRemove')}
+              </button>
+            )}
+          </div>
+          {coverError !== '' && <ErrorNote>{coverError}</ErrorNote>}
+        </div>
       </div>
+
+      <input
+        ref={coverFileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          void uploadCover(file)
+        }}
+      />
+      <input
+        ref={coverCameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          void uploadCover(file)
+        }}
+      />
+      {coverPicking && (
+        <ImageSourceDialog
+          onTakePhoto={() => void takeCoverPhoto()}
+          onPickFile={() => coverFileRef.current?.click()}
+          onClose={() => setCoverPicking(false)}
+        />
+      )}
+
+      <AiImageAttachments images={aiImages} onChange={setAiImages} />
 
       {/* 和新增食物同一套入口：AI 聊、图片导入，结果都直接补进「包含的食物」 */}
       {!aiOpen && (
@@ -294,6 +394,18 @@ export default function MealForm({
                         each.role === 'you' ? 'bg-brand/10 text-fg' : 'text-muted'
                       }`}
                     >
+                      {(each.images?.length ?? 0) > 0 && (
+                        <div className="mb-1 flex flex-wrap gap-1">
+                          {each.images?.map((image, imageIndex) => (
+                            <img
+                              key={`${imageIndex}-${image.slice(-16)}`}
+                              src={image}
+                              alt=""
+                              className="h-12 w-12 rounded-md border border-line object-cover"
+                            />
+                          ))}
+                        </div>
+                      )}
                       {each.text}
                     </li>
                   ))}

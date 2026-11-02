@@ -148,6 +148,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   const fileRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
+    if (messages.length === 0 && pendingId === null) return
     bottomRef.current?.scrollIntoView({ block: 'end' })
   }, [messages, pendingId, currentSessionId])
 
@@ -261,7 +262,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         ...(result.ok && result.compacted ? { compacted: result.compacted } : {}),
       })
 
-      // 直接改：新增与修改不用等确认，这里立刻落库；删除仍留在卡片上
+      // 新增自动保存：只有纯新增动作立刻落库，其余仍留在待确认卡片上
       if (result.ok && result.pending) {
         for (const [index, action] of result.pending.entries()) {
           if (!runsWithoutConfirm(permission, action.kind)) continue

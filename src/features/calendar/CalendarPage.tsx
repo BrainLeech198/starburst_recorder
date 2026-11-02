@@ -6,6 +6,7 @@
  * 这里只管排版和交互。
  */
 import { Link, useSearchParams } from 'react-router'
+import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import { useLiveQuery } from '@/core/db/live'
 import { formatDate, todayKey } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
@@ -77,8 +78,18 @@ export default function CalendarPage() {
     setParams(next, { replace: true })
   }
 
+  const swipe = useDaySwipe(
+    () => go(shiftMonthKey(monthKey, -1), filter),
+    () => go(shiftMonthKey(monthKey, 1), filter),
+  )
+
   return (
-    <div className="mx-auto w-full max-w-2xl p-4">
+    <div
+      className={`mx-auto w-full max-w-2xl p-4 ${swipe.animationClass}`}
+      onTouchStart={swipe.onTouchStart}
+      onTouchEnd={swipe.onTouchEnd}
+      onAnimationEnd={swipe.onAnimationEnd}
+    >
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="m-0 flex items-center gap-1.5 text-lg font-medium text-fg">
           <Icon name="calendar" className="h-4 w-4 shrink-0" />

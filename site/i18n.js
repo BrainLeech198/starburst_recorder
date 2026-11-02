@@ -7,7 +7,7 @@ window.SITE_I18N = {
   zh: {
     'meta.title': '星芒记录者 · 把零散的日子，攒成看得见的自己',
     'meta.description':
-      '星芒记录者是一个本地优先的个人记录工具：随手记下今天，AI 帮你整理成完整的日记。无账号、无云端，Windows 与 Android 同源。',
+      '星芒记录者是一个本地优先的个人记录工具：日记、随记、健康、训练、收支与日历都在一处，内置 AI 助手帮忙整理和动手。无账号、无云端，Windows 与 Android 同源。',
 
     'a11y.skip': '跳到正文',
 
@@ -41,8 +41,8 @@ window.SITE_I18N = {
 
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
-      '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.11.1',
+      '随手记下今天，AI 帮你整理成完整的日记；也可以直接问助手，让它查记录、记账、写随记或记睡眠。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
+    'hero.cta': '下载 0.12.0',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -54,25 +54,39 @@ window.SITE_I18N = {
 
     'features.kicker': '功能',
     'features.title': '一张纸上的生活',
-    'features.desc': '日记、健康、财务与日历都能天天用，日程、周视图和月度回顾也接上了。',
+    'features.desc':
+      '日记、随记、健康、训练、收支与日历都在一处，AI 助手能聊天也能动手；日程、周视图和月度回顾也接上了。',
     'features.diary': '日记',
-    'features.diaryDesc': '随手记一句、按天翻看，也能一次导入整页手写照片，让 AI 认成文字。',
+    'features.diaryDesc':
+      '随手记一句、按天翻看，也能导入手写照片让 AI 认成文字；标签与搜索能把旧日子翻出来。',
+    'features.notes': '随记',
+    'features.notesDesc':
+      '一句话先扔进来，不用挑日子；能打标签、能搜索，也能按天回看，之后再慢慢整理。',
     'features.health': '健康',
-    'features.healthDesc': 'TDEE、身体档案、食物库和每日摄入，热量与蛋白都算得清清楚楚。',
+    'features.healthDesc':
+      '饮食、睡眠、体重与 TDEE 都在一页：食物库算热量与蛋白，称重推算每日消耗，小憩也能单独记。',
+    'features.training': '训练',
+    'features.trainingDesc':
+      '力量、有氧、拉伸、球类分开记，动作库按肌群找；能复制上次、按周排计划，到点提醒。',
+    'features.finance': '财务',
+    'features.financeDesc':
+      '每笔收支可带票据照片，按日 / 月 / 年翻账；分类占比与半年趋势画成图，删掉的还能从回收站捞回来。',
+    'features.calendar': '日历',
+    'features.calendarDesc':
+      '月历混出日记、健康与收支的深浅；点进一天就是时间轴，日程可重复、能提醒，还有周视图与月度回顾。',
+    'features.assistant': 'AI 助手',
+    'features.assistantDesc':
+      '查记录、记账、写随记、记睡眠都能交给它，写入前先给预览；多段对话、附件、长期记忆与技能包都在。',
     'features.appearance': '外观',
     'features.appearanceDesc':
       '六套主题模式配六种主题色，深浅冷暖都能调到顺眼；连纸上那支笔的颜色也跟着走。',
-    'features.finance': '财务',
-    'features.financeDesc': '记下每一笔收支，按月看结余，也能按天回看。',
-    'features.calendar': '日历',
-    'features.calendarDesc': '月历把日记、健康、收支混成深浅，点一格就能进那一天的全部记录。',
     'features.ready': '已可用',
     'features.wip': '建设中',
 
-    'ai.kicker': 'AI 整理',
+    'ai.kicker': 'AI 助手',
     'ai.title': '随手记一句，剩下的交给 AI',
     'ai.desc':
-      '那天发生了什么、当时是什么心情——你不用写得完整，AI 会按你选的口气重组，确认之后才写进去。也可以直接问助手，让它帮你记账、写随记或记睡眠。',
+      '那天发生了什么、当时是什么心情——你不用写得完整，AI 会按你选的口气重组，确认之后才写进去。也可以直接问助手，让它查记录、记账、写随记或记睡眠；写操作先给预览，确认后才落库。',
     'ai.before': '你写的',
     'ai.raw': '10.24 阴 早上去医院拿报告，医生说没事，回来的路上买了个红薯。',
     'ai.arrow': 'AI 整理',
@@ -84,6 +98,8 @@ window.SITE_I18N = {
       '在「设置 → 助手 → AI」里填服务地址和 Key：OpenAI、DeepSeek、通义，或者本机跑的 Ollama 都行，只要兼容 OpenAI 接口',
     'ai.step2': '回到日记，选一条记录点「AI 整理」，挑一种口气',
     'ai.step3': '看一眼结果，确认之后才写进正文',
+    'ai.assistantNote':
+      '助手不止整理日记：可以按本周或本月记录先起一份周报 / 月报；多段对话各自保留上下文，一条消息最多带三个图片或文本附件；常用做法还能装成技能包。',
     'ai.keyNote':
       '应用不附带 AI 额度和 Key：模型与费用都在你自己的账号下，Key 只存在本机设置里。',
 
@@ -107,32 +123,32 @@ window.SITE_I18N = {
     'privacy.exportDesc': '一次导出 Markdown、纯文本或完整 JSON；桌面上数据就是一个能复制的文件。',
     'privacy.aiTitle': 'AI 只连你指定的服务',
     'privacy.aiDesc':
-      '只有你点「AI 整理」时，那一天的正文才会发给你自己配置的模型服务；其余记录不出本机。',
+      '只有你点「AI 整理」或向助手提问时，需要用到的那部分记录才会发给你自己配置的模型服务；其余记录不出本机。',
 
     'open.kicker': '开源',
     'open.title': '源码一直是公开的',
     'open.desc':
-      '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.11.1',
+      '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器与安卓走 IndexedDB。',
+    'open.version': '版本 0.12.0',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.11.1 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.12.0 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
-    'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
+    'download.windowsMeta': 'Windows 10/11 · 约 96 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
     'download.android': 'Android APK',
-    'download.androidMeta': 'Android 10 以上 · 约 61 MB',
+    'download.androidMeta': 'Android 10 以上 · 约 62 MB',
     'download.androidDesc': '侧载安装，需要允许「安装未知来源应用」。手机上是同一套界面，数据留在本机。',
     'download.note': '两个仓库放的是同一份安装包，哪个快就用哪个。',
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '经济页：日 / 月 / 年三种视角，年视图直接看每月收支与结余，点一个月份就回到当月流水',
+      'AI 助手：查全库、读图表与旧照片，日程、日记、收支、饮食、睡眠、训练与身体档案都能增删改；写入前先给预览，删除必须确认且可撤销',
     'whatsnew.item2':
-      '体重趋势：点圆点会显示日期与体重，并把当天的内容切过去；首页小卡点哪一天，就进哪一天的详情',
+      '健康：套餐可以设自己的封面，AI 估营养最多带三张参考图；推算 TDEE 不再把尚未结束的今天算进去',
     'whatsnew.item3':
-      '图表读数补齐：最高 / 中间 / 最低刻度与数据点数值都画上，手机上改用固定字号，小屏也能看清',
+      '日常：日记与随记有全部记录列表，日历与周视图能左右滑动，悬浮球还能换成你自己的图片',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -140,14 +156,14 @@ window.SITE_I18N = {
     'changelog.back': '← 回到下载',
     'download.historyLink': '历史版本与更新日志，每版都附下载 →',
 
-    'footer.version': '版本 0.11.1',
+    'footer.version': '版本 0.12.0',
     'footer.tagline': '数据只存在你的设备上',
   },
 
   en: {
     'meta.title': 'Starburst Recorder · Turn scattered days into a self you can see',
     'meta.description':
-      'Starburst Recorder is a local-first journal: jot a line about today, let AI turn it into a finished entry. No account, no cloud, same codebase on Windows and Android.',
+      'Starburst Recorder is a local-first personal recorder: diary, quick notes, health, training, spending and calendar in one place, with an AI assistant that can compose and act. No account, no cloud, same codebase on Windows and Android.',
 
     'a11y.skip': 'Skip to content',
 
@@ -182,8 +198,8 @@ window.SITE_I18N = {
 
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
-      'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.11.1',
+      'Jot down today and let AI shape it into a finished entry — or just ask the assistant to look things up, log spending, write a note or record your sleep. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
+    'hero.cta': 'Download 0.12.0',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -196,28 +212,38 @@ window.SITE_I18N = {
     'features.kicker': 'Features',
     'features.title': 'A life kept on paper slips',
     'features.desc':
-      'Diary, health, finance and calendar are ready for daily use, with schedules, a week view and monthly reviews now in place.',
+      'Diary, quick notes, health, training, spending and calendar live in one place, with an assistant that can chat and act — plus schedules, a week view and monthly reviews.',
     'features.diary': 'Diary',
     'features.diaryDesc':
-      'Jot a line, flip back by day, or import a photo of a handwritten page and let AI read it.',
+      'Jot a line, flip back by day, or import handwritten pages and let AI read them; tags and search bring old days back.',
+    'features.notes': 'Quick notes',
+    'features.notesDesc':
+      'Drop a line in first, no date-picking needed; tag it, search it, look back by day, and tidy it up later.',
     'features.health': 'Health',
     'features.healthDesc':
-      'TDEE, body profile, a food library and daily intake — calories and protein add up clearly.',
+      'Food, sleep, weight and TDEE on one page: the food library counts calories and protein, weigh-ins estimate daily burn, and naps get their own record.',
+    'features.training': 'Training',
+    'features.trainingDesc':
+      'Log strength, cardio, stretching and ball sports separately, with an exercise library by muscle group; repeat last time, plan the week and get reminders.',
+    'features.finance': 'Finance',
+    'features.financeDesc':
+      'Attach receipt photos, switch between day, month and year; category share and a six-month trend are charted, and deleted entries wait in the recycle bin.',
+    'features.calendar': 'Calendar',
+    'features.calendarDesc':
+      'The month grid blends diary, health and spending into one shade; open a day for its timeline, with recurring reminders, a week view and monthly reviews.',
+    'features.assistant': 'AI assistant',
+    'features.assistantDesc':
+      'Ask it to look things up, log spending, write a note or record sleep — it previews every write before saving. Multiple chats, attachments, long-term memory and skills included.',
     'features.appearance': 'Appearance',
     'features.appearanceDesc':
       'Six theme modes with six accent colours — tune the light, the warmth and even the ink on the page.',
-    'features.finance': 'Finance',
-    'features.financeDesc':
-      'Log every bit of income and spending, see the monthly balance and look back day by day.',
-    'features.calendar': 'Calendar',
-    'features.calendarDesc': 'The month grid blends diary, health and finance into one shade — tap a day to see everything recorded there.',
     'features.ready': 'Ready',
     'features.wip': 'In progress',
 
-    'ai.kicker': 'AI compose',
+    'ai.kicker': 'AI assistant',
     'ai.title': 'One line in, a finished entry out',
     'ai.desc':
-      'What happened, how it felt — you do not have to write it whole. AI reshapes it in the tone you pick, and only writes in after you confirm. You can also ask the assistant to log spending, write a note or record your sleep.',
+      'What happened, how it felt — you do not have to write it whole. AI reshapes it in the tone you pick, and only writes in after you confirm. You can also ask the assistant to look things up, log spending, write a note or record your sleep; every write shows a preview before it is saved.',
     'ai.before': 'You wrote',
     'ai.raw': '10.24 overcast Went to the hospital for the report, doctor said it is fine, bought a sweet potato on the way back.',
     'ai.arrow': 'AI reshapes',
@@ -229,6 +255,8 @@ window.SITE_I18N = {
       'Open Settings → Assistant → AI and enter an endpoint and key: OpenAI, DeepSeek, Qwen, or a local Ollama — anything OpenAI-compatible',
     'ai.step2': 'Back in the diary, pick an entry and hit AI compose, then choose a tone',
     'ai.step3': 'Read the result; nothing is written until you confirm',
+    'ai.assistantNote':
+      'The assistant does more than polish: it can draft a weekly or monthly review from your records, keep separate chats with their own context, take up to three image or text attachments per message, and follow installable skill packs.',
     'ai.keyNote':
       'No AI credits or keys are bundled: the model and its cost stay in your own account, and the key lives only in this device’s settings.',
 
@@ -253,35 +281,35 @@ window.SITE_I18N = {
       'Export Markdown, plain text or full JSON in one go. On desktop your data is a file you can copy.',
     'privacy.aiTitle': 'AI talks only to the service you pick',
     'privacy.aiDesc':
-      'Only when you tap AI compose does that day’s text go to the model service you configured. Nothing else leaves the device.',
+      'Only when you tap AI compose or ask the assistant does the relevant part of your records go to the model service you configured. Nothing else leaves the device.',
 
     'open.kicker': 'Open source',
     'open.title': 'The source has always been public',
     'open.desc':
-      'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.11.1',
+      'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser and on Android.',
+    'open.version': 'Version 0.12.0',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.11.1 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.12.0 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
-    'download.windowsMeta': 'Windows 10/11 · about 95 MB',
+    'download.windowsMeta': 'Windows 10/11 · about 96 MB',
     'download.windowsDesc':
       'Double-click to install, then find it in the Start menu. Desktop data is a SQLite file you can copy anywhere.',
     'download.android': 'Android APK',
-    'download.androidMeta': 'Android 10+ · about 61 MB',
+    'download.androidMeta': 'Android 10+ · about 62 MB',
     'download.androidDesc':
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.11.1",
+    'whatsnew.title': "What's new in 0.12.0",
     'whatsnew.item1':
-      'Finance: switch between day, month and year; the yearly view lists income and spending per month, and clicking a month returns to its entries',
+      'AI assistant: search every record type, read charts and old photos, and add, edit or delete schedules, diary entries, spending, food, sleep, training and the health profile — with a preview before every write and a confirmation before every delete',
     'whatsnew.item2':
-      'Weight trend: tap a dot to see its date and weight, and the day panel below follows; on the home card every dot opens that exact day',
+      'Health: meals can have their own cover and nutrition estimates can carry up to three reference photos; TDEE no longer counts an unfinished today',
     'whatsnew.item3':
-      'Charts now carry their numbers: high / middle / low gridlines and point values, with fixed-size labels that stay legible on small phones',
+      'Everyday: all diary entries and notes in one list, swipeable calendar and week views, and your own image on the floating ball',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -289,7 +317,7 @@ window.SITE_I18N = {
     'changelog.back': '← Back to downloads',
     'download.historyLink': 'Previous versions and changelog, each with downloads →',
 
-    'footer.version': 'Version 0.11.1',
+    'footer.version': 'Version 0.12.0',
     'footer.tagline': 'Data stays on your device',
   },
 };

@@ -10,7 +10,7 @@ export const fr: Record<MessageKey, string> = {
   'home.diaryDesc': 'Notez votre journée',
   'home.healthDesc': 'Sommeil · Humeur · Poids',
   'home.financeDesc': 'Chaque revenu et dépense',
-  'home.calendarDesc': 'À concevoir',
+  'home.calendarDesc': 'Mois · Semaine · Agenda',
 
   // ─────────── Santé ───────────
   'health.setupNeeded': 'Votre profil corporel est incomplet, le calcul des calories est indisponible.',
@@ -322,9 +322,10 @@ export const fr: Record<MessageKey, string> = {
   'foods.mealEdit': 'Modifier le menu',
   'foods.mealCover': 'Couverture du menu',
   'foods.mealCoverHint':
-    'Utilise le premier composant avec photo ; changez la photo de cet aliment pour la remplacer.',
+    'Vous pouvez importer votre propre couverture ; sinon, le premier aliment avec photo est utilisé.',
   'foods.mealAiAsk': "Discuter avec l'IA pour découper ce repas",
-  'foods.mealAiHint': "Dites par exemple « un bol de nouilles au bœuf et un œuf mariné », l'IA le découpe en aliments et grammes et l'ajoute ci-dessous.",
+  'foods.mealAiHint':
+    "Dites par exemple « un bol de nouilles au bœuf et un œuf mariné » : l'IA le découpe en aliments et grammes et l'ajoute ci-dessous. Vous pouvez aussi joindre une photo de référence.",
   'foods.mealAiPlaceholder': 'ex. : un bol de nouilles au bœuf, un œuf mariné',
   'foods.mealAiAdded': '{n} éléments ajoutés, autre chose ?',
   'foods.mealAiNothing': 'Aucun aliment reconnu dans cette phrase, précisez et réessayez.',
@@ -336,8 +337,16 @@ export const fr: Record<MessageKey, string> = {
   'foods.mealPhotoDone': "{n} éléments ajoutés d'après la photo, les grammes restent modifiables.",
   'foods.aiAsk': "Discuter avec l'IA pour affiner la nutrition",
   'foods.aiTitle': 'Estimation nutritionnelle par IA',
-  'foods.aiDesc': "Décrivez l'aliment, l'IA demande la préparation et la portion, puis donne la nutrition pour 100 g.",
-  'foods.aiGreeting': "Quel aliment estimer ? Plus c'est précis, mieux c'est, par exemple « riz au poulet, une portion ».",
+  'foods.aiDesc':
+    "Décrivez l'aliment ou joignez une photo de référence. L'IA demande la préparation et la portion, puis donne la nutrition pour 100 g.",
+  'foods.aiGreeting':
+    "Quel aliment estimer ? Plus c'est précis, mieux c'est, par exemple « riz au poulet, une portion ». Une photo de l'emballage ou du plat aide.",
+  'foods.aiAttachTitle': 'Image de référence',
+  'foods.aiAttachHint':
+    "Jusqu'à 3 images. La première photo scannée est ajoutée automatiquement, et vous pouvez en ajouter d'autres ; elles ne servent qu'à cette conversation et ne sont pas enregistrées dans la bibliothèque.",
+  'foods.aiAttachAdd': 'Ajouter une image',
+  'foods.aiAttachRemove': 'Retirer cette image',
+  'foods.aiAttachFull': "Jusqu'à 3 images",
   'foods.aiPlaceholder': 'ex. : riz au poulet, une portion',
   'foods.aiSend': 'Envoyer',
   'foods.aiThinking': 'Estimation en cours…',
@@ -757,7 +766,7 @@ export const fr: Record<MessageKey, string> = {
   'assistant.needConfig': 'Aucun modèle IA n’est disponible pour l’instant.',
   'assistant.goSettings': 'Configurer un modèle',
   'assistant.intro':
-    'Pose-moi des questions sur ton journal, tes notes, tes repas, ton sommeil, tes dépenses et ton poids. Je peux aussi noter dépenses, repas, sommeil ou notes — rien n’est écrit avant ta confirmation.',
+    'Pose-moi des questions sur ton journal, tes notes, tes repas, ton sommeil, tes dépenses et ton poids. Je peux aussi créer des entrées. Le niveau d’autorisation détermine si les nouvelles entrées sont enregistrées automatiquement.',
   'assistant.example1': 'Comment mon poids a évolué ces 7 derniers jours ?',
   'assistant.example2': 'De quoi je me suis inquiété la semaine dernière ?',
   'assistant.example3': 'Où est parti mon argent ce mois-ci ?',
@@ -949,16 +958,16 @@ export const fr: Record<MessageKey, string> = {
 
   'permission.title': 'Ce que l’assistant peut faire',
   'permission.description':
-    'Définissez l’accès de l’assistant à vos entrées : lecture seule, confirmation avant modification, ou application directe.',
+    'Choisissez la lecture seule, une confirmation avant écriture ou l’enregistrement automatique des nouvelles entrées.',
   'permission.readonly': 'Lecture seule',
   'permission.readonlyHint': 'Il peut consulter et répondre, mais rien ajouter, modifier ou supprimer',
   'permission.confirm': 'Confirmer avant',
   'permission.confirmHint': 'Ajout, modification et suppression passent par une carte à confirmer',
-  'permission.auto': 'Modifier directement',
+  'permission.auto': 'Enregistrer les ajouts automatiquement',
   'permission.autoHint':
-    'Les ajouts et modifications sont enregistrés tout de suite ; les suppressions restent à confirmer',
+    'Les nouvelles entrées sont enregistrées automatiquement ; modifications, écrasements et suppressions restent à confirmer',
   'permission.deleteNote':
-    'Les suppressions demandent toujours votre confirmation ; les entrées supprimées vont à la corbeille et peuvent être restaurées.',
+    'Toute suppression demande confirmation. Les entrées avec corbeille y sont placées ; les autres suppressions peuvent être annulées après coup.',
 
   'reasoning.title': 'Réflexion approfondie',
   'reasoning.description':
@@ -1025,6 +1034,11 @@ export const fr: Record<MessageKey, string> = {
 
   'ball.description': "La bulle reste au bord de l'écran : touchez-la pour ouvrir l'assistant. Faites-la glisser pour la déplacer ; laissée tranquille longtemps, elle se range au bord et n'en montre que la moitié.",
   'ball.shape': 'Apparence',
+  'ball.customImage': 'Image personnalisée',
+  'ball.uploadImage': 'Importer une image',
+  'ball.replaceImage': 'Remplacer l’image',
+  'ball.resetImage': 'Valeur par défaut',
+  'ball.imageFailed': 'Impossible de traiter cette image. Essaie-en une autre.',
   'ball.size': 'Taille',
   'ball.shape.star4': 'Étoile à 4 branches',
   'ball.shape.star8': 'Étoile à 8 branches',
@@ -1515,6 +1529,13 @@ export const fr: Record<MessageKey, string> = {
 
   'diary.tabDiary': 'Journal',
   'diary.tabStamp': 'Notes',
+  'diary.allRecords': 'Toutes les entrées',
+  'diary.noAllRecords': 'Aucun journal ni note',
+  'diary.archiveCount': '{count} entrées · page {page} sur {pages}',
+  'diary.previousPage': 'Précédent',
+  'diary.nextPage': 'Suivant',
+  'diary.pageOf': 'Page {page} sur {pages}',
+  'diary.pagination': 'Pagination',
   'diary.prevDay': 'Jour précédent',
   'diary.nextDay': 'Jour suivant',
   'diary.today': "Aujourd'hui",
