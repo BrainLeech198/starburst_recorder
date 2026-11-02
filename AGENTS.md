@@ -9,6 +9,7 @@
 | **`docs/PACKAGING-AND-RELEASE.md`** | **任何打包、签名、发版、凭证、推送相关操作之前必读** |
 | `docs/PROJECT-NOTES.md` | 改架构、数据层、存储选型、UI 约定之前 |
 | `docs/ROADMAP.md` | 判断功能优先级与当前阶段 |
+| `docs/TECH-DEBT.md` | 动手改架构 / 存储 / AI 子系统之前，先看已登记的框架债与四条待建闸门（含"已查过、没问题"的清单，免得重复劳动） |
 
 打包/发版的命令、密钥位置、证书指纹、检查清单和已知坑，全部以 `docs/PACKAGING-AND-RELEASE.md` 为准，不要在别处另立一份。
 

@@ -1,7 +1,7 @@
 # 星芒记录者 · 路线清单（发散版）
 
 > 用途：把"接下来能做什么"摊开摆在这里，避免只在对话里飘。**未定优先级**，随时增删。
-> 最近更新：2026-11-01 ｜ 配套资料：`.local/refs/`（同类开源项目，索引见 `.local/refs/INDEX.md`）
+> 最近更新：2026-11-02 ｜ 配套资料：`.local/refs/`（同类开源项目，索引见 `.local/refs/INDEX.md`）｜ 框架债见 [TECH-DEBT.md](TECH-DEBT.md)
 
 ## 许可红线（抄作业前先看）
 
@@ -49,9 +49,9 @@
 
 ## 5. 工程与对外（低成本高回报）
 
-14. **GitHub Pages 官网**（长期计划里挂了很久）
+14. ✅ **GitHub Pages 官网**（已完成，见仓库 `site/` 与 0.11.0/0.11.1 的官网条目提交）
 15. **CI 自动打包**（现在 APK / 安装包全靠本机手动）
-16. `android/` 提交进仓库 + 写 README + **定我们自己的许可证**（要开源到什么程度，得早想）
+16. ✅ `android/` 已提交进仓库、README 已有、许可证已定 **MIT**（`package.json` 与 `LICENSE` 一致）；剩"要开源到什么程度"仍未定
 17. AI 网关增强：本地模型（Ollama）、成本记账、失败重试 — 参考 `one-api`（MIT，可抄）+ `cherry-studio`
 
 ## 6. 体验巧思（随时可做）
@@ -61,7 +61,69 @@
 
 ---
 
+## 7. 2026-11-02 全量体检补录（功能方向）
+
+> 依据：0.11.1 代码实盘（11 张表 / 18 个 feature / 515 个单测全过）+ 一轮外部调研。
+> 只登记方向与证据，**未定优先级**。框架层面的债在 [TECH-DEBT.md](TECH-DEBT.md)。
+
+### 7.1 先补的"断裂点"——数据进得去、出不来 / 看不见 / 带不走
+
+这类缝用户的抱怨比"少一个功能"更凶，且多数已经有代码证据：
+
+| # | 断裂 | 证据 | 量 |
+|---|---|---|---|
+| 7.1-A | **AI 助手会话与长期记忆不进备份**，换机即丢（存在 localStorage，`persist()` 失败还是静默吞掉） | `src/features/assistant/assistantChatStore.ts:121/373-381`，SQLite 侧无会话表 | M |
+| 7.1-B | **挑选记录导出不全**：只覆盖日记/随记/摄入/睡眠/训练/收支，日程、套餐、预设只能整库备份 | `src/features/records/recordExport.ts:34-51` | S |
+| 7.1-C | **标签只挂在日记与随记**，健康与收支进不了按标签筛选；全局搜索能搜到但不能按标签收窄 | `schema.ts` 只有日记/随记带 `tags` | M |
+| 7.1-D | **摄入与睡眠只有"今天"，没有周/月趋势图**；月度回顾里摄入只算笔数、不算热量 | `src/features/review/reviewMath.ts:35` | M |
+| 7.1-E | **收支没有预算 / 账户 / 自定义分类**（页头注释自己写着"留到后面再加"） | `src/features/finance/FinancePage.tsx:8` | M |
+| 7.1-F | 称重史硬裁 120 条且无回收站；天气没温度、无自动定位、历史回查约 90 天 | `src/core/db/normalize.ts:281`、`src/features/diary/weatherQuery.ts:17/64` | S |
+| 7.1-G | **安卓 Health Connect 导入标着"实验"却从未真机验证**，窗口只取近 30 天 | `src/features/health/deviceHealth.ts:13` | M（真机） |
+| 7.1-H | 首页日历卡文案仍写"待设计"，而日历 0.11.0 已上线；悬浮球注释也还写着"占位" | `src/shared/i18n/messages/zh.ts:14`、`src/app/layout/AppShell.tsx:247` | S |
+| 7.1-I | 训练缺动作库自定义与负荷趋势 / PR / 组间计时（TRAINING-MODULE 里是刻意不做的，要不要翻案得先定） | `docs/TRAINING-MODULE.md` §2.2 | M |
+
+> 注意：全局搜索正在被另一路改动从 4 类扩到 10 类（`src/core/db/store.ts` 的 `SearchResults`、新增 `src/core/search/match.ts`），
+> 上面 7.1-C 等那批改动落地后要对一遍，别重复做。
+
+### 7.2 外部有真实证据的需求（按"证据密度 × 离现状的距离"排）
+
+| 需求 | 证据 | 离现状 |
+|---|---|---|
+| **导出保真 = 安全感**：目录化 Markdown（图片落盘）、记账 CSV、训练 CSV，"不被格式锁死" | 健康记录类 App 用户直接问"能不能导出，不然总没安全感"（[Juicee 评价页](https://apps.apple.com/cn/app/id1660002284)）；记账类评测把"导出要么收费、要么缺字段"当缺点（[网易](https://m.163.com/dy/article/KUJ2KT1F0556L339.html)，未复核） | 近：已有 JSON / md / txt，缺结构化落盘与 CSV |
+| **中文分词检索**：SQLite FTS5 对 CJK 逐字切分，同类项目公认踩坑 | [joplin-utils#80 要求中文分词](https://github.com/rxliuli/joplin-utils/issues/80)、[FTS5 CJK 讨论](https://zhuanlan.zhihu.com/p/643469674)（未复核） | 中：桌面正在用 SQLite，将来上 FTS 必须一并解决（jieba / trigram，纯本地可行） |
+| **多设备同步 / 端到端加密备份** | [思源 #3718 云端收集箱](https://github.com/siyuan-note/siyuan/issues/3718)、[memos #4823 due date](https://github.com/usememos/memos/issues/4823) | **远**：无账号无云端 ⇒ 只能局域网 / WebDAV 密文中转；冲突语义（删除墓碑）是全局工程量最高的一块 |
+| **AI 跨天聚合（周报 / 月报）** | 本地模型出周月报被当作隐私 + 素材分散的解法（[CSDN](https://blog.csdn.net/qq_21103417/article/details/158688580)，未复核）；同时有人自述"折腾完根本不去看" | 近：`aiReport` 已有周月骨架。**风险是吃灰**，先按本清单第 0 项自己验 3–7 天 |
+| **主动触达**：重复提醒、连续天数 | [Joplin #609 重复提醒](https://github.com/laurent22/joplin/issues/609)、[Apple Journal 的 streak 通知](https://support.apple.com/en-sg/guide/journal/dev19b1e375f/mac) | 中：日程提醒 + 称重提醒已各有一套，应先合并成一套再谈新增；安卓受 Doze 与通知权限限制，做不好就变骚扰 |
+| **本地锁（PIN / 生物识别）** | [Joplin #289 密码或 PIN 保护](https://github.com/laurent22/joplin/issues/289) | 近：桌面多用户共用一台电脑目前完全空白 |
+| **"最近吃过"一键复用 + 围度 / 进度照** | 视觉模型对中餐热量误差实测可达四成（[头条](https://m.toutiao.com/article/7681940522264592942/)，未复核），竞品解法是"拍照 + 补一句、允许编辑" | 近：一键复用比"识别更准"更实用 |
+| **语音速记** | [Rosebud 用户依赖语音转写](https://apps.apple.com/us/app/rosebud-ai-journal-diary/id6451135127)（未复核） | 中：零云端前提下只能走系统输入法或用户自配 ASR key |
+| **长周期看板**：预算 vs 实际、单分类逐月对比 | [Actual Budget 的自定义报表请求](https://github.com/actualbudget/actual/issues/730)（**待复核**：本轮未打开验证） | 中：收支有日/月/年三视图与两张图 |
+| **家庭共享** | [35.3% 健康监测设备由子女买单](https://36kr.com/p/4034904444031873)（未复核） | 双向共享要服务器 + 账号，与产品身份冲突；**低成本形态是"给家人一份周报 / 二维码快照"**（分享码机制现成，见 §13 伦理红线） |
+
+**不适用**：GPX / IFC 这类导出——我们不记轨迹与身体成分模型数据，没有数据源。
+9 语言是资产也是回归面：openScale 曾出过"新版只剩英德文、非英文系统启动崩溃"的问题，改文案要过一遍全部九份。
+
+### 7.3 如果只做三件
+
+1. **把助手记忆与会话纳入备份**（M）——补上"卖点资产不能迁移"这个最扎眼的漏洞。
+2. **目录化 Markdown 导出（图片落盘）+ 收支 / 训练 CSV**（M）——外部证据最密集，顺带解决 7.1-B 缺的三类导出。
+3. **健康趋势图 + 回顾算热量**（M）——数据已经攒下了，缺的是让用户看见它在起作用，比再加一个新模块更能留人。
+
+代价分别是：1 要定备份格式的版本升级与合并语义；2 会让备份从"单个 JSON"变成多文件结构，这份简单性当初是有意选的；
+3 要先统一口径（称重史 120 条裁剪、回顾不算热量都在这条链上）。
+
+### 7.4 需要用户拍板 / 明确不做
+
+- **全局快捷键**：外部调研建议加，但 [PROJECT-NOTES.md](PROJECT-NOTES.md) §5「桌面托盘常驻」记着当初明确要求"**不要全局快捷键，不能影响其它软件**"。要翻案由用户定，AI 不自行推翻。
+- **训练的动作库自定义 / 负荷趋势**：TRAINING-MODULE 里是刻意划出的边界（不做），翻不翻案先定方向再动手。
+- **双向家庭共享（账号 + 服务器）**：顺序仍是 APK → 健康 → 账户，当前不做（§4 已定）。
+- **首页简化（长辈关怀的信息密度收缩）**：仍是 TODO，等明确"简化到什么程度"再动。
+
 ## 已定 / 已做（留档）
+
+- 2026-11-02：全量代码体检 + 外部需求调研，结论落成 [TECH-DEBT.md](TECH-DEBT.md)（框架债，含 4 条正确性 bug 与 4 条待建的闸门）与本文件 §7（功能方向）。本次为**只读调研，未改任何代码**。
+- 2026-11-02：项目实际路径是 `D:\File\idea\ai\starburst_recorder`（旧文档里写 `D:\File\idea\trae\...` 的地方待 PROJECT-NOTES 空闲时统一订正，见 TECH-DEBT §7）。
+
 
 - 2026-10-20：应用图标定稿（星尘轨道 + 黑洞镂空 + 中心星芒，透明底方案 A）→ 见 PROJECT-NOTES §3
 - 2026-10-20：项目整体搬到 `D:\File\idea\trae\starburst_recorder`，目录名不可见字符问题治本
