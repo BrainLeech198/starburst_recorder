@@ -19,6 +19,7 @@ import RowCheckbox from '@/shared/ui/RowCheckbox'
 import BatchActions from '@/shared/ui/BatchActions'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import DayNav from '@/shared/ui/DayNav'
+import BackButton from '@/shared/ui/BackButton'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import EmptyState from '@/shared/ui/EmptyState'
 import { NAV_BACK_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
@@ -238,10 +239,12 @@ export default function TrainingPage() {
             today: t('health.backToToday'),
           }}
           leading={
-            <Link to="/health" className={NAV_BACK_BUTTON}>
-              <Icon name="back" className="h-3.5 w-3.5 shrink-0" />
-              {t('nav.health')}
-            </Link>
+            <BackButton
+              to="/health"
+              label={t('nav.health')}
+              icon
+              className={`${NAV_BACK_BUTTON} gap-1`}
+            />
           }
         />
       )}

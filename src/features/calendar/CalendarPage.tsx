@@ -184,7 +184,7 @@ export default function CalendarPage() {
               cell.dateKey === today ? 'ring-1 ring-brand' : '',
             ].join(' ')}
           >
-            {cell.inMonth ? cell.day : ''}
+            {cell.day}
             {cell.dateKey === today && cell.inMonth && (
               <span className="absolute right-1 top-1 h-1 w-1 rounded-full bg-brand" aria-hidden="true" />
             )}

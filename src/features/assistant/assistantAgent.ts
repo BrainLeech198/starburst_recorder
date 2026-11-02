@@ -97,6 +97,8 @@ export interface AssistantRunOptions {
   notes?: string[]
   /** 界面上还挂着、用户没确认的卡片，避免模型重复提案 */
   pendingNotes?: string[]
+  /** 用户已经拒绝、撤销或写入失败的卡片，让模型看到处理结果 */
+  resolvedNotes?: string[]
   /** 已启用的技能，只有摘要进提示，完整说明由 load_skill 取 */
   skills?: AssistantSkill[]
   /** 当前编辑权限：只读 / 改前确认 / 新增自动保存；不传按「改前确认」 */
@@ -164,6 +166,7 @@ export function buildSystemPrompt(
   pendingNotes: string[] = [],
   skills: AssistantSkill[] = [],
   permission: AssistantPermission = 'confirm',
+  resolvedNotes: string[] = [],
 ) {
   const readList = ASSISTANT_READ_TOOLS.map((spec) => `- ${spec.name}：${spec.description}`).join(
     '\n',
@@ -221,6 +224,10 @@ export function buildSystemPrompt(
     pendingNotes.length > 0
       ? `\n【界面上还没确认的卡片】\n${pendingNotes.map((item) => `- ${item}`).join('\n')}\n这些还没写入。用户如果改主意，直接生成新的卡片即可，不要重复原来的。`
       : ''
+  const resolvedBlock =
+    resolvedNotes.length > 0
+      ? `\n【用户对之前卡片的处理结果】\n${resolvedNotes.map((item) => `- ${item}`).join('\n')}\n这些是已经发生的结果：被拒绝或撤销的不要再提同样的卡片，除非用户明确要求重做；写入失败的可以说明原因，等用户决定是否重试。`
+      : ''
 
   return `你是「星芒」里的私人生活记录助手，陪着用户看自己的日记、随记、饮食、睡眠、收支、身体档案和称重，也帮他把新发生的事记下来。
 
@@ -252,7 +259,7 @@ ${writeBlock}
 - 用用户的界面语言回答
 - 别写小作文，除非用户明确要总结；几句话说清就行
 - 不要说「根据工具」「我调用了」这类内部话，直接讲记录里的事实
-${photoBlock}${askBlock}${skillBlock}${jsonMode ? JSON_PROTOCOL : ''}${memoryBlock}${noteBlock}${pendingBlock}`
+${photoBlock}${askBlock}${skillBlock}${jsonMode ? JSON_PROTOCOL : ''}${memoryBlock}${noteBlock}${pendingBlock}${resolvedBlock}`
 }
 
 /** 不支持 tools 的模型走这套：每次只输出一个 JSON 动作，或者直接说话 */
@@ -459,6 +466,7 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
       options.pendingNotes,
       skills,
       permission,
+      options.resolvedNotes,
     )
     if (!reasoning) return base
     return `${base}\n\n【深度思考】回答前先把已知信息按顺序过一遍：先想清楚用户真正要什么，再看还缺哪些信息，然后才调用工具。结论先说，依据在后，不要为了想而想。`

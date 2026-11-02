@@ -70,6 +70,17 @@
         color: var(--muted);
       }
 
+      /* 每版一句话：先给结论，再看清单 */
+      .ver__sum {
+        margin: 2px 0 0;
+        padding-left: 10px;
+        border-left: 2px solid rgb(110 231 255 / 45%);
+        font-size: 14.5px;
+        line-height: 1.65;
+        font-weight: 600;
+        color: var(--fg);
+      }
+
       .ver h3 {
         margin: 14px 0 8px;
         font-size: 13px;
@@ -170,12 +181,64 @@
         <a class="changelog__back" href="index.html#download" data-i18n="changelog.back">← 回到下载</a>
       </header>
 
+      <article class="ver" id="v0.12.1">
+        <div class="ver__head">
+          <span class="ver__tag">0.12.1</span>
+          <span class="ver__date">2026-11-02</span>
+        </div>
+        <div class="lang-zh">
+          <p class="ver__sum">备份把设置也带走了，返回改成走回原路</p>
+          <h3>这一版有什么</h3>
+          <ul>
+            <li><strong>助手能看到卡片的处理结果了</strong>：确认、拒绝、撤销或写入失败都会在下一轮告诉模型；被拒绝的不会反复提，失败的会说明原因再等你决定</li>
+            <li><strong>备份覆盖到「偏好设置」了</strong>：外观、语言、关怀模式、助手的长期记忆与技能、AI 模型、图片存法、天气地点、更新通道都能跟着备份走；文件里含接口密钥时会明确提示别外发</li>
+            <li><strong>AI 对话可以备份了</strong>：整库备份新增「AI 对话」分区，可单独勾选导出；导入时按会话 id 融合，替换则整组恢复；空会话不会写进备份</li>
+            <li><strong>全部记录有了筛子</strong>：全部 / 日记 / 随记三档各自带条数，筛子和页码记在地址里，从这儿点开一条再返回还在原来的位置；页头直接进回收站，只有一页时不再摆翻页条</li>
+            <li><strong>返回改成了真的栈</strong>：先回上一页，从搜索、日历、列表进来的都回自己来的地方，退无可退才回父级；带未保存改动的离开确认也不再往历史里多堆一条</li>
+            <li><strong>健康页的锻炼卡不再两个按钮去同一处</strong>：「记一次」就地开表单，「查看记录」才进训练页</li>
+            <li><strong>回顾板块统一四种报告</strong>：日报、周报、月报、年报都收进「回顾」，周视图不再单独放周报入口</li>
+            <li><strong>报告按更细的多维口径生成</strong>：结论、和上期比、三条线、蛋白来源、供能比、餐次与进食窗、热量来源、训练恢复、体重与身体信号、周内或逐月模式、风险点与下一步；没有运动消耗或钠、加工标注的素材就不猜</li>
+            <li><strong>几处界面修正</strong>：月历跨月格显示日期，不再出现空白可点格；删除卡片的标题与权限层共用同一份名单</li>
+          </ul>
+          <h3>下载</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.12.1/starburst-recorder-0.12.1-setup.exe"><code>starburst-recorder-0.12.1-setup.exe</code></a>（约 96 MB） · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.12.1/starburst-recorder-0.12.1-setup.exe">Gitee</a></dd>
+            <dt>Android 10 以上</dt>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.12.1/starburst-recorder-0.12.1.apk"><code>starburst-recorder-0.12.1.apk</code></a>（约 62 MB，正式签名） · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.12.1/starburst-recorder-0.12.1.apk">Gitee</a></dd>
+          </dl>
+        </div>
+        <div class="lang-en">
+          <p class="ver__sum">The backup now carries your settings too, and Back follows the trail you came in on</p>
+          <h3>What's new</h3>
+          <ul>
+            <li><strong>The assistant now sees what happened to its cards</strong> — confirm, reject, undo or a failed write is fed back on the next turn. Rejected cards are not proposed again, and failures explain the reason before you decide whether to retry.</li>
+            <li><strong>Backups cover your preferences</strong> — appearance, language, care mode, assistant memory and skills, AI models, image quality, weather location and update channel now travel with the backup. If the file contains an API key, the export warns you not to share it.</li>
+            <li><strong>AI chats are part of the backup</strong> — a new "AI chats" section can be exported on its own; merging matches by chat id, replacing restores the whole set, and empty chats are left out.</li>
+            <li><strong>All records gained filters</strong> — All / Diary / Notes, each with its own count. Filter and page live in the URL, so opening an entry and coming back lands you exactly where you were; the trash sits in the header, and a single page no longer shows a pager.</li>
+            <li><strong>Back is a real stack now</strong> — it returns to the previous page, so entries opened from search, the calendar or a list go back to where they came from, and the page's own parent is only the fallback. Leaving an edited entry with unsaved changes no longer pushes an extra history entry either.</li>
+            <li><strong>The training card no longer sends both buttons to the same place</strong> — "Log one" opens the form in place, and "View records" goes to the training page.</li>
+            <li><strong>All four reports live in Review</strong> — daily, weekly, monthly and yearly reports moved into the Review tab; the week view no longer carries its own weekly-report button.</li>
+            <li><strong>Reports follow a more detailed multi-dimensional format</strong> — conclusion, comparison with the previous period, the three calorie lines, protein sources, macro split, meal timing and eating window, calorie sources, training recovery, weight and body signals, within-week or month-by-month patterns, risks and next steps. If the data has no exercise burn or sodium / processing labels, the report does not guess.</li>
+            <li><strong>Small UI fixes</strong> — spillover days in the month grid show their date instead of being blank clickable cells; delete-card titles now use the same list as the permission layer.</li>
+          </ul>
+          <h3>Downloads</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.12.1/starburst-recorder-0.12.1-setup.exe"><code>starburst-recorder-0.12.1-setup.exe</code></a> (~96 MB) · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.12.1/starburst-recorder-0.12.1-setup.exe">Gitee</a></dd>
+            <dt>Android 10+</dt>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.12.1/starburst-recorder-0.12.1.apk"><code>starburst-recorder-0.12.1.apk</code></a> (~62 MB, release-signed) · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.12.1/starburst-recorder-0.12.1.apk">Gitee</a></dd>
+          </dl>
+        </div>
+      </article>
+
       <article class="ver" id="v0.12.0">
         <div class="ver__head">
           <span class="ver__tag">0.12.0</span>
           <span class="ver__date">2026-11-02</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">AI 助手从查记录变成改记录</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>AI 助手能动手了</strong>：能查十四类记录、读图表和旧照片，也能新增、修改、删除日程、日记、随记、收支、饮食、睡眠、训练、体重与身体档案；每次写入先给预览卡片，删除始终要确认，完成的写入可以撤销</li>
@@ -198,6 +261,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">The assistant goes from reading records to changing them</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>The AI assistant can now act</strong> — it searches all fourteen record types, reads charts and old photos, and adds, edits or deletes schedules, diary entries, notes, spending, food, sleep, training, weigh-ins and the health profile. Every write shows a preview card first; deletes always ask for confirmation, and completed writes can be undone.</li>
@@ -227,6 +291,7 @@
           <span class="ver__date">2026-11-02</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">账本按日 / 月 / 年三种视角看，体重曲线能点出读数</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>经济页三种视角</strong>：日 / 月 / 年随时切换，翻页按当前视角走一天、一月或一年；切视角会保留正在看的日子</li>
@@ -244,6 +309,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">The ledger in day, month and year views; the weight curve becomes readable</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Three Finance views</strong> — switch between day, month and year; paging moves one day, one month or one year at a time, and the view keeps the date you were on</li>
@@ -268,6 +334,7 @@
           <span class="ver__date">2026-11-02</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">日历、日程与回顾上线，一天一页串起所有记录</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>日历总览</strong>：月历用日记、健康、收支三色混出深浅，图例可切换只看某一块；有日程的日子在格子底部点一个小标记</li>
@@ -288,6 +355,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Calendar, schedules and reviews arrive — one day, one timeline</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Calendar overview</strong> — the month grid blends diary, health and finance counts into one shade, with a legend that can filter to a single area; days with schedules carry a small dot</li>
@@ -315,6 +383,7 @@
           <span class="ver__date">2026-11-01</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">分享二维码修好，批量栏与睡眠条一并归位</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>分享二维码能出来了</strong>：分享码压缩时先写后读会把压缩流卡死，弹窗一直停在空白二维码；改为先接读端再写入，二维码正常显示，扫码收下的解压也同样修好</li>
@@ -332,6 +401,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Share QR codes work again; the batch bar and sleep strip fall into place</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>The share QR code now appears</strong> — the compressed payload used to deadlock with a write-before-read pattern, leaving the dialog on an empty QR area; the reader is now attached first, and incoming-share decoding is fixed the same way</li>
@@ -356,6 +426,7 @@
           <span class="ver__date">2026-11-01</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">更新不再重复下载同一个安装包</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>更新安装包不再重复下载</strong>：下载完安装包后不小心关掉安装界面，再点更新会先看本地有没有已经下好的完整安装包，有就直接打开；桌面和安卓都适用</li>
@@ -370,6 +441,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Updates stop downloading the same installer twice</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Update installers are no longer downloaded twice</strong> — after a download, if you close the installer by accident, tapping update again looks for a complete installer on disk and opens it directly, on desktop and Android alike</li>
@@ -391,6 +463,7 @@
           <span class="ver__date">2026-11-01</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">高对比开关在所有主题下都生效</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>长辈关怀的「高对比」修好</strong>：此前只有默认深色主题下生效，切到浅色、纸色、雾色等显式主题后开关完全没效果；现在所有主题下都会把次要文字与分隔线压得更清楚</li>
@@ -404,6 +477,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">High contrast now applies in every theme</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Elder-care high contrast is fixed</strong> — it used to work only in the default dark theme and did nothing after switching to light, paper, mist or any other explicit palette; secondary text and dividers now get clearly stronger in every theme</li>
@@ -424,6 +498,7 @@
           <span class="ver__date">2026-11-01</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">食物与套餐可以扫码分享</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>食物与套餐分享</strong>：食物库行菜单新增「分享」，生成二维码让对方扫码收下；照片放不进二维码，完整配置可复制分享码或存成 <code>.starburst-share</code> 文件，导入时照片原样带过去</li>
@@ -440,6 +515,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Foods and meal sets can be shared by QR code</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Share foods and meals</strong> — every row in the food library gains Share, showing a QR code the other person can scan; photos do not fit in a QR code, so the full configuration can be copied as a share code or saved as a <code>.starburst-share</code> file and imported with photos intact</li>
@@ -463,6 +539,7 @@
           <span class="ver__date">2026-11-01</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">训练板块落地，经济补成一整套</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>训练板块</strong>：力量、有氧、拉伸、球类四类记录，动作库按肌群分类；可复制上次、按周排计划并到点提醒；健康首页显示当天容量与本周进度；训练页有回收站，支持单条导出与记录级导入</li>
@@ -480,6 +557,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Training lands, and finance becomes a complete module</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Training</strong> — log strength, cardio, mobility and ball sports, with an exercise library by muscle; copy the last session, set a weekly plan with reminders, see today's volume and this week's progress on the health home, and use the trash bin plus single-entry export and record-level import</li>
@@ -504,6 +582,7 @@
           <span class="ver__date">2026-11-01</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">助手面板重排，推荐问贴合当天状态</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>助手面板重新排版</strong>：新建对话改成圆形主色钮，对话记录改成「文字 + 计数徽标」，推荐问收成一条整行可展开的窄栏，深度思考换成带圆点的开关，附件是圆形图标钮</li>
@@ -520,6 +599,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">The assistant panel is rebuilt; suggestions match your day</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>A new assistant layout</strong> — starting a chat is a round accent button, the chat list is plain text with a count badge, suggested questions fold into one full-width strip, deep thinking is a switch, attachments are icon buttons</li>
@@ -543,6 +623,7 @@
           <span class="ver__date">2026-11-01</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">助手支持多段对话与附件，开始显示上下文用量</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>助手支持多段对话</strong>：新建、切换、删除会话，每段各自保留上下文；旧的单段对话自动迁移成第一段</li>
@@ -564,6 +645,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Multi-chat and attachments, with context usage on show</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Multiple conversations</strong> — start, switch and delete chats, each with its own context; the old single thread migrates into the first one</li>
@@ -592,6 +674,7 @@
           <span class="ver__date">2026-11-01</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">助手能改也能删，编辑权限分三档</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>白日小憩也能记了</strong>：一天可以记多次小憩，开始和结束时刻各记一条；小憩不混进夜间睡眠时长，睡眠页能单独看到</li>
@@ -610,6 +693,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">The assistant can edit and delete, under three permission levels</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Daytime naps</strong> — log several naps per day with their own start and end times; naps stay out of the nightly total and show up separately on the sleep page</li>
@@ -635,6 +719,7 @@
           <span class="ver__date">2026-11-01</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">AI 助手正式上手，收支模块开始记账</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>AI 助手能动手</strong>：记账、写随记或日记、记睡眠、称重、记摄入都能交给助手起草；写操作先给预览，确认后才落库，刚写完可撤销</li>
@@ -652,6 +737,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">The assistant starts doing the work; finance starts keeping books</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>The assistant can act</strong> — log spending, write a note or diary entry, record sleep, weigh in or log food; every write is previewed, applied only after confirmation, and can be undone</li>
@@ -676,6 +762,7 @@
           <span class="ver__date">2026-10-31</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">体重趋势独立成页，健康指标补到区间口径</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>体重趋势独立成页</strong>：健康首页的折线图点进去就是趋势页，支持近 7 / 30 / 90 天切换，点曲线上的圆点或下方记录即可选中某一天</li>
@@ -693,6 +780,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Weight trends get their own page; health metrics gain range views</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>The weight trend gets its own page</strong> — open it from the health home chart, switch between 7 / 30 / 90 days, and tap a point or a record to inspect a day</li>
@@ -717,6 +805,7 @@
           <span class="ver__date">2026-10-31</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">套餐能点开看详情，也能复制一份</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>套餐可以点开看详情</strong>：成分、克数、热量与蛋白合计，以及被删除的缺失成分都会列出来</li>
@@ -732,6 +821,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Meal sets open for detail, and can be copied</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Meals open a detail view</strong> — components, grams, total calories and protein, plus any deleted components are listed</li>
@@ -754,6 +844,7 @@
           <span class="ver__date">2026-10-31</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">摄入记录可以重新编辑</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>摄入记录可以重新编辑</strong>：列表行点 ✎ 或从详情进入编辑，普通食物可改名称、时间、份量和四项营养值；套餐按成分克数等比重算营养与合计</li>
@@ -769,6 +860,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Intake entries become editable again</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Intake entries can be edited again</strong> — tap ✎ in the list or edit from the detail view; regular foods let you change name, time, portion and nutrition, while meals recalculate proportionally from component grams</li>
@@ -791,6 +883,7 @@
           <span class="ver__date">2026-10-31</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">整页左右滑动换天，夜醒记到具体时刻</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>整页左右滑动换天</strong>：日记、健康首页、摄入、体重、睡眠页都能左滑下一天、右滑前一天；输入框和横向滚动区域里不会误触</li>
@@ -806,6 +899,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Swipe the whole page to change days; night waking gets a time</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Swipe anywhere to change the day</strong> — diary, health home, intake, weight and sleep pages all switch with a left or right swipe; inputs and horizontally scrollable areas are left alone</li>
@@ -828,6 +922,7 @@
           <span class="ver__date">2026-10-31</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">日记随记能手绘插图，食物库可挑选导出</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>日记和随记能手绘插图了</strong>：插图来源多一个「自己画」，画笔、橡皮、颜色、粗细、撤销、清空都有，画完直接作为图片插进记录</li>
@@ -843,6 +938,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Hand-drawn illustrations, and a food library you can export selectively</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Draw your own illustrations in diaries and notes</strong> — the image source adds "Draw it yourself", with pen, eraser, colour, brush size, undo and clear; the drawing is inserted as an image</li>
@@ -865,6 +961,7 @@
           <span class="ver__date">2026-10-31</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">日期栏吸顶常驻，睡眠记上夜醒</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>日期栏吸顶常驻</strong>：日记、健康首页和摄入 / 体重 / 睡眠子页翻长列表时，日期与入口固定在顶部</li>
@@ -881,6 +978,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">The date bar stays pinned; sleep logs its night wakings</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Sticky header</strong> — the date bar and entry points stay pinned on diary, health, and the intake / weight / sleep sub-pages as lists scroll</li>
@@ -904,6 +1002,7 @@
           <span class="ver__date">2026-10-30</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">修好桌面端带图备份的导入报错</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>修好了 Windows 桌面端导入备份时的报错</strong>：带图片的日记和随记在「替换导入」时不再失败；只导入随记时，图片也不会被写坏</li>
@@ -918,6 +1017,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Desktop imports with images no longer fail</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Fixed importing backups on Windows desktop</strong> — entries and notes with photos no longer fail on replace-import, and importing only notes no longer writes their photos wrong</li>
@@ -939,6 +1039,7 @@
           <span class="ver__date">2026-10-30</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">挑食物能看照片，估算值都加上说明</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>挑食物时能看照片了</strong>：食物库里的照片直接显示在「记一笔摄入」的选择列表里，点一下缩略图就能全屏放大、左右滑动看同一批食物的照片；配份量页和套餐成分里也带缩略图</li>
@@ -954,6 +1055,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Photos while picking food, and clear notes on every estimate</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Food photos while logging intake</strong> — photos from the food library now show up in the picker of "Log intake"; tap a thumbnail to view it full screen and swipe through the batch, with thumbnails also in the portion and meal-component steps</li>
@@ -976,6 +1078,7 @@
           <span class="ver__date">2026-10-30</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">随记与日记能放图片</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>随记和日记能放图片</strong>：随记可以只发图片（拍照或从相册选），一条最多 9 张；日记正文用图片标记插图，阅读时图文混排；图片压缩后存在记录里，跟着备份走</li>
@@ -993,6 +1096,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Notes and diary pages take images</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Photos in notes and diaries</strong> — stamps can be photo-only (camera or gallery), up to 9 per entry; diary body embeds images with markers and renders mixed text and images; images are compressed and stored inline, and travel with backups</li>
@@ -1017,6 +1121,7 @@
           <span class="ver__date">2026-10-29</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">记账前先问一句「这一份合适吗」</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>问 AI 改到记账之前</strong>：加一份食物时，选好菜品和克数就能直接问「这一份吃下去合适吗」，AI 会带上这一份的营养、当天已吃的量和剩余额度一起回答；已经记进摄入列表的不再提供提问入口</li>
@@ -1031,6 +1136,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Ask the AI whether a portion fits, before logging it</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Ask AI before you log it</strong> — while adding a food, pick the dish and grams and ask right away whether this portion works; AI sees this portion's macros, what you have eaten today and what is left. Once an item is in the intake list, it is no longer offered for questions</li>
@@ -1052,6 +1158,7 @@
           <span class="ver__date">2026-10-29</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">AI 助手开始能查你的记录</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>AI 助手能查数据了</strong>：不再只是聊天，它可以按日期、关键词翻你的日记、随记、收支和健康记录，回答里会写上查过哪些内容；页面和悬浮球共用同一套对话界面</li>
@@ -1074,6 +1181,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">The assistant starts reading your records</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>The AI assistant can look things up</strong> — besides chatting, it browses your diary, notes, finance and health records by date or keyword and tells you what it checked; the page and the floating bubble share one conversation UI</li>
@@ -1103,6 +1211,7 @@
           <span class="ver__date">2026-10-29</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">长辈关怀、睡眠日记与称重提醒上线</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>长辈关怀模式</strong>：我的 → 长辈关怀独立设置页，四档字号（标准 / 大 / 特大 / 超大 = 100 / 115 / 130 / 150%）把整套界面等比放大；加大按钮、高对比、减少动效三个开关；危险操作要连点两次才执行</li>
@@ -1121,6 +1230,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Elder-care mode, a sleep diary and weighing reminders arrive</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Care mode for elders</strong> — a dedicated page under Me → Care with four text sizes (standard / large / extra large / huge = 100 / 115 / 130 / 150%) scaling the whole interface; larger tap targets, higher contrast and reduced motion; destructive actions need a second tap</li>
@@ -1146,6 +1256,7 @@
           <span class="ver__date">2026-10-28</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">安卓批量操作与弹窗溢出修好</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>摄入列表的按钮统一了</strong>：「批量」「回收站」改成一排小号实心按钮，和页面其他按钮同一套样式</li>
@@ -1162,6 +1273,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Android batch mode and overflowing dialogs fixed</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Intake list buttons unified</strong> — Batch and Trash are now small solid buttons matching the rest of the app</li>
@@ -1185,6 +1297,7 @@
           <span class="ver__date">2026-10-28</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">界面支持九种语言</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>九种界面语言</strong>：简体中文、繁體中文、English、日本語、한국어、Deutsch、Français、Русский、Español，在「我的 → 设置 → 语言」里切换，立即生效并记住</li>
@@ -1203,6 +1316,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">The interface speaks nine languages</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Nine interface languages</strong> — Simplified and Traditional Chinese, English, Japanese, Korean, German, French, Russian and Spanish, switchable under Me → Settings → Language; the change applies immediately and is remembered</li>
@@ -1228,6 +1342,7 @@
           <span class="ver__date">2026-10-26</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">可以只挑几条记录导出</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>可以只挑几条记录导出</strong>：日记、随记、健康摄入、收支混着勾，单独发给 AI 或别人看，不必再导整库</li>
@@ -1243,6 +1358,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Export only the records you pick</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Export only the records you pick</strong> — mix diary entries, quick notes, health intake and finance records in one file for AI or someone else, without exporting the whole library</li>
@@ -1265,6 +1381,7 @@
           <span class="ver__date">2026-10-26</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">手机端三处布局跑偏摆正</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>首页回到屏幕中间</strong>：手机上图标和标题不再贴着头，整块内容落在可视区中间</li>
@@ -1280,6 +1397,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Three mobile layout drifts put back in place</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Home sits in the middle again</strong> — the mark and title no longer hug the top edge on phones, and the whole block is centred in the viewport</li>
@@ -1302,6 +1420,7 @@
           <span class="ver__date">2026-10-26</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">AI 整理完还能接着聊，设置里能清缓存</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>随记也有短编号</strong>：每条随记带上 7 位编号，和日记一样方便指代；旧数据会自动补齐</li>
@@ -1319,6 +1438,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Keep talking after an AI draft; clear the cache in settings</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Stamps get short IDs</strong> — every stamp carries a 7-character code like diary entries do, and existing records are filled in automatically</li>
@@ -1343,6 +1463,7 @@
           <span class="ver__date">2026-10-26</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">更新有进度条，主题加到九套</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>手机更新能看见进度</strong>：点下载会弹出进度面板，已下载多少、总大小多少一目了然，下载期间不会误关；完成才自动拉起系统安装</li>
@@ -1360,6 +1481,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Download progress, and themes grow to nine</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Downloads show real progress</strong> — tapping download opens a progress panel with bytes received and total size; it can't be dismissed by accident, and the system installer opens when it finishes</li>
@@ -1384,6 +1506,7 @@
           <span class="ver__date">2026-10-26</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">AI 整理能挑素材，也能翻旧账</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>AI 整理可以挑素材</strong>：随记、健康摄入、经济收支各自勾选；一样都没选会直接提示，不会空跑模型</li>
@@ -1403,6 +1526,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">AI drafting picks its own material and looks back in time</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>AI compose picks its own material</strong> — toggle stamps, health intake and finances; if nothing is picked it says so instead of calling the model</li>
@@ -1429,6 +1553,7 @@
           <span class="ver__date">2026-10-26</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">数据格式加固，备份带上版本号</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>数据格式加固</strong>：行级校验把缺胳膊少腿的记录挡在门外，写坏的日期不再混进库</li>
@@ -1444,6 +1569,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Data validation hardens; backups carry a version</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Hardened the data format</strong> — row-level validation keeps broken records out, and impossible dates no longer slip into the database</li>
@@ -1466,6 +1592,7 @@
           <span class="ver__date">2026-10-26</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">每条记录标上建立与修改时间</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>每条记录带时间戳</strong>：标着「建于…」，真被编辑过才多一句「改于…」，不抢正文</li>
@@ -1479,6 +1606,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Every record shows when it was created and edited</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Every record shows timestamps</strong> — "Created …", plus "Edited …" only when it really was, kept out of the way</li>
@@ -1499,6 +1627,7 @@
           <span class="ver__date">2026-10-26</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">六套主题上线，安卓大备份不再压垮应用</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>六套主题模式</strong>：深空 / 暮色 / 深夜 / 晴日 / 纸白 / 薄雾，配六种主题色自由组合</li>
@@ -1516,6 +1645,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Six themes, and big Android backups stop crashing the app</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Six theme modes</strong> — Deep space / Dusk / Night / Clear day / Paper / Mist, each pairing with six accent colours</li>
@@ -1540,6 +1670,7 @@
           <span class="ver__date">2026-10-25</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">预设库挪到右上角，随记也能插入</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>预设库挪到右上角</strong>：日记和随记都能随时打开，随记也支持插入预设了</li>
@@ -1554,6 +1685,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">Presets move to the corner and work in notes too</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Preset library moved to the top-right</strong> — open it any time from diary or quick notes; quick notes can insert presets now</li>
@@ -1575,6 +1707,7 @@
           <span class="ver__date">2026-10-25</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">食物库顺手了，一句话记餐先核对</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>食物库好用了</strong>：按名字排序，行尾操作收进菜单，点一行看只读详情</li>
@@ -1590,6 +1723,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">A friendlier food library; one-line logging checks first</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Food library polished</strong> — sorted by name, row actions tucked into a menu, tap a row for a read-only detail</li>
@@ -1612,6 +1746,7 @@
           <span class="ver__date">2026-10-25</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">版本页与应用内更新上线</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>版本页上线</strong>：「我的 → 版本」里检查更新、进入官网两个入口</li>
@@ -1627,6 +1762,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">A version page and in-app updates arrive</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>Version page</strong> — check for updates and open the website from Me → Version</li>
@@ -1649,6 +1785,7 @@
           <span class="ver__date">2026-10-25</span>
         </div>
         <div class="lang-zh">
+          <p class="ver__sum">首个正式版：日记、随记、AI 整理与健康记录一起上线</p>
           <h3>这一版有什么</h3>
           <ul>
             <li><strong>首个正式版本</strong>：日记一天一张纸条、随记走时间轴，另有只读纸面视图、回收站和批量操作</li>
@@ -1668,6 +1805,7 @@
           </dl>
         </div>
         <div class="lang-en">
+          <p class="ver__sum">The first release: diary, notes, AI drafting and health logging</p>
           <h3>What's new</h3>
           <ul>
             <li><strong>First release</strong> — one slip per day for diary, quick notes on a timeline, read-only paper view, trash and batch actions</li>

@@ -1,4 +1,6 @@
-/** 页内栏目切换：日记页和回收站页共用 */
+/** 页内栏目切换：日记页、回收站页、全部记录页共用 */
+import type { ReactNode } from 'react'
+
 export default function Tab({
   active,
   onClick,
@@ -6,7 +8,8 @@ export default function Tab({
 }: {
   active: boolean
   onClick: () => void
-  children: string
+  /** 可以是纯文字，也可以在后面挂一个计数 */
+  children: ReactNode
 }) {
   return (
     <button

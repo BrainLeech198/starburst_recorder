@@ -74,6 +74,8 @@ import {
   recordsCount,
 } from '@/features/records/recordImport'
 import { RECORD_KINDS } from '@/features/records/recordExport'
+import { exportChatSessions, importChatSessions } from '@/features/assistant/assistantChatStore'
+import { applyPrefs, exportPrefs, prefsContainSecrets, prefsCount } from './userPrefs'
 
 /** 导入方式：融合只补/更新，替换则先把选中的块清空再恢复 */
 type ImportMode = 'merge' | 'replace'
@@ -105,6 +107,10 @@ interface Report {
   stats: ImportStats
   skipped: number
   mode: ImportMode
+  /** AI 对话不在数据库里，单独记一笔 */
+  chats?: { added: number; updated: number; skipped: number }
+  /** 偏好与助手设置也不在数据库里：写了多少项 */
+  prefs?: number
 }
 
 /** 「数据在哪」：只有桌面程序里有这一块 */
@@ -316,6 +322,16 @@ function SectionPicker({
       label: t('data.sectionFinance'),
       detail: sectionDetail(payload, 'finance', t),
     },
+    {
+      section: 'assistant',
+      label: t('data.sectionAssistant'),
+      detail: sectionDetail(payload, 'assistant', t),
+    },
+    {
+      section: 'prefs',
+      label: t('data.sectionPrefs'),
+      detail: sectionDetail(payload, 'prefs', t),
+    },
   ]
 
   return (
@@ -413,6 +429,16 @@ function sectionDetail(
   }
   if (section === 'schedule') return t('data.sectionScheduleDetail', { count: payload.schedules.length })
   if (section === 'training') return t('data.sectionTrainingDetail', { count: payload.trainings.length })
+  if (section === 'assistant') {
+    const chats = payload.chats ?? []
+    return t('data.sectionAssistantDetail', {
+      sessions: chats.length,
+      messages: chats.reduce((sum, session) => sum + session.messages.length, 0),
+    })
+  }
+  if (section === 'prefs') {
+    return t('data.sectionPrefsDetail', { count: prefsCount(payload.prefs) })
+  }
   return t('data.sectionFinanceDetail', { count: payload.finance.length })
 }
 
@@ -482,7 +508,7 @@ export default function DataPage() {
   /** 点的是「融合」还是「替换」；文件选择框是同一个，用 ref 带过去 */
   const pickModeRef = useRef<ImportMode>('merge')
   const counts = useLiveQuery(() => totals(), [])
-  const [exportData, setExportData] = useState<BackupData | null>(null)
+  const [exportData, setExportData] = useState<BackupPayload | null>(null)
   const [exportSelected, setExportSelected] = useState<Set<BackupSection>>(new Set(ALL_SECTIONS))
   /** 「挑选记录导出」用的整库数据；非 null 就打开勾选弹窗 */
   const [recordData, setRecordData] = useState<BackupData | null>(null)
@@ -516,7 +542,8 @@ export default function DataPage() {
   }
 
   function asPayload(data: BackupData): BackupPayload {
-    return data
+    // AI 对话与偏好都存在 localStorage，不在数据库导出里；在备份边界一并带上
+    return { ...data, chats: exportChatSessions(), prefs: exportPrefs() }
   }
 
   function toggleIn(set: Set<BackupSection>, section: BackupSection) {
@@ -531,9 +558,9 @@ export default function DataPage() {
     setReport(null)
     setBusy(true)
     try {
-      const data = await exportAllData()
-      setExportData(data)
-      setExportSelected(new Set(sectionsOf(asPayload(data))))
+      const payload = asPayload(await exportAllData())
+      setExportData(payload)
+      setExportSelected(new Set(sectionsOf(payload)))
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught))
     } finally {
@@ -544,7 +571,7 @@ export default function DataPage() {
   async function handleExportConfirm() {
     if (!exportData || exportSelected.size === 0) return
     const sections = ALL_SECTIONS.filter((section) => exportSelected.has(section))
-    const file = buildBackup(asPayload(exportData), t('data.backupFileBase'), sections)
+    const file = buildBackup(exportData, t('data.backupFileBase'), sections)
     setExportData(null)
     // 安卓上这一步会把文件交给系统分享面板，用户不点保存就什么都没留下，
     // 所以提示条要按实际结果说话（见 describeSave）
@@ -552,7 +579,7 @@ export default function DataPage() {
     showToast({
       message: describeSave(
         outcome,
-        t('data.savedSections', { detail: describePayload(asPayload(exportData), exportSelected, t) }),
+        t('data.savedSections', { detail: describePayload(exportData, exportSelected, t) }),
         t,
       ),
     })
@@ -803,7 +830,7 @@ export default function DataPage() {
 
       // 导入会覆盖一部分内容，先把即将被覆盖的块原样存一份快照，出事还能滚回来。
       // 对应的块本地本来就是空的，就没什么可保护的，跳过。
-      const local = await exportAllData()
+      const local = asPayload(await exportAllData())
       const snapshot = onlySections(
         local,
         ALL_SECTIONS.filter((section) => target.selected.has(section)),
@@ -824,7 +851,21 @@ export default function DataPage() {
         target.mode === 'replace'
           ? await replaceSections(sections)
           : await importSections(sections)
-      setReport({ stats, skipped: target.skipped, mode: target.mode })
+      // 对话不在数据库层，等记录写完再单独合并；失败也不会回滚已经导入的记录
+      const chats = target.selected.has('assistant')
+        ? importChatSessions(target.payload.chats ?? [], target.mode)
+        : undefined
+      // 偏好同理：数据库那边写完之后才动 localStorage，坏在这一步也不会毁掉记录
+      const prefs = target.selected.has('prefs')
+        ? applyPrefs(target.payload.prefs ?? {}, target.mode)
+        : undefined
+      setReport({
+        stats,
+        skipped: target.skipped,
+        mode: target.mode,
+        ...(chats ? { chats } : {}),
+        ...(prefs !== undefined ? { prefs } : {}),
+      })
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught))
     } finally {
@@ -888,6 +929,19 @@ export default function DataPage() {
         key: 'finance',
         text: t('data.importFinance', { added: added(stats.finance), overwritten: stats.finance.overwritten }),
       })
+    }
+    if (report.chats) {
+      rows.push({
+        key: 'chats',
+        text: t('data.importChats', {
+          added: report.chats.added,
+          updated: report.chats.updated,
+          skipped: report.chats.skipped,
+        }),
+      })
+    }
+    if (report.prefs !== undefined) {
+      rows.push({ key: 'prefs', text: t('data.importPrefs', { count: report.prefs }) })
     }
     return rows
   })()
@@ -1045,6 +1099,10 @@ export default function DataPage() {
                 {report.skipped > 0 && (
                   <li className="text-danger">{t('data.importSkipped', { count: report.skipped })}</li>
                 )}
+                {/* 外观与语言是挂载时读一次的，导入完得重开一次才看得到 */}
+                {report.prefs !== undefined && report.prefs > 0 && (
+                  <li>{t('data.importPrefsRestart')}</li>
+                )}
               </ul>
             </div>
           )}
@@ -1132,6 +1190,11 @@ export default function DataPage() {
           onCancel={() => setExportData(null)}
           onConfirm={() => void handleExportConfirm()}
           confirmLabel={t('data.exportRangeConfirm')}
+          hint={
+            exportSelected.has('prefs') && prefsContainSecrets(exportData.prefs)
+              ? t('data.exportHasKeys')
+              : undefined
+          }
         />
       )}
 

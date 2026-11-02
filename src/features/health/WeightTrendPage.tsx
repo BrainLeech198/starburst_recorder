@@ -12,6 +12,7 @@
  * 摄入和睡眠走区间批量查询，不逐日打库、也不额外落表。
  */
 import EmptyState from '@/shared/ui/EmptyState'
+import BackButton from '@/shared/ui/BackButton'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { WeighIn } from '@/core/db/schema'
@@ -179,10 +180,12 @@ export default function WeightTrendPage() {
   return (
     <div className="w-full p-4">
       <header className="flex flex-wrap items-center gap-2">
-        <Link to="/health" className={NAV_BACK_BUTTON}>
-          <span aria-hidden="true">‹</span>
-          {t('nav.health')}
-        </Link>
+        <BackButton
+          to="/health"
+          label={t('nav.health')}
+          icon
+          className={`${NAV_BACK_BUTTON} gap-1`}
+        />
         <h1 className="m-0 text-base font-medium text-fg">{t('health.trendPageTitle')}</h1>
         <Link
           to="/health/weights"

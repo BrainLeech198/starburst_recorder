@@ -1,4 +1,27 @@
+## 0.12.1 · 2026-11-02
+
+The backup now carries your settings too, and Back follows the trail you came in on
+
+### What's new
+
+- **The assistant now sees what happened to its cards** — confirm, reject, undo or a failed write is fed back on the next turn. Rejected cards are not proposed again, and failures explain the reason before you decide whether to retry.
+- **Backups cover your preferences** — appearance, language, care mode, assistant memory and skills, AI models, image quality, weather location and update channel now travel with the backup. If the file contains an API key, the export warns you not to share it.
+- **AI chats are part of the backup** — a new "AI chats" section can be exported on its own; merging matches by chat id, replacing restores the whole set, and empty chats are left out.
+- **All records gained filters** — All / Diary / Notes, each with its own count. Filter and page live in the URL, so opening an entry and coming back lands you exactly where you were; the trash sits in the header, and a single page no longer shows a pager.
+- **Back is a real stack now** — it returns to the previous page, so entries opened from search, the calendar or a list go back to where they came from, and the page's own parent is only the fallback. Leaving an edited entry with unsaved changes no longer pushes an extra history entry either.
+- **The training card no longer sends both buttons to the same place** — "Log one" opens the form in place, and "View records" goes to the training page.
+- **All four reports live in Review** — daily, weekly, monthly and yearly reports moved into the Review tab; the week view no longer carries its own weekly-report button.
+- **Reports follow a more detailed multi-dimensional format** — conclusion, comparison with the previous period, the three calorie lines, protein sources, macro split, meal timing and eating window, calorie sources, training recovery, weight and body signals, within-week or month-by-month patterns, risks and next steps. If the data has no exercise burn or sodium / processing labels, the report does not guess.
+- **Small UI fixes** — spillover days in the month grid show their date instead of being blank clickable cells; delete-card titles now use the same list as the permission layer.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.12.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.12.1/starburst-recorder-0.12.1-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.12.1/starburst-recorder-0.12.1-setup.exe)
+- Android 10+: [`starburst-recorder-0.12.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.12.1/starburst-recorder-0.12.1.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.12.1/starburst-recorder-0.12.1.apk)
+
 ## 0.12.0 · 2026-11-02
+
+The assistant goes from reading records to changing them
 
 ### What's new
 
@@ -20,6 +43,8 @@
 
 ## 0.11.1 · 2026-11-02
 
+The ledger in day, month and year views; the weight curve becomes readable
+
 ### What's new
 
 - **Three Finance views**: switch between day, month and year; paging moves one day, one month or one year at a time, and the view keeps the date you were on.
@@ -34,6 +59,8 @@
 - Android 10+: [`starburst-recorder-0.11.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.11.1/starburst-recorder-0.11.1.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.11.1/starburst-recorder-0.11.1.apk)
 
 ## 0.11.0 · 2026-11-02
+
+Calendar, schedules and reviews arrive — one day, one timeline
 
 ### What's new
 
@@ -53,6 +80,8 @@
 
 ## 0.10.4 · 2026-11-01
 
+Share QR codes work again; the batch bar and sleep strip fall into place
+
 ### What's new
 
 - **The share QR code now appears**: the share payload compressed with a write-before-read pattern that deadlocked, leaving the dialog on an empty QR area; the reader is now attached first, so the QR code renders, and incoming-share decoding is fixed the same way
@@ -68,6 +97,8 @@
 
 ## 0.10.3 · 2026-11-01
 
+Updates stop downloading the same installer twice
+
 ### What's new
 
 - **Update installers are no longer downloaded twice**: after a download, if you close the installer by accident, tapping update again now looks for a complete installer on disk and opens it directly — on desktop and Android alike
@@ -80,6 +111,8 @@
 
 ## 0.10.2 · 2026-11-01
 
+High contrast now applies in every theme
+
 ### What's new
 
 - **Elder-care high contrast is fixed**: it used to work only in the default dark theme, and did nothing after switching to light, paper, mist or any other explicit palette; secondary text and dividers now get stronger in every theme
@@ -90,6 +123,8 @@
 - Android 10+: [`starburst-recorder-0.10.2.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.2/starburst-recorder-0.10.2.apk) (~61 MB, release-signed)
 
 ## 0.10.1 · 2026-11-01
+
+Foods and meal sets can be shared by QR code
 
 ### What's new
 
@@ -104,6 +139,8 @@
 - Android 10+: [`starburst-recorder-0.10.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.10.1/starburst-recorder-0.10.1.apk) (~61 MB, release-signed)
 
 ## 0.10.0 · 2026-11-01
+
+Training lands, and finance becomes a complete module
 
 ### What's new
 
@@ -120,6 +157,8 @@
 
 ## 0.9.1 · 2026-11-01
 
+The assistant panel is rebuilt; suggestions match your day
+
 ### What's new
 
 - **A new layout for the assistant panel**: starting a chat is a round accent button, the chat list is plain text with a count badge, suggested questions fold into one full-width strip, deep thinking is a switch with a knob, and attachments are icon buttons — no more a screen full of identical pale pills
@@ -128,6 +167,8 @@
 - **Retry is now underlined text** instead of a button lookalike, and the memory and skills links collapsed into a quiet “text · text” row
 
 ## 0.9.0 · 2026-11-01
+
+Multi-chat and attachments, with context usage on show
 
 ### What's new
 
@@ -148,6 +189,8 @@
 
 ## 0.8.1 · 2026-11-01
 
+The assistant can edit and delete, under three permission levels
+
 ### What's new
 
 - **Daytime naps**: log several naps per day with their own start and end times; naps stay out of the nightly total and show up separately on the sleep page
@@ -164,6 +207,8 @@
 
 ## 0.8.0 · 2026-11-01
 
+The assistant starts doing the work; finance starts keeping books
+
 ### What's new
 
 - **The assistant can act**: log spending, write a note or diary entry, record sleep, weigh in or log food; every write is previewed, applied only after confirmation, and can be undone
@@ -178,6 +223,8 @@
 - Android 10+: [`starburst-recorder-0.8.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.8.0/starburst-recorder-0.8.0.apk) (~16 MB, release-signed)
 
 ## 0.7.0 · 2026-10-31
+
+Weight trends get their own page; health metrics gain range views
 
 ### What's new
 
@@ -194,6 +241,8 @@
 
 ## 0.6.3 · 2026-10-31
 
+Meal sets open for detail, and can be copied
+
 ### What's new
 
 - **Meals open a detail view**: components, grams, total calories and protein, plus any deleted components are listed
@@ -206,6 +255,8 @@
 - Android 10+: [`starburst-recorder-0.6.3.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.3/starburst-recorder-0.6.3.apk) (~16 MB, release-signed)
 
 ## 0.6.2 · 2026-10-31
+
+Intake entries become editable again
 
 ### What's new
 
@@ -220,6 +271,8 @@
 
 ## 0.6.1 · 2026-10-31
 
+Swipe the whole page to change days; night waking gets a time
+
 ### What's new
 
 - **Swipe anywhere to change the day**: diary, health home, intake, weight and sleep pages all switch with a left or right swipe; inputs and horizontally scrollable areas are left alone
@@ -233,6 +286,8 @@
 
 ## 0.6.0 · 2026-10-31
 
+Hand-drawn illustrations, and a food library you can export selectively
+
 ### What's new
 
 - **Draw your own illustrations in diaries and notes**: the image source adds "Draw it yourself", with pen, eraser, colour, brush size, undo and clear; the drawing is inserted as an image
@@ -245,6 +300,8 @@
 - Android 10+: [`starburst-recorder-0.6.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.6.0/starburst-recorder-0.6.0.apk) (~16 MB, release-signed)
 
 ## 0.5.2 · 2026-10-31
+
+The date bar stays pinned; sleep logs its night wakings
 
 ### What's new
 
@@ -260,6 +317,8 @@
 
 ## 0.5.1 · 2026-10-30
 
+Desktop imports with images no longer fail
+
 ### What's new
 
 - **Fixed importing backups on Windows desktop**: entries and notes with photos no longer fail on replace-import, and importing only notes no longer writes their photos wrong
@@ -271,6 +330,8 @@
 - Android 10+: [`starburst-recorder-0.5.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.5.1/starburst-recorder-0.5.1.apk) (~16 MB, release-signed)
 
 ## 0.5.0 · 2026-10-30
+
+Photos while picking food, and clear notes on every estimate
 
 ### What's new
 
@@ -284,6 +345,8 @@
 - Android 10+: [`starburst-recorder-0.5.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.5.0/starburst-recorder-0.5.0.apk) (~16 MB, release-signed)
 
 ## 0.4.0 · 2026-10-30
+
+Notes and diary pages take images
 
 ### What's new
 
@@ -300,6 +363,8 @@
 
 ## 0.3.1 · 2026-10-29
 
+Ask the AI whether a portion fits, before logging it
+
 ### What's new
 
 - **Ask AI before you log it** — while adding a food, pick the dish and grams and ask right away whether this portion works; AI sees this portion's macros, what you have eaten today and what is left. Once an item is in the intake list, it is no longer offered for questions
@@ -311,6 +376,8 @@
 - Android 10+: [`starburst-recorder-0.3.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.3.1/starburst-recorder-0.3.1.apk) (~16 MB, release-signed)
 
 ## 0.3.0 · 2026-10-29
+
+The assistant starts reading your records
 
 ### What's new
 
@@ -332,6 +399,8 @@
 
 ## 0.2.13 · 2026-10-29
 
+Elder-care mode, a sleep diary and weighing reminders arrive
+
 ### What's new
 
 - **Care mode for elders** — a dedicated page under Me → Care with four text sizes (standard / large / extra large / huge = 100 / 115 / 130 / 150%) scaling the whole interface; larger tap targets, higher contrast and reduced motion; destructive actions need a second tap
@@ -348,6 +417,8 @@
 
 ## 0.2.12 · 2026-10-28
 
+Android batch mode and overflowing dialogs fixed
+
 ### What's new
 
 - **Intake list buttons unified** — Batch and Trash are now small solid buttons matching the rest of the app
@@ -361,6 +432,8 @@
 - Android 10+: [`starburst-recorder-0.2.12.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.12/starburst-recorder-0.2.12.apk) (~16 MB, release-signed)
 
 ## 0.2.11 · 2026-10-28
+
+The interface speaks nine languages
 
 ### What's new
 
@@ -378,6 +451,8 @@
 
 ## 0.2.10 · 2026-10-26
 
+Export only the records you pick
+
 ### What's new
 
 - **Export only the records you pick** — mix diary entries, quick notes, health intake and finance records in one file for AI or someone else, without exporting the whole library
@@ -391,6 +466,8 @@
 
 ## 0.2.9 · 2026-10-26
 
+Three mobile layout drifts put back in place
+
 ### What's new
 
 - **Home sits in the middle again** — the mark and title no longer hug the top edge on phones, and the whole block is centred in the viewport
@@ -403,6 +480,8 @@
 - Android 10+: [`starburst-recorder-0.2.9.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.9/starburst-recorder-0.2.9.apk) (~16 MB, release-signed)
 
 ## 0.2.8 · 2026-10-26
+
+Keep talking after an AI draft; clear the cache in settings
 
 ### What's new
 
@@ -419,6 +498,8 @@
 
 ## 0.2.7 · 2026-10-26
 
+Download progress, and themes grow to nine
+
 ### What's new
 
 - **Downloads show real progress** — tapping download opens a progress panel with bytes received and total size; it can't be dismissed by accident, and the system installer opens when it finishes
@@ -433,6 +514,8 @@
 - Android 10+: [`starburst-recorder-0.2.7.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.7/starburst-recorder-0.2.7.apk) (~16 MB, release-signed)
 
 ## 0.2.6 · 2026-10-26
+
+AI drafting picks its own material and looks back in time
 
 ### What's new
 
@@ -451,6 +534,8 @@
 
 ## 0.2.5 · 2026-10-26
 
+Data validation hardens; backups carry a version
+
 ### What's new
 
 - **Hardened the data format** — row-level validation keeps broken records out, and impossible dates no longer slip into the database
@@ -464,6 +549,8 @@
 
 ## 0.2.4 · 2026-10-26
 
+Every record shows when it was created and edited
+
 ### What's new
 
 - **Every record shows timestamps** — "Created …", plus "Edited …" only when it really was, kept out of the way
@@ -474,6 +561,8 @@
 - Android 10+: [`starburst-recorder-0.2.4.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.4/starburst-recorder-0.2.4.apk) (~16 MB, release-signed)
 
 ## 0.2.3 · 2026-10-26
+
+Six themes, and big Android backups stop crashing the app
 
 ### What's new
 
@@ -490,6 +579,8 @@
 
 ## 0.2.2 · 2026-10-25
 
+Presets move to the corner and work in notes too
+
 ### What's new
 
 - **Preset library moved to the top-right** — open it any time from diary or quick notes; quick notes can insert presets now
@@ -501,6 +592,8 @@
 - Android 10+: [`starburst-recorder-0.2.2.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.2/starburst-recorder-0.2.2.apk) (~16 MB, release-signed)
 
 ## 0.2.1 · 2026-10-25
+
+A friendlier food library; one-line logging checks first
 
 ### What's new
 
@@ -515,6 +608,8 @@
 
 ## 0.2.0 · 2026-10-25
 
+A version page and in-app updates arrive
+
 ### What's new
 
 - **Version page** — check for updates and open the website from Me → Version
@@ -527,6 +622,8 @@
 - Android 10+: [`starburst-recorder-0.2.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.2.0/starburst-recorder-0.2.0.apk) (~16 MB, release-signed)
 
 ## 0.1.0 · 2026-10-25
+
+The first release: diary, notes, AI drafting and health logging
 
 ### What's new
 

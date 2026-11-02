@@ -2,6 +2,8 @@
 
 给接手「训练 / 健身」板块的 AI。本文是这一块唯一的落地口径，按顺序读完就能动手，不需要再摸一遍架构。
 
+> 第一阶段的代码已落地。下一步的体验补完（提醒节奏、训练模板、即时反馈、训练专项 AI 点评）见 [TRAINING-EXPERIENCE.md](TRAINING-EXPERIENCE.md)。
+
 通用规矩（提交、密钥、构建、多 AI 并行）见 [AGENTS.md](../AGENTS.md)；架构与存储选型见 [docs/PROJECT-NOTES.md](PROJECT-NOTES.md)。本文只补训练模块特有的部分。
 
 ---

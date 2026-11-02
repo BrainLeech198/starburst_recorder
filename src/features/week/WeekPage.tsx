@@ -15,7 +15,6 @@ import { formatMonthDay, isDateKey, todayKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import { Icon } from '@/shared/ui/icons'
-import AiReportDialog from '@/features/ai/AiReportDialog'
 import ViewTabs from '@/features/calendar/ViewTabs'
 import { activityBetween } from '@/features/calendar/calendarRepo'
 import { financeOfMonth } from '@/features/finance/financeRepo'
@@ -54,7 +53,6 @@ export default function WeekPage() {
   }, [from, to]) ?? []
 
   const [dialogDate, setDialogDate] = useState<string | null>(null)
-  const [reportOpen, setReportOpen] = useState(false)
 
   const activityByDay = new Map(activities.map((item) => [item.dateKey, item]))
   const expenseByDay = new Map<string, number>()
@@ -99,16 +97,6 @@ export default function WeekPage() {
           <Icon name="calendar" className="h-4 w-4 shrink-0" />
           {t('week.title')}
         </h1>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setReportOpen(true)}
-            className="inline-flex items-center gap-1 rounded-lg border border-brand px-2.5 py-1 text-xs text-brand transition-colors hover:bg-surface-2"
-          >
-            <Icon name="sparkles" className="h-3.5 w-3.5 shrink-0" />
-            {t('ai.reportWeekly')}
-          </button>
-        </div>
       </header>
 
       <ViewTabs active="week" dayKey={dayKey} />
@@ -278,17 +266,6 @@ export default function WeekPage() {
             setDialogDate(null)
             showToast({ message: t('schedule.saved') })
           }}
-        />
-      )}
-      {reportOpen && (
-        <AiReportDialog
-          period={{
-            kind: 'week',
-            from,
-            to,
-            label: t('week.range', { from: formatMonthDay(from, t), to: formatMonthDay(to, t) }),
-          }}
-          onClose={() => setReportOpen(false)}
         />
       )}
     </div>

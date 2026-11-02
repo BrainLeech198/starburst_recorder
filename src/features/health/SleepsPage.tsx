@@ -25,6 +25,7 @@ import {
 } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
 import DayNav from '@/shared/ui/DayNav'
+import BackButton from '@/shared/ui/BackButton'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import SleepDialog from './SleepDialog'
 import SleepBar from './SleepBar'
@@ -214,10 +215,12 @@ export default function SleepsPage() {
             today: t('health.backToToday'),
           }}
           leading={
-            <Link to="/health" className={`${NAV_BACK_BUTTON} gap-1`}>
-              <Icon name="back" className="h-3.5 w-3.5 shrink-0" />
-              {t('nav.health')}
-            </Link>
+            <BackButton
+              to="/health"
+              label={t('nav.health')}
+              icon
+              className={`${NAV_BACK_BUTTON} gap-1`}
+            />
           }
         />
       )}

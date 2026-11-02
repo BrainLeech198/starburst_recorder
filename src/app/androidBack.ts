@@ -18,6 +18,7 @@ import { App } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import { useToast } from '@/app/providers/ToastProvider'
 import { closeTopOverlay } from '@/shared/ui/overlayStack'
+import { canGoBackFrom } from '@/shared/ui/backNav'
 
 /** 连按两次退出的时间窗（毫秒） */
 export const EXIT_WINDOW_MS = 2000
@@ -95,8 +96,9 @@ export function useAndroidBackButton() {
     const handleBack = createBackHandler({
       closeTopOverlay,
       atHome: () => pathnameRef.current === '/',
-      // WebView 里历史长度 ≥2 就说明有上一级；直接打开某一页时长度为 1，那就回首页兜底
-      canGoBack: () => window.history.length > 1,
+      // 和页内「返回」同一套判据：react-router 记的栈深（见 shared/ui/backNav.ts）。
+      // 别用 history.length——它算上了进站之前的历史，深链打开时也大于 1，会退到站外
+      canGoBack: () => canGoBackFrom(window.history.state),
       goBack: () => void navigate(-1),
       goHome: () => void navigate('/'),
       exit: () => void App.exitApp(),

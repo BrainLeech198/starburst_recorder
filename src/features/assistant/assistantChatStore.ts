@@ -405,6 +405,72 @@ export function getChatSessions() {
   return sessions
 }
 
+/** 导出给备份用：深拷贝，避免后续改动影响正在用的存档；空会话不占备份 */
+export function exportChatSessions(): ChatSession[] {
+  const used = sessions.filter((session) => session.messages.length > 0)
+  return JSON.parse(JSON.stringify(used)) as ChatSession[]
+}
+
+/** 从备份文件读会话，逐段走和本地存档同一套校验；空会话丢掉，最多保留 MAX_SESSIONS 段 */
+export function normalizeChatSessions(raw: unknown): ChatSession[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map(normalizeSession)
+    .filter((item): item is ChatSession => item !== null && item.messages.length > 0)
+    .slice(0, MAX_SESSIONS)
+}
+
+export interface ChatImportStats {
+  added: number
+  updated: number
+  skipped: number
+}
+
+/**
+ * 把备份里的会话并进本机。
+ * 融合按会话 id 对齐，只有备份里的 updatedAt 更新才覆盖；替换则整组换成备份内容。
+ */
+export function importChatSessions(
+  incoming: ChatSession[],
+  mode: 'merge' | 'replace',
+): ChatImportStats {
+  const list = incoming.slice(0, MAX_SESSIONS)
+  if (list.length === 0) return { added: 0, updated: 0, skipped: 0 }
+
+  if (mode === 'replace') {
+    sessions = list
+    currentId = list[0].id
+    persist()
+    notify()
+    return { added: list.length, updated: 0, skipped: 0 }
+  }
+
+  let added = 0
+  let updated = 0
+  let skipped = 0
+  for (const item of list) {
+    const index = sessions.findIndex((session) => session.id === item.id)
+    if (index < 0) {
+      sessions.push(item)
+      added++
+      continue
+    }
+    if (item.updatedAt > sessions[index].updatedAt) {
+      sessions[index] = item
+      updated++
+    } else {
+      skipped++
+    }
+  }
+  sessions.sort((a, b) => b.updatedAt - a.updatedAt)
+  if (!sessions.some((session) => session.id === currentId)) currentId = sessions[0]?.id ?? ''
+  ensureCurrent()
+  trimSessions()
+  persist()
+  notify()
+  return { added, updated, skipped }
+}
+
 export function getCurrentSessionId() {
   return currentId
 }
@@ -516,5 +582,25 @@ export function pendingActionNotes(list: ChatMessageRecord[] = getChatMessages()
     (item.actions ?? [])
       .filter((action) => action.status === 'pending')
       .map((action) => describeAction(action.action)),
+  )
+}
+
+/**
+ * 用户已经处理完、但没有写入的动作。
+ *
+ * 只把「已确认」的卡片传给模型还不够：用户点拒绝、写完又撤销、或写入失败时，
+ * 模型看不到结果，就会以为还挂着，甚至重新提一张同样的卡片。这里把结果原样交回去。
+ */
+export function resolvedActionNotes(list: ChatMessageRecord[] = getChatMessages()): string[] {
+  return list.flatMap((item) =>
+    (item.actions ?? []).flatMap((action) => {
+      const text = describeAction(action.action)
+      if (action.status === 'canceled') return [`用户拒绝，没有写入：${text}`]
+      if (action.status === 'undone') return [`用户确认写入后又撤销了：${text}`]
+      if (action.status === 'failed') {
+        return [`用户确认后写入失败${action.error ? `（${action.error}）` : ''}：${text}`]
+      }
+      return []
+    }),
   )
 }

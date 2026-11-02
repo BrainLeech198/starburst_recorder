@@ -1,12 +1,27 @@
 /**
  * 经济首页 = 月账本，交互向摄入页看齐。
  *
- * 一屏之内按「结余 → 记一笔 → 按天流水」排：
+ * 一屏之内按「时段 → 记一笔 → 概览 → 流水」排：
  *   - 时段进 URL，翻页和刷新都停在同一页；日 / 月 / 年随视角换单位
  *   - 日视图的日期栏直接点开日历，记过的天标亮
- *   - 记一笔 / 批量收进按钮条，批量和摄入一个套路：勾选 → 底部条 → 删除可撤销
+ *   - 记一笔 / 批量 / 导入 / 回收站排成一条按钮行（窄屏 2×2），和日记、健康首页一个结构
  *   - 整页左右滑就翻到上一个 / 下一个时段
- *   - 单击一行先看详情，改金额走行内或详情里的编辑按钮
+ *   - 单击一行先看详情，改金额走详情里的编辑按钮
+ *
+ * 2026-11-02 排版重排（原来一屏里叠了四层控件、每笔流水占五行）：
+ *   - 去掉页头大标题与散落的「导出 / 导入 / 回收站」文字按钮：日记、健康两页的页头
+ *     本来就没有标题，低频动作一律落在按钮行里，导出只在批量条上出现
+ *   - 结余与支出分类合成一张概览卡，用虚线分隔——两张同色同圆角的卡上下摞着，
+ *     层次只剩「都一样」，分不清哪块是汇总哪块是明细
+ *   - 时段条去掉「11月1日 – 11月30日」：标题已经写着月份，区间是同一条信息的复述，
+ *     却把这一条挤成两行；年视图下它还会错显成当前月（见下）
+ *   - 修年视图的错标：原来「本月」徽标与月份区间不分视角一律按当前月算，
+ *     站在「2026 年」上看会冒出「本月」「11月1日 – 11月30日」，与年份自相矛盾
+ *   - 流水行压到两行（名称 + 编号 / 时刻 + 分类），行尾三个按钮回到同一行不再换行：
+ *     原来 flex-wrap 让按钮带整条折到下一行、还带一条分隔线，单笔高到 120px，
+ *     比同为「三个按钮」的摄入页乱得多；「建于 …」与备注移进详情弹窗（那边都有）
+ *   - 日视图不再重复日期：日期栏已经写着「2026年11月2日 星期一」，
+ *     分组头又写一遍「11月2日 · 一」；改由概览卡右上角提供「查看当天记录」入口
  *
  * 分类先用内置的那批，数据层只存分类 id；预算、账户、定期账单留到后面再加。
  */
@@ -23,11 +38,10 @@ import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import BatchActions from '@/shared/ui/BatchActions'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
-import TimeMeta from '@/shared/ui/TimeMeta'
 import DayNav from '@/shared/ui/DayNav'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
-import { BAR_BUTTON, BAR_DANGER, SOLID_BUTTON, OUTLINE_BUTTON } from '@/shared/ui/buttonStyles'
+import { BAR_BUTTON, BAR_DANGER, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import Tab from '@/shared/ui/Tab'
 import { Icon } from '@/shared/ui/icons'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
@@ -99,18 +113,16 @@ export default function FinancePage() {
   const yearParam = searchParams.get('year')
   const viewYear = /^\d{4}$/.test(yearParam ?? '') ? Number(yearParam) : currentYear
 
+  // 「本月 / 上月」只在月视图成立；站在年视图上看它会是错的，所以按视角分别给
   const previousMonth = shiftMonth(currentMonth, -1)
   const relativeMonthKey: MessageKey | null =
-    monthKey === currentMonth
-      ? 'finance.thisMonth'
-      : monthKey === previousMonth
-        ? 'finance.lastMonth'
-        : null
-  const lastDay = new Date(monthYear, monthNumber, 0).getDate()
-  const monthRange = t('finance.monthRange', {
-    from: formatMonthDay(`${monthKey}-01`, t),
-    to: formatMonthDay(`${monthKey}-${String(lastDay).padStart(2, '0')}`, t),
-  })
+    view !== 'month'
+      ? null
+      : monthKey === currentMonth
+        ? 'finance.thisMonth'
+        : monthKey === previousMonth
+          ? 'finance.lastMonth'
+          : null
 
   // 年视图按月各查一次，跨库都是同一套读法；月视图只查一个月，日视图在那一个月里筛出当天
   const yearMonths = Array.from(
@@ -165,7 +177,7 @@ export default function FinancePage() {
   const [pendingDelete, setPendingDelete] = useState<FinanceEntry | null>(null)
   /** 挑选导出时取来的整库数据；非 null 就打开挑选弹窗 */
   const [exportData, setExportData] = useState<BackupData | null>(null)
-  /** 打开挑选弹窗时预选本月这些流水 */
+  /** 打开挑选弹窗时预选这些流水 */
   const [exportInitial, setExportInitial] = useState<{ finance: string[] } | undefined>(undefined)
   const importInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -178,16 +190,14 @@ export default function FinancePage() {
     })
   }
 
-  /** 挑选导出：批量模式勾了谁就预选谁，否则把当前时段流水全部勾上 */
+  /**
+   * 挑选导出：勾了谁就预选谁，否则把当前时段流水全部勾上。
+   * 入口只在批量条上——日记页也是这个动线，页头不再单挂一个「导出」。
+   */
   async function handleOpenExport() {
     const ids = batch.active ? batch.selected : rows.map((row) => row.id)
     if (ids.length === 0) return
     setExportInitial({ finance: ids })
-    setExportData(await exportAllData())
-  }
-
-  /** 批量条上的导出：先取整库数据，再打开挑选弹窗 */
-  async function handleBatchExport() {
     setExportData(await exportAllData())
   }
 
@@ -300,6 +310,12 @@ export default function FinancePage() {
     })
   }
 
+  /** 时段条的标题：日视图交给 DayNav，月 / 年在这里拼 */
+  const periodTitle =
+    view === 'year'
+      ? t('finance.yearTitle', { year: viewYear })
+      : t('finance.monthTitle', { year: monthYear, month: monthNumber })
+
   return (
     <div
       className={'w-full p-4 ' + swipe.animationClass}
@@ -307,66 +323,9 @@ export default function FinancePage() {
       onTouchEnd={swipe.onTouchEnd}
       onAnimationEnd={swipe.onAnimationEnd}
     >
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="m-0 text-lg font-medium text-fg">{t('nav.finance')}</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          {view === 'year' && !isCurrentYear && (
-            <button
-              type="button"
-              onClick={() => setYear(currentYear)}
-              className="inline-flex items-center text-xs text-brand transition-opacity hover:opacity-80"
-            >
-              <Icon name="calendar" className="mr-1 h-3.5 w-3.5 shrink-0" />
-              {t('finance.thisYear')}
-            </button>
-          )}
-          {view === 'month' && monthKey !== currentMonth && (
-            <button
-              type="button"
-              onClick={() => setMonth(currentMonth)}
-              className="inline-flex items-center text-xs text-brand transition-opacity hover:opacity-80"
-            >
-              <Icon name="calendar" className="mr-1 h-3.5 w-3.5 shrink-0" />
-              {t('finance.currentMonth')}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => void handleOpenExport()}
-            disabled={rows.length === 0}
-            className="inline-flex min-h-9 items-center rounded-lg px-2 text-xs text-muted transition-colors hover:text-brand disabled:opacity-40"
-          >
-            <Icon name="export" className="mr-1 h-3.5 w-3.5 shrink-0" />
-            {t('records.export')}
-          </button>
-          <button
-            type="button"
-            onClick={() => importInputRef.current?.click()}
-            className="inline-flex min-h-9 items-center rounded-lg px-2 text-xs text-muted transition-colors hover:text-brand"
-          >
-            <Icon name="import" className="mr-1 h-3.5 w-3.5 shrink-0" />
-            {t('records.import')}
-          </button>
-          <Link
-            to="/finance/trash"
-            className="inline-flex min-h-9 items-center rounded-lg px-2 text-xs text-muted transition-colors hover:text-brand"
-          >
-            <Icon name="trash" className="mr-1 h-3.5 w-3.5 shrink-0" />
-            {t('finance.trash')}
-          </Link>
-          {/* 记录级 JSON 导入的隐藏文件框 */}
-          <input
-            ref={importInputRef}
-            type="file"
-            accept=".json,application/json"
-            className="hidden"
-            onChange={(event) => void handleImportFile(event)}
-          />
-        </div>
-      </header>
-
-      {/* 视角切换：日 / 月 / 年，和日记页的栏目切换同一套下划线样式 */}
-      <nav role="tablist" className="mt-3 flex items-center gap-1">
+      {/* 视角切换放最上面：先定粒度（日 / 月 / 年），再看具体是哪一段。
+          和日记页一样不再挂页面大标题——底部导航已经标着「经济」 */}
+      <nav role="tablist" className="flex items-center gap-1">
         <Tab active={view === 'day'} onClick={() => setView('day')}>
           {t('finance.viewDay')}
         </Tab>
@@ -378,14 +337,15 @@ export default function FinancePage() {
         </Tab>
       </nav>
 
-      {/* 日视图：日期栏直接用公共 DayNav，日期本身能点开日历（记过的天标亮） */}
+      {/* 时段条：日 / 月 / 年共用一条外壳（吸顶、铺到容器边缘），切换视角时位置不变。
+          日视图用公共 DayNav，日期本身能点开日历（记过的天标亮） */}
       {view === 'day' ? (
         <DayNav
           dayKey={dayKey}
           onChange={setDayKey}
           onPick={() => void openPicker()}
           inset={false}
-          className="mt-2"
+          className="mt-1"
           labels={{
             prev: t('finance.prevDay'),
             next: t('finance.nextDay'),
@@ -394,61 +354,83 @@ export default function FinancePage() {
           }}
         />
       ) : (
-        /* 月 / 年翻页：标题居中，左右各一个箭头 */
-        <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-line bg-surface px-2 py-1">
-          <button
-            type="button"
-            aria-label={view === 'year' ? t('finance.prevYear') : t('finance.prevMonth')}
-            onClick={() => step(-1)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:text-brand"
-          >
-            ‹
-          </button>
-          <span className="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
-            {relativeMonthKey && (
-              <span
-                className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium leading-none ${
-                  relativeMonthKey === 'finance.thisMonth'
-                    ? 'bg-success/15 text-success'
-                    : 'bg-warning/15 text-warning'
-                }`}
-              >
-                {t(relativeMonthKey)}
+        <div className="sticky top-0 z-20 -mx-4 flex flex-wrap items-center gap-x-2 gap-y-1 bg-bg/95 px-4 pb-2 pt-2 backdrop-blur">
+          <div className="flex min-w-0 items-center gap-1 rounded-xl border border-line bg-surface px-1 py-0.5">
+            <button
+              type="button"
+              aria-label={view === 'year' ? t('finance.prevYear') : t('finance.prevMonth')}
+              onClick={() => step(-1)}
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
+            >
+              ‹
+            </button>
+
+            <span className="flex min-w-0 items-center gap-2 px-1">
+              {/* 徽标只在它成立的那个视角里出现：本月 / 上月归月视图，今年归年视图 */}
+              {relativeMonthKey && (
+                <span
+                  className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium leading-none ${
+                    relativeMonthKey === 'finance.thisMonth'
+                      ? 'bg-success/15 text-success'
+                      : 'bg-warning/15 text-warning'
+                  }`}
+                >
+                  {t(relativeMonthKey)}
+                </span>
+              )}
+              {view === 'year' && isCurrentYear && (
+                <span className="shrink-0 rounded bg-success/15 px-1.5 py-0.5 text-[11px] font-medium leading-none text-success">
+                  {t('finance.thisYear')}
+                </span>
+              )}
+              <span className="whitespace-nowrap text-sm font-medium tabular-nums text-fg">
+                {periodTitle}
               </span>
-            )}
-            {isCurrentYear && (
-              <span className="shrink-0 rounded bg-success/15 px-1.5 py-0.5 text-[11px] font-medium leading-none text-success">
-                {t('finance.thisYear')}
-              </span>
-            )}
-            <span className="text-sm font-medium tabular-nums text-fg">
-              {view === 'year'
-                ? t('finance.yearTitle', { year: viewYear })
-                : t('finance.monthTitle', { year: monthYear, month: monthNumber })}
+              {/* 不在当前时段时给一个回程按钮，形态照 DayNav 的「今天」 */}
+              {view === 'month' && monthKey !== currentMonth && (
+                <button
+                  type="button"
+                  onClick={() => setMonth(currentMonth)}
+                  className="ml-1 shrink-0 whitespace-nowrap rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-brand"
+                >
+                  {t('finance.currentMonth')}
+                </button>
+              )}
+              {view === 'year' && !isCurrentYear && (
+                <button
+                  type="button"
+                  onClick={() => setYear(currentYear)}
+                  className="ml-1 shrink-0 whitespace-nowrap rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-brand"
+                >
+                  {t('finance.thisYear')}
+                </button>
+              )}
             </span>
-            <span className="hidden shrink-0 text-xs tabular-nums text-muted min-[360px]:inline">
-              {monthRange}
-            </span>
-          </span>
-          <button
-            type="button"
-            aria-label={view === 'year' ? t('finance.nextYear') : t('finance.nextMonth')}
-            onClick={() => step(1)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:text-brand"
-          >
-            ›
-          </button>
+
+            <button
+              type="button"
+              aria-label={view === 'year' ? t('finance.nextYear') : t('finance.nextMonth')}
+              onClick={() => step(1)}
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
+            >
+              ›
+            </button>
+          </div>
         </div>
       )}
 
-      {/* 按钮条：记一笔 / 批量 / 问 AI 收进同一条，和摄入页的按钮行一个结构 */}
-      <ToolbarRow className="mt-2 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
+      {/* 按钮条：第一行是「记录类」三个动作（记一笔 / 批量 / 问 AI），
+          第二行是「数据类」两个（导入 / 回收站）。
+          原来导出 / 导入 / 回收站散在页头当文字链，跟这里的大按钮各说各话；
+          现在低频动作全部落到这条按钮行，跟日记、健康首页一个结构。
+          窄屏排 3 列（流式换行会剩孤按钮），宽屏回到一行；批量时收起动作只留提示 */}
+      <ToolbarRow className="mt-2 grid grid-cols-6 gap-2 sm:flex sm:flex-wrap sm:items-center">
         {!batch.active ? (
           <>
             <button
               type="button"
               onClick={() => setDialog({ entry: null, date: defaultDate() })}
-              className={SOLID_BUTTON}
+              className={`${SOLID_BUTTON} col-span-2`}
             >
               <Icon name="plus" />
               {t('finance.add')}
@@ -457,24 +439,51 @@ export default function FinancePage() {
               type="button"
               onClick={() => batch.enter()}
               disabled={rows.length === 0}
-              className={`${SOLID_BUTTON} disabled:opacity-40`}
+              className={`${SOLID_BUTTON} col-span-2 disabled:opacity-40`}
             >
               <Icon name="list" />
               {t('finance.batch')}
             </button>
-            <button type="button" onClick={() => setAiOpen(true)} className={OUTLINE_BUTTON}>
+            <button
+              type="button"
+              onClick={() => setAiOpen(true)}
+              className={`${OUTLINE_BUTTON} col-span-2`}
+            >
               <Icon name="sparkles" />
               {t('finance.aiAsk')}
             </button>
+            {/* 第二行两个数据动作各占一半，不并成一条大按钮：
+                回收站是低频动作，铺满整行反而比「记一笔」还显眼 */}
+            <button
+              type="button"
+              onClick={() => importInputRef.current?.click()}
+              className={`${OUTLINE_BUTTON} col-span-3`}
+            >
+              <Icon name="import" />
+              {t('records.import')}
+            </button>
+            <Link to="/finance/trash" className={`${SOLID_BUTTON} col-span-3`}>
+              <Icon name="trash" />
+              {t('finance.trash')}
+            </Link>
+            {/* 记录级 JSON 导入的隐藏文件框 */}
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={(event) => void handleImportFile(event)}
+            />
           </>
         ) : (
-          <span className="col-span-3 px-1 text-xs text-muted">{t('finance.batchHint')}</span>
+          <span className="col-span-6 px-1 text-xs text-muted">{t('finance.batchHint')}</span>
         )}
       </ToolbarRow>
 
-      {/* 结余卡：大数字 + 收支两栏 */}
+      {/* 概览卡：结余大数字 + 收支两栏 + 支出分类，一块卡里用虚线分段。
+          原来拆成两张同色同圆角的卡，看不出哪块是汇总 */}
       <section className="mt-3 rounded-2xl border border-line bg-surface p-4">
-        <div className="min-w-0">
+        <div className="flex items-baseline justify-between gap-2">
           <p className="m-0 text-[11px] text-muted">
             {view === 'day'
               ? t('finance.balanceDay')
@@ -482,17 +491,28 @@ export default function FinancePage() {
                 ? t('finance.balanceYear')
                 : t('finance.balance')}
           </p>
-          <p
-            className={`m-0 mt-1 text-3xl font-medium tabular-nums ${
-              summary.balance < 0 ? 'text-danger' : 'text-fg'
-            }`}
-          >
-            {money(summary.balance)}
-          </p>
-          <p className="m-0 mt-1 text-[11px] text-muted">
-            {t('finance.entryCount', { n: rows.length })}
-          </p>
+          {/* 日视图的日期栏已经写着是哪一天，这里补「当天记录」入口，不再重复日期 */}
+          {view === 'day' ? (
+            <Link
+              to={`/diary?date=${dayKey}`}
+              className="shrink-0 text-[11px] text-brand transition-opacity hover:opacity-80"
+            >
+              {t('finance.dayRecords')} ›
+            </Link>
+          ) : (
+            <span className="shrink-0 text-[11px] tabular-nums text-muted">
+              {t('finance.entryCount', { n: rows.length })}
+            </span>
+          )}
         </div>
+        <p
+          className={`m-0 mt-1 text-3xl font-medium tabular-nums ${
+            summary.balance < 0 ? 'text-danger' : 'text-fg'
+          }`}
+        >
+          {money(summary.balance)}
+        </p>
+
         <div className="mt-3 grid grid-cols-2 gap-2 border-t border-dashed border-line pt-3">
           <div className="min-w-0">
             <p className="m-0 text-[11px] text-muted">{t('finance.income')}</p>
@@ -507,34 +527,34 @@ export default function FinancePage() {
             </p>
           </div>
         </div>
-      </section>
 
-      {/* 当前时段的支出分类：按金额从大到小，条长就是占比 */}
-      {slices.length > 0 && (
-        <section className="mt-3 rounded-2xl border border-line bg-surface p-4">
-          <h2 className="m-0 text-xs font-medium text-fg">{t('finance.breakdown')}</h2>
-          <ul className="m-0 mt-2 flex list-none flex-col gap-2 p-0">
-            {slices.map((slice) => (
-              <li key={slice.category}>
-                <div className="flex items-baseline justify-between gap-2 text-[11px]">
-                  <span className="min-w-0 truncate text-muted">
+        {/* 支出分类：一行一条（名称 / 条 / 金额·占比），比「标签在上、条在下」省一半高度 */}
+        {slices.length > 0 && (
+          <>
+            <h2 className="m-0 mt-3 border-t border-dashed border-line pt-3 text-xs font-medium text-fg">
+              {t('finance.breakdown')}
+            </h2>
+            <ul className="m-0 mt-2 flex list-none flex-col gap-1.5 p-0">
+              {slices.map((slice) => (
+                <li key={slice.category} className="flex items-center gap-2 text-[11px]">
+                  <span className="w-14 shrink-0 truncate text-muted">
                     {t(categoryKey(slice.category))}
+                  </span>
+                  <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2">
+                    <span
+                      className="block h-full rounded-full bg-danger/60"
+                      style={{ width: `${Math.max(2, slice.share * 100)}%` }}
+                    />
                   </span>
                   <span className="shrink-0 tabular-nums text-fg">
                     {money(slice.amount)} · {Math.round(slice.share * 100)}%
                   </span>
-                </div>
-                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-2">
-                  <div
-                    className="h-full rounded-full bg-danger/60"
-                    style={{ width: `${Math.max(2, slice.share * 100)}%` }}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
 
       {/* 近半年收支：只在月视图出现，每月两根柱，同一标尺比较 */}
       {view === 'month' &&
@@ -646,29 +666,32 @@ export default function FinancePage() {
       ) : (
         days.map((day) => (
           <section key={day.dateKey} className="mt-3">
-            <header className="flex items-center justify-between gap-2 rounded-t-xl border border-b-0 border-line bg-surface-2 px-3 py-2">
-              <span className="min-w-0 truncate text-xs text-fg">
-                {formatMonthDay(day.dateKey, t)} · {t(weekdayKey(day.dateKey))}
-              </span>
-              <div className="flex shrink-0 items-center gap-2">
-                <Link
-                  to={`/diary?date=${day.dateKey}`}
-                  className="text-[11px] text-brand transition-opacity hover:opacity-80"
-                >
-                  {t('finance.dayRecords')}
-                </Link>
-                <span className="text-[11px] tabular-nums text-muted">
-                  {t('finance.dayExpense', { value: money(day.summary.expense) })}
+            {/* 日视图不重复日期：日期栏已经写着是哪一天 */}
+            {view !== 'day' && (
+              <header className="flex items-center justify-between gap-2 px-1 pb-1.5">
+                <span className="min-w-0 truncate text-xs text-fg">
+                  {formatMonthDay(day.dateKey, t)} · {t(weekdayKey(day.dateKey))}
                 </span>
-              </div>
-            </header>
-            <ul className="m-0 mt-2 list-none space-y-2 p-0">
+                <div className="flex shrink-0 items-center gap-2">
+                  <Link
+                    to={`/diary?date=${day.dateKey}`}
+                    className="text-[11px] text-brand transition-opacity hover:opacity-80"
+                  >
+                    {t('finance.dayRecords')}
+                  </Link>
+                  <span className="text-[11px] tabular-nums text-muted">
+                    {t('finance.dayExpense', { value: money(day.summary.expense) })}
+                  </span>
+                </div>
+              </header>
+            )}
+            <ul className={`m-0 list-none space-y-2 p-0 ${view === 'day' ? '' : 'mt-0.5'}`}>
               {day.entries.map((entry) => {
                 const selected = batch.isSelected(entry.id)
                 return (
                   <li
                     key={entry.id}
-                    className={`flex flex-wrap items-center gap-3 rounded-xl border p-3 sm:flex-nowrap ${
+                    className={`flex items-center gap-3 rounded-xl border p-3 ${
                       selected ? 'border-brand bg-brand/10' : 'border-line bg-surface'
                     }`}
                   >
@@ -688,9 +711,8 @@ export default function FinancePage() {
                         className="h-11 w-11 shrink-0 rounded-lg border border-line/60 object-cover"
                       />
                     )}
-                    <span className="hidden shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] tabular-nums text-muted sm:inline-flex">
-                      {entry.time}
-                    </span>
+                    {/* 两行：名称 + 编号 / 时刻 + 分类。
+                        备注与「建于 …」留给详情弹窗，列表里每笔都占一行只会把名字挤没 */}
                     <div className="min-w-0 flex-1">
                       <button
                         type="button"
@@ -698,42 +720,43 @@ export default function FinancePage() {
                         onClick={() => setViewEntry(entry)}
                         className="block w-full rounded text-left transition-colors hover:text-brand disabled:cursor-default"
                       >
-                        <p className="m-0 text-sm text-fg">
-                          <span className="min-w-0 truncate">{entry.name}</span>
-                        </p>
-                        <p className="m-0 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
-                          <span className="tabular-nums sm:hidden">{entry.time}</span>
-                          <span className="font-mono">
+                        <span className="flex items-baseline gap-2">
+                          <span className="min-w-0 truncate text-sm text-fg">{entry.name}</span>
+                          <span className="shrink-0 font-mono text-[10px] text-muted">
                             {entry.code}
                           </span>
-                          <span className="rounded-md border border-line px-1.5 py-0.5">
+                        </span>
+                        <span className="mt-0.5 flex items-baseline gap-2 text-[11px] text-muted">
+                          <span className="shrink-0 tabular-nums">{entry.time}</span>
+                          <span className="shrink-0 rounded-md border border-line px-1.5 py-0.5">
                             {t(categoryKey(entry.category))}
                           </span>
-                        </p>
-                        {entry.note !== '' && (
-                          <p className="m-0 mt-0.5 truncate text-xs text-muted">{entry.note}</p>
-                        )}
+                        </span>
                       </button>
-                      <TimeMeta createdAt={entry.createdAt} updatedAt={entry.updatedAt} />
                     </div>
+                    {/* 金额贴顶：两行结构里垂直居中会落在「时刻 · 分类」那一行，
+                        看起来像那行的注脚；贴顶才和名称同一条基线 */}
                     <span
-                      className={`shrink-0 text-sm tabular-nums ${
+                      className={`shrink-0 self-start text-sm tabular-nums ${
                         entry.kind === 'income' ? 'text-success' : 'text-danger'
                       }`}
                     >
                       {entry.kind === 'income' ? '+' : '-'}
                       {money(entry.amount)}
                     </span>
+                    {/* 行尾三个动作挤在同一行，不换行、不加分隔线（和摄入页一致） */}
                     {!batch.active && (
-                      <div className="flex w-full items-center justify-end gap-1 border-t border-line/60 pt-2 sm:w-auto sm:border-0 sm:pt-0">
+                      <div className="flex shrink-0 items-center gap-1">
                         <button
                           type="button"
                           onClick={() => setDialog({ entry, date: entry.dateKey })}
                           title={t('finance.editEntry')}
                           aria-label={t('finance.editEntry')}
-                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm text-muted transition-colors hover:text-brand"
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:text-brand"
                         >
-                          ✎
+                          {/* 原来用「✎」这个文字字形，14px 下细成一条斜线看不出是笔；
+                              换成图标集里的 edit，和详情弹窗那颗编辑按钮同一个符号 */}
+                          <Icon name="edit" className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
@@ -766,7 +789,7 @@ export default function FinancePage() {
         <BatchActions select={batch} ids={rows.map((row) => row.id)} unit={t('finance.unitEntry')}>
           <button
             type="button"
-            onClick={() => void handleBatchExport()}
+            onClick={() => void handleOpenExport()}
             disabled={batch.count === 0}
             className={BAR_BUTTON}
           >

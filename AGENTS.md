@@ -67,6 +67,22 @@ Android：`npm run build && npx cap sync android`，再到 `android/` 执行 `gr
 - `electron/database.cjs` 的 SQL 是手写占位符：给表加列时，`db.prepare` 的列与每个 `.run()` 的参数必须一一对应。0.5.0 之前的替换导入就因为 `writeSections` 漏绑 `images`，直接炸在 `NOT NULL constraint failed`；只导随记时还会把参数整体错位。
 - 改动导入导出至少要跑 `src/core/db/desktopImport.test.ts`（真实 SQLite 导出 → 写回往返）和 `src/features/diary/diaryBackup.test.ts`（备份文件读写）。
 
+### 硬规矩：所有用户数据都必须能备份导出（2026-11-02 起）
+
+**凡是用户自己攒出来的东西，都必须能导出、再原样导入回来。** 新加一类用户数据时，**同一批改动里**要把下面四件事做完，缺一不算完成：
+
+1. **进备份**：数据库表 → 加进 `features/diary/diaryBackup.ts` 的 `BackupPayload` 与 `ALL_SECTIONS`；localStorage 偏好 → 加进 `features/settings/userPrefs.ts` 的 `PREF_GROUPS`。
+2. **能导入**：`readBackup` / `applyPrefs` 收得回来；坏数据只丢那一条，**不许整份拒绝**（理由见 `diaryBackup.ts` 顶部注释）。
+3. **有测试**：`diaryBackup.test.ts` 或 `userPrefs.test.ts` 补一条「导出 → 读回」往返；只测写不测读等于没测。
+4. **界面看得见**：`DataPage` 的分区行与导入报告各补一条，九份语言表同步补齐（`{name}` 占位符保持一致）。
+
+当前覆盖范围：日记 / 随记 / 天气 / 预设 / 日程 / 健康（档案含体重、食物、套餐、摄入、睡眠）/ 训练 / 收支 / AI 对话 / 偏好设置（外观、语言、关怀模式、助手记忆与技能、AI 模型、图片存法、天气地点、更新通道）。
+
+**明确不进备份的**：只对本机有意义的瞬时状态——提醒弹过的日期标记、免责声明已读、调试开关、悬浮球拖动位置以外的窗口状态。判断口径是「换台设备后这条还有意义吗」。
+
+**明文密钥**：AI 模型配置含 `apiKey`，备份照带（不带就等于换机必丢），但导出前必须提示「文件里有密钥」——判据是 `prefsContainSecrets`，别在别处另写一份。
+
+
 ## 改动完成后
 
 至少跑一遍 `npm test`、`npm run typecheck`、`npm run lint`。

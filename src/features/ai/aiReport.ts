@@ -24,7 +24,7 @@ import { explainFailure, pickReply, chat } from './aiClient'
 import type { AiConfig } from './aiConfig'
 import { stripMetaLine } from './aiCompose'
 
-export type ReportKind = 'week' | 'month'
+export type ReportKind = 'day' | 'week' | 'month' | 'year'
 
 export interface ReportPeriod {
   kind: ReportKind
@@ -33,6 +33,14 @@ export interface ReportPeriod {
   to: string
   /** 给人看的范围，例如「11/02 – 11/08」 */
   label: string
+}
+
+/** 四种周期的称呼：提示词里所有「本周 / 上周」都从这里取，避免各写一份 */
+const KIND_WORDS: Record<ReportKind, { current: string; previous: string; name: string }> = {
+  day: { current: '今天', previous: '昨天', name: '日报' },
+  week: { current: '本周', previous: '上周', name: '周报' },
+  month: { current: '本月', previous: '上月', name: '月报' },
+  year: { current: '今年', previous: '去年', name: '年报' },
 }
 
 const ENTRY_CHARS = 220
@@ -188,16 +196,64 @@ export interface ReportTotals {
   wakeCount: number
   napMinutes: number
   intakes: number
+  /** 真正有饮食记录的天数，日均不拿只有日程的日子去摊 */
+  intakeDays: number
   kcal: number
   protein: number
   carbs: number
   fat: number
+  /** 按进食时刻分到早 / 午 / 晚 / 其他 */
+  mealBuckets: { breakfast: number; lunch: number; dinner: number; other: number }
+  /** 同样四段的千卡合计 */
+  mealKcalBuckets: { breakfast: number; lunch: number; dinner: number; other: number }
+  /** 第一顿与最后一顿的时刻，讲进食窗 */
+  firstMeal: string | null
+  lastMeal: string | null
+  /** 蛋白贡献最高的几样食物 */
+  proteinSources: { name: string; protein: number }[]
+  /** 热量贡献最高的几样食物 */
+  foodSources: { name: string; kcal: number }[]
   trainingSessions: number
   trainingMinutes: number
   /** 区间内的空腹称重，日期升序 */
   weights: { dateKey: string; kg: number }[]
   scheduleDone: number
   scheduleTotal: number
+}
+
+function mealBucket(time: string): keyof ReportTotals['mealBuckets'] {
+  const hour = Number(time.slice(0, 2))
+  if (!Number.isFinite(hour)) return 'other'
+  if (hour >= 5 && hour < 10) return 'breakfast'
+  if (hour >= 10 && hour < 15) return 'lunch'
+  if (hour >= 15 && hour < 21) return 'dinner'
+  return 'other'
+}
+
+function proteinSourcesOf(intakes: BackupData['intakes']): ReportTotals['proteinSources'] {
+  const byName = new Map<string, number>()
+  for (const item of intakes) {
+    const name = item.name.trim()
+    if (name === '') continue
+    byName.set(name, (byName.get(name) ?? 0) + item.protein)
+  }
+  return [...byName.entries()]
+    .map(([name, protein]) => ({ name, protein }))
+    .sort((a, b) => b.protein - a.protein)
+    .slice(0, 5)
+}
+
+function foodSourcesOf(intakes: BackupData['intakes']): ReportTotals['foodSources'] {
+  const byName = new Map<string, number>()
+  for (const item of intakes) {
+    const name = item.name.trim()
+    if (name === '') continue
+    byName.set(name, (byName.get(name) ?? 0) + item.kcal)
+  }
+  return [...byName.entries()]
+    .map(([name, kcal]) => ({ name, kcal }))
+    .sort((a, b) => b.kcal - a.kcal)
+    .slice(0, 5)
 }
 
 /** 这段时间的总量：开头给模型一个「这段时间大概是什么样」的底 */
@@ -238,6 +294,15 @@ export function reportTotals(data: BackupData, period: ReportPeriod): ReportTota
     if (stats.count !== null) wakeCount += stats.count
   }
 
+  const mealBuckets = { breakfast: 0, lunch: 0, dinner: 0, other: 0 }
+  const mealKcalBuckets = { breakfast: 0, lunch: 0, dinner: 0, other: 0 }
+  for (const item of intakes) {
+    const bucket = mealBucket(item.time)
+    mealBuckets[bucket] += 1
+    mealKcalBuckets[bucket] += item.kcal
+  }
+  const mealTimes = intakes.map((item) => item.time.slice(0, 5)).filter((time) => time !== '').sort()
+
   return {
     days: days.size,
     entries: entries.length,
@@ -254,10 +319,17 @@ export function reportTotals(data: BackupData, period: ReportPeriod): ReportTota
       0,
     ),
     intakes: intakes.length,
+    intakeDays: new Set(intakes.map((item) => item.dateKey)).size,
     kcal: intakes.reduce((sum, item) => sum + item.kcal, 0),
     protein: intakes.reduce((sum, item) => sum + item.protein, 0),
     carbs: intakes.reduce((sum, item) => sum + item.carbs, 0),
     fat: intakes.reduce((sum, item) => sum + item.fat, 0),
+    mealBuckets,
+    mealKcalBuckets,
+    firstMeal: mealTimes[0] ?? null,
+    lastMeal: mealTimes[mealTimes.length - 1] ?? null,
+    proteinSources: proteinSourcesOf(intakes),
+    foodSources: foodSourcesOf(intakes),
     trainingSessions: trainings.length,
     trainingMinutes: trainings.reduce((sum, item) => sum + (item.durationMin ?? 0), 0),
     weights,
@@ -282,17 +354,55 @@ function isEmptyTotals(t: ReportTotals): boolean {
 }
 
 /** 把总量写成一段行：本期和上期共用同一个口径 */
-function totalsLines(totals: ReportTotals): string[] {
+function totalsLines(totals: ReportTotals, profile: HealthProfile | null): string[] {
   const lines = [
     `有记录的天数：${totals.days}`,
     `日记 ${totals.entries} 篇，随记 ${totals.stamps} 条`,
     `支出 ${Math.round(totals.expense)} 元，收入 ${Math.round(totals.income)} 元`,
   ]
   if (totals.intakes > 0) {
+    const days = Math.max(1, totals.intakeDays)
     lines.push(
-      `摄入 ${Math.round(totals.kcal)} 千卡（${totals.intakes} 笔，日均 ${Math.round(totals.kcal / totals.days)}），` +
+      `摄入 ${Math.round(totals.kcal)} 千卡（${totals.intakes} 笔，有饮食记录的 ${totals.intakeDays} 天日均 ${Math.round(totals.kcal / days)}），` +
         `蛋白 ${Math.round(totals.protein)} g、碳水 ${Math.round(totals.carbs)} g、脂肪 ${Math.round(totals.fat)} g`,
     )
+    const energy = totals.protein * 4 + totals.carbs * 4 + totals.fat * 9
+    if (energy > 0) {
+      lines.push(
+        `供能比：蛋白 ${Math.round((totals.protein * 4 * 100) / energy)}%、` +
+          `碳水 ${Math.round((totals.carbs * 4 * 100) / energy)}%、` +
+          `脂肪 ${Math.round((totals.fat * 9 * 100) / energy)}%（按 4/4/9 千卡折算）`,
+      )
+    }
+    const weight = profile?.weightKg
+    if (weight && weight > 0) {
+      lines.push(`蛋白 ${(totals.protein / days / weight).toFixed(2)} g/kg/天（按体重 ${weight.toFixed(1)} kg）`)
+    }
+    const buckets = totals.mealBuckets
+    const kcals = totals.mealKcalBuckets
+    lines.push(
+      `餐次：早 ${buckets.breakfast} 笔/${Math.round(kcals.breakfast)} 千卡、` +
+        `午 ${buckets.lunch} 笔/${Math.round(kcals.lunch)} 千卡、` +
+        `晚 ${buckets.dinner} 笔/${Math.round(kcals.dinner)} 千卡、` +
+        `其他 ${buckets.other} 笔/${Math.round(kcals.other)} 千卡` +
+        (totals.firstMeal && totals.lastMeal
+          ? `；进食窗 ${totals.firstMeal}–${totals.lastMeal}`
+          : ''),
+    )
+    if (totals.proteinSources.length > 0) {
+      lines.push(
+        `蛋白来源（按克数）：${totals.proteinSources
+          .map((item) => `${item.name} ${Math.round(item.protein)} g`)
+          .join('、')}`,
+      )
+    }
+    if (totals.foodSources.length > 0) {
+      lines.push(
+        `热量来源（按千卡）：${totals.foodSources
+          .map((item) => `${item.name} ${Math.round(item.kcal)}`)
+          .join('、')}`,
+      )
+    }
   } else {
     lines.push('饮食：没有记录')
   }
@@ -343,36 +453,106 @@ function goalLines(profile: HealthProfile | null): string {
   return `目标线：${bits.join(' / ')}`
 }
 
-const SYSTEM_PROMPT_WEEK = buildSystemPrompt('week')
-const SYSTEM_PROMPT_MONTH = buildSystemPrompt('month')
+const SYSTEM_PROMPTS: Record<ReportKind, string> = {
+  day: buildSystemPrompt('day'),
+  week: buildSystemPrompt('week'),
+  month: buildSystemPrompt('month'),
+  year: buildSystemPrompt('year'),
+}
 
 function buildSystemPrompt(kind: ReportKind): string {
-  const thisWord = kind === 'week' ? '本周' : '本月'
-  const prevWord = kind === 'week' ? '上周' : '上月'
-  return `你负责把一个人一段时间里的记录，整理成一篇回顾（${thisWord}报）。
+  const words = KIND_WORDS[kind]
+  const isDay = kind === 'day'
+  const structure = isDay
+    ? `## 今日结论
+## 能量与三条线
+## 今日摄入与三餐
+## 营养结构（供能比 / 蛋白来源）
+## 餐次与进食窗
+## 食物结构与加工 / 高钠
+## 训练与恢复
+## 睡眠与体感
+## 体重与身体信号
+## 近 7 天趋势
+## 明天 3 件事`
+    : `## ${words.current}结论
+## 和${words.previous}比
+## 能量收支与三条线
+## 蛋白质来源
+## 三大营养素供能比
+## 进食时间窗与餐次
+## 食物结构
+## 加工食品 / 高钠
+## 训练与恢复
+## 体重与身体信号
+## ${kind === 'year' ? '逐月模式' : '周内模式'}
+## 健康总评
+## 风险点
+## 下一步`
+  const compare = isDay
+    ? `- 「${words.previous}」的对比只做一天，有记录就用，没有就省略`
+    : `- 和${words.previous}的对比只看方向（多了少了、好了坏了），不抠小数；${words.previous}没有记录就整段省略对比`
+  const yearHint =
+    kind === 'year'
+      ? `\n- 年报优先看逐月变化和阶段节奏，不要逐日复述；把这一年拆成几个阶段来讲`
+      : ''
+  const action = isDay ? '「明天 3 件事」' : '「下一步」'
 
-素材只有这些：日记正文、随记、饮食（热量与蛋白/碳水/脂肪、进食时间）、睡眠（时长、质量、夜醒、小睡）、体重称重、训练（项目、时长、感受、动作组数）、收支（含大件名目）、日程完成情况，以及 ${thisWord} 与 ${prevWord} 的总量和身体档案的目标线（维持线 / 目标线 / 蛋白目标）。
+  return `你负责把一个人一段时间里的记录，整理成一篇回顾（${words.name}）。
+
+素材只有这些：日记正文、随记、饮食（热量与蛋白/碳水/脂肪、进食时间与餐次、蛋白来源）、睡眠（时长、质量、夜醒、小睡）、体重称重、训练（项目、时长、感受、动作组数）、收支（含大件名目）、日程完成情况，以及${words.current}与${words.previous}的总量和身体档案的目标线（维持线 / 目标线 / 蛋白目标）。
 规矩：
 - 只使用素材里真实出现过的事实，人物、地点、数字都不许编造；素材里没有的就不写，不要用「可能」「大概」去补一个不存在的细节
-- 数字要交代清楚比的是哪条线：写「超」或「缺口」时必须写明是对比维持线、目标线还是实际摄入；目标线没设置的，只报绝对值和日均
-- 体重只看序列和方向，不评价单日数字（水分、钠、糖原的正常波动可以达到 1 kg 以上）；没有称重记录就不谈体重
-- 和${prevWord}的对比只看方向（多了少了、好了坏了），不抠小数；${prevWord}没有记录就整段省略对比
+- 数字要分清三条线：维持 TDEE、目标额度、当日实际摄入。写「超」或「缺口」时必须写明对比的是哪一条线；目标线没设置的，只报绝对值和日均
+- 营养要算到能执行：蛋白按 g/kg 体重和目标对比，供能比按 4/4/9 千卡折算，餐次和进食窗按素材里的时刻讲
+- 蛋白来源只列素材里出现过的食物名与克数，不要补一个没记过的食物
+- 热量来源按素材里的食物名与千卡列，不要说「可能主要是」去猜
+- 没有运动消耗数据：只报训练次数、时长和项目，不要估算消耗了多少千卡，也不要写「扣运动后」
+- 食材加工等级、钠含量、糖含量这类素材没有标注的内容，不要凭菜名猜；没有就明说「没有记录」，对应段落直接省略
+- 体重只看序列、周均和方向，不评价单日数字（水分、钠、糖原的正常波动可以达到 0.7~1.6 kg）；没有称重记录就不谈体重
+${compare}
 - 不要逐条复述记录，也不要写成账单或清单；用几段连贯的话把这段时间串起来
-- 结论先说：「${thisWord}结论」用一两句话加两三个关键数字，先讲清整体怎么样
+- 结论先说：「${words.current}结论」用一两句话加两三个关键数字，先讲清整体怎么样
 - 「风险点」只写素材支撑得住的隐患（例如蛋白持续不达标、连续熬夜、某类支出失控），没有就省略这一段
-- 「下一步」给一三条能直接执行的动作，和前面提到的问题对得上；不要喊口号，不要强行积极
+- ${action}给一三条能直接执行的动作，和前面提到的问题对得上；不要喊口号，不要强行积极
 - 语气平实，第一人称，像写给自己看的总结
-- 不要输出开场白（例如「以下是」「这是一篇」），也不要结尾的解释
+- 不要输出开场白（例如「以下是」「这是一篇」），也不要结尾的解释${yearHint}
 - 只输出回顾正文，按下面的结构分段，每段前用「## 」加一句小标题；某段确实没有素材就整段省略，篇幅跟着素材量走，不要硬凑：
-  ## ${thisWord}结论
-  ## 和${prevWord}比
-  ## 值得记住的
-  ## 能量与营养
-  ## 训练与恢复
-  ## 作息与睡眠
-  ## 花销
-  ## 风险点
-  ## 下一步`
+${structure}`
+}
+
+/** 年度回顾按月先压成一行，避免把 365 天逐日素材塞进提示词 */
+function compactTotals(prefix: string, totals: ReportTotals): string {
+  const bits = [`记录 ${totals.days} 天`]
+  const days = Math.max(1, totals.days)
+  if (totals.intakes > 0) {
+    bits.push(`摄入日均 ${Math.round(totals.kcal / days)} 千卡`)
+    bits.push(`蛋白 ${Math.round(totals.protein)} g`)
+  }
+  if (totals.trainingSessions > 0) bits.push(`训练 ${totals.trainingSessions} 次`)
+  if (totals.sleepNights > 0) bits.push(`睡眠均 ${hoursMinutes(totals.sleepMinutes / totals.sleepNights)}`)
+  if (totals.weights.length > 0) {
+    const first = totals.weights[0]
+    const last = totals.weights[totals.weights.length - 1]
+    bits.push(`称重 ${first.kg.toFixed(1)}→${last.kg.toFixed(1)} kg`)
+  }
+  if (totals.expense > 0) bits.push(`支出 ${Math.round(totals.expense)} 元`)
+  return `${prefix}：${bits.join('；')}`
+}
+
+function monthlyLines(data: BackupData, period: ReportPeriod): string[] {
+  const year = Number(period.from.slice(0, 4))
+  if (!Number.isFinite(year)) return ['（这一年没有可用的记录）']
+  const lines: string[] = []
+  for (let month = 1; month <= 12; month++) {
+    const mm = String(month).padStart(2, '0')
+    const from = `${year}-${mm}-01`
+    const to = `${year}-${mm}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`
+    const totals = reportTotals(data, { kind: 'month', from, to, label: `${year}-${mm}` })
+    if (isEmptyTotals(totals)) continue
+    lines.push(compactTotals(`${month} 月`, totals))
+  }
+  return lines.length > 0 ? lines : ['（这一年没有可用的记录）']
 }
 
 /** 把这段时间的素材拼成给模型看的那段话 */
@@ -381,22 +561,35 @@ export function buildReportUserPrompt(
   period: ReportPeriod,
   totals: ReportTotals = reportTotals(data, period),
 ): string {
-  const prevWord = period.kind === 'week' ? '上周' : '上月'
+  const words = KIND_WORDS[period.kind]
   const prev = reportTotals(data, prevPeriod(period))
 
   const lines = [
+    `报告类型：${words.name}`,
     `范围：${period.label}（${formatDateCn(period.from)} 至 ${formatDateCn(period.to)}）`,
     goalLines(data.profile),
     '',
-    `— ${period.kind === 'week' ? '本周' : '本月'}总量 —`,
-    ...totalsLines(totals),
+    `— ${words.current}总量 —`,
+    ...totalsLines(totals, data.profile),
     '',
   ]
   if (!isEmptyTotals(prev)) {
-    lines.push(`— ${prevWord}总量（对比用）—`, ...totalsLines(prev), '')
+    lines.push(`— ${words.previous}总量（对比用）—`, ...totalsLines(prev, data.profile), '')
   } else {
-    lines.push(`— ${prevWord}：没有可用记录，跳过对比 —`, '')
+    lines.push(`— ${words.previous}：没有可用记录，跳过对比 —`, '')
   }
+
+  if (period.kind === 'day') {
+    const trendFrom = shiftDay(period.to, -6)
+    const trend = reportTotals(data, { kind: 'day', from: trendFrom, to: period.to, label: '' })
+    lines.push('— 近 7 天（含今天，趋势参考）—', ...totalsLines(trend, data.profile), '')
+  }
+
+  if (period.kind === 'year') {
+    lines.push('— 逐月总量 —', ...monthlyLines(data, period))
+    return lines.join('\n')
+  }
+
   lines.push('— 每天的记录 —')
 
   let wrote = false
@@ -431,7 +624,7 @@ export async function composeReport(
     temperature: 0.4,
     seed: Math.floor(Math.random() * 2 ** 31),
     messages: [
-      { role: 'system', content: period.kind === 'week' ? SYSTEM_PROMPT_WEEK : SYSTEM_PROMPT_MONTH },
+      { role: 'system', content: SYSTEM_PROMPTS[period.kind] },
       { role: 'user', content: buildReportUserPrompt(data, period) },
     ],
   })

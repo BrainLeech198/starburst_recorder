@@ -27,6 +27,10 @@ import type {
   HealthTraining,
   ScheduleItem,
 } from '@/core/db/schema'
+import { normalizeChatSessions } from '@/features/assistant/assistantChatStore'
+import type { ChatSession } from '@/features/assistant/assistantChatStore'
+import { readPrefs } from '@/features/settings/userPrefs'
+import type { PrefSnapshot } from '@/features/settings/userPrefs'
 import {
   pickDay,
   pickEntry,
@@ -65,9 +69,25 @@ const BACKUP_VERSION = 2
 const SCHEMA_VERSION = 2
 
 /** 备份按可独立恢复的内容分块。旧版的日程、训练仍在 readBackup 中兼容映射。 */
-export type BackupSection = 'diary' | 'schedule' | 'health' | 'training' | 'finance'
+export type BackupSection =
+  | 'diary'
+  | 'schedule'
+  | 'health'
+  | 'training'
+  | 'finance'
+  | 'assistant'
+  /** 偏好与助手设置：外观、语言、AI 模型、长期记忆、技能、权限（2026-11-02 加） */
+  | 'prefs'
 
-export const ALL_SECTIONS: BackupSection[] = ['diary', 'schedule', 'health', 'training', 'finance']
+export const ALL_SECTIONS: BackupSection[] = [
+  'diary',
+  'schedule',
+  'health',
+  'training',
+  'finance',
+  'assistant',
+  'prefs',
+]
 
 export interface BackupPayload {
   entries: DiaryEntry[]
@@ -84,6 +104,10 @@ export interface BackupPayload {
   sleeps: HealthSleep[]
   trainings: HealthTraining[]
   finance: FinanceEntry[]
+  /** AI 对话存档；旧备份没有这一块 */
+  chats?: ChatSession[]
+  /** 偏好与助手设置（localStorage 白名单快照）；旧备份没有这一块 */
+  prefs?: PrefSnapshot
 }
 
 export function emptyPayload(): BackupPayload {
@@ -100,6 +124,8 @@ export function emptyPayload(): BackupPayload {
     sleeps: [],
     trainings: [],
     finance: [],
+    chats: [],
+    prefs: {},
   }
 }
 
@@ -119,6 +145,8 @@ export function onlySections(payload: BackupPayload, sections: BackupSection[]):
     sleeps: keep.has('health') ? payload.sleeps : [],
     trainings: keep.has('training') ? payload.trainings : [],
     finance: keep.has('finance') ? payload.finance : [],
+    chats: keep.has('assistant') ? payload.chats ?? [] : [],
+    prefs: keep.has('prefs') ? payload.prefs ?? {} : {},
   }
 }
 
@@ -142,6 +170,8 @@ export function sectionSize(payload: BackupPayload, section: BackupSection): num
   }
   if (section === 'schedule') return payload.schedules.length
   if (section === 'training') return payload.trainings.length
+  if (section === 'assistant') return payload.chats?.length ?? 0
+  if (section === 'prefs') return Object.keys(payload.prefs ?? {}).length
   return payload.finance.length
 }
 
@@ -204,6 +234,9 @@ export function buildBackup(
           ...(keep.has('schedule') ? { schedule: { items: data.schedules } } : {}),
           ...(keep.has('training') ? { training: { entries: data.trainings } } : {}),
           ...(keep.has('finance') ? { finance: { entries: data.finance } } : {}),
+          ...(keep.has('assistant') ? { assistant: { sessions: data.chats ?? [] } } : {}),
+          // 写文件前再过一遍白名单：调用方拼出来的快照也不该把脏键带出去
+          ...(keep.has('prefs') ? { prefs: readPrefs(data.prefs) } : {}),
         },
       },
       null,
@@ -248,6 +281,7 @@ export function readBackup(text: string): BackupReadResult {
   const financeBag = legacy ? {} : bag(sectionsBag.finance)
   const scheduleBag = bag(sectionsBag.schedule)
   const trainingBag = bag(sectionsBag.training)
+  const assistantBag = bag(sectionsBag.assistant)
 
   const rawEntries = rows(diaryBag.entries)
   const rawStamps = rows(diaryBag.stamps)
@@ -260,6 +294,9 @@ export function readBackup(text: string): BackupReadResult {
   const rawSleeps = rows(healthBag.sleeps)
   const rawTrainings = rows(trainingBag.entries ?? healthBag.trainings)
   const rawFinance = rows(financeBag.entries)
+  const rawChats = rows(assistantBag.sessions ?? assistantBag.chats)
+  // 偏好是一张平表（键 → 原值），不走 rows()；白名单校验在 userPrefs.readPrefs 里
+  const prefs = readPrefs(sectionsBag.prefs)
 
   const entries = rawEntries.map(pickEntry).filter((item): item is DiaryEntry => item !== null)
   const stamps = rawStamps.map(pickStamp).filter((item): item is DiaryStamp => item !== null)
@@ -281,6 +318,7 @@ export function readBackup(text: string): BackupReadResult {
   const finance = rawFinance
     .map(pickFinance)
     .filter((item): item is FinanceEntry => item !== null)
+  const chats = normalizeChatSessions(rawChats)
 
   const payload: BackupPayload = {
     entries,
@@ -295,6 +333,8 @@ export function readBackup(text: string): BackupReadResult {
     sleeps,
     trainings,
     finance,
+    chats,
+    prefs,
   }
 
   const present = sectionsOf(payload)
@@ -314,9 +354,11 @@ export function readBackup(text: string): BackupReadResult {
     rawSleeps.length +
     rawTrainings.length +
     rawFinance.length +
+    rawChats.length +
+    Object.keys(bag(sectionsBag.prefs)).length +
     (healthBag.profile ? 1 : 0)
   const keptTotal =
-    entries.length + stamps.length + days.length + presets.length + schedules.length + foods.length + meals.length + intakes.length + sleeps.length + trainings.length + finance.length + (profile ? 1 : 0)
+    entries.length + stamps.length + days.length + presets.length + schedules.length + foods.length + meals.length + intakes.length + sleeps.length + trainings.length + finance.length + chats.length + Object.keys(prefs).length + (profile ? 1 : 0)
 
   return {
     ok: true,

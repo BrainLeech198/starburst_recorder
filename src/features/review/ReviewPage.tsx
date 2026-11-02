@@ -7,12 +7,14 @@
 import { Link, useSearchParams } from 'react-router'
 import { useState } from 'react'
 import { useLiveQuery } from '@/core/db/live'
-import { formatMonthDay, todayKey } from '@/core/utils/dateKey'
+import { formatDate, formatMonthDay, todayKey } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import EmptyState from '@/shared/ui/EmptyState'
 import { Icon } from '@/shared/ui/icons'
 import AiReportDialog from '@/features/ai/AiReportDialog'
+import type { ReportKind, ReportPeriod } from '@/features/ai/aiReport'
 import ViewTabs from '@/features/calendar/ViewTabs'
+import { weekRange } from '@/features/week/weekMath'
 import { activityBetween } from '@/features/calendar/calendarRepo'
 import { isMonthKey, monthRange, shiftMonthKey } from '@/features/calendar/calendarData'
 import { financeOfMonth } from '@/features/finance/financeRepo'
@@ -31,7 +33,7 @@ import {
 export default function ReviewPage() {
   const { t, locale } = useI18n()
   const [params, setParams] = useSearchParams()
-  const [reportOpen, setReportOpen] = useState(false)
+  const [report, setReport] = useState<ReportPeriod | null>(null)
 
   const currentMonth = todayKey().slice(0, 7)
   const monthParam = params.get('month')
@@ -67,6 +69,41 @@ export default function ReviewPage() {
 
   const empty = summary.daysWithRecords === 0 && progress.length === 0
 
+  /** 报告入口只留在这里：日报 / 周报按今天，月报 / 年报跟着正在看的月份 */
+  function reportPeriod(kind: ReportKind): ReportPeriod {
+    if (kind === 'day') {
+      return { kind, from: today, to: today, label: formatDate(today, t) }
+    }
+    if (kind === 'week') {
+      const range = weekRange(today)
+      return {
+        kind,
+        from: range.from,
+        to: range.to,
+        label: t('week.range', {
+          from: formatMonthDay(range.from, t),
+          to: formatMonthDay(range.to, t),
+        }),
+      }
+    }
+    if (kind === 'month') {
+      return { kind, from, to, label: t('calendar.month', { year, month }) }
+    }
+    return {
+      kind,
+      from: `${year}-01-01`,
+      to: `${year}-12-31`,
+      label: t('review.yearRange', { year }),
+    }
+  }
+
+  const REPORT_KINDS: { kind: ReportKind; label: string }[] = [
+    { kind: 'day', label: t('ai.reportDaily') },
+    { kind: 'week', label: t('ai.reportWeekly') },
+    { kind: 'month', label: t('ai.reportMonthly') },
+    { kind: 'year', label: t('ai.reportYearly') },
+  ]
+
   return (
     <div className="mx-auto w-full max-w-2xl p-4">
       <header className="flex flex-wrap items-center justify-between gap-2">
@@ -74,16 +111,6 @@ export default function ReviewPage() {
           <Icon name="chart" className="h-4 w-4 shrink-0" />
           {t('review.title')}
         </h1>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setReportOpen(true)}
-            className="inline-flex items-center gap-1 rounded-lg border border-brand px-2.5 py-1 text-xs text-brand transition-colors hover:bg-surface-2"
-          >
-            <Icon name="sparkles" className="h-3.5 w-3.5 shrink-0" />
-            {t('ai.reportMonthly')}
-          </button>
-        </div>
       </header>
 
       <ViewTabs active="review" dayKey={scheduleAnchor} />
@@ -120,6 +147,27 @@ export default function ReviewPage() {
           </button>
         )}
       </div>
+
+      {/* 报告统一在这里：日报 / 周报按今天，月报 / 年报按正在看的月份 */}
+      <section className="mt-3 rounded-xl border border-line bg-surface p-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-1">
+          <h2 className="m-0 text-sm font-medium text-fg">{t('review.reports')}</h2>
+          <span className="text-[11px] text-muted">{t('review.reportsHint')}</span>
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {REPORT_KINDS.map((item) => (
+            <button
+              key={item.kind}
+              type="button"
+              onClick={() => setReport(reportPeriod(item.kind))}
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-brand/60 px-2 text-xs text-brand transition-colors hover:bg-brand/10"
+            >
+              <Icon name="sparkles" className="h-3.5 w-3.5 shrink-0" />
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
       {empty ? (
         <div className="mt-6">
@@ -250,17 +298,7 @@ export default function ReviewPage() {
         </>
       )}
 
-      {reportOpen && (
-        <AiReportDialog
-          period={{
-            kind: 'month',
-            from,
-            to,
-            label: t('calendar.month', { year, month }),
-          }}
-          onClose={() => setReportOpen(false)}
-        />
-      )}
+      {report && <AiReportDialog period={report} onClose={() => setReport(null)} />}
     </div>
   )
 }

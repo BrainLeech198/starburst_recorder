@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router'
+import { NavLink, Outlet, useLocation, useNavigationType } from 'react-router'
 import FloatingAssistant from '@/features/assistant/FloatingAssistant'
 import ScheduleReminderHost from '@/features/schedule/ScheduleReminderHost'
 import { useI18n } from '@/shared/i18n/context'
@@ -75,9 +75,8 @@ export default function AppShell() {
 
   const contentRef = useRef<HTMLElement>(null)
   const navRef = useRef<HTMLElement>(null)
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const section = pathname.split('/')[1] ?? ''
-  const lastSection = useRef(section)
   const inRecords = RECORDS.some((item) => pathname.startsWith(item.to))
   // 「记录」开着没：默认跟着路由走（人在记录下就开着）；用户手动拨过一下，就以手动为准——
   // 但只在本板块内作数。点了记录以外的栏目（板块变了），手动状态清零，展开跟着收起来。
@@ -91,13 +90,60 @@ export default function AppShell() {
   }
   const recordsOpen = manualOpen ?? inRecords
 
-  // 滚动容器不再是文档，浏览器不会替我们复位。规则：
-  // 换板块（设置页 → 日记）回到顶部；同一板块内进出（列表 → 某一篇 → 返回）保留位置。
+  // 滚动容器不再是文档，浏览器不会替我们复位，得自己管：
+  //   · 换页（pathname 变了）回到顶部；只改查询参数（翻日期、切筛选）不动，免得输入时跳来跳去
+  //   · 后退 / 前进（POP）把原来那一页的位置还回去——从列表第 30 条点进去，返回后还被扔回顶部
+  //     等于白翻，这也是「真栈返回」必须配套的一半（见 shared/ui/backNav.ts）
+  // 位置靠滚动事件持续记：等路由变了再读 scrollTop，读到的已经是新页面被夹到 0 之后的值了。
+  // 记忆的键是「路径 + 查询串」而不是 location.key：返回（POP）时 react-router 给这条历史
+  // 生成的是新的 key，拿 key 去查必然查不到——第一版就栽在这儿，位置永远还原成 0。
+  const scrollMemory = useRef(new Map<string, number>())
+  const lastPathname = useRef(pathname)
+  const scrollKey = pathname + search
+  // 滚动监听只挂一次，当前是哪一页靠 ref 读
+  const scrollKeyRef = useRef(scrollKey)
+  const navigationType = useNavigationType()
+
   useEffect(() => {
-    if (lastSection.current === section) return
-    lastSection.current = section
-    if (contentRef.current) contentRef.current.scrollTop = 0
-  }, [section])
+    scrollKeyRef.current = scrollKey
+  }, [scrollKey])
+
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    const remember = () => {
+      scrollMemory.current.set(scrollKeyRef.current, el.scrollTop)
+    }
+    el.addEventListener('scroll', remember, { passive: true })
+    return () => el.removeEventListener('scroll', remember)
+  }, [])
+
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    const changedPage = lastPathname.current !== pathname
+    lastPathname.current = pathname
+
+    if (navigationType === 'POP') {
+      const saved = scrollMemory.current.get(scrollKey) ?? 0
+      if (saved <= 0) return
+      // 数据（liveQuery）和懒加载的分块都还没落地时，内容不够高，设 scrollTop 会被夹到 0。
+      // 逐帧重试，直到真的落到目标位置；最多试 20 帧（约 0.3 秒）就放弃，别一直占着 rAF。
+      let tries = 0
+      let raf = 0
+      const apply = () => {
+        el.scrollTop = saved
+        if (Math.abs(el.scrollTop - saved) > 1 && tries < 20) {
+          tries += 1
+          raf = requestAnimationFrame(apply)
+        }
+      }
+      raf = requestAnimationFrame(apply)
+      return () => cancelAnimationFrame(raf)
+    }
+
+    if (changedPage) el.scrollTop = 0
+  }, [scrollKey, pathname, navigationType])
 
   // 安卓软键盘：聚焦输入框时系统会把整个 WebView 顶上来，收起键盘后并不会替我们复位，
   // 于是整页停在上抬的位置。这里记住最大可视高度，等高度恢复（键盘收起）再把文档滚动清零。

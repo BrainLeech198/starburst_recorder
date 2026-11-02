@@ -46,6 +46,56 @@ describe('备份读写的兼容口径', () => {
     expect(read.payload.stamps[0].code).toBe('d4e5f60')
   })
 
+  it('AI 对话独立成块往返：消息与动作卡片状态都不丢', () => {
+    const payload = sample()
+    payload.chats = [
+      {
+        id: 'chat1',
+        title: '今天吃了什么',
+        createdAt: 1,
+        updatedAt: 2,
+        messages: [
+          {
+            id: 'm1',
+            role: 'user',
+            content: '帮我记一下午饭',
+            at: 1,
+          },
+          {
+            id: 'm2',
+            role: 'assistant',
+            content: '准备好了',
+            at: 2,
+            actions: [
+              {
+                action: { kind: 'memory', text: '不吃香菜', memoryKind: 'preference' },
+                status: 'done',
+                recordId: 'mem1',
+              },
+            ],
+          },
+        ],
+      },
+    ]
+
+    const file = buildBackup(payload)
+    const read = readBackup(file.content)
+    expect(read.ok).toBe(true)
+    expect(read.payload.chats).toHaveLength(1)
+    expect(read.payload.chats?.[0].messages[1].actions?.[0].status).toBe('done')
+    expect(read.sections).toContain('assistant')
+
+    const onlyDiary = readBackup(buildBackup(payload, '备份', ['diary']).content)
+    expect(onlyDiary.payload.chats).toEqual([])
+    expect(onlyDiary.sections).not.toContain('assistant')
+  })
+
+  it('旧备份没有 AI 对话时按空处理', () => {
+    const read = readBackup(buildBackup(sample()).content)
+    expect(read.ok).toBe(true)
+    expect(read.payload.chats).toEqual([])
+  })
+
   it('日程独立成块往返：重复规则与完成记录都不丢', () => {
     const payload = sample()
     payload.schedules = [
@@ -300,5 +350,51 @@ describe('备份读写的兼容口径', () => {
     expect(readBackup('not json at all').ok).toBe(false)
     expect(readBackup('[]').ok).toBe(false)
     expect(readBackup('{}').ok).toBe(false)
+  })
+
+  it('偏好设置跟着备份走：只带白名单键，脏键与脏值都丢掉', () => {
+    const payload = sample()
+    payload.prefs = {
+      'starburst.theme': 'paper',
+      'sb_assistant_memories': '[]',
+      // 白名单外的键不该出现在文件里
+      'starburst.debug.ball': '0',
+    }
+    const file = buildBackup(payload)
+    const parsed = JSON.parse(file.content) as { sections: { prefs: Record<string, string> } }
+    expect(parsed.sections.prefs).toEqual({
+      'starburst.theme': 'paper',
+      'sb_assistant_memories': '[]',
+    })
+
+    // 文件被人手改过：加一个白名单外的键、把一个值改成数字
+    parsed.sections.prefs['evil.key'] = 'x'
+    ;(parsed.sections.prefs as Record<string, unknown>)['sb_locale'] = 3
+    const read = readBackup(JSON.stringify(parsed))
+    expect(read.ok).toBe(true)
+    expect(read.payload.prefs).toEqual({
+      'starburst.theme': 'paper',
+      'sb_assistant_memories': '[]',
+    })
+    expect(read.sections).toContain('prefs')
+    expect(sectionSize(read.payload, 'prefs')).toBe(2)
+  })
+
+  it('只勾偏好时，别的块一个字都不带', () => {
+    const payload = sample()
+    payload.prefs = { 'starburst.theme': 'paper' }
+    const only = onlySections(payload, ['prefs'])
+    expect(only.prefs).toEqual({ 'starburst.theme': 'paper' })
+    expect(only.entries).toHaveLength(0)
+    expect(only.stamps).toHaveLength(0)
+    expect(sectionSize(only, 'diary')).toBe(0)
+  })
+
+  it('一份只有偏好的备份也算备份，不该被判成「认不出来」', () => {
+    const payload = { ...emptyPayload(), prefs: { sb_locale: 'ja' } }
+    const read = readBackup(buildBackup(payload, '备份', ['prefs']).content)
+    expect(read.ok).toBe(true)
+    expect(read.sections).toEqual(['prefs'])
+    expect(read.payload.prefs).toEqual({ sb_locale: 'ja' })
   })
 })

@@ -1,7 +1,7 @@
 import EmptyState from '@/shared/ui/EmptyState'
 import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import type { DiaryEntry, DiaryStamp } from '@/core/db/schema'
 import { useToast } from '@/app/providers/ToastProvider'
@@ -48,6 +48,8 @@ import {
   todayKey,
 } from '@/core/utils/dateKey'
 import DayNav from '@/shared/ui/DayNav'
+import BackButton from '@/shared/ui/BackButton'
+import { NAV_BACK_BUTTON } from '@/shared/ui/buttonStyles'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import DatePickerDialog from './DatePickerDialog'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
@@ -93,6 +95,10 @@ export default function DiaryPage() {
   const { showToast } = useToast()
   const { t } = useI18n()
   const aiReady = isConfigured(loadAiConfig())
+  // 从「全部记录」点一条随记过来时，日期栏左侧亮一个返回入口——
+  // 这一页是标签页，本来没有返回按钮，不给一个的话人就被困在这一天了
+  const location = useLocation()
+  const fromArchive = (location.state as { fromArchive?: boolean } | null)?.fromArchive === true
   // 列表停在哪天写进 URL：从编辑页返回、换天、图片导入都能带着这一天回来
   const [searchParams, setSearchParams] = useSearchParams()
   const dateParam = searchParams.get('date')
@@ -399,6 +405,16 @@ export default function DiaryPage() {
           pick: t('common.pickDate'),
           today: t('diary.today'),
         }}
+        leading={
+          fromArchive ? (
+            <BackButton
+              to="/diary/all"
+              label={t('diary.allRecords')}
+              icon
+              className={`${NAV_BACK_BUTTON} gap-1`}
+            />
+          ) : undefined
+        }
         trailing={
           <>
             <Tab active={mode === 'diary'} onClick={() => switchMode('diary')}>

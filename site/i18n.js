@@ -42,7 +42,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记；也可以直接问助手，让它查记录、记账、写随记或记睡眠。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.12.0',
+    'hero.cta': '下载 0.12.1',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -129,11 +129,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器与安卓走 IndexedDB。',
-    'open.version': '版本 0.12.0',
+    'open.version': '版本 0.12.1',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.12.0 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.12.1 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 96 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -144,11 +144,11 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      'AI 助手：查全库、读图表与旧照片，日程、日记、收支、饮食、睡眠、训练与身体档案都能增删改；写入前先给预览，删除必须确认且可撤销',
+      '备份连偏好设置一起带走：外观、语言、助手记忆与技能、AI 模型、图片存法、天气地点都能恢复',
     'whatsnew.item2':
-      '健康：套餐可以设自己的封面，AI 估营养最多带三张参考图；推算 TDEE 不再把尚未结束的今天算进去',
+      '全部记录分成全部 / 日记 / 随记三档，筛子与页码记在地址里；返回走真栈，从哪儿来回哪儿去',
     'whatsnew.item3':
-      '日常：日记与随记有全部记录列表，日历与周视图能左右滑动，悬浮球还能换成你自己的图片',
+      '健康页锻炼卡「记一次」就地开表单，「查看记录」才进训练页；回顾板块统一四种报告',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -156,7 +156,7 @@ window.SITE_I18N = {
     'changelog.back': '← 回到下载',
     'download.historyLink': '历史版本与更新日志，每版都附下载 →',
 
-    'footer.version': '版本 0.12.0',
+    'footer.version': '版本 0.12.1',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -199,7 +199,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry — or just ask the assistant to look things up, log spending, write a note or record your sleep. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.12.0',
+    'hero.cta': 'Download 0.12.1',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -287,12 +287,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser and on Android.',
-    'open.version': 'Version 0.12.0',
+    'open.version': 'Version 0.12.1',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.12.0 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.12.1 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 96 MB',
     'download.windowsDesc':
@@ -303,13 +303,13 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.12.0",
+    'whatsnew.title': "What's new in 0.12.1",
     'whatsnew.item1':
-      'AI assistant: search every record type, read charts and old photos, and add, edit or delete schedules, diary entries, spending, food, sleep, training and the health profile — with a preview before every write and a confirmation before every delete',
+      'The backup now carries your preferences too: appearance, language, assistant memory and skills, AI models, image quality and weather location',
     'whatsnew.item2':
-      'Health: meals can have their own cover and nutrition estimates can carry up to three reference photos; TDEE no longer counts an unfinished today',
+      'All records splits into All / Diary / Notes with filter and page kept in the URL; Back follows a real stack, returning where you came from',
     'whatsnew.item3':
-      'Everyday: all diary entries and notes in one list, swipeable calendar and week views, and your own image on the floating ball',
+      'The training card logs in place and only "View records" opens the training page; all four reports now live in Review',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -317,7 +317,7 @@ window.SITE_I18N = {
     'changelog.back': '← Back to downloads',
     'download.historyLink': 'Previous versions and changelog, each with downloads →',
 
-    'footer.version': 'Version 0.12.0',
+    'footer.version': 'Version 0.12.1',
     'footer.tagline': 'Data stays on your device',
   },
 };

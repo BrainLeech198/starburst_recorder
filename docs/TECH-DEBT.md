@@ -80,7 +80,7 @@ SemVer 比较在 `main.cjs:459-507` 与 [core/utils/versionCompare.ts](../src/co
 | **给一张表加一列要改 8 处、4 个文件**（schema → db 版本 → `database.cjs` 建表+ALTER+列+占位符+行映射 → `normalize.ts` 的 `pick*`） | `schema.ts:149`、`database.cjs:100-121/674-749/908-932/1335-1356/403-427`、`normalize.ts:506-537`。0.5.0 那次 `NOT NULL constraint failed` 就是这条链断的 | L，唯一值得上集中列清单/代码生成的地方 |
 | undo-toast 闭包每页手写（19 处 / 10 文件） | `WeightsPage.tsx:122-135`、`DiaryEditPage.tsx:557-591` | S |
 | `localStorage` 键三套前缀并存、无登记表（47 处 / 17 文件：`starburst.*` / `sb_*` / `sb.*`） | `LEGACY_FLAG` 在 `DataPage.tsx:169`、`sb_image_quality` 在 `imageAssets.ts` | S（要迁移读旧键） |
-| **助手会话与撤销快照存 localStorage，`persist()` 失败被 catch 后静默丢数据** | `assistantChatStore.ts:373-381`；附件 dataURL 单张上限 240 万字符（`assistantAttachments.ts:17`）；SQLite 侧完全没有会话表 | M |
+| **助手会话与撤销快照存 localStorage，`persist()` 失败被 catch 后静默丢数据** | `assistantChatStore.ts:373-381`；附件 dataURL 单张上限 240 万字符（`assistantAttachments.ts:17`）；SQLite 侧完全没有会话表。**2026-11-02 已并入整库备份的「AI 对话」分区**，空会话不导出；存储仍在 localStorage，SQLite 仍无会话表 | M |
 | 巨型组件：IntakeDialog 8 步状态机 + 29 个 `useState` | `IntakeDialog.tsx:92/168-221`；`DiaryEditPage.tsx:131-178`、`DataPage.tsx:487-496` 同型 | M/L，**建议排在闸门就位之后**：它不容易出错，拆分是纯体力活 |
 
 错误边界只有根级一处（`router.tsx:61` 的 `errorElement` 挂 `'/'`），任一页 render 崩会连带整壳替换——补 per-feature errorElement 是 S。
@@ -121,3 +121,18 @@ SemVer 比较在 `main.cjs:459-507` 与 [core/utils/versionCompare.ts](../src/co
 - [PROJECT-NOTES.md:350](./PROJECT-NOTES.md)「未实现：健康 / 经济 / 日历三个占位模块」与 :343/:351「缺译文、下一步建 `en.ts`」——0.11.1 已全部上线，`messages/` 有 9 语言。
 - [ROADMAP.md](./ROADMAP.md) 第 14 项（官网）、第 16 项（android 入库 + README）已完成未销账；第 16 项里"定我们自己的许可证"仍是开放问题（`package.json` 写 MIT，`LICENSE` 亦 MIT，但文档把它列为待办）。
 - [PROJECT-NOTES.md:296](./PROJECT-NOTES.md) 明确记着"**不要全局快捷键**（不能影响其它软件）"；外部调研建议加热键时，这条要由用户拍板，AI 不得自行推翻。
+
+## 8. 数据规模（2026-11-02 分析，详见 [PROJECT-NOTES.md](./PROJECT-NOTES.md)「数据规模」一节）
+
+容量结论：单文件 SQLite 撑得住 GB 级，**不是瓶颈**；先撞墙的是「整库读进内存」与「单文件 JSON 备份」。
+数字与分档方案见 PROJECT-NOTES，这里只登记要动的代码。
+
+| 档 | 事项 | 触发条件 | 改动面 |
+|---|---|---|---|
+| **0（下次发版就做）** | 列表查询不带图：`store.ts` 契约加 `briefEntries()` / `briefStamps()`，只返回正文与图片**张数** | 无条件 | `core/db/store.ts`、`dexieStore.ts`、`sqliteStore.ts`、`electron/database.cjs`（两条 `SELECT` + 两个 handler）、`DiaryArchivePage`、`CalendarPage`、`SearchPage`、AI 上下文 |
+| 1 | 备份分卷（按年，单卷 ≤ 20 MB，导入识别多卷） | 库 > 80 MB 或图片 > 1500 张 | `diaryBackup.ts`、`DataPage`、`recordImport.ts` |
+| 2 | 图片外置（附件表 + 文件系统，备份改 zip） | 库 > 150 MB | 数据层整体（软删除 / 回收站 / 导入导出全要重写图片寻址） |
+
+0 档为什么算「正确性」而不是优化：`everyEntry()` 是 `SELECT *`，桌面上还要跨 IPC 序列化整库 base64，
+库到 50 MB 时「全部记录」页会明显卡；它和备份能不能用是两件独立的事，不该一起等。
+

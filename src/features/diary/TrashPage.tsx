@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router'
+import { useLocation } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
@@ -7,6 +7,7 @@ import BatchActions from '@/shared/ui/BatchActions'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import Tab from '@/shared/ui/Tab'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
+import BackButton from '@/shared/ui/BackButton'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import { BACK_BUTTON, BAR_BUTTON, BAR_DANGER, PAPER_ROW_ACTION, SOLID_BUTTON, SOLID_DANGER } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
@@ -116,10 +117,7 @@ export default function TrashPage() {
     <div className="w-full p-4">
       {/* 顶上一整行都是功能按钮，套一层底色跟下面的清单分开 */}
       <ToolbarRow>
-        <Link to="/diary" className={`${BACK_BUTTON} gap-1`}>
-          <Icon name="back" className="h-4 w-4 shrink-0" />
-          {t('trash.back')}
-        </Link>
+        <BackButton to="/diary" label={t('trash.back')} icon className={`${BACK_BUTTON} gap-1`} />
         <div className="flex items-center gap-2">
           {!batch.active && !isEmpty && (
             <button type="button" onClick={batch.enter} className={SOLID_BUTTON}>

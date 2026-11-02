@@ -14,11 +14,13 @@
  *
  * 页内返回不能省：桌面壳没有系统返回键，安卓实体返回键也还没接（ROADMAP 第 7 项），
  * 这是目前唯一的"回上一级"入口。title 可以不传：内容自带标题时（例如 AI 那一块是自带标题的整卡）就只留返回条。
+ *
+ * 2026-11-02 改：返回不再硬编码，先回上一页（从哪儿来回哪儿去），退无可退才回 `backTo`。
+ * 详见 `backNav.ts`——同一页可能从列表、全局搜索、日历进来，硬编码只能挑一个。
  */
-import { Link } from 'react-router'
 import type { ReactNode } from 'react'
 import { BACK_BUTTON } from './buttonStyles'
-import { Icon } from './icons'
+import BackButton from './BackButton'
 import ToolbarRow from './ToolbarRow'
 import { useI18n } from '@/shared/i18n/context'
 
@@ -49,10 +51,12 @@ export default function PageHeader({
   const row = (
     <>
       {/* 这是唯一的"回上一级"入口，要一眼看出"可以点" */}
-      <Link to={backTo} className={`${BACK_BUTTON} gap-1`}>
-        <Icon name="back" className="h-4 w-4 shrink-0" />
-        {backLabel ?? t('common.settings')}
-      </Link>
+      <BackButton
+        to={backTo}
+        label={backLabel ?? t('common.settings')}
+        icon
+        className={`${BACK_BUTTON} gap-1`}
+      />
       {status && <div className="flex items-center">{status}</div>}
       {actions && <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>}
     </>

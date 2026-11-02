@@ -10,6 +10,7 @@ import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import Dropdown from '@/shared/ui/Dropdown'
 import Modal from '@/shared/ui/Modal'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
+import BackButton from '@/shared/ui/BackButton'
 import TagEditor from '@/shared/ui/TagEditor'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { BACK_BUTTON, GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
@@ -237,11 +238,41 @@ export default function DiaryEditPage() {
     bypass.current = false
   }, [location.key])
 
-  /** 被拦住的那次导航本来要去哪：默认回列表，并带上当前这天 */
-  function proceedTarget() {
+  /**
+   * 被拦住的那次导航本来要去哪。
+   *
+   * `blocker.location` 在放行或取消之后会被清空，而「先保存再离开」是先 await 落盘、
+   * 再决定去哪，那时它已经没了。所以拦住的那一刻先抄一份到 ref 里。
+   */
+  const leaveTarget = useRef('')
+  useEffect(() => {
     const target = blocker.location
-    if (!target || target.pathname === '/diary') return `/diary?date=${shownDate}`
-    return target.pathname + target.search + target.hash
+    if (blocker.state !== 'blocked' || !target) return
+    leaveTarget.current = target.pathname + target.search + target.hash
+  }, [blocker.state, blocker.location])
+
+  /** 去哪：默认回列表，并带上当前这天 */
+  function proceedTarget() {
+    const target = leaveTarget.current
+    if (target === '' || target.split('?')[0] === '/diary') return `/diary?date=${shownDate}`
+    return target
+  }
+
+  /**
+   * 放行被拦住的那次导航。
+   *
+   * 用户按的是「返回」时，那次导航是一次 pop：交给 `blocker.proceed()` 原路退回，
+   * 历史里不会多出一条。早先这里改写成了 `go(目标路径)`，那是 push——
+   * 退回去之后在列表上再按返回，又会弹回这篇日记。
+   * 守卫已经自己解开（保存后 hasUnsaved 变 false）时 proceed 用不了，再按目标路径跳。
+   */
+  function proceedLeave() {
+    if (blocker.state === 'blocked') {
+      bypass.current = true
+      blocker.proceed()
+      return
+    }
+    go(proceedTarget())
   }
 
   // 关窗口 / 刷新前也拦一下，别让整份草稿悄悄没了
@@ -611,7 +642,7 @@ export default function DiaryEditPage() {
     } finally {
       setBusy(false)
     }
-    go(proceedTarget())
+    proceedLeave()
   }
 
   return (
@@ -619,9 +650,13 @@ export default function DiaryEditPage() {
       {/* 顶上一整行都是功能按钮，所以套一层底色跟下面的纸分开 */}
       <ToolbarRow className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <Link to={`/diary?date=${shownDate}`} className={BACK_BUTTON}>
-            {t('diaryEdit.back')}
-          </Link>
+          {/* 回上一页：从「全部记录」点进来就回那个列表，从日记首页进来就回首页。
+              退无可退（直接打开链接）时兜底回当天列表 */}
+          <BackButton
+            to={`/diary?date=${shownDate}`}
+            label={t('diaryEdit.back')}
+            className={BACK_BUTTON}
+          />
           {/* 编辑区指向哪儿：落盘的显示编号，红=有改动，绿=跟磁盘一致 */}
           <span
             title={
@@ -838,7 +873,7 @@ export default function DiaryEditPage() {
             <button
               type="button"
               disabled={busy}
-              onClick={() => go(proceedTarget())}
+              onClick={proceedLeave}
               className="w-full rounded-lg border border-danger px-3 py-1.5 text-sm text-danger transition-colors hover:opacity-80 disabled:opacity-40"
             >
               {t('diaryEdit.discard')}

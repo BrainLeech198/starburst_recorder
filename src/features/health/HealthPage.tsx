@@ -35,6 +35,7 @@ import {
   weekStartOf,
 } from '@/features/training/trainingMath'
 import { maybeNotifyTraining, syncTrainingReminder } from '@/features/training/trainingNotify'
+import TrainingForm from '@/features/training/TrainingForm'
 
 const FIELD_LABELS = {
   sex: 'profile.fieldSex',
@@ -83,6 +84,8 @@ export default function HealthPage() {
     void syncWeighReminder(profile)
   }, [profile])
   const [sleepDialogOpen, setSleepDialogOpen] = useState(false)
+  /** 训练卡上的「记一次」：就地开表单，不跳二级页（训练页仍在「查看记录」里） */
+  const [trainingFormOpen, setTrainingFormOpen] = useState(false)
   /** 手机健康应用导入的弹窗；只在安卓原生端有入口 */
   const [importOpen, setImportOpen] = useState(false)
   /** 理想作息的内联编辑：平时收成一行，点「编辑」展开两个时间框 */
@@ -394,15 +397,21 @@ export default function HealthPage() {
         </div>
       </section>
 
-      {/* 训练卡：今天练了没有 + 本周次数，点进去是训练页 */}
+      {/* 训练卡：今天练了没有 + 本周次数。
+          两个入口分工写清楚（2026-11-02 修）：右上角「查看记录」进训练页（列表、计划、导出都在那儿），
+          底下「记一次」就地开表单——原先两个按钮都跳同一个二级页，点哪个都像点错了 */}
       <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
         <div className="flex items-center justify-between gap-2">
           <h2 className="m-0 text-sm font-medium text-fg">{t('training.title')}</h2>
           <Link
             to={`/health/training?date=${dayKey}`}
-            className="shrink-0 text-xs text-brand transition-opacity hover:opacity-80"
+            className="shrink-0 text-xs tabular-nums text-muted transition-colors hover:text-brand"
           >
-            {t('training.add')} ›
+            {t('health.viewRecords')}
+            {trainings !== undefined && trainings.length > 0
+              ? ` · ${t('health.itemCount', { n: trainings.length })}`
+              : ''}{' '}
+            ›
           </Link>
         </div>
         {trainings === undefined ? null : trainings.length === 0 ? (
@@ -419,10 +428,14 @@ export default function HealthPage() {
           {t('training.weekDays')} {weekTrainingSummary.days} · {t('training.volume')}{' '}
           {formatVolume(weekTrainingSummary.volumeKg)}
         </p>
-        <Link to={`/health/training?date=${dayKey}`} className={`${OUTLINE_BUTTON} mt-3`}>
+        <button
+          type="button"
+          onClick={() => setTrainingFormOpen(true)}
+          className={`${SOLID_BUTTON} mt-3 w-full`}
+        >
           <Icon name="dumbbell" />
-          {t('training.title')}
-        </Link>
+          {t('training.add')}
+        </button>
       </section>
 
       {/* 手机健康应用的数据只能从安卓端读，桌面和浏览器不显示这块 */}
@@ -458,6 +471,11 @@ export default function HealthPage() {
           sleep={sleep ?? null}
           onClose={() => setSleepDialogOpen(false)}
         />
+      )}
+
+      {/* 记完自动收起；列表靠 live query 自己刷新，不用在这里回读 */}
+      {trainingFormOpen && (
+        <TrainingForm dateKey={dayKey} onClose={() => setTrainingFormOpen(false)} />
       )}
 
       {pickerOpen && (

@@ -82,7 +82,14 @@ export default function AiReportDialog({
     }
   }
 
-  const title = period.kind === 'month' ? t('ai.reportMonthly') : t('ai.reportWeekly')
+  const title =
+    period.kind === 'day'
+      ? t('ai.reportDaily')
+      : period.kind === 'week'
+        ? t('ai.reportWeekly')
+        : period.kind === 'month'
+          ? t('ai.reportMonthly')
+          : t('ai.reportYearly')
 
   return (
     <Modal size="lg" label={title} onClose={onClose}>

@@ -57,6 +57,8 @@ function schedule(patch: Partial<ScheduleItem> = {}): ScheduleItem {
 }
 
 const PERIOD = { kind: 'week' as const, from: '2026-11-02', to: '2026-11-08', label: '11/02 – 11/08' }
+const DAY = { kind: 'day' as const, from: '2026-11-02', to: '2026-11-02', label: '11/02' }
+const YEAR = { kind: 'year' as const, from: '2026-01-01', to: '2026-12-31', label: '2026' }
 
 describe('reportTotals', () => {
   it('只统计区间内的记录', () => {
@@ -160,11 +162,22 @@ describe('buildReportUserPrompt', () => {
     expect(totals.kcal).toBe(1000)
     expect(totals.protein).toBe(50)
     expect(totals.weights).toHaveLength(2)
+    expect(totals.mealBuckets).toEqual({ breakfast: 1, lunch: 1, dinner: 0, other: 0 })
+    expect(totals.mealKcalBuckets).toEqual({ breakfast: 400, lunch: 600, dinner: 0, other: 0 })
+    expect(totals.intakeDays).toBe(1)
+    expect(totals.firstMeal).toBe('08:00')
+    expect(totals.lastMeal).toBe('12:00')
+    expect(totals.proteinSources[0]).toEqual({ name: '午饭', protein: 50 })
+    expect(totals.foodSources[0]).toEqual({ name: '午饭', kcal: 1000 })
 
     const prompt = buildReportUserPrompt(data, PERIOD)
     expect(prompt).toContain('目标线：维持 2350 千卡 / 目标 2050 千卡 / 蛋白目标 100 g')
     expect(prompt).toContain('体重序列：11-02 63.6 → 11-08 63.1（变化 -0.5 kg）')
     expect(prompt).toContain('进食窗 08:00–12:00')
+    expect(prompt).toContain('餐次：早 1 笔/400 千卡、午 1 笔/600 千卡')
+    expect(prompt).toContain('供能比：蛋白')
+    expect(prompt).toContain('蛋白来源（按克数）：午饭 50 g')
+    expect(prompt).toContain('热量来源（按千卡）：午饭 1000')
   })
 
   it('上周有记录时给出对比块，没有时明说跳过', () => {
@@ -180,5 +193,34 @@ describe('buildReportUserPrompt', () => {
 
     const alone = buildReportUserPrompt(emptyData(), PERIOD)
     expect(alone).toContain('上周：没有可用记录')
+  })
+
+  it('日报带上近 7 天趋势，且不混入区间外正文', () => {
+    const data = emptyData()
+    data.entries = [
+      entry({ id: 'a', dateKey: '2026-11-02', content: '今天写的事' }),
+      entry({ id: 'b', dateKey: '2026-10-31', content: '三天前写的事' }),
+    ]
+    const prompt = buildReportUserPrompt(data, DAY)
+    expect(prompt).toContain('报告类型：日报')
+    expect(prompt).toContain('— 近 7 天（含今天，趋势参考）—')
+    expect(prompt).toContain('今天写的事')
+    // 近 7 天只出总量，不把每天的正文重复塞一遍
+    expect(prompt).not.toContain('三天前写的事')
+  })
+
+  it('年报按月汇总，不逐日展开', () => {
+    const data = emptyData()
+    data.entries = [
+      entry({ id: 'a', dateKey: '2026-03-02', content: '三月的一篇日记' }),
+      entry({ id: 'b', dateKey: '2026-08-09', content: '八月的一篇日记' }),
+    ]
+    const prompt = buildReportUserPrompt(data, YEAR)
+    expect(prompt).toContain('报告类型：年报')
+    expect(prompt).toContain('— 逐月总量 —')
+    expect(prompt).toContain('3 月：')
+    expect(prompt).toContain('8 月：')
+    expect(prompt).not.toContain('三月的一篇日记')
+    expect(prompt).not.toContain('每天的记录')
   })
 })

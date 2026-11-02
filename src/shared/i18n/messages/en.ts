@@ -743,6 +743,9 @@ export const en: Record<MessageKey, string> = {
   'week.addHere': 'Add a schedule item on {date}',
 
   'review.title': 'Review',
+  'review.reports': 'AI reports',
+  'review.reportsHint': 'Daily and weekly use today; monthly and yearly follow the month you are viewing',
+  'review.yearRange': '{year}',
   'review.empty': 'No records this month yet.',
   'review.daysWithRecords': 'Days with records',
   'review.daysValue': '{done}/{total} days',
@@ -763,8 +766,10 @@ export const en: Record<MessageKey, string> = {
   'review.schedulesEmpty': 'Nothing scheduled this month.',
   'review.scheduleRow': '{done}/{total} done · {streak} in a row',
 
+  'ai.reportDaily': 'Daily summary',
   'ai.reportWeekly': 'Weekly summary',
   'ai.reportMonthly': 'Monthly summary',
+  'ai.reportYearly': 'Yearly summary',
   'ai.reportHint': 'Built only from your records — nothing is invented. Read it over before saving.',
   'ai.reportIntro': 'Tap below and let AI turn these records into a short review.',
   'ai.reportPlaceholder': 'The draft appears here and you can edit it.',
@@ -1319,7 +1324,7 @@ export const en: Record<MessageKey, string> = {
   'data.statTrainings': 'Training',
   'data.statWeights': 'Weigh-ins',
   'data.backupDesc':
-    'Export diary, schedules, health, training, and finance as a sectioned JSON backup. Choose what to include; trashed records are included too.',
+    'Export diary, schedules, health, training, finance, AI chats and preferences as a sectioned JSON backup. Choose what to include; trashed records are included too.',
   'data.exportGroup': 'Export',
   'data.export': 'Export data…',
   'data.exportHint':
@@ -1521,6 +1526,10 @@ export const en: Record<MessageKey, string> = {
   'data.sectionHealthDetail':
     '{profile} · {foods} foods · {meals} meals · {intakes} intakes · {sleeps} sleeps',
   'data.sectionFinanceDetail': '{count} records',
+  'data.sectionAssistant': 'AI chats',
+  'data.sectionPrefs': 'Preferences',
+  'data.sectionPrefsDetail': '{count} settings (appearance, language, assistant memory & models)',
+  'data.sectionAssistantDetail': '{sessions} chats · {messages} messages',
   'data.sectionScheduleDetail': '{count} schedules',
   'data.sectionTrainingDetail': '{count} workouts',
   'data.sectionProfileYes': 'profile included',
@@ -1550,6 +1559,10 @@ export const en: Record<MessageKey, string> = {
   'data.importMeals': 'Meals: {added} added · {overwritten} overwritten',
   'data.importIntakes': 'Intakes: {added} added · {overwritten} overwritten',
   'data.importFinance': 'Finance: {added} added · {overwritten} overwritten',
+  'data.importChats': 'AI chats: {added} added · {updated} updated · {skipped} skipped',
+  'data.importPrefs': 'Preferences: {count} restored',
+  'data.importPrefsRestart': 'Reopen the app for appearance and language to take effect',
+  'data.exportHasKeys': 'This backup contains AI API keys in plain text — keep it on your own device',
   'data.duplicateFoods':
     '{count} foods share a name with local ones but have different ids; both will stay: {names}',
   'data.clearTitle': 'Clear data',
@@ -1586,8 +1599,10 @@ export const en: Record<MessageKey, string> = {
   'diary.tabDiary': 'Diary',
   'diary.tabStamp': 'Stamps',
   'diary.allRecords': 'All records',
+  'diary.filterAll': 'All',
   'diary.noAllRecords': 'No diary entries or notes',
   'diary.archiveCount': '{count} records · Page {page} of {pages}',
+  'diary.archiveTotal': '{count} records',
   'diary.previousPage': 'Previous',
   'diary.nextPage': 'Next',
   'diary.pageOf': 'Page {page} of {pages}',

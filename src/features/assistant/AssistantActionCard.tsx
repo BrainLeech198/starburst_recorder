@@ -9,6 +9,7 @@ import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import type { AssistantMemoryKind } from './assistantMemory'
 import type { ChatActionState } from './assistantChatStore'
+import { isDeleteKind } from './assistantPermission'
 import { categoryKey } from '@/features/finance/financeCategories'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
@@ -212,7 +213,8 @@ export default function AssistantActionCard({ state, busy, onConfirm, onCancel, 
   })()
 
   const isEdit = action.kind.endsWith('Edit')
-  const isDelete = action.kind.endsWith('Delete')
+  /** 删除标题走和权限层同一份名单，别让显示与确认策略各认一套 */
+  const isDelete = isDeleteKind(action.kind)
 
   const pending = state.status === 'pending' || state.status === 'failed'
   const tone = pending

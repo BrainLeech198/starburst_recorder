@@ -88,6 +88,21 @@ describe('buildSystemPrompt', () => {
     expect(text).toContain('用户已经确认写入')
     expect(text).toContain('午饭 28 元')
   })
+
+  it('拒绝与撤销的卡片结果单独成段', () => {
+    const text = buildSystemPrompt(
+      '2026-10-28',
+      false,
+      [],
+      [],
+      [],
+      [],
+      'confirm',
+      ['用户拒绝，没有写入：记忆 · 不吃香菜'],
+    )
+    expect(text).toContain('用户对之前卡片的处理结果')
+    expect(text).toContain('用户拒绝，没有写入')
+  })
 })
 
 describe('parseAssistantMessage', () => {

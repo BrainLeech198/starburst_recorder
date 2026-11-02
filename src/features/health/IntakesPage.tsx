@@ -26,6 +26,7 @@ import IntakeDetailDialog from './IntakeDetailDialog'
 import IntakeEditDialog from './IntakeEditDialog'
 import IntakeEditChoiceDialog from './IntakeEditChoiceDialog'
 import DayNav from '@/shared/ui/DayNav'
+import BackButton from '@/shared/ui/BackButton'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import { formatNum } from './healthMath'
 import {
@@ -181,10 +182,12 @@ export default function IntakesPage() {
           today: t('health.backToToday'),
         }}
         leading={
-          <Link to="/health" className={`${NAV_BACK_BUTTON} gap-1`}>
-            <Icon name="back" className="h-3.5 w-3.5 shrink-0" />
-            {t('nav.health')}
-          </Link>
+          <BackButton
+            to="/health"
+            label={t('nav.health')}
+            icon
+            className={`${NAV_BACK_BUTTON} gap-1`}
+          />
         }
         trailing={
           <Link
