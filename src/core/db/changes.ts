@@ -25,8 +25,8 @@ export function notifyChange() {
   for (const listener of [...listeners]) listener()
 }
 
-/** 会改数据的 DiaryStore 方法；读方法不触发通知 */
-const WRITE_METHODS = new Set([
+/** 会改数据的 DiaryStore 方法；读方法不触发通知。与契约的对齐由 changeBus.test.ts 兜住 */
+export const WRITE_METHODS = new Set([
   'createEntry',
   'updateContent',
   'setEntryTags',
@@ -89,6 +89,8 @@ const WRITE_METHODS = new Set([
   'removeIntakes',
   'restoreIntake',
   'restoreIntakes',
+  'purgeIntake',
+  'purgeTrashedIntakes',
   'saveHealthSleep',
   'removeHealthSleep',
   'restoreHealthSleep',
@@ -105,6 +107,8 @@ const WRITE_METHODS = new Set([
   'saveFinance',
   'removeFinance',
   'restoreFinance',
+  'purgeFinance',
+  'purgeTrashedFinance',
   // 日程 / 定期任务
   'saveSchedule',
   'removeSchedule',
