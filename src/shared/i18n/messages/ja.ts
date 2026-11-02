@@ -1269,7 +1269,8 @@ export const ja: Record<MessageKey, string> = {
   'data.statSleeps': '睡眠',
   'data.statTrainings': 'トレーニング',
   'data.statWeights': '体重',
-  'data.backupDesc': '日記・健康・家計をブロックごとに1つの JSON に書き出します。書き出し前に含めるブロックを選べ、ゴミ箱の削除済みも含まれます。',
+  'data.backupDesc':
+    '日記、予定、健康、トレーニング、家計をセクション別の JSON バックアップに書き出します。含める内容を選べます。ゴミ箱の記録も含まれます。',
   'data.exportGroup': 'エクスポート',
   'data.export': 'データを書き出す…',
   'data.exportHint':
@@ -1454,10 +1455,14 @@ export const ja: Record<MessageKey, string> = {
   'data.sectionDiary': '日記',
   'data.sectionHealth': '健康',
   'data.sectionFinance': '家計',
+  'data.sectionSchedule': '予定',
+  'data.sectionTraining': 'トレーニング',
   'data.sectionDiaryDetail':
-    '日記 {entries} 件 · つぶやき {stamps} 件 · 天気 {days} 日 · プリセット {presets} 件 · スケジュール {schedules} 件',
-  'data.sectionHealthDetail': '{profile} · 食品 {foods} 件 · セット {meals} 件 · 摂取 {intakes} 件 · 睡眠 {sleeps} 件 · トレーニング {trainings} 件',
+    '日記 {entries} 件 · つぶやき {stamps} 件 · 天気 {days} 日 · プリセット {presets} 件',
+  'data.sectionHealthDetail': '{profile} · 食品 {foods} 件 · セット {meals} 件 · 摂取 {intakes} 件 · 睡眠 {sleeps} 件',
   'data.sectionFinanceDetail': '{count} 件',
+  'data.sectionScheduleDetail': '予定 {count} 件',
+  'data.sectionTrainingDetail': 'トレーニング {count} 件',
   'data.sectionProfileYes': '身体プロフィールあり',
   'data.sectionProfileNo': '身体プロフィールなし',
   'data.sectionEmpty': 'このバックアップには含まれていません',
@@ -1468,7 +1473,7 @@ export const ja: Record<MessageKey, string> = {
   'data.savedSections': '書き出しました：{detail}',
   'data.importRangeTitle': '何をインポートしますか？',
   'data.importRangeDesc':
-    'チェックしたブロックだけを書き込み、ほかは一切変更しません。ブロックの中は選べません。日記にはつぶやき・天気・プリセット・スケジュール、健康には身体プロフィール・食品・セット・摂取・睡眠・トレーニングがまとめて入ります。',
+    '選択したセクションだけを書き込みます。予定とトレーニングは個別に選択でき、その他のセクションはまとめて復元されます。',
   'data.replaceRangeDesc':
     '置き換えモードはチェックしたブロックを先に空にし、バックアップの内容で完全に復元します。チェックしなかったブロックは一切変更しません。',
   'data.importRangeConfirm': '次へ',

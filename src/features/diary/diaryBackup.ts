@@ -7,7 +7,7 @@
  *   - 备份要能自证身份：带 app 标记和版本号，才能对用户说清「这份文件不是星芒记录者导出的」。
  *   - 备份要把回收站里的东西也带上（deletedAt 原样保留），删掉的东西也是你的数据。
  *
- * v2 起按「日记 / 健康 / 经济」分块：导出时只写勾选的块，导入时只写勾选的块。
+ * v2 起按 sections 分块；日程与训练后来独立成块，读入时仍兼容旧文件的归属。
  * v1 是扁平结构（只有日记），读到时自动当成 diary 一块，老备份仍能恢复。
  *
  * 校验刻意宽容：坏条目单独剔掉并报数，而不是整份拒绝——
@@ -64,10 +64,10 @@ const BACKUP_APP = 'starburst-recorder'
 const BACKUP_VERSION = 2
 const SCHEMA_VERSION = 2
 
-/** 备份里的三块：日记、健康、经济 */
-export type BackupSection = 'diary' | 'health' | 'finance'
+/** 备份按可独立恢复的内容分块。旧版的日程、训练仍在 readBackup 中兼容映射。 */
+export type BackupSection = 'diary' | 'schedule' | 'health' | 'training' | 'finance'
 
-export const ALL_SECTIONS: BackupSection[] = ['diary', 'health', 'finance']
+export const ALL_SECTIONS: BackupSection[] = ['diary', 'schedule', 'health', 'training', 'finance']
 
 export interface BackupPayload {
   entries: DiaryEntry[]
@@ -75,7 +75,7 @@ export interface BackupPayload {
   days: DiaryDay[]
   /** 预设库（常用人物 / 地名），跟着日记块走 */
   presets: DiaryPreset[]
-  /** 日程 / 定期任务也归在日记块里；旧备份没有这个字段 */
+  /** 日程 / 定期任务；旧备份把它放在 diary.schedules */
   schedules: ScheduleItem[]
   profile: HealthProfile | null
   foods: HealthFood[]
@@ -111,13 +111,13 @@ export function onlySections(payload: BackupPayload, sections: BackupSection[]):
     stamps: keep.has('diary') ? payload.stamps : [],
     days: keep.has('diary') ? payload.days : [],
     presets: keep.has('diary') ? payload.presets : [],
-    schedules: keep.has('diary') ? payload.schedules : [],
+    schedules: keep.has('schedule') ? payload.schedules : [],
     profile: keep.has('health') ? payload.profile : null,
     foods: keep.has('health') ? payload.foods : [],
     meals: keep.has('health') ? payload.meals : [],
     intakes: keep.has('health') ? payload.intakes : [],
     sleeps: keep.has('health') ? payload.sleeps : [],
-    trainings: keep.has('health') ? payload.trainings : [],
+    trainings: keep.has('training') ? payload.trainings : [],
     finance: keep.has('finance') ? payload.finance : [],
   }
 }
@@ -129,8 +129,7 @@ export function sectionSize(payload: BackupPayload, section: BackupSection): num
       payload.entries.length +
       payload.stamps.length +
       payload.days.length +
-      payload.presets.length +
-      payload.schedules.length
+      payload.presets.length
     )
   if (section === 'health') {
     return (
@@ -138,10 +137,11 @@ export function sectionSize(payload: BackupPayload, section: BackupSection): num
       payload.foods.length +
       payload.meals.length +
       payload.intakes.length +
-      payload.sleeps.length +
-      payload.trainings.length
+      payload.sleeps.length
     )
   }
+  if (section === 'schedule') return payload.schedules.length
+  if (section === 'training') return payload.trainings.length
   return payload.finance.length
 }
 
@@ -184,6 +184,7 @@ export function buildBackup(
                   stamps: data.stamps,
                   days: data.days,
                   presets: data.presets,
+                  // 老版本只认识日记块；选中两块时同时写旧位置方便回退恢复。
                   schedules: data.schedules,
                 },
               }
@@ -200,6 +201,8 @@ export function buildBackup(
                 },
               }
             : {}),
+          ...(keep.has('schedule') ? { schedule: { items: data.schedules } } : {}),
+          ...(keep.has('training') ? { training: { entries: data.trainings } } : {}),
           ...(keep.has('finance') ? { finance: { entries: data.finance } } : {}),
         },
       },
@@ -243,17 +246,19 @@ export function readBackup(text: string): BackupReadResult {
   const diaryBag = legacy ? root : bag(sectionsBag.diary)
   const healthBag = legacy ? {} : bag(sectionsBag.health)
   const financeBag = legacy ? {} : bag(sectionsBag.finance)
+  const scheduleBag = bag(sectionsBag.schedule)
+  const trainingBag = bag(sectionsBag.training)
 
   const rawEntries = rows(diaryBag.entries)
   const rawStamps = rows(diaryBag.stamps)
   const rawDays = rows(diaryBag.days)
   const rawPresets = rows(diaryBag.presets)
-  const rawSchedules = rows(diaryBag.schedules)
+  const rawSchedules = rows(scheduleBag.items ?? diaryBag.schedules)
   const rawFoods = rows(healthBag.foods)
   const rawMeals = rows(healthBag.meals)
   const rawIntakes = rows(healthBag.intakes)
   const rawSleeps = rows(healthBag.sleeps)
-  const rawTrainings = rows(healthBag.trainings)
+  const rawTrainings = rows(trainingBag.entries ?? healthBag.trainings)
   const rawFinance = rows(financeBag.entries)
 
   const entries = rawEntries.map(pickEntry).filter((item): item is DiaryEntry => item !== null)

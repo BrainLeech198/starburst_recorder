@@ -46,7 +46,7 @@ describe('备份读写的兼容口径', () => {
     expect(read.payload.stamps[0].code).toBe('d4e5f60')
   })
 
-  it('日程跟着日记块往返：重复规则与完成记录都不丢', () => {
+  it('日程独立成块往返：重复规则与完成记录都不丢', () => {
     const payload = sample()
     payload.schedules = [
       {
@@ -67,7 +67,17 @@ describe('备份读写的兼容口径', () => {
       },
     ]
 
-    const read = readBackup(buildBackup(payload).content)
+    const full = JSON.parse(buildBackup(payload).content) as {
+      sections: { diary: { schedules: unknown[] }; schedule: { items: unknown[] } }
+    }
+    expect(full.sections.diary.schedules).toHaveLength(1)
+    expect(full.sections.schedule.items).toHaveLength(1)
+
+    const file = buildBackup(payload, '备份', ['schedule'])
+    const raw = JSON.parse(file.content) as { sections: Record<string, unknown> }
+    expect(raw.sections).toHaveProperty('schedule')
+    expect(raw.sections).not.toHaveProperty('diary')
+    const read = readBackup(file.content)
     expect(read.ok).toBe(true)
     expect(read.payload.schedules).toHaveLength(1)
     expect(read.payload.schedules[0].weeklyDays).toEqual([1, 3])
@@ -75,19 +85,26 @@ describe('备份读写的兼容口径', () => {
     expect(read.payload.schedules[0].doneDays).toEqual(['2026-11-02'])
   })
 
-  it('旧备份没有日程字段时读成空数组，不会整份失败', () => {
+  it('旧备份里归在日记块的日程仍能读回并显示为独立块', () => {
     const payload = sample()
+    payload.schedules = [{
+      id: 'sc-old', code: 'c0ffee1', dateKey: '2026-11-02', time: '20:00', title: '旧日程',
+      note: '', repeat: 'none', weeklyDays: [], remind: false, doneAt: null, doneDays: [],
+      createdAt: 1, updatedAt: 1, deletedAt: null,
+    }]
     const raw = JSON.parse(buildBackup(payload).content) as {
-      sections: { diary: Record<string, unknown> }
+      sections: { diary: Record<string, unknown>; schedule?: Record<string, unknown> }
     }
-    delete raw.sections.diary.schedules
+    raw.sections.diary.schedules = (raw.sections.schedule as { items: unknown[] }).items
+    delete raw.sections.schedule
 
     const read = readBackup(JSON.stringify(raw))
     expect(read.ok).toBe(true)
-    expect(read.payload.schedules).toEqual([])
+    expect(read.payload.schedules).toHaveLength(1)
+    expect(read.sections).toContain('schedule')
   })
 
-  it('训练跟着健康块往返：动作与组数都不丢', () => {
+  it('训练独立成块往返：动作与组数都不丢', () => {
     const payload = sample()
     payload.trainings = [
       {
@@ -118,16 +135,35 @@ describe('备份读写的兼容口径', () => {
       },
     ]
 
-    const read = readBackup(buildBackup(payload).content)
+    const full = JSON.parse(buildBackup(payload).content) as {
+      sections: { health: { trainings: unknown[] }; training: { entries: unknown[] } }
+    }
+    expect(full.sections.health.trainings).toHaveLength(1)
+    expect(full.sections.training.entries).toHaveLength(1)
+
+    const file = buildBackup(payload, '备份', ['training'])
+    const raw = JSON.parse(file.content) as { sections: Record<string, unknown> }
+    expect(raw.sections).toHaveProperty('training')
+    expect(raw.sections).not.toHaveProperty('health')
+    const read = readBackup(file.content)
     expect(read.ok).toBe(true)
     expect(read.payload.trainings).toHaveLength(1)
     expect(read.payload.trainings[0].title).toBe('推日')
     expect(read.payload.trainings[0].exercises[0].sets).toEqual([
       { reps: 8, weightKg: 60, durationSec: null, restSec: 90, rpe: 8 },
     ])
+
+    const legacyRaw = JSON.parse(buildBackup(payload).content) as {
+      sections: { health: Record<string, unknown>; training?: Record<string, unknown> }
+    }
+    delete legacyRaw.sections.training
+    const legacyRead = readBackup(JSON.stringify(legacyRaw))
+    expect(legacyRead.ok).toBe(true)
+    expect(legacyRead.sections).toContain('training')
+    expect(legacyRead.payload.trainings).toHaveLength(1)
   })
 
-  it('空块判断把日程与训练也算进去，勾选面板才不会灰掉一块有数据的', () => {
+  it('日程和训练独立判断空块并独立筛选', () => {
     const payload = sample()
     expect(sectionSize(payload, 'diary')).toBe(2)
     payload.schedules = [
@@ -148,7 +184,8 @@ describe('备份读写的兼容口径', () => {
         deletedAt: null,
       },
     ]
-    expect(sectionSize(payload, 'diary')).toBe(3)
+    expect(sectionSize(payload, 'diary')).toBe(2)
+    expect(sectionSize(payload, 'schedule')).toBe(1)
 
     payload.trainings = [
       {
@@ -167,11 +204,16 @@ describe('备份读写的兼容口径', () => {
         deletedAt: null,
       },
     ]
-    expect(sectionSize(payload, 'health')).toBe(1)
-    // 只勾日记块时，健康一个字都不带
+    expect(sectionSize(payload, 'health')).toBe(0)
+    expect(sectionSize(payload, 'training')).toBe(1)
+    // 只勾日记块时，日程、健康和训练一个字都不带
     const only = onlySections(payload, ['diary'])
     expect(only.trainings).toHaveLength(0)
-    expect(only.schedules).toHaveLength(1)
+    expect(only.schedules).toHaveLength(0)
+    const scheduleOnly = onlySections(payload, ['schedule'])
+    expect(scheduleOnly.schedules).toHaveLength(1)
+    expect(scheduleOnly.entries).toHaveLength(0)
+    expect(scheduleOnly.trainings).toHaveLength(0)
   })
 
   it('图片跟着备份走：导出再读回，图还是那张图', () => {

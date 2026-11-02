@@ -1270,7 +1270,7 @@ export const ko: Record<MessageKey, string> = {
   'data.statTrainings': '운동',
   'data.statWeights': '체중',
   'data.backupDesc':
-    '일기, 건강, 재정을 구역별로 나눠 JSON 하나로 내보내요. 내보내기 전에 넣을 구역을 고를 수 있고, 휴지통에 있는 것도 포함돼요.',
+    '일기, 일정, 건강, 운동, 재정을 섹션별 JSON 백업으로 내보냅니다. 포함할 항목을 선택할 수 있으며 휴지통 기록도 포함됩니다.',
   'data.exportGroup': '내보내기',
   'data.export': '데이터 내보내기…',
   'data.exportHint':
@@ -1455,10 +1455,14 @@ export const ko: Record<MessageKey, string> = {
   'data.sectionDiary': '일기',
   'data.sectionHealth': '건강',
   'data.sectionFinance': '재정',
+  'data.sectionSchedule': '일정',
+  'data.sectionTraining': '운동',
   'data.sectionDiaryDetail':
-    '일기 {entries}건 · 메모 {stamps}건 · 날씨 {days}일 · 프리셋 {presets}개 · 일정 {schedules}건',
-  'data.sectionHealthDetail': '{profile} · 음식 {foods}개 · 세트 {meals}개 · 섭취 {intakes}건 · 수면 {sleeps}건 · 운동 {trainings}건',
+    '일기 {entries}건 · 메모 {stamps}건 · 날씨 {days}일 · 프리셋 {presets}개',
+  'data.sectionHealthDetail': '{profile} · 음식 {foods}개 · 세트 {meals}개 · 섭취 {intakes}건 · 수면 {sleeps}건',
   'data.sectionFinanceDetail': '{count}건',
+  'data.sectionScheduleDetail': '일정 {count}개',
+  'data.sectionTrainingDetail': '운동 {count}회',
   'data.sectionProfileYes': '신체 프로필 있음',
   'data.sectionProfileNo': '신체 프로필 없음',
   'data.sectionEmpty': '이 백업에는 이 구역이 없어요',
@@ -1469,7 +1473,7 @@ export const ko: Record<MessageKey, string> = {
   'data.savedSections': '내보냈어요: {detail}',
   'data.importRangeTitle': '무엇을 가져올까요?',
   'data.importRangeDesc':
-    '체크한 구역만 쓰고 나머지는 한 글자도 바꾸지 않아요. 구역 안은 따로 고를 수 없어요. 일기에는 메모·날씨·프리셋·일정이, 건강에는 신체 프로필·음식·세트·섭취·수면·운동이 함께 들어와요.',
+    '선택한 섹션만 기록합니다. 일정과 운동은 따로 선택할 수 있고, 나머지 섹션은 전체 단위로 복원됩니다.',
   'data.replaceRangeDesc':
     '교체 모드는 체크한 구역을 먼저 비운 뒤 백업 내용으로 완전히 복원해요. 체크하지 않은 구역은 한 글자도 바꾸지 않아요.',
   'data.importRangeConfirm': '다음',

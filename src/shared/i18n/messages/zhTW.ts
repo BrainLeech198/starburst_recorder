@@ -1267,7 +1267,7 @@ export const zhTW: Record<MessageKey, string> = {
   'data.statTrainings': '訓練',
   'data.statWeights': '體重',
   'data.backupDesc':
-    '把日記、健康、經濟分區塊匯出成一份 JSON：匯出前可以勾選要帶哪幾塊，回收筒裡刪掉的也在內。',
+    '按日記、日程、健康、訓練、經濟分塊匯出 JSON；可勾選要帶走的內容，回收筒記錄也會包含。',
   'data.exportGroup': '匯出',
   'data.export': '匯出資料…',
   'data.exportHint':
@@ -1451,10 +1451,14 @@ export const zhTW: Record<MessageKey, string> = {
   'data.sectionDiary': '日記',
   'data.sectionHealth': '健康',
   'data.sectionFinance': '經濟',
+  'data.sectionSchedule': '日程',
+  'data.sectionTraining': '訓練',
   'data.sectionDiaryDetail':
-    '{entries} 筆日記 · {stamps} 筆隨記 · {days} 天天氣 · {presets} 個預設 · {schedules} 條日程',
-  'data.sectionHealthDetail': '{profile} · {foods} 種食物 · {meals} 個套餐 · {intakes} 筆攝取 · {sleeps} 夜睡眠 · {trainings} 次訓練',
+    '{entries} 筆日記 · {stamps} 筆隨記 · {days} 天天氣 · {presets} 個預設',
+  'data.sectionHealthDetail': '{profile} · {foods} 種食物 · {meals} 個套餐 · {intakes} 筆攝取 · {sleeps} 夜睡眠',
   'data.sectionFinanceDetail': '{count} 筆',
+  'data.sectionScheduleDetail': '日程：{count} 條',
+  'data.sectionTrainingDetail': '訓練記錄：{count} 次',
   'data.sectionProfileYes': '有身體資料',
   'data.sectionProfileNo': '無身體資料',
   'data.sectionEmpty': '這份備份裡沒有這一塊',
@@ -1465,7 +1469,7 @@ export const zhTW: Record<MessageKey, string> = {
   'data.savedSections': '已匯出：{detail}',
   'data.importRangeTitle': '匯入哪些內容？',
   'data.importRangeDesc':
-    '只寫入勾選的區塊，其他內容一點都不會動。區塊內不挑條：日記含隨記、天氣、預設、日程，健康含檔案、食物、套餐、攝取、睡眠、訓練，勾了就整塊進來。',
+    '只寫入勾選的區塊，其餘內容保持不變。日程和訓練可單獨選擇，其他區塊按對應模組整體匯入。',
   'data.replaceRangeDesc':
     '取代模式會先清空勾選的區塊，再用備份裡的內容完整還原；沒勾的區塊一點都不會動。',
   'data.importRangeConfirm': '下一步',

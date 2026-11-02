@@ -594,4 +594,19 @@ describe('桌面端数据概览与一键清空', () => {
     expect(counts.finance).toBe(1)
     expect(counts.sleeps).toBe(1)
   })
+
+  it('单独替换日程或训练块时，其它相关数据保持不变', () => {
+    seedOneEach()
+    call('replaceSections', { schedule: { items: [] } })
+    let after = call<{ entries: DiaryEntry[]; schedules: ScheduleItem[] }>('exportAllData')
+    expect(after.entries).toHaveLength(1)
+    expect(after.schedules).toHaveLength(0)
+
+    call('replaceSections', { training: { entries: [] } })
+    after = call<{ entries: DiaryEntry[]; schedules: ScheduleItem[] }>('exportAllData')
+    const health = call<{ foods: unknown[]; trainings: HealthTraining[] }>('exportAllData')
+    expect(after.entries).toHaveLength(1)
+    expect(health.foods).toHaveLength(1)
+    expect(health.trainings).toHaveLength(0)
+  })
 })

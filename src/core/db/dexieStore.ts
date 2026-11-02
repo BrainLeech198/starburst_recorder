@@ -1016,13 +1016,15 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
   const stamps = data.diary?.stamps ?? []
   const days = data.diary?.days ?? []
   const presets = data.diary?.presets ?? []
-  const schedules = data.diary?.schedules ?? []
+  const schedules = data.schedule?.items ?? data.diary?.schedules ?? []
+  const hasSchedules = data.schedule !== undefined || data.diary?.schedules !== undefined
   const health = data.health
   const foods = health?.foods ?? []
   const meals = health?.meals ?? []
   const intakes = health?.intakes ?? []
   const sleeps = health?.sleeps ?? []
-  const trainings = health?.trainings ?? []
+  const trainings = data.training?.entries ?? health?.trainings ?? []
+  const hasTrainings = data.training !== undefined || health?.trainings !== undefined
   const finance = data.finance?.entries ?? []
 
   // 替换模式下这些表马上会被清空，覆盖数没有意义，直接不查
@@ -1067,9 +1069,9 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
             db.diaryStamps.clear(),
             db.diaryDays.clear(),
             db.diaryPresets.clear(),
-            db.schedules.clear(),
           ])
         }
+        if (hasSchedules) await db.schedules.clear()
         if (health) {
           await Promise.all([
             db.healthProfile.clear(),
@@ -1077,9 +1079,9 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
             db.healthMeals.clear(),
             db.healthIntakes.clear(),
             db.healthSleeps.clear(),
-            db.healthTrainings.clear(),
           ])
         }
+        if (hasTrainings) await db.healthTrainings.clear()
         if (data.finance) await db.financeEntries.clear()
       }
       if (data.diary) {
@@ -1087,16 +1089,16 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
         await db.diaryStamps.bulkPut(stamps)
         await db.diaryDays.bulkPut(days)
         await db.diaryPresets.bulkPut(presets)
-        await db.schedules.bulkPut(schedules)
       }
+      if (hasSchedules) await db.schedules.bulkPut(schedules)
       if (health) {
         if (health.profile) await db.healthProfile.put(health.profile)
         await db.healthFoods.bulkPut(foods)
         await db.healthMeals.bulkPut(meals)
         await db.healthIntakes.bulkPut(intakes)
         await db.healthSleeps.bulkPut(sleeps)
-        await db.healthTrainings.bulkPut(trainings)
       }
+      if (hasTrainings) await db.healthTrainings.bulkPut(trainings)
       if (data.finance) await db.financeEntries.bulkPut(finance)
     },
   )

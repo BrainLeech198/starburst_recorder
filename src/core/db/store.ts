@@ -89,7 +89,7 @@ export interface BackupData {
   sleeps: HealthSleep[]
   trainings: HealthTraining[]
   finance: FinanceEntry[]
-  /** 日程 / 定期任务；跟着日记块一起备份 */
+  /** 日程 / 定期任务；旧备份曾放在日记块里 */
   schedules: ScheduleItem[]
 }
 
@@ -139,7 +139,7 @@ export interface BackupSections {
     days: DiaryDay[]
     /** 日记预设库跟着日记块走；旧备份没有这个字段 */
     presets: DiaryPreset[]
-    /** 日程 / 定期任务也跟着日记块走；旧备份没有这个字段 */
+    /** 兼容旧调用：新备份使用独立的 schedule 块 */
     schedules?: ScheduleItem[]
   }
   health?: {
@@ -151,8 +151,11 @@ export interface BackupSections {
     /** 旧备份没有这个字段 */
     sleeps: HealthSleep[]
     /** 旧备份没有这个字段 */
-    trainings: HealthTraining[]
+    /** 兼容旧调用：新备份使用独立的 training 块 */
+    trainings?: HealthTraining[]
   }
+  schedule?: { items: ScheduleItem[] }
+  training?: { entries: HealthTraining[] }
   finance?: { entries: FinanceEntry[] }
 }
 
@@ -254,7 +257,7 @@ export interface DiaryStore {
   everyDay(): Promise<DiaryDay[]>
   /** 库里在用的东西各有多少，给数据页的概览用（回收站里的不算） */
   totals(): Promise<TableTotals>
-  /** 整库导出：日记、健康、经济，连回收站里的都在内 */
+  /** 整库导出：全部数据，连回收站里的都在内 */
   exportAllData(): Promise<BackupData>
   /**
    * 全局搜索：日记、随记、收支、睡眠、摄入、训练、日程、食物库、套餐、预设，
@@ -270,7 +273,7 @@ export interface DiaryStore {
    * 日历的月格子按这个结果混色，不读正文与图片。
    */
   activityBetween(from: string, to: string): Promise<DayActivity[]>
-  /** 一键清空三块数据，清完不可恢复 */
+  /** 一键清空日记、健康、经济数据，清完不可恢复 */
   clearDiaryData(): Promise<void>
   clearHealthData(): Promise<void>
   clearFinanceData(): Promise<void>
@@ -279,7 +282,7 @@ export interface DiaryStore {
   trashHealthData(): Promise<void>
   trashFinanceData(): Promise<void>
   /**
-   * 分块导入：只写传进来的块，三块在同一个事务里。
+   * 分块导入：只写传进来的块，所有块在同一个事务里。
    * 同 id 一律以传入的为准；「本地更新就不覆盖」这类判断在调用方做。
    */
   importSections(data: BackupSections): Promise<ImportStats>

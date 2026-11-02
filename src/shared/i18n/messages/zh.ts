@@ -1271,7 +1271,7 @@ export const zh = {
   'data.statTrainings': '训练',
   'data.statWeights': '称重',
   'data.backupDesc':
-    '把日记、健康、经济分块导出成一份 JSON：导出前可以勾选带哪几块，回收站里删掉的也在内。',
+    '按日记、日程、健康、训练、经济分块导出 JSON；可勾选要带走的内容，回收站记录也会包含。',
   'data.exportGroup': '导出',
   'data.export': '导出数据…',
   'data.exportHint':
@@ -1456,11 +1456,15 @@ export const zh = {
   'data.sectionDiary': '日记',
   'data.sectionHealth': '健康',
   'data.sectionFinance': '经济',
+  'data.sectionSchedule': '日程',
+  'data.sectionTraining': '训练',
   'data.sectionDiaryDetail':
-    '{entries} 条日记 · {stamps} 笔随记 · {days} 天天气 · {presets} 个预设 · {schedules} 条日程',
+    '{entries} 条日记 · {stamps} 笔随记 · {days} 天天气 · {presets} 个预设',
   'data.sectionHealthDetail':
-    '{profile} · {foods} 种食物 · {meals} 个套餐 · {intakes} 笔摄入 · {sleeps} 夜睡眠 · {trainings} 次训练',
+    '{profile} · {foods} 种食物 · {meals} 个套餐 · {intakes} 笔摄入 · {sleeps} 夜睡眠',
   'data.sectionFinanceDetail': '{count} 笔',
+  'data.sectionScheduleDetail': '日程记录：{count} 条',
+  'data.sectionTrainingDetail': '训练记录：{count} 次',
   'data.sectionProfileYes': '有身体档案',
   'data.sectionProfileNo': '无身体档案',
   'data.sectionEmpty': '这份备份里没有这一块',
@@ -1471,7 +1475,7 @@ export const zh = {
   'data.savedSections': '已导出：{detail}',
   'data.importRangeTitle': '导入哪些内容？',
   'data.importRangeDesc':
-    '只写勾选的块，其它内容一个字都不动。块内不挑条：日记块含随记、天气、预设、日程，健康块含档案、食物、套餐、摄入、睡眠、训练，勾了就整块进来。',
+    '只写入勾选的块，其余内容保持不变。日程和训练可单独选择，其他块按对应模块整体导入。',
   'data.replaceRangeDesc':
     '替换模式会先清空勾选的块，再用备份里的内容完整恢复；没勾的块一个字都不动。',
   'data.importRangeConfirm': '下一步',

@@ -1620,19 +1620,31 @@ function createDatabase(file) {
    */
   function writeSections(data, replace = false) {
     const diary = data && typeof data === 'object' ? data.diary : null
+    const schedule = data && typeof data === 'object' ? data.schedule : null
     const health = data && typeof data === 'object' ? data.health : null
+    const training = data && typeof data === 'object' ? data.training : null
     const finance = data && typeof data === 'object' ? data.finance : null
 
     const entries = Array.isArray(diary && diary.entries) ? diary.entries : []
     const stamps = Array.isArray(diary && diary.stamps) ? diary.stamps : []
     const days = Array.isArray(diary && diary.days) ? diary.days : []
     const presets = Array.isArray(diary && diary.presets) ? diary.presets : []
-    const schedules = Array.isArray(diary && diary.schedules) ? diary.schedules : []
+    const hasSchedules = Boolean(schedule) || Boolean(diary && Array.isArray(diary.schedules))
+    const schedules = Array.isArray(schedule && schedule.items)
+      ? schedule.items
+      : Array.isArray(diary && diary.schedules)
+        ? diary.schedules
+        : []
     const foods = Array.isArray(health && health.foods) ? health.foods : []
     const meals = Array.isArray(health && health.meals) ? health.meals : []
     const intakes = Array.isArray(health && health.intakes) ? health.intakes : []
     const sleeps = Array.isArray(health && health.sleeps) ? health.sleeps : []
-    const trainings = Array.isArray(health && health.trainings) ? health.trainings : []
+    const hasTrainings = Boolean(training) || Boolean(health && Array.isArray(health.trainings))
+    const trainings = Array.isArray(training && training.entries)
+      ? training.entries
+      : Array.isArray(health && health.trainings)
+        ? health.trainings
+        : []
     const finances = Array.isArray(finance && finance.entries) ? finance.entries : []
     const profile = health && health.profile ? health.profile : null
 
@@ -1657,16 +1669,16 @@ function createDatabase(file) {
           db.exec('DELETE FROM diaryStamps')
           db.exec('DELETE FROM diaryDays')
           db.exec('DELETE FROM diaryPresets')
-          db.exec('DELETE FROM schedules')
         }
+        if (hasSchedules) db.exec('DELETE FROM schedules')
         if (health) {
           db.exec('DELETE FROM healthProfile')
           db.exec('DELETE FROM healthFoods')
           db.exec('DELETE FROM healthMeals')
           db.exec('DELETE FROM healthIntakes')
           db.exec('DELETE FROM healthSleeps')
-          db.exec('DELETE FROM healthTrainings')
         }
+        if (hasTrainings) db.exec('DELETE FROM healthTrainings')
         if (finance) db.exec('DELETE FROM financeEntries')
       }
       if (diary) {
@@ -1701,7 +1713,9 @@ function createDatabase(file) {
           q.upsertDay.run(day.dateKey, day.weather ?? null, day.updatedAt)
         }
         for (const preset of presets) savePreset(preset)
-        for (const schedule of schedules) saveSchedule(schedule)
+      }
+      if (hasSchedules) {
+        for (const item of schedules) saveSchedule(item)
       }
       if (health) {
         // 先档案，再食物、套餐、摄入：套餐引用食物，摄入引用套餐，顺序不能反
@@ -1710,7 +1724,9 @@ function createDatabase(file) {
         for (const meal of meals) saveMeal(meal)
         for (const intake of intakes) insertIntake(intake)
         for (const sleep of sleeps) saveSleep(sleep)
-        for (const training of trainings) saveTraining(training)
+      }
+      if (hasTrainings) {
+        for (const item of trainings) saveTraining(item)
       }
       if (finance) {
         for (const item of finances) {

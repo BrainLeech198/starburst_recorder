@@ -1308,7 +1308,7 @@ export const en: Record<MessageKey, string> = {
   'data.statTrainings': 'Training',
   'data.statWeights': 'Weigh-ins',
   'data.backupDesc':
-    'Export diary, health and finance as one JSON in sections — pick which ones to include; trashed items stay in too.',
+    'Export diary, schedules, health, training, and finance as a sectioned JSON backup. Choose what to include; trashed records are included too.',
   'data.exportGroup': 'Export',
   'data.export': 'Export data…',
   'data.exportHint':
@@ -1503,11 +1503,15 @@ export const en: Record<MessageKey, string> = {
   'data.sectionDiary': 'Diary',
   'data.sectionHealth': 'Health',
   'data.sectionFinance': 'Finance',
+  'data.sectionSchedule': 'Schedules',
+  'data.sectionTraining': 'Training',
   'data.sectionDiaryDetail':
-    '{entries} entries · {stamps} stamps · {days} days of weather · {presets} presets · {schedules} schedules',
+    '{entries} entries · {stamps} stamps · {days} days of weather · {presets} presets',
   'data.sectionHealthDetail':
-    '{profile} · {foods} foods · {meals} meals · {intakes} intakes · {sleeps} sleeps · {trainings} workouts',
+    '{profile} · {foods} foods · {meals} meals · {intakes} intakes · {sleeps} sleeps',
   'data.sectionFinanceDetail': '{count} records',
+  'data.sectionScheduleDetail': '{count} schedules',
+  'data.sectionTrainingDetail': '{count} workouts',
   'data.sectionProfileYes': 'profile included',
   'data.sectionProfileNo': 'no profile',
   'data.sectionEmpty': 'Not in this backup',
@@ -1518,7 +1522,7 @@ export const en: Record<MessageKey, string> = {
   'data.savedSections': 'Exported: {detail}',
   'data.importRangeTitle': 'What should be imported?',
   'data.importRangeDesc':
-    "Only checked sections are written; everything else stays untouched. A section is all-or-nothing: Diary brings notes, weather, presets and schedules along, Health brings the body profile, foods, meals, intakes, sleep and training.",
+    'Only selected sections are written. Schedules and training can be selected independently; each other section restores as a whole.',
   'data.replaceRangeDesc':
     'Replace clears the checked sections first, then restores their contents from the backup in full. Unchecked sections stay untouched.',
   'data.importRangeConfirm': 'Next',

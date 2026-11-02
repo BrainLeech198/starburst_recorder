@@ -1280,7 +1280,7 @@ export const es: Record<MessageKey, string> = {
   'data.statTrainings': 'Entrenamiento',
   'data.statWeights': 'Peso',
   'data.backupDesc':
-    'Exporta diario, salud y economía como un JSON por bloques: elige cuáles incluir; lo que está en la papelera también va.',
+    'Exporta diario, agenda, salud, entrenamiento y finanzas en una copia JSON por secciones. Puedes elegir qué incluir; también se incluyen los elementos de la papelera.',
   'data.exportGroup': 'Exportar',
   'data.export': 'Exportar datos…',
   'data.exportHint':
@@ -1467,10 +1467,14 @@ export const es: Record<MessageKey, string> = {
   'data.sectionDiary': 'Diario',
   'data.sectionHealth': 'Salud',
   'data.sectionFinance': 'Economía',
+  'data.sectionSchedule': 'Agenda',
+  'data.sectionTraining': 'Entrenamiento',
   'data.sectionDiaryDetail':
-    '{entries} diarios · {stamps} notas · {days} días de clima · {presets} preajustes · {schedules} calendarios',
-  'data.sectionHealthDetail': '{profile} · {foods} alimentos · {meals} menús · {intakes} registros · {sleeps} sueños · {trainings} entrenamientos',
+    '{entries} diarios · {stamps} notas · {days} días de clima · {presets} preajustes',
+  'data.sectionHealthDetail': '{profile} · {foods} alimentos · {meals} menús · {intakes} registros · {sleeps} sueños',
   'data.sectionFinanceDetail': '{count} movimientos',
+  'data.sectionScheduleDetail': '{count} tareas',
+  'data.sectionTrainingDetail': '{count} sesiones',
   'data.sectionProfileYes': 'con perfil corporal',
   'data.sectionProfileNo': 'sin perfil corporal',
   'data.sectionEmpty': 'No está en esta copia',
@@ -1481,7 +1485,7 @@ export const es: Record<MessageKey, string> = {
   'data.savedSections': 'Exportado: {detail}',
   'data.importRangeTitle': '¿Qué importar?',
   'data.importRangeDesc':
-    'Solo se escriben los bloques marcados; lo demás no se toca. Dentro de un bloque no se elige: Diario trae notas, clima, preajustes y calendario; Salud trae el perfil corporal, los alimentos, los menús, los registros, el sueño y el entrenamiento.',
+    'Solo se escriben las secciones seleccionadas. Agenda y entrenamiento se pueden elegir por separado; las demás secciones se restauran completas.',
   'data.replaceRangeDesc':
     'El modo reemplazar vacía primero los bloques marcados y luego restaura su contenido completo desde la copia; los bloques sin marcar no se tocan.',
   'data.importRangeConfirm': 'Siguiente',

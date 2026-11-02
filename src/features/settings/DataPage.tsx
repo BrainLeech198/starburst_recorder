@@ -5,11 +5,11 @@
  * 以后要加「清空数据」「导入旧笔记」也有地方放。
  *
  * 导出有两条路，别混：
- *   - 「导出数据…」是整库备份：JSON、按日记 / 健康 / 经济分块，能导入恢复；
+ *   - 「导出数据…」是整库备份：JSON、按日记 / 日程 / 健康 / 训练 / 经济分块，能导入恢复；
  *   - 「挑选记录导出…」只认勾中的几条（四类记录可混选），给 AI 或别人看，
  *     格式可选 Markdown / 纯文本 / JSON。
  *
- * 备份从 v2 起分块：导出时先勾选要带走的块（日记 / 健康 / 经济），
+ * 备份从 v2 起分块：导出时先勾选要带走的块（日记 / 日程 / 健康 / 训练 / 经济），
  * 导入时也先问要合并哪些块——只写勾选的块，没勾的一个字都不动。
  */
 import ErrorNote from '@/shared/ui/ErrorNote'
@@ -77,6 +77,7 @@ import { RECORD_KINDS } from '@/features/records/recordExport'
 
 /** 导入方式：融合只补/更新，替换则先把选中的块清空再恢复 */
 type ImportMode = 'merge' | 'replace'
+type ClearSection = Extract<BackupSection, 'diary' | 'health' | 'finance'>
 
 /** 选好但还没确认的一份备份 */
 interface Pending {
@@ -296,9 +297,19 @@ function SectionPicker({
       detail: sectionDetail(payload, 'diary', t),
     },
     {
+      section: 'schedule',
+      label: t('data.sectionSchedule'),
+      detail: sectionDetail(payload, 'schedule', t),
+    },
+    {
       section: 'health',
       label: t('data.sectionHealth'),
       detail: sectionDetail(payload, 'health', t),
+    },
+    {
+      section: 'training',
+      label: t('data.sectionTraining'),
+      detail: sectionDetail(payload, 'training', t),
     },
     {
       section: 'finance',
@@ -389,7 +400,6 @@ function sectionDetail(
       stamps: payload.stamps.length,
       days: payload.days.length,
       presets: payload.presets.length,
-      schedules: payload.schedules.length,
     })
   }
   if (section === 'health') {
@@ -398,10 +408,11 @@ function sectionDetail(
       meals: payload.meals.length,
       intakes: payload.intakes.length,
       sleeps: payload.sleeps.length,
-      trainings: payload.trainings.length,
       profile: payload.profile ? t('data.sectionProfileYes') : t('data.sectionProfileNo'),
     })
   }
+  if (section === 'schedule') return t('data.sectionScheduleDetail', { count: payload.schedules.length })
+  if (section === 'training') return t('data.sectionTrainingDetail', { count: payload.trainings.length })
   return t('data.sectionFinanceDetail', { count: payload.finance.length })
 }
 
@@ -480,25 +491,25 @@ export default function DataPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   /** 正在确认清空哪一块；safe 为 true 表示只放进回收站 */
-  const [clearing, setClearing] = useState<{ section: BackupSection; safe: boolean } | null>(null)
+  const [clearing, setClearing] = useState<{ section: ClearSection; safe: boolean } | null>(null)
 
-  const CLEAR_LABEL: Record<BackupSection, string> = {
+  const CLEAR_LABEL: Record<ClearSection, string> = {
     diary: t('data.clearDiary'),
     health: t('data.clearHealth'),
     finance: t('data.clearFinance'),
   }
-  const SAFE_CLEAR_LABEL: Record<BackupSection, string> = {
+  const SAFE_CLEAR_LABEL: Record<ClearSection, string> = {
     diary: t('data.safeClearDiary'),
     health: t('data.safeClearHealth'),
     finance: t('data.safeClearFinance'),
   }
-  const MODULE_LABEL: Record<BackupSection, string> = {
+  const MODULE_LABEL: Record<ClearSection, string> = {
     diary: t('data.moduleDiary'),
     health: t('data.moduleHealth'),
     finance: t('data.moduleFinance'),
   }
   /** 每个模块清空时会碰到哪些内容，确认框里要点名，免得用户以为日程还在 */
-  const MODULE_DETAIL: Record<BackupSection, string> = {
+  const MODULE_DETAIL: Record<ClearSection, string> = {
     diary: t('data.moduleDetailDiary'),
     health: t('data.moduleDetailHealth'),
     finance: t('data.moduleDetailFinance'),
@@ -686,13 +697,15 @@ export default function DataPage() {
       }
 
       const conflicts: MergeConflict[] = []
-      if (selected.has('diary')) conflicts.push(...findConflicts(scoped, localPayload))
+      if (selected.has('diary') || selected.has('schedule')) {
+        conflicts.push(...findConflicts(scoped, localPayload))
+      }
       if (selected.has('finance')) {
         conflicts.push(...findFinanceConflicts(scoped.finance, localPayload.finance))
       }
 
       let health: HealthPart | null = null
-      if (selected.has('health')) {
+      if (selected.has('health') || selected.has('training')) {
         health = {
           profile: scoped.profile,
           foods: scoped.foods,
@@ -734,8 +747,10 @@ export default function DataPage() {
             stamps: target.payload.stamps,
             days: target.payload.days,
             presets: target.payload.presets,
-            schedules: target.payload.schedules,
           }
+        }
+        if (target.selected.has('schedule')) {
+          sections.schedule = { items: target.payload.schedules }
         }
         if (target.selected.has('health')) {
           sections.health = {
@@ -744,8 +759,10 @@ export default function DataPage() {
             meals: target.payload.meals,
             intakes: target.payload.intakes,
             sleeps: target.payload.sleeps,
-            trainings: target.payload.trainings,
           }
+        }
+        if (target.selected.has('training')) {
+          sections.training = { entries: target.payload.trainings }
         }
         if (target.selected.has('finance')) {
           sections.finance = { entries: target.payload.finance }
@@ -758,11 +775,26 @@ export default function DataPage() {
             stamps: incoming.stamps,
             days: incoming.days,
             presets: incoming.presets,
-            schedules: incoming.schedules,
           }
         }
-        if (target.selected.has('health') && target.health) {
-          sections.health = pickHealth(target.health, target.keepLocal)
+        if (target.selected.has('schedule')) {
+          const incoming = pickIncoming(target.payload, target.keepLocal)
+          sections.schedule = { items: incoming.schedules }
+        }
+        if ((target.selected.has('health') || target.selected.has('training')) && target.health) {
+          const pickedHealth = pickHealth(target.health, target.keepLocal)
+          if (target.selected.has('health')) {
+            sections.health = {
+              profile: pickedHealth.profile,
+              foods: pickedHealth.foods,
+              meals: pickedHealth.meals,
+              intakes: pickedHealth.intakes,
+              sleeps: pickedHealth.sleeps,
+            }
+          }
+          if (target.selected.has('training')) {
+            sections.training = { entries: pickedHealth.trainings }
+          }
         }
         if (target.selected.has('finance')) {
           sections.finance = { entries: pickFinance(target.payload.finance, target.keepLocal) }
@@ -1023,7 +1055,7 @@ export default function DataPage() {
       >
         <SettingGroup label={t('data.clearSafeGroup')}>
           <div className="flex flex-wrap gap-2">
-            {(['diary', 'health', 'finance'] as BackupSection[]).map((section) => (
+            {(['diary', 'health', 'finance'] as ClearSection[]).map((section) => (
               <button
                 key={section}
                 type="button"
@@ -1041,7 +1073,7 @@ export default function DataPage() {
 
         <SettingGroup label={t('data.clearGroup')}>
           <div className="flex flex-wrap gap-2">
-            {(['diary', 'health', 'finance'] as BackupSection[]).map((section) => (
+            {(['diary', 'health', 'finance'] as ClearSection[]).map((section) => (
               <button
                 key={section}
                 type="button"
