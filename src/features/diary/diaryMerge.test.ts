@@ -21,6 +21,7 @@ import type {
   HealthIntake,
   HealthMeal,
   HealthProfile,
+  ScheduleItem,
 } from '@/core/db/schema'
 
 const entry = (id: string, content: string, extra: Partial<DiaryEntry> = {}): DiaryEntry => ({
@@ -61,6 +62,24 @@ const day = (dateKey: string, weather: string | null): DiaryDay => ({
   dateKey,
   weather,
   updatedAt: 100,
+})
+
+const schedule = (id: string, extra: Partial<ScheduleItem> = {}): ScheduleItem => ({
+  id,
+  code: id.padEnd(7, '0'),
+  dateKey: '2026-10-23',
+  time: '20:00',
+  title: '练腿',
+  note: '',
+  repeat: 'none',
+  weeklyDays: [],
+  remind: false,
+  doneAt: null,
+  doneDays: [],
+  createdAt: 100,
+  updatedAt: 100,
+  deletedAt: null,
+  ...extra,
 })
 
 function conflictsOf(incoming: Partial<BackupPayload>, local: Partial<BackupPayload>) {
@@ -148,6 +167,45 @@ describe('findConflicts', () => {
     )
     expect(found.map((item) => item.kind)).toEqual(['entry', 'stamp', 'day'])
   })
+
+  it('日程标题、重复规则、打卡历史任一不同都算冲突', () => {
+    const found = conflictsOf(
+      {
+        schedules: [
+          schedule('c1', { title: '练胸' }),
+          schedule('c2', { repeat: 'weekly', weeklyDays: [1, 3] }),
+          schedule('c3', { doneDays: ['2026-10-23', '2026-10-25'] }),
+        ],
+      },
+      {
+        schedules: [
+          schedule('c1'),
+          schedule('c2', { repeat: 'weekly', weeklyDays: [1, 2, 3] }),
+          schedule('c3', { doneDays: ['2026-10-23'] }),
+        ],
+      },
+    )
+    expect(found.map((item) => item.kind)).toEqual(['schedule', 'schedule', 'schedule'])
+    expect(found[0].incomingText).toContain('练胸')
+    expect(found[2].incomingBody).toContain('已完成 2 天')
+  })
+
+  it('打卡只是顺序不同 → 不算冲突，导入了也不覆盖', () => {
+    const found = conflictsOf(
+      { schedules: [schedule('c1', { doneDays: ['2026-10-25', '2026-10-23'] })] },
+      { schedules: [schedule('c1', { doneDays: ['2026-10-23', '2026-10-25'] })] },
+    )
+    expect(found).toHaveLength(0)
+  })
+
+  it('一次性日程只补完成标记也算内容变了', () => {
+    const found = conflictsOf(
+      { schedules: [schedule('c1', { doneAt: 500 })] },
+      { schedules: [schedule('c1')] },
+    )
+    expect(found).toHaveLength(1)
+    expect(found[0].incomingText).toContain('已完成')
+  })
 })
 
 describe('pickIncoming', () => {
@@ -156,6 +214,7 @@ describe('pickIncoming', () => {
     entries: [entry('a', 'A'), entry('b', 'B')],
     stamps: [stamp('s1', 'S1'), stamp('s2', 'S2')],
     days: [day('2026-10-22', '晴'), day('2026-10-23', '阴')],
+    schedules: [schedule('c1'), schedule('c2')],
   }
 
   it('一个都不保留 → 原样导入', () => {
@@ -163,6 +222,7 @@ describe('pickIncoming', () => {
     expect(result.entries).toEqual(base.entries)
     expect(result.stamps).toEqual(base.stamps)
     expect(result.days).toEqual(base.days)
+    expect(result.schedules).toEqual(base.schedules)
   })
 
   it('选了几个保留本地 → 这几条从导入列表里剔掉', () => {
@@ -170,6 +230,13 @@ describe('pickIncoming', () => {
     expect(result.entries.map((item) => item.id)).toEqual(['a'])
     expect(result.stamps.map((item) => item.id)).toEqual(['s2'])
     expect(result.days.map((item) => item.dateKey)).toEqual(['2026-10-23'])
+  })
+
+  it('日程选了保留本地 → 备份里那条不会盖掉打卡历史', () => {
+    const result = pickIncoming(base, new Set(['schedule:c2']))
+    expect(result.schedules.map((item) => item.id)).toEqual(['c1'])
+    // 其它表不受影响
+    expect(result.entries.map((item) => item.id)).toEqual(['a', 'b'])
   })
 })
 
@@ -226,6 +293,7 @@ const meal = (id: string, extra: Partial<HealthMeal> = {}): HealthMeal => ({
   id,
   name: '鸡腿饭',
   items: [{ foodId: 'f1', grams: 150 }],
+  photo: null,
   createdAt: 100,
   updatedAt: 100,
   deletedAt: null,
@@ -310,6 +378,16 @@ describe('健康块的导入冲突', () => {
       }),
     )
     expect(found.map((item) => item.kind).sort()).toEqual(['intake', 'meal', 'profile'])
+  })
+
+  it('只换了套餐封面也算冲突，不会静默覆盖', () => {
+    const found = findHealthConflicts(
+      health({ meals: [meal('m1')] }),
+      health({ meals: [meal('m1', { photo: 'data:image/webp;base64,AAAA' })] }),
+    )
+    expect(found).toHaveLength(1)
+    expect(found[0].kind).toBe('meal')
+    expect(found[0].localBody).toContain('cover')
   })
 
   it('称重历史 / 理想作息 / 称重设置不同也算档案冲突，不会静默覆盖', () => {

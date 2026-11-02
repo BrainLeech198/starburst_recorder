@@ -45,6 +45,37 @@ export interface ImportStats {
   schedules: SectionCount
 }
 
+/**
+ * 库里在用的各类记录数量，一张表一项；回收站里的不算。
+ * 数据页的「数据概览」和备份的勾选说明都读这份，加新表时记得一起补。
+ */
+export interface TableTotals {
+  entries: number
+  stamps: number
+  /** 记了天气的天数 */
+  days: number
+  presets: number
+  schedules: number
+  foods: number
+  meals: number
+  intakes: number
+  sleeps: number
+  trainings: number
+  /** 身体档案里的称重历史条数 */
+  weights: number
+  finance: number
+}
+
+/**
+ * 在用的记录一共多少条（设置页徽章用）。
+ * 天气是按天存的状态，不是一条记录，所以只有它不计入；新表加进 `TableTotals` 会自动算进来。
+ */
+export function countRecords(totals: TableTotals): number {
+  return Object.entries(totals)
+    .filter(([key]) => key !== 'days')
+    .reduce((sum, [, count]) => sum + count, 0)
+}
+
 /** 一份整库数据：连回收站里的都在内 */
 export interface BackupData {
   entries: DiaryEntry[]
@@ -221,14 +252,8 @@ export interface DiaryStore {
   everyEntry(): Promise<DiaryEntry[]>
   everyStamp(): Promise<DiaryStamp[]>
   everyDay(): Promise<DiaryDay[]>
-  /** 库里在用的东西各有多少，给设置页的「当前值」用（回收站里的不算） */
-  totals(): Promise<{
-    entries: number
-    stamps: number
-    foods: number
-    meals: number
-    intakes: number
-  }>
+  /** 库里在用的东西各有多少，给数据页的概览用（回收站里的不算） */
+  totals(): Promise<TableTotals>
   /** 整库导出：日记、健康、经济，连回收站里的都在内 */
   exportAllData(): Promise<BackupData>
   /**

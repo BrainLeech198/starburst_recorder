@@ -16,6 +16,7 @@ import ErrorNote from '@/shared/ui/ErrorNote'
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { useLiveQuery } from '@/core/db/live'
+import { countRecords } from '@/core/db/store'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import type { I18nValue } from '@/shared/i18n/context'
@@ -72,18 +73,7 @@ import {
   readRecordsFile,
   recordsCount,
 } from '@/features/records/recordImport'
-import type { RecordKind } from '@/features/records/recordExport'
-
-/** 记录级导入认的全部种类 */
-const RECORD_KINDS: RecordKind[] = [
-  'diary',
-  'stamp',
-  'intake',
-  'sleep',
-  'weight',
-  'finance',
-  'food',
-]
+import { RECORD_KINDS } from '@/features/records/recordExport'
 
 /** 导入方式：融合只补/更新，替换则先把选中的块清空再恢复 */
 type ImportMode = 'merge' | 'replace'
@@ -303,28 +293,17 @@ function SectionPicker({
     {
       section: 'diary',
       label: t('data.sectionDiary'),
-      detail: t('data.sectionDiaryDetail', {
-        entries: payload.entries.length,
-        stamps: payload.stamps.length,
-        days: payload.days.length,
-        presets: payload.presets.length,
-      }),
+      detail: sectionDetail(payload, 'diary', t),
     },
     {
       section: 'health',
       label: t('data.sectionHealth'),
-      detail: t('data.sectionHealthDetail', {
-        foods: payload.foods.length,
-        meals: payload.meals.length,
-        intakes: payload.intakes.length,
-        sleeps: payload.sleeps.length,
-        profile: payload.profile ? t('data.sectionProfileYes') : t('data.sectionProfileNo'),
-      }),
+      detail: sectionDetail(payload, 'health', t),
     },
     {
       section: 'finance',
       label: t('data.sectionFinance'),
-      detail: t('data.sectionFinanceDetail', { count: payload.finance.length }),
+      detail: sectionDetail(payload, 'finance', t),
     },
   ]
 
@@ -395,38 +374,46 @@ function SectionPicker({
   )
 }
 
-/** 备份里各块分别有多少东西，确认框里一句话说清 */
+/**
+ * 一块备份里都有什么，一句话说清。
+ * 勾选面板、确认框都走这里：两处各写一遍字段，加新表时必漏一个。
+ */
+function sectionDetail(
+  payload: BackupPayload,
+  section: BackupSection,
+  t: I18nValue['t'],
+): string {
+  if (section === 'diary') {
+    return t('data.sectionDiaryDetail', {
+      entries: payload.entries.length,
+      stamps: payload.stamps.length,
+      days: payload.days.length,
+      presets: payload.presets.length,
+      schedules: payload.schedules.length,
+    })
+  }
+  if (section === 'health') {
+    return t('data.sectionHealthDetail', {
+      foods: payload.foods.length,
+      meals: payload.meals.length,
+      intakes: payload.intakes.length,
+      sleeps: payload.sleeps.length,
+      trainings: payload.trainings.length,
+      profile: payload.profile ? t('data.sectionProfileYes') : t('data.sectionProfileNo'),
+    })
+  }
+  return t('data.sectionFinanceDetail', { count: payload.finance.length })
+}
+
+/** 勾中的几块拼成一句说明，确认框里用 */
 function describePayload(
   payload: BackupPayload,
   selected: Set<BackupSection>,
   t: I18nValue['t'],
 ) {
-  const parts: string[] = []
-  if (selected.has('diary')) {
-    parts.push(
-      t('data.sectionDiaryDetail', {
-        entries: payload.entries.length,
-        stamps: payload.stamps.length,
-        days: payload.days.length,
-        presets: payload.presets.length,
-      }),
-    )
-  }
-  if (selected.has('health')) {
-    parts.push(
-      t('data.sectionHealthDetail', {
-        foods: payload.foods.length,
-        meals: payload.meals.length,
-        intakes: payload.intakes.length,
-        sleeps: payload.sleeps.length,
-        profile: payload.profile ? t('data.sectionProfileYes') : t('data.sectionProfileNo'),
-      }),
-    )
-  }
-  if (selected.has('finance')) {
-    parts.push(t('data.sectionFinanceDetail', { count: payload.finance.length }))
-  }
-  return parts.join('；')
+  return ALL_SECTIONS.filter((section) => selected.has(section)).map((section) =>
+    sectionDetail(payload, section, t),
+  ).join('；')
 }
 
 /**
@@ -509,6 +496,12 @@ export default function DataPage() {
     diary: t('data.moduleDiary'),
     health: t('data.moduleHealth'),
     finance: t('data.moduleFinance'),
+  }
+  /** 每个模块清空时会碰到哪些内容，确认框里要点名，免得用户以为日程还在 */
+  const MODULE_DETAIL: Record<BackupSection, string> = {
+    diary: t('data.moduleDetailDiary'),
+    health: t('data.moduleDetailHealth'),
+    finance: t('data.moduleDetailFinance'),
   }
 
   function asPayload(data: BackupData): BackupPayload {
@@ -621,6 +614,7 @@ export default function DataPage() {
           done.stats.entries.total +
           done.stats.stamps.total +
           done.stats.intakes.total +
+          done.stats.trainings.total +
           done.sleeps.total +
           done.weights.total +
           done.stats.finance.total +
@@ -629,6 +623,7 @@ export default function DataPage() {
           done.stats.entries.overwritten +
           done.stats.stamps.overwritten +
           done.stats.intakes.overwritten +
+          done.stats.trainings.overwritten +
           done.sleeps.overwritten +
           done.weights.overwritten +
           done.stats.finance.overwritten +
@@ -811,12 +806,20 @@ export default function DataPage() {
     if (!report) return [] as { key: string; text: string }[]
     const rows: { key: string; text: string }[] = []
     const stats = report.stats
-    if (stats.entries.total + stats.stamps.total + stats.days.total + stats.presets.total > 0) {
+    if (
+      stats.entries.total +
+        stats.stamps.total +
+        stats.days.total +
+        stats.presets.total +
+        stats.schedules.total >
+      0
+    ) {
       rows.push(
         { key: 'entries', text: t('data.importEntries', { added: added(stats.entries), overwritten: stats.entries.overwritten }) },
         { key: 'stamps', text: t('data.importStamps', { added: added(stats.stamps), overwritten: stats.stamps.overwritten }) },
         { key: 'days', text: t('data.importDays', { added: added(stats.days), overwritten: stats.days.overwritten }) },
         { key: 'presets', text: t('data.importPresets', { added: added(stats.presets), overwritten: stats.presets.overwritten }) },
+        { key: 'schedules', text: t('data.importSchedules', { added: added(stats.schedules), overwritten: stats.schedules.overwritten }) },
       )
     }
     if (stats.profile.total > 0) {
@@ -828,7 +831,14 @@ export default function DataPage() {
             : t('data.importProfile', { overwritten: stats.profile.overwritten }),
       })
     }
-    if (stats.foods.total + stats.meals.total + stats.intakes.total + stats.sleeps.total > 0) {
+    if (
+      stats.foods.total +
+        stats.meals.total +
+        stats.intakes.total +
+        stats.sleeps.total +
+        stats.trainings.total >
+      0
+    ) {
       rows.push(
         { key: 'foods', text: t('data.importFoods', { added: added(stats.foods), overwritten: stats.foods.overwritten }) },
         { key: 'meals', text: t('data.importMeals', { added: added(stats.meals), overwritten: stats.meals.overwritten }) },
@@ -836,6 +846,9 @@ export default function DataPage() {
       )
       if (stats.sleeps.total > 0) {
         rows.push({ key: 'sleeps', text: t('data.importSleeps', { added: added(stats.sleeps), overwritten: stats.sleeps.overwritten }) })
+      }
+      if (stats.trainings.total > 0) {
+        rows.push({ key: 'trainings', text: t('data.importTrainings', { added: added(stats.trainings), overwritten: stats.trainings.overwritten }) })
       }
     }
     if (stats.finance.total > 0) {
@@ -873,13 +886,20 @@ export default function DataPage() {
   return (
     <PageShell title={t('data.title')} description={t('data.description')}>
       <SettingCard title={t('data.statsTitle')} description={t('data.statsDesc')}>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
             { key: 'entries', label: t('data.statEntries'), value: counts?.entries ?? 0 },
             { key: 'stamps', label: t('data.statStamps'), value: counts?.stamps ?? 0 },
+            { key: 'days', label: t('data.statDays'), value: counts?.days ?? 0 },
+            { key: 'presets', label: t('data.statPresets'), value: counts?.presets ?? 0 },
+            { key: 'schedules', label: t('data.statSchedules'), value: counts?.schedules ?? 0 },
+            { key: 'finance', label: t('data.statFinance'), value: counts?.finance ?? 0 },
             { key: 'foods', label: t('data.statFoods'), value: counts?.foods ?? 0 },
             { key: 'meals', label: t('data.statMeals'), value: counts?.meals ?? 0 },
             { key: 'intakes', label: t('data.statIntakes'), value: counts?.intakes ?? 0 },
+            { key: 'sleeps', label: t('data.statSleeps'), value: counts?.sleeps ?? 0 },
+            { key: 'trainings', label: t('data.statTrainings'), value: counts?.trainings ?? 0 },
+            { key: 'weights', label: t('data.statWeights'), value: counts?.weights ?? 0 },
           ].map((stat) => (
             <div
               key={stat.key}
@@ -897,7 +917,10 @@ export default function DataPage() {
         description={t('data.backupDesc')}
         badge={
           <SettingBadge>
-            {t('settings.dataCount', { entries: counts?.entries ?? 0, stamps: counts?.stamps ?? 0 })}
+            {t('settings.dataCount', {
+              total: counts ? countRecords(counts) : 0,
+              entries: counts?.entries ?? 0,
+            })}
           </SettingBadge>
         }
       >
@@ -1045,7 +1068,11 @@ export default function DataPage() {
           title={t(clearing.safe ? 'data.safeClearConfirmTitle' : 'data.clearConfirmTitle', {
             module: MODULE_LABEL[clearing.section],
           })}
-          description={t(clearing.safe ? 'data.safeClearConfirmBody' : 'data.clearConfirmBody')}
+          description={
+            clearing.safe
+              ? t('data.safeClearConfirmBody')
+              : t('data.clearConfirmBody', { detail: MODULE_DETAIL[clearing.section] })
+          }
           confirmLabel={t(clearing.safe ? 'data.safeClearConfirm' : 'data.clearConfirm')}
           onConfirm={() => void handleClearConfirm()}
           onCancel={() => setClearing(null)}

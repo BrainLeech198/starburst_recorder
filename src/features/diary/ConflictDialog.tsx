@@ -22,6 +22,7 @@ const KIND_LABEL: Record<ConflictKind, MessageKey> = {
   stamp: 'data.conflictKindStamp',
   day: 'data.conflictKindDay',
   preset: 'data.conflictKindPreset',
+  schedule: 'data.conflictKindSchedule',
   food: 'data.conflictKindFood',
   meal: 'data.conflictKindMeal',
   intake: 'data.conflictKindIntake',

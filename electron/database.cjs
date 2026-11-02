@@ -785,9 +785,15 @@ function createDatabase(file) {
     everyPreset: db.prepare('SELECT * FROM diaryPresets'),
     countEntries: db.prepare('SELECT COUNT(*) AS n FROM diaryEntries WHERE deletedAt IS NULL'),
     countStamps: db.prepare('SELECT COUNT(*) AS n FROM diaryStamps WHERE deletedAt IS NULL'),
+    countDays: db.prepare('SELECT COUNT(*) AS n FROM diaryDays'),
+    countPresets: db.prepare('SELECT COUNT(*) AS n FROM diaryPresets WHERE deletedAt IS NULL'),
+    countSchedules: db.prepare('SELECT COUNT(*) AS n FROM schedules WHERE deletedAt IS NULL'),
     countFoods: db.prepare('SELECT COUNT(*) AS n FROM healthFoods WHERE deletedAt IS NULL'),
     countMeals: db.prepare('SELECT COUNT(*) AS n FROM healthMeals WHERE deletedAt IS NULL'),
     countIntakes: db.prepare('SELECT COUNT(*) AS n FROM healthIntakes WHERE deletedAt IS NULL'),
+    countSleeps: db.prepare('SELECT COUNT(*) AS n FROM healthSleeps WHERE deletedAt IS NULL'),
+    countTrainings: db.prepare('SELECT COUNT(*) AS n FROM healthTrainings WHERE deletedAt IS NULL'),
+    countFinance: db.prepare('SELECT COUNT(*) AS n FROM financeEntries WHERE deletedAt IS NULL'),
     allEntryIds: db.prepare('SELECT id FROM diaryEntries'),
     allStampIds: db.prepare('SELECT id FROM diaryStamps'),
     allDayKeys: db.prepare('SELECT dateKey FROM diaryDays'),
@@ -1919,9 +1925,16 @@ function createDatabase(file) {
     totals: () => ({
       entries: Number(q.countEntries.get().n),
       stamps: Number(q.countStamps.get().n),
+      days: Number(q.countDays.get().n),
+      presets: Number(q.countPresets.get().n),
+      schedules: Number(q.countSchedules.get().n),
       foods: Number(q.countFoods.get().n),
       meals: Number(q.countMeals.get().n),
       intakes: Number(q.countIntakes.get().n),
+      sleeps: Number(q.countSleeps.get().n),
+      trainings: Number(q.countTrainings.get().n),
+      weights: (profileRow(q.healthProfile.get())?.weighIns ?? []).length,
+      finance: Number(q.countFinance.get().n),
     }),
     exportAllData: () => exportAll(),
     searchRecords: (keyword, categoryIds) => searchRecords(keyword, categoryIds),
@@ -1973,7 +1986,7 @@ function createDatabase(file) {
     replaceSections: (data) => writeSections(data, true),
     importBackup: (data) => writeSections({ diary: data }),
     clearDiaryData: () =>
-      runClear(['diaryEntries', 'diaryStamps', 'diaryDays', 'diaryPresets']),
+      runClear(['diaryEntries', 'diaryStamps', 'diaryDays', 'diaryPresets', 'schedules']),
     clearHealthData: () =>
       runClear([
         'healthProfile',
@@ -1984,7 +1997,8 @@ function createDatabase(file) {
         'healthTrainings',
       ]),
     clearFinanceData: () => runClear(['financeEntries']),
-    trashDiaryData: () => runTrash(['diaryEntries', 'diaryStamps', 'diaryPresets']),
+    trashDiaryData: () =>
+      runTrash(['diaryEntries', 'diaryStamps', 'diaryPresets', 'schedules']),
     trashHealthData: () =>
       runTrash(['healthFoods', 'healthMeals', 'healthIntakes', 'healthSleeps', 'healthTrainings']),
     trashFinanceData: () => runTrash(['financeEntries']),

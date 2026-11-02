@@ -20,6 +20,7 @@ import type {
   HealthProfile,
   HealthSleep,
   HealthTraining,
+  ScheduleItem,
 } from '@/core/db/schema'
 import type { BackupPayload } from './diaryBackup'
 
@@ -28,6 +29,7 @@ export type ConflictKind =
   | 'stamp'
   | 'day'
   | 'preset'
+  | 'schedule'
   | 'food'
   | 'meal'
   | 'intake'
@@ -134,6 +136,49 @@ function presetSummary(preset: DiaryPreset) {
   return `${preset.kind === 'place' ? '📍' : '👤'} ${preset.name} · ${preset.code}`
 }
 
+/** 每周的哪几天：顺序不同不算实质差异 */
+function weeklyDaysKey(schedule: ScheduleItem) {
+  return [...schedule.weeklyDays].sort((a, b) => a - b).join(',')
+}
+
+/** 定期任务的打卡历史，同样只看集合不看顺序 */
+function doneDaysKey(schedule: ScheduleItem) {
+  return [...schedule.doneDays].sort().join(',')
+}
+
+function scheduleSummary(schedule: ScheduleItem) {
+  const when = schedule.time ? `${schedule.dateKey} ${schedule.time}` : schedule.dateKey
+  const repeat =
+    schedule.repeat === 'weekly'
+      ? `每周 ${[...schedule.weeklyDays].sort((a, b) => a - b).join('/')}`
+      : schedule.repeat === 'daily'
+        ? '每天'
+        : '一次'
+  const done =
+    schedule.doneDays.length > 0
+      ? ` · 已完成 ${schedule.doneDays.length} 天`
+      : schedule.doneAt !== null
+        ? ' · 已完成'
+        : ''
+  const note = schedule.note ? ` · ${schedule.note}` : ''
+  return `${when} · ${schedule.title} · ${repeat}${done}${note}`
+}
+
+function scheduleDiffers(local: ScheduleItem, incoming: ScheduleItem) {
+  return (
+    local.title !== incoming.title ||
+    local.note !== incoming.note ||
+    local.dateKey !== incoming.dateKey ||
+    local.time !== incoming.time ||
+    local.repeat !== incoming.repeat ||
+    weeklyDaysKey(local) !== weeklyDaysKey(incoming) ||
+    local.remind !== incoming.remind ||
+    tombstone(local.doneAt) !== tombstone(incoming.doneAt) ||
+    doneDaysKey(local) !== doneDaysKey(incoming) ||
+    tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
+  )
+}
+
 /**
  * 找出所有冲突。内容完全一样的条目不算冲突——导入它本来也不改变任何东西。
  * 只在本地存在／只在备份存在的条目也都不算，那些是「纯新增」或「不受影响」。
@@ -220,6 +265,25 @@ export function findConflicts(incoming: BackupPayload, local: BackupPayload): Me
     })
   }
 
+  const localSchedules = new Map(local.schedules.map((item) => [item.id, item]))
+  for (const item of incoming.schedules) {
+    const mine = localSchedules.get(item.id)
+    if (!mine || !scheduleDiffers(mine, item)) continue
+    conflicts.push({
+      kind: 'schedule',
+      key: item.id,
+      label: item.title || item.dateKey,
+      localText: snippet(scheduleSummary(mine)),
+      incomingText: snippet(scheduleSummary(item)),
+      localBody: scheduleSummary(mine),
+      incomingBody: scheduleSummary(item),
+      localDeleted: isDeleted(mine.deletedAt),
+      incomingDeleted: isDeleted(item.deletedAt),
+      localAt: mine.updatedAt,
+      incomingAt: item.updatedAt,
+    })
+  }
+
   return conflicts
 }
 
@@ -239,6 +303,9 @@ export function pickIncoming(
     days: incoming.days.filter((item) => !keepLocal.has(conflictKey({ kind: 'day', key: item.dateKey }))),
     presets: incoming.presets.filter(
       (item) => !keepLocal.has(conflictKey({ kind: 'preset', key: item.id })),
+    ),
+    schedules: incoming.schedules.filter(
+      (item) => !keepLocal.has(conflictKey({ kind: 'schedule', key: item.id })),
     ),
   }
 }
@@ -266,7 +333,8 @@ function foodSummary(food: HealthFood) {
 
 function mealSummary(meal: HealthMeal) {
   const grams = meal.items.reduce((sum, item) => sum + item.grams, 0)
-  return `${meal.name} · ${meal.items.length} items · ${Math.round(grams)} g`
+  const cover = meal.photo ? ' · cover' : ''
+  return `${meal.name} · ${meal.items.length} items · ${Math.round(grams)} g${cover}`
 }
 
 /** 夜醒按时间排序后的指纹，用来判断新旧两份记录有没有实质差异 */
@@ -415,6 +483,7 @@ function mealDiffers(local: HealthMeal, incoming: HealthMeal) {
   return (
     local.name !== incoming.name ||
     itemsKey(local.items) !== itemsKey(incoming.items) ||
+    (local.photo ?? null) !== (incoming.photo ?? null) ||
     tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
   )
 }

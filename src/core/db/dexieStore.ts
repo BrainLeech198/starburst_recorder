@@ -249,14 +249,47 @@ export const dexieStore: DiaryStore = {
   },
 
   async totals() {
-    const [entries, stamps, foods, meals, intakes] = await Promise.all([
+    const [
+      entries,
+      stamps,
+      days,
+      presets,
+      schedules,
+      profile,
+      foods,
+      meals,
+      intakes,
+      sleeps,
+      trainings,
+      finance,
+    ] = await Promise.all([
       db.diaryEntries.filter((item) => item.deletedAt === null).count(),
       db.diaryStamps.filter((item) => item.deletedAt === null).count(),
+      db.diaryDays.count(),
+      db.diaryPresets.filter((item) => item.deletedAt === null).count(),
+      db.schedules.filter((item) => item.deletedAt === null).count(),
+      db.healthProfile.get('me'),
       db.healthFoods.filter((item) => item.deletedAt === null).count(),
       db.healthMeals.filter((item) => item.deletedAt === null).count(),
       db.healthIntakes.filter((item) => item.deletedAt === null).count(),
+      db.healthSleeps.filter((item) => item.deletedAt === null).count(),
+      db.healthTrainings.filter((item) => item.deletedAt === null).count(),
+      db.financeEntries.filter((item) => item.deletedAt === null).count(),
     ])
-    return { entries, stamps, foods, meals, intakes }
+    return {
+      entries,
+      stamps,
+      days,
+      presets,
+      schedules,
+      foods,
+      meals,
+      intakes,
+      sleeps,
+      trainings,
+      weights: profile?.weighIns?.length ?? 0,
+      finance,
+    }
   },
 
   async exportAllData(): Promise<BackupData> {
@@ -410,13 +443,14 @@ export const dexieStore: DiaryStore = {
   async clearDiaryData() {
     await db.transaction(
       'rw',
-      [db.diaryEntries, db.diaryDays, db.diaryStamps, db.diaryPresets],
+      [db.diaryEntries, db.diaryDays, db.diaryStamps, db.diaryPresets, db.schedules],
       async () => {
         await Promise.all([
           db.diaryEntries.clear(),
           db.diaryDays.clear(),
           db.diaryStamps.clear(),
           db.diaryPresets.clear(),
+          db.schedules.clear(),
         ])
       },
     )
@@ -452,13 +486,18 @@ export const dexieStore: DiaryStore = {
 
   async trashDiaryData() {
     const now = Date.now()
-    await db.transaction('rw', [db.diaryEntries, db.diaryStamps, db.diaryPresets], async () => {
-      await Promise.all([
-        db.diaryEntries.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
-        db.diaryStamps.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
-        db.diaryPresets.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
-      ])
-    })
+    await db.transaction(
+      'rw',
+      [db.diaryEntries, db.diaryStamps, db.diaryPresets, db.schedules],
+      async () => {
+        await Promise.all([
+          db.diaryEntries.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
+          db.diaryStamps.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
+          db.diaryPresets.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
+          db.schedules.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
+        ])
+      },
+    )
   },
 
   async trashHealthData() {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildBackup, emptyPayload, readBackup } from './diaryBackup'
+import { buildBackup, emptyPayload, onlySections, readBackup, sectionSize } from './diaryBackup'
 import type { BackupPayload } from './diaryBackup'
 
 function sample(): BackupPayload {
@@ -85,6 +85,93 @@ describe('备份读写的兼容口径', () => {
     const read = readBackup(JSON.stringify(raw))
     expect(read.ok).toBe(true)
     expect(read.payload.schedules).toEqual([])
+  })
+
+  it('训练跟着健康块往返：动作与组数都不丢', () => {
+    const payload = sample()
+    payload.trainings = [
+      {
+        id: 'tr1',
+        code: 'e5f6a7b',
+        dateKey: '2026-11-02',
+        time: '19:30',
+        kind: 'strength',
+        title: '推日',
+        exercises: [
+          {
+            id: 'x1',
+            name: '卧推',
+            kind: 'strength',
+            muscle: 'chest',
+            sets: [{ reps: 8, weightKg: 60, durationSec: null, restSec: 90, rpe: 8 }],
+            durationMin: null,
+            distanceKm: null,
+            note: '',
+          },
+        ],
+        durationMin: 45,
+        feeling: 4,
+        note: '状态不错',
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null,
+      },
+    ]
+
+    const read = readBackup(buildBackup(payload).content)
+    expect(read.ok).toBe(true)
+    expect(read.payload.trainings).toHaveLength(1)
+    expect(read.payload.trainings[0].title).toBe('推日')
+    expect(read.payload.trainings[0].exercises[0].sets).toEqual([
+      { reps: 8, weightKg: 60, durationSec: null, restSec: 90, rpe: 8 },
+    ])
+  })
+
+  it('空块判断把日程与训练也算进去，勾选面板才不会灰掉一块有数据的', () => {
+    const payload = sample()
+    expect(sectionSize(payload, 'diary')).toBe(2)
+    payload.schedules = [
+      {
+        id: 'sc1',
+        code: 'c0ffee1',
+        dateKey: '2026-11-02',
+        time: '20:00',
+        title: '练腿',
+        note: '',
+        repeat: 'none',
+        weeklyDays: [],
+        remind: false,
+        doneAt: null,
+        doneDays: [],
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null,
+      },
+    ]
+    expect(sectionSize(payload, 'diary')).toBe(3)
+
+    payload.trainings = [
+      {
+        id: 'tr1',
+        code: 'e5f6a7b',
+        dateKey: '2026-11-02',
+        time: '19:30',
+        kind: 'cardio',
+        title: '',
+        exercises: [],
+        durationMin: 30,
+        feeling: null,
+        note: '',
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null,
+      },
+    ]
+    expect(sectionSize(payload, 'health')).toBe(1)
+    // 只勾日记块时，健康一个字都不带
+    const only = onlySections(payload, ['diary'])
+    expect(only.trainings).toHaveLength(0)
+    expect(only.schedules).toHaveLength(1)
   })
 
   it('图片跟着备份走：导出再读回，图还是那张图', () => {

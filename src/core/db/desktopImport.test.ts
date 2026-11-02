@@ -10,6 +10,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { countRecords, type TableTotals } from './store'
 import type { DiaryEntry, DiaryImage, DiaryStamp, HealthTraining, ScheduleItem } from './schema'
 
 const require = createRequire(import.meta.url)
@@ -354,5 +355,243 @@ describe('桌面端 SQLite 分块导入', () => {
 
     call('purgeHealthTraining', 'tr2')
     expect(call<{ trainings: HealthTraining[] }>('exportAllData').trainings).toHaveLength(0)
+  })
+})
+
+/**
+ * 「数据概览」与「清空数据」都读这一层，界面上漏一张表就是用户以为导出了、其实没导。
+ * 日程 0.9 才加、训练 0.10 才加，两边最容易慢半拍的就是这两块。
+ */
+describe('桌面端数据概览与一键清空', () => {
+  const T = 1_700_000_000_000
+
+  /** 每张表各一条在用的记录，档案里两次称重 */
+  function seedOneEach() {
+    call('insertEntry', entry)
+    call('insertStamp', stamp)
+    call('setWeather', '2026-10-30', '晴')
+    call('saveDiaryPreset', {
+      id: 'p1',
+      code: 'P000001',
+      kind: 'person',
+      name: '小陈',
+      createdAt: T,
+      updatedAt: T,
+      deletedAt: null,
+    })
+    call('saveSchedule', {
+      id: 'sc1',
+      code: 'C000001',
+      dateKey: '2026-11-02',
+      time: '20:00',
+      title: '练腿',
+      note: '',
+      repeat: 'daily',
+      weeklyDays: [],
+      remind: false,
+      doneAt: null,
+      doneDays: [],
+      createdAt: T,
+      updatedAt: T,
+      deletedAt: null,
+    })
+    call('saveHealthProfile', {
+      id: 'me',
+      sex: null,
+      age: null,
+      heightCm: null,
+      weightKg: 60,
+      weightAt: T,
+      activity: null,
+      tdee: null,
+      targetKcal: null,
+      proteinTarget: null,
+      plan: '',
+      note: '',
+      weighDay: null,
+      weighTime: '07:00',
+      weighIns: [
+        { dateKey: '2026-11-01', weightKg: 60, createdAt: T },
+        { dateKey: '2026-11-02', weightKg: 59.5, createdAt: T },
+      ],
+      idealBedtime: '23:00',
+      idealWakeTime: '07:00',
+      createdAt: T,
+      updatedAt: T,
+    })
+    call('saveHealthFood', {
+      id: 'fd1',
+      code: 'D000001',
+      name: '鸡腿',
+      kcal: 181,
+      protein: 20,
+      carbs: 0,
+      fat: 11,
+      servingName: null,
+      servingGrams: null,
+      photo: null,
+      createdAt: T,
+      updatedAt: T,
+      deletedAt: null,
+    })
+    call('saveHealthMeal', {
+      id: 'm1',
+      name: '黄焖鸡套餐',
+      items: [{ foodId: 'fd1', grams: 120 }],
+      photo: null,
+      createdAt: T,
+      updatedAt: T,
+      deletedAt: null,
+    })
+    call('insertIntake', {
+      id: 'i1',
+      code: 'I000001',
+      dateKey: '2026-10-30',
+      time: '12:30',
+      foodId: 'fd1',
+      name: '鸡腿',
+      grams: 120,
+      kcal: 181,
+      protein: 20,
+      carbs: 0,
+      fat: 11,
+      source: 'library',
+      mealId: null,
+      components: null,
+      createdAt: T,
+      updatedAt: T,
+      deletedAt: null,
+    })
+    call('saveHealthSleep', {
+      id: 'sl1',
+      code: 'L000001',
+      dateKey: '2026-10-30',
+      bedtime: '23:10',
+      wakeTime: '07:05',
+      quality: 4,
+      wakeEvents: [],
+      naps: [],
+      wakeCount: null,
+      wakeMinutes: null,
+      note: '',
+      createdAt: T,
+      updatedAt: T,
+      deletedAt: null,
+    })
+    call('saveHealthTraining', {
+      id: 'tr1',
+      code: 'R000001',
+      dateKey: '2026-10-30',
+      time: '19:30',
+      kind: 'strength',
+      title: '推日',
+      exercises: [],
+      durationMin: 45,
+      feeling: 4,
+      note: '',
+      createdAt: T,
+      updatedAt: T,
+      deletedAt: null,
+    })
+    call('addFinance', {
+      id: 'fi1',
+      code: 'F000001',
+      dateKey: '2026-10-30',
+      time: '12:34:56',
+      kind: 'expense',
+      category: 'food',
+      name: '午饭',
+      amount: 25,
+      photo: null,
+      note: '',
+      createdAt: T,
+      updatedAt: T,
+      deletedAt: null,
+    })
+  }
+
+  it('概览把每张表都数到，一条不漏', () => {
+    seedOneEach()
+    expect(call('totals')).toEqual({
+      entries: 1,
+      stamps: 1,
+      days: 1,
+      presets: 1,
+      schedules: 1,
+      foods: 1,
+      meals: 1,
+      intakes: 1,
+      sleeps: 1,
+      trainings: 1,
+      weights: 2,
+      finance: 1,
+    })
+  })
+
+  it('总数徽章：天气按天存，不算一条记录', () => {
+    seedOneEach()
+    expect(countRecords(call<TableTotals>('totals'))).toBe(12)
+    call('removeEntry', 'e1')
+    expect(countRecords(call<TableTotals>('totals'))).toBe(11)
+  })
+
+  it('回收站里的记录不算进概览', () => {
+    seedOneEach()
+    call('removeEntry', 'e1')
+    call('removeSchedule', 'sc1')
+    call('removeHealthTraining', 'tr1')
+    const counts = call<Record<string, number>>('totals')
+    expect(counts.entries).toBe(0)
+    expect(counts.schedules).toBe(0)
+    expect(counts.trainings).toBe(0)
+    // 天气挂在日期上，没有回收站概念
+    expect(counts.days).toBe(1)
+    // 导出仍然带上回收站里的，否则恢复备份就找不回来
+    expect(call<{ schedules: ScheduleItem[] }>('exportAllData').schedules).toHaveLength(1)
+  })
+
+  it('一键清空日记块连日程一起清掉', () => {
+    seedOneEach()
+    call('clearDiaryData')
+    const after = call<{
+      entries: unknown[]
+      stamps: unknown[]
+      days: unknown[]
+      presets: unknown[]
+      schedules: ScheduleItem[]
+    }>('exportAllData')
+    expect(after.entries).toHaveLength(0)
+    expect(after.stamps).toHaveLength(0)
+    expect(after.days).toHaveLength(0)
+    expect(after.presets).toHaveLength(0)
+    expect(after.schedules).toHaveLength(0)
+    // 其它块一个字都不动
+    const counts = call<Record<string, number>>('totals')
+    expect(counts.finance).toBe(1)
+    expect(counts.trainings).toBe(1)
+  })
+
+  it('安全清空日记块把日程也送进回收站', () => {
+    seedOneEach()
+    call('trashDiaryData')
+    const counts = call<Record<string, number>>('totals')
+    expect(counts.entries).toBe(0)
+    expect(counts.schedules).toBe(0)
+    const after = call<{ schedules: ScheduleItem[]; entries: DiaryEntry[] }>('exportAllData')
+    expect(after.schedules).toHaveLength(1)
+    expect(after.schedules[0].deletedAt).not.toBeNull()
+    expect(after.entries).toHaveLength(1)
+  })
+
+  it('替换导入只勾日记块时，健康与经济原样留着', () => {
+    seedOneEach()
+    call('replaceSections', {
+      diary: { entries: [], stamps: [], days: [], presets: [], schedules: [] },
+    })
+    const counts = call<Record<string, number>>('totals')
+    expect(counts.entries).toBe(0)
+    expect(counts.schedules).toBe(0)
+    expect(counts.finance).toBe(1)
+    expect(counts.sleeps).toBe(1)
   })
 })
