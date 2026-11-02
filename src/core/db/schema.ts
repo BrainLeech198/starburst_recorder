@@ -28,6 +28,8 @@ export interface DiaryEntry {
   content: string
   /** 正文里插的图片；没有就是空数组 */
   images: DiaryImage[]
+  /** 标签：全局搜索靠它筛选，最多 12 个，每个不超过 20 个字 */
+  tags: string[]
   /** 软删除标记 */
   deletedAt: number | null
 }
@@ -327,6 +329,8 @@ export interface DiaryStamp {
   content: string
   /** 随记带的图片，可以多张；没有就是空数组 */
   images: DiaryImage[]
+  /** 标签：和日记共用一套规则，最多 12 个，每个不超过 20 个字 */
+  tags: string[]
   createdAt: number
   updatedAt: number
   /** 软删除标记 */
@@ -346,6 +350,41 @@ export interface DiaryPreset {
   code: string
   kind: PresetKind
   name: string
+  createdAt: number
+  updatedAt: number
+  deletedAt: number | null
+}
+
+/** 日程的重复方式：一次性 / 每天 / 每周的某几天 */
+export type ScheduleRepeat = 'none' | 'daily' | 'weekly'
+
+/**
+ * 一条日程或定期任务。
+ *
+ * 两种用法共用一张表：`repeat = 'none'` 是一次性日程，只落在 `dateKey` 那天；
+ * 其余从 `dateKey` 起生效，`weekly` 看 `weeklyDays`（1=周一 … 7=周日）。
+ * 完成状态分开记：一次性看 `doneAt`，定期任务按天进 `doneDays`，
+ * 这样同一个任务昨天的勾不会影响今天。
+ */
+export interface ScheduleItem {
+  id: string
+  /** 7 位十六进制短编号，和日记 / 随记 / 收支一致 */
+  code: string
+  /** 一次性日程：那一天；定期任务：从这一天起生效 */
+  dateKey: string
+  /** 'HH:MM'；空串表示全天，不参与时刻比较 */
+  time: string
+  title: string
+  note: string
+  repeat: ScheduleRepeat
+  /** repeat = 'weekly' 时有效：1=周一 … 7=周日 */
+  weeklyDays: number[]
+  /** 到点弹系统通知；整体在提醒设置里也只对开了这个的条目生效 */
+  remind: boolean
+  /** 一次性日程的完成时间；null 表示没完成 */
+  doneAt: number | null
+  /** 定期任务的完成记录：'YYYY-MM-DD'，只留最近 400 天 */
+  doneDays: string[]
   createdAt: number
   updatedAt: number
   deletedAt: number | null

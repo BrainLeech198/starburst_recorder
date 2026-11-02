@@ -739,6 +739,7 @@ export default function DataPage() {
             stamps: target.payload.stamps,
             days: target.payload.days,
             presets: target.payload.presets,
+            schedules: target.payload.schedules,
           }
         }
         if (target.selected.has('health')) {
@@ -762,6 +763,7 @@ export default function DataPage() {
             stamps: incoming.stamps,
             days: incoming.days,
             presets: incoming.presets,
+            schedules: incoming.schedules,
           }
         }
         if (target.selected.has('health') && target.health) {

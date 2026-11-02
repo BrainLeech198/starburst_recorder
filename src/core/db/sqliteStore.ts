@@ -19,6 +19,7 @@ import type {
   HealthProfile,
   HealthSleep,
   HealthTraining,
+  ScheduleItem,
 } from './schema'
 import type { DiaryStore } from './store'
 
@@ -43,6 +44,7 @@ export const sqliteStore: DiaryStore = {
       updatedAt: now,
       content: '',
       images: [],
+      tags: [],
       deletedAt: null,
     }
     await call('insertEntry', entry)
@@ -51,6 +53,9 @@ export const sqliteStore: DiaryStore = {
 
   updateContent: async (id, content, images) => {
     await call('updateContent', id, content, images)
+  },
+  setEntryTags: async (id, tags) => {
+    await call('setEntryTags', id, tags)
   },
   removeEntry: async (id) => {
     await call('removeEntry', id)
@@ -80,6 +85,7 @@ export const sqliteStore: DiaryStore = {
       time: formatClock(now),
       content: '',
       images: [],
+      tags: [],
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -90,6 +96,9 @@ export const sqliteStore: DiaryStore = {
 
   updateStamp: async (id, patch) => {
     await call('updateStamp', id, patch)
+  },
+  setStampTags: async (id, tags) => {
+    await call('setStampTags', id, tags)
   },
   removeStamp: async (id) => {
     await call('removeStamp', id)
@@ -148,6 +157,8 @@ export const sqliteStore: DiaryStore = {
   everyDay: () => call('everyDay'),
   totals: () => call('totals'),
   exportAllData: () => call('exportAllData'),
+  searchRecords: (keyword) => call('searchRecords', keyword),
+  activityBetween: (from, to) => call('activityBetween', from, to),
   importSections: (data) => call('importSections', data),
   replaceSections: (data) => call('replaceSections', data),
   importBackup: (data) => call('importBackup', data),
@@ -292,5 +303,26 @@ export const sqliteStore: DiaryStore = {
   },
   purgeTrashedHealthTrainings: async () => {
     await call('purgeTrashedHealthTrainings')
+  },
+
+  // ─────────── 日程 / 定期任务 ───────────
+  schedules: () => call('schedules'),
+  trashedSchedules: () => call('trashedSchedules'),
+  saveSchedule: async (item) => {
+    const next: ScheduleItem = { ...item, updatedAt: Date.now() }
+    await call('saveSchedule', next)
+    return next
+  },
+  removeSchedule: async (id) => {
+    await call('removeSchedule', id)
+  },
+  restoreSchedule: async (id) => {
+    await call('restoreSchedule', id)
+  },
+  purgeSchedule: async (id) => {
+    await call('purgeSchedule', id)
+  },
+  purgeTrashedSchedules: async () => {
+    await call('purgeTrashedSchedules')
   },
 }

@@ -10,7 +10,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import type { DiaryEntry, DiaryImage, DiaryStamp, HealthTraining } from './schema'
+import type { DiaryEntry, DiaryImage, DiaryStamp, HealthTraining, ScheduleItem } from './schema'
 
 const require = createRequire(import.meta.url)
 const { createDatabase } = require('../../../electron/database.cjs') as {
@@ -35,6 +35,7 @@ const entry: DiaryEntry = {
   updatedAt: 1_700_000_000_000,
   content: '日记 [[img:img1]]',
   images: [image],
+  tags: [],
   deletedAt: null,
 }
 
@@ -45,6 +46,7 @@ const stamp: DiaryStamp = {
   time: '08:00',
   content: '随记 [[img:img1]]',
   images: [image],
+  tags: [],
   createdAt: 1_700_000_000_000,
   updatedAt: 1_700_000_000_000,
   deletedAt: null,
@@ -286,6 +288,44 @@ describe('桌面端 SQLite 分块导入', () => {
     const after = call<{ finance: Array<Record<string, unknown>> }>('exportAllData')
     expect(after.finance[0].time).toBe('12:34:56')
     expect(after.finance[0].photo).toBe('data:image/png;base64,CCCC')
+  })
+
+  it('日程分块往返后重复规则与完成记录都还在', () => {
+    const item: ScheduleItem = {
+      id: 'sc1',
+      code: 'C000001',
+      dateKey: '2026-11-02',
+      time: '20:00',
+      title: '练腿',
+      note: '深蹲三组',
+      repeat: 'weekly',
+      weeklyDays: [1, 3, 5],
+      remind: true,
+      doneAt: null,
+      doneDays: ['2026-11-02', '2026-11-04'],
+      createdAt: 1_700_000_000_000,
+      updatedAt: 1_700_000_000_000,
+      deletedAt: null,
+    }
+    call('saveSchedule', item)
+    const before = call<{ schedules: ScheduleItem[] }>('exportAllData')
+    expect(before.schedules[0].weeklyDays).toEqual([1, 3, 5])
+
+    call('replaceSections', {
+      diary: {
+        entries: [],
+        stamps: [],
+        days: [],
+        presets: [],
+        schedules: before.schedules,
+      },
+    })
+
+    const after = call<{ schedules: ScheduleItem[] }>('exportAllData')
+    expect(after.schedules).toHaveLength(1)
+    expect(after.schedules[0]).toEqual(before.schedules[0])
+    expect(after.schedules[0].remind).toBe(true)
+    expect(after.schedules[0].doneDays).toEqual(['2026-11-02', '2026-11-04'])
   })
 
   it('训练软删除后进回收站，恢复与彻底删除都能用', () => {

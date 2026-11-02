@@ -10,6 +10,7 @@ import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import Dropdown from '@/shared/ui/Dropdown'
 import Modal from '@/shared/ui/Modal'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
+import TagEditor from '@/shared/ui/TagEditor'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { BACK_BUTTON, GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
@@ -20,6 +21,7 @@ import {
   moveEntries,
   removeEntry,
   restoreEntry,
+  setEntryTags,
   setWeather,
   updateContent,
 } from './diaryRepo'
@@ -55,11 +57,17 @@ interface DraftNav {
   content?: string
   weather?: string
   images?: DiaryImage[]
+  tags?: string[]
 }
 
 /** 两张图同一批才算没改过：同一个 id 的数据不会变，比 id 顺序就够，别拿几 MB 的 dataURL 去比 */
 function sameImages(a: DiaryImage[], b: DiaryImage[]): boolean {
   return a.length === b.length && a.every((image, index) => image.id === b[index].id)
+}
+
+/** 标签是短字符串，直接逐项比 */
+function sameTags(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((tag, index) => tag === b[index])
 }
 
 /** 自然段开头的两个方格，占两个字宽，同时形成首行缩进两字 */
@@ -129,11 +137,14 @@ export default function DiaryEditPage() {
   const [weatherDraft, setWeatherDraft] = useState<string | null>(null)
   /** 这一轮里插进来的图：null = 跟磁盘一致；改动后整份替换，不做增量 */
   const [imagesDraft, setImagesDraft] = useState<DiaryImage[] | null>(null)
+  /** 标签跟正文一样进草稿，保存时整组写回 */
+  const [tagsDraft, setTagsDraft] = useState<string[] | null>(null)
   /** 这一轮里最后一次写盘的内容：用来判断「改了没有」 */
   const [saved, setSaved] = useState<{
     content: string
     weather: string
     images: DiaryImage[]
+    tags: string[]
   } | null>(null)
   /** 插图：选来源（相册 / 拍照 / 手绘）→ 读文件 → 转码 → 插标记 */
   const [imageSourceOpen, setImageSourceOpen] = useState(false)
@@ -187,21 +198,28 @@ export default function DiaryEditPage() {
   const storedContent = isNew ? (navState.content ?? '') : (entry?.content ?? '')
   const storedWeather = isNew ? (navState.weather ?? draftDay?.weather ?? '') : (day?.weather ?? '')
   const storedImages = isNew ? (navState.images ?? []) : (entry?.images ?? [])
+  const storedTags = isNew ? (navState.tags ?? []) : (entry?.tags ?? [])
   const baseContent = saved?.content ?? storedContent
   const baseWeather = saved?.weather ?? storedWeather
   const baseImages = saved?.images ?? storedImages
+  const baseTags = saved?.tags ?? storedTags
   const value = contentDraft ?? baseContent
   const weatherValue = weatherDraft ?? baseWeather
   const imagesValue = imagesDraft ?? baseImages
+  const tagsValue = tagsDraft ?? baseTags
 
   const shownDate = isNew ? draftDate : (entry?.dateKey ?? draftDate)
   const hasDiskEntry = !isNew && entry != null
   const changed =
-    value !== baseContent || weatherValue !== baseWeather || !sameImages(imagesValue, baseImages)
+    value !== baseContent ||
+    weatherValue !== baseWeather ||
+    !sameImages(imagesValue, baseImages) ||
+    !sameTags(tagsValue, baseTags)
   /** 已经落盘的看「改没改」；内存草稿只要有点东西就算没保存 */
   const hasUnsaved = hasDiskEntry
     ? changed
-    : isNew && (value.trim() !== '' || weatherValue !== '' || imagesValue.length > 0)
+    : isNew &&
+      (value.trim() !== '' || weatherValue !== '' || imagesValue.length > 0 || tagsValue.length > 0)
 
   const bypass = useRef(false)
   const blocker = useBlocker(() => !bypass.current && hasUnsaved)
@@ -259,8 +277,9 @@ export default function DiaryEditPage() {
     const nextContent = value
     const nextWeather = weatherValue
     await updateContent(entry.id, nextContent, imagesValue)
+    await setEntryTags(entry.id, tagsValue)
     if (nextWeather !== (day?.weather ?? '')) await setWeather(entry.dateKey, nextWeather)
-    setSaved({ content: nextContent, weather: nextWeather, images: imagesValue })
+    setSaved({ content: nextContent, weather: nextWeather, images: imagesValue, tags: tagsValue })
     showToast({ message: t('diaryEdit.saved') })
   }
 
@@ -271,8 +290,9 @@ export default function DiaryEditPage() {
     try {
       const created = await createEntry(dateKey)
       await updateContent(created.id, value, imagesValue)
+      await setEntryTags(created.id, tagsValue)
       if (weatherValue !== '') await setWeather(dateKey, weatherValue)
-      setSaved({ content: value, weather: weatherValue, images: imagesValue })
+      setSaved({ content: value, weather: weatherValue, images: imagesValue, tags: tagsValue })
       showToast({ message: t('diaryEdit.savedAs', { date: formatDate(dateKey, t) }) })
       if (saveAsLeave) {
         const target = proceedTarget()
@@ -548,9 +568,10 @@ export default function DiaryEditPage() {
     const content = value
     const weather = weatherValue
     const images = imagesValue
+    const tags = tagsValue
     const dateKey = shownDate
     // 空草稿没有可留的东西，直接走
-    if (content.trim() === '' && weather === '' && images.length === 0) {
+    if (content.trim() === '' && weather === '' && images.length === 0 && tags.length === 0) {
       go(`/diary?date=${dateKey}`)
       return
     }
@@ -558,6 +579,7 @@ export default function DiaryEditPage() {
     void (async () => {
       const created = await createEntry(dateKey)
       await updateContent(created.id, content, images)
+      await setEntryTags(created.id, tags)
       if (weather !== '') await setWeather(dateKey, weather)
       await removeEntry(created.id)
       showToast({
@@ -734,6 +756,21 @@ export default function DiaryEditPage() {
           )}
         </div>
       </div>
+
+      {/* 标签：编辑态可增删，阅读态点一下就去搜索页按这个标签筛 */}
+      <section className="mt-3">
+        <div className="mb-1.5 text-[11px] text-muted">{t('tag.title')}</div>
+        {editing ? (
+          <TagEditor tags={tagsValue} onChange={setTagsDraft} />
+        ) : tagsValue.length > 0 ? (
+          <TagEditor
+            tags={tagsValue}
+            onTagClick={
+              hasUnsaved ? undefined : (tag) => navigate(`/search?q=${encodeURIComponent('#' + tag)}`)
+            }
+          />
+        ) : null}
+      </section>
 
       {saveOpen && (
         <Modal size="xs" label={t('diaryEdit.saveTitle')} onClose={() => setSaveOpen(false)}>

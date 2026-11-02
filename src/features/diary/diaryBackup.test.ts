@@ -12,6 +12,7 @@ function sample(): BackupPayload {
         dateKey: '2026-10-25',
         content: '今天在公园走了三公里。',
         images: [],
+        tags: [],
         createdAt: 1,
         updatedAt: 1,
         deletedAt: null,
@@ -25,6 +26,7 @@ function sample(): BackupPayload {
         time: '09:30',
         content: '早上去公园散步。',
         images: [],
+        tags: [],
         createdAt: 1,
         updatedAt: 1,
         deletedAt: null,
@@ -42,6 +44,47 @@ describe('备份读写的兼容口径', () => {
     expect(read.payload.stamps).toHaveLength(1)
     expect(read.payload.entries[0].content).toBe('今天在公园走了三公里。')
     expect(read.payload.stamps[0].code).toBe('d4e5f60')
+  })
+
+  it('日程跟着日记块往返：重复规则与完成记录都不丢', () => {
+    const payload = sample()
+    payload.schedules = [
+      {
+        id: 'sc1',
+        code: 'c0ffee1',
+        dateKey: '2026-11-02',
+        time: '20:00',
+        title: '练腿',
+        note: '',
+        repeat: 'weekly',
+        weeklyDays: [1, 3],
+        remind: true,
+        doneAt: null,
+        doneDays: ['2026-11-02'],
+        createdAt: 1,
+        updatedAt: 1,
+        deletedAt: null,
+      },
+    ]
+
+    const read = readBackup(buildBackup(payload).content)
+    expect(read.ok).toBe(true)
+    expect(read.payload.schedules).toHaveLength(1)
+    expect(read.payload.schedules[0].weeklyDays).toEqual([1, 3])
+    expect(read.payload.schedules[0].remind).toBe(true)
+    expect(read.payload.schedules[0].doneDays).toEqual(['2026-11-02'])
+  })
+
+  it('旧备份没有日程字段时读成空数组，不会整份失败', () => {
+    const payload = sample()
+    const raw = JSON.parse(buildBackup(payload).content) as {
+      sections: { diary: Record<string, unknown> }
+    }
+    delete raw.sections.diary.schedules
+
+    const read = readBackup(JSON.stringify(raw))
+    expect(read.ok).toBe(true)
+    expect(read.payload.schedules).toEqual([])
   })
 
   it('图片跟着备份走：导出再读回，图还是那张图', () => {

@@ -17,9 +17,11 @@ import type {
   HealthSleep,
   HealthTraining,
   IntakeComponent,
+  ScheduleItem,
 } from './schema'
-import type { DiaryStore, BackupData, BackupSections, ImportStats } from './store'
+import type { DiaryStore, BackupData, BackupSections, ImportStats, SearchResults, DayActivity } from './store'
 import { zeroStats } from './store'
+import { cleanTags } from './normalize'
 import { newCode, newId } from '@/core/utils/id'
 import { formatClock } from '@/core/utils/dateKey'
 
@@ -46,6 +48,7 @@ export const dexieStore: DiaryStore = {
       updatedAt: now,
       content: '',
       images: [],
+      tags: [],
       deletedAt: null,
     }
     await db.diaryEntries.add(entry)
@@ -54,6 +57,10 @@ export const dexieStore: DiaryStore = {
 
   async updateContent(id, content, images) {
     await db.diaryEntries.update(id, { content, images, updatedAt: Date.now() })
+  },
+
+  async setEntryTags(id, tags) {
+    await db.diaryEntries.update(id, { tags: cleanTags(tags), updatedAt: Date.now() })
   },
 
   async removeEntry(id) {
@@ -104,6 +111,7 @@ export const dexieStore: DiaryStore = {
       time: formatClock(now),
       content: '',
       images: [],
+      tags: [],
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -114,6 +122,10 @@ export const dexieStore: DiaryStore = {
 
   async updateStamp(id, patch) {
     await db.diaryStamps.update(id, { ...patch, updatedAt: Date.now() })
+  },
+
+  async setStampTags(id, tags) {
+    await db.diaryStamps.update(id, { tags: cleanTags(tags), updatedAt: Date.now() })
   },
 
   async removeStamp(id) {
@@ -259,6 +271,7 @@ export const dexieStore: DiaryStore = {
       sleeps,
       trainings,
       finance,
+      schedules,
     ] = await Promise.all([
       db.diaryEntries.toArray(),
       db.diaryStamps.toArray(),
@@ -271,6 +284,7 @@ export const dexieStore: DiaryStore = {
       db.healthSleeps.toArray(),
       db.healthTrainings.toArray(),
       db.financeEntries.toArray(),
+      db.schedules.toArray(),
     ])
     return {
       entries,
@@ -284,13 +298,121 @@ export const dexieStore: DiaryStore = {
       sleeps,
       trainings,
       finance,
+      schedules,
     }
+  },
+
+  async searchRecords(keyword): Promise<SearchResults> {
+    const [entries, stamps, finance, sleeps] = await Promise.all([
+      db.diaryEntries.filter((item) => item.deletedAt === null).toArray(),
+      db.diaryStamps.filter((item) => item.deletedAt === null).toArray(),
+      db.financeEntries.filter((item) => item.deletedAt === null).toArray(),
+      db.healthSleeps.filter((item) => item.deletedAt === null).toArray(),
+    ])
+    const tags = collectTags([
+      ...entries.map((item) => item.tags),
+      ...stamps.map((item) => item.tags),
+    ])
+    const raw = keyword.trim()
+    if (raw === '') return { entries: [], stamps: [], finance: [], sleeps: [], tags }
+    const needle = raw.toLowerCase()
+    const byTag = raw.startsWith('#')
+    const tagNeedle = byTag ? needle.slice(1) : needle
+    const hit = (texts: string[], rowTags: string[]) => {
+      if (byTag) return rowTags.some((tag) => tag.toLowerCase().includes(tagNeedle))
+      return (
+        texts.some((value) => value.toLowerCase().includes(needle)) ||
+        rowTags.some((tag) => tag.toLowerCase().includes(needle))
+      )
+    }
+    return {
+      entries: entries
+        .filter((item) => hit([item.content], item.tags))
+        .sort((a, b) => b.dateKey.localeCompare(a.dateKey) || b.createdAt - a.createdAt),
+      stamps: stamps
+        .filter((item) => hit([item.content], item.tags))
+        .sort(
+          (a, b) =>
+            b.dateKey.localeCompare(a.dateKey) || b.time.localeCompare(a.time) || b.createdAt - a.createdAt,
+        ),
+      finance: finance
+        .filter((item) => hit([item.name, item.note, item.category], []))
+        .sort(
+          (a, b) =>
+            b.dateKey.localeCompare(a.dateKey) || b.time.localeCompare(a.time) || b.createdAt - a.createdAt,
+        ),
+      sleeps: sleeps
+        .filter((item) => hit([item.note], []))
+        .sort((a, b) => b.dateKey.localeCompare(a.dateKey)),
+      tags,
+    }
+  },
+
+  async activityBetween(from, to): Promise<DayActivity[]> {
+    const map = new Map<string, DayActivity>()
+    type Field = keyof Omit<DayActivity, 'dateKey'>
+    const bump = (dateKey: string, field: Field) => {
+      let row = map.get(dateKey)
+      if (!row) {
+        row = {
+          dateKey,
+          entries: 0,
+          stamps: 0,
+          intakes: 0,
+          sleeps: 0,
+          trainings: 0,
+          finance: 0,
+          weighIns: 0,
+        }
+        map.set(dateKey, row)
+      }
+      row[field] += 1
+    }
+
+    // 一张表扫完再下一张：每行当场计数，不把带图片的记录攒进数组
+    await db.diaryEntries
+      .where('dateKey')
+      .between(from, to, true, true)
+      .filter((row) => row.deletedAt === null)
+      .each((row) => bump(row.dateKey, 'entries'))
+    await db.diaryStamps
+      .where('dateKey')
+      .between(from, to, true, true)
+      .filter((row) => row.deletedAt === null)
+      .each((row) => bump(row.dateKey, 'stamps'))
+    await db.healthIntakes
+      .where('dateKey')
+      .between(from, to, true, true)
+      .filter((row) => row.deletedAt === null)
+      .each((row) => bump(row.dateKey, 'intakes'))
+    await db.healthSleeps
+      .where('dateKey')
+      .between(from, to, true, true)
+      .filter((row) => row.deletedAt === null)
+      .each((row) => bump(row.dateKey, 'sleeps'))
+    await db.healthTrainings
+      .where('dateKey')
+      .between(from, to, true, true)
+      .filter((row) => row.deletedAt === null)
+      .each((row) => bump(row.dateKey, 'trainings'))
+    await db.financeEntries
+      .where('dateKey')
+      .between(from, to, true, true)
+      .filter((row) => row.deletedAt === null)
+      .each((row) => bump(row.dateKey, 'finance'))
+
+    // 称重历史挂在身体档案的 JSON 里，没有单独的表
+    const profile = await db.healthProfile.get('me')
+    for (const item of profile?.weighIns ?? []) {
+      if (item.dateKey >= from && item.dateKey <= to) bump(item.dateKey, 'weighIns')
+    }
+
+    return [...map.values()].sort((a, b) => a.dateKey.localeCompare(b.dateKey))
   },
 
   importSections(data): Promise<ImportStats> {
     return applySections(data)
   },
-
   replaceSections(data): Promise<ImportStats> {
     return applySections(data, true)
   },
@@ -761,6 +883,60 @@ export const dexieStore: DiaryStore = {
   async purgeTrashedFinance() {
     await db.financeEntries.filter((entry) => entry.deletedAt !== null).delete()
   },
+
+  // ─────────── 日程 / 定期任务 ───────────
+
+  async schedules(): Promise<ScheduleItem[]> {
+    const rows = await db.schedules.filter((item) => item.deletedAt === null).toArray()
+    // 和 SQLite 版本同一口径：起始日期、时刻、创建时间都参与排序
+    return rows.sort(
+      (a, b) =>
+        a.dateKey.localeCompare(b.dateKey) ||
+        (a.time || '').localeCompare(b.time || '') ||
+        a.createdAt - b.createdAt,
+    )
+  },
+
+  async trashedSchedules(): Promise<ScheduleItem[]> {
+    const rows = await db.schedules.filter((item) => item.deletedAt !== null).toArray()
+    return rows.sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0))
+  },
+
+  async saveSchedule(item) {
+    const next: ScheduleItem = { ...item, updatedAt: Date.now() }
+    await db.schedules.put(next)
+    return next
+  },
+
+  async removeSchedule(id) {
+    await db.schedules.update(id, { deletedAt: Date.now() })
+  },
+
+  async restoreSchedule(id) {
+    await db.schedules.update(id, { deletedAt: null })
+  },
+
+  async purgeSchedule(id) {
+    await db.schedules.delete(id)
+  },
+
+  async purgeTrashedSchedules() {
+    await db.schedules.filter((item) => item.deletedAt !== null).delete()
+  },
+}
+
+/**
+ * 汇总库里用到的标签：按出现次数倒序，同次数按名称排。
+ * 只做展示用，不单独建标签表——标签跟着记录走，删记录就自然消失。
+ */
+function collectTags(lists: string[][]): string[] {
+  const counts = new Map<string, number>()
+  for (const tags of lists) {
+    for (const tag of tags) counts.set(tag, (counts.get(tag) ?? 0) + 1)
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'zh'))
+    .map(([tag]) => tag)
 }
 
 /**
@@ -814,6 +990,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
   const stamps = data.diary?.stamps ?? []
   const days = data.diary?.days ?? []
   const presets = data.diary?.presets ?? []
+  const schedules = data.diary?.schedules ?? []
   const health = data.health
   const foods = health?.foods ?? []
   const meals = health?.meals ?? []
@@ -837,6 +1014,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
         db.diaryPresets.bulkGet(presets.map((item) => item.id)),
         db.healthSleeps.bulkGet(sleeps.map((item) => item.id)),
         db.healthTrainings.bulkGet(trainings.map((item) => item.id)),
+        db.schedules.bulkGet(schedules.map((item) => item.id)),
       ])
 
   await db.transaction(
@@ -853,6 +1031,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
       db.healthTrainings,
       db.financeEntries,
       db.diaryPresets,
+      db.schedules,
     ],
     async () => {
       if (replace) {
@@ -862,6 +1041,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
             db.diaryStamps.clear(),
             db.diaryDays.clear(),
             db.diaryPresets.clear(),
+            db.schedules.clear(),
           ])
         }
         if (health) {
@@ -881,6 +1061,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
         await db.diaryStamps.bulkPut(stamps)
         await db.diaryDays.bulkPut(days)
         await db.diaryPresets.bulkPut(presets)
+        await db.schedules.bulkPut(schedules)
       }
       if (health) {
         if (health.profile) await db.healthProfile.put(health.profile)
@@ -909,5 +1090,6 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
   stats.sleeps = { total: sleeps.length, overwritten: howMany(old?.[9]) }
   stats.trainings = { total: trainings.length, overwritten: howMany(old?.[10]) }
   stats.finance = { total: finance.length, overwritten: howMany(old?.[6]) }
+  stats.schedules = { total: schedules.length, overwritten: howMany(old?.[11]) }
   return stats
 }

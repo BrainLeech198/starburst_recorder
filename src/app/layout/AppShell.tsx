@@ -1,6 +1,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import FloatingAssistant from '@/features/assistant/FloatingAssistant'
+import ScheduleReminderHost from '@/features/schedule/ScheduleReminderHost'
 import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import { useAndroidBackButton } from '@/app/androidBack'
@@ -207,6 +208,12 @@ export default function AppShell() {
             </div>
           )}
 
+          <NavLink to="/search" className={({ isActive }) => itemClass(isActive)}>
+            <span aria-hidden="true" className={NAV_ICON}>
+              🔍
+            </span>
+            {t('nav.search')}
+          </NavLink>
           <NavLink to="/calendar" className={({ isActive }) => itemClass(isActive)}>
             <span aria-hidden="true" className={NAV_ICON}>
               📅
@@ -239,6 +246,7 @@ export default function AppShell() {
       </main>
       {/* 悬浮球平时不显示（它还是个占位，点开只会说 AI 没接），调试开关见 debugFlags.ts */}
       {ballVisible() && <FloatingAssistant />}
+      <ScheduleReminderHost />
     </div>
   )
 }

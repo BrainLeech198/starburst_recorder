@@ -12,6 +12,7 @@ export const {
   entryByCode,
   createEntry,
   updateContent,
+  setEntryTags,
   removeEntry,
   removeEntries,
   restoreEntry,
@@ -24,6 +25,7 @@ export const {
   stampsOfDay,
   addStamp,
   updateStamp,
+  setStampTags,
   removeStamp,
   restoreStamp,
   removeStamps,
@@ -54,6 +56,7 @@ export const {
   everyDay,
   totals,
   exportAllData,
+  searchRecords,
   importSections,
   replaceSections,
   importBackup,
@@ -65,4 +68,4 @@ export const {
   trashFinanceData,
 } = store
 
-export type { ImportStats, BackupData, BackupSections, SectionCount } from '@/core/db/store'
+export type { ImportStats, BackupData, BackupSections, SectionCount, SearchResults } from '@/core/db/store'

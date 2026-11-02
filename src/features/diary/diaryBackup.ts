@@ -25,6 +25,7 @@ import type {
   HealthProfile,
   HealthSleep,
   HealthTraining,
+  ScheduleItem,
 } from '@/core/db/schema'
 import {
   pickDay,
@@ -35,6 +36,7 @@ import {
   pickMeal,
   pickPreset,
   pickProfile,
+  pickSchedule,
   pickSleep,
   pickStamp,
   pickTraining,
@@ -73,6 +75,8 @@ export interface BackupPayload {
   days: DiaryDay[]
   /** 预设库（常用人物 / 地名），跟着日记块走 */
   presets: DiaryPreset[]
+  /** 日程 / 定期任务也归在日记块里；旧备份没有这个字段 */
+  schedules: ScheduleItem[]
   profile: HealthProfile | null
   foods: HealthFood[]
   meals: HealthMeal[]
@@ -88,6 +92,7 @@ export function emptyPayload(): BackupPayload {
     stamps: [],
     days: [],
     presets: [],
+    schedules: [],
     profile: null,
     foods: [],
     meals: [],
@@ -106,6 +111,7 @@ export function onlySections(payload: BackupPayload, sections: BackupSection[]):
     stamps: keep.has('diary') ? payload.stamps : [],
     days: keep.has('diary') ? payload.days : [],
     presets: keep.has('diary') ? payload.presets : [],
+    schedules: keep.has('diary') ? payload.schedules : [],
     profile: keep.has('health') ? payload.profile : null,
     foods: keep.has('health') ? payload.foods : [],
     meals: keep.has('health') ? payload.meals : [],
@@ -123,7 +129,8 @@ export function sectionSize(payload: BackupPayload, section: BackupSection): num
       payload.entries.length +
       payload.stamps.length +
       payload.days.length +
-      payload.presets.length
+      payload.presets.length +
+      payload.schedules.length
     )
   if (section === 'health') {
     return (
@@ -177,6 +184,7 @@ export function buildBackup(
                   stamps: data.stamps,
                   days: data.days,
                   presets: data.presets,
+                  schedules: data.schedules,
                 },
               }
             : {}),
@@ -240,6 +248,7 @@ export function readBackup(text: string): BackupReadResult {
   const rawStamps = rows(diaryBag.stamps)
   const rawDays = rows(diaryBag.days)
   const rawPresets = rows(diaryBag.presets)
+  const rawSchedules = rows(diaryBag.schedules)
   const rawFoods = rows(healthBag.foods)
   const rawMeals = rows(healthBag.meals)
   const rawIntakes = rows(healthBag.intakes)
@@ -253,6 +262,9 @@ export function readBackup(text: string): BackupReadResult {
   const presets = rawPresets
     .map(pickPreset)
     .filter((item): item is DiaryPreset => item !== null)
+  const schedules = rawSchedules
+    .map(pickSchedule)
+    .filter((item): item is ScheduleItem => item !== null)
   const profile = pickProfile(healthBag.profile)
   const foods = rawFoods.map(pickFood).filter((item): item is HealthFood => item !== null)
   const meals = rawMeals.map(pickMeal).filter((item): item is HealthMeal => item !== null)
@@ -270,6 +282,7 @@ export function readBackup(text: string): BackupReadResult {
     stamps,
     days,
     presets,
+    schedules,
     profile,
     foods,
     meals,
@@ -289,6 +302,7 @@ export function readBackup(text: string): BackupReadResult {
     rawStamps.length +
     rawDays.length +
     rawPresets.length +
+    rawSchedules.length +
     rawFoods.length +
     rawMeals.length +
     rawIntakes.length +
@@ -297,7 +311,7 @@ export function readBackup(text: string): BackupReadResult {
     rawFinance.length +
     (healthBag.profile ? 1 : 0)
   const keptTotal =
-    entries.length + stamps.length + days.length + presets.length + foods.length + meals.length + intakes.length + sleeps.length + trainings.length + finance.length + (profile ? 1 : 0)
+    entries.length + stamps.length + days.length + presets.length + schedules.length + foods.length + meals.length + intakes.length + sleeps.length + trainings.length + finance.length + (profile ? 1 : 0)
 
   return {
     ok: true,

@@ -31,6 +31,7 @@ const entry = (id: string, content: string, extra: Partial<DiaryEntry> = {}): Di
   updatedAt: 100,
   content,
   images: [],
+  tags: [],
   deletedAt: null,
   ...extra,
 })
@@ -42,6 +43,7 @@ const stamp = (id: string, content: string, extra: Partial<DiaryStamp> = {}): Di
   time: '08:00',
   content,
   images: [],
+  tags: [],
   createdAt: 100,
   updatedAt: 100,
   deletedAt: null,

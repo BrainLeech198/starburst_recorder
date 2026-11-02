@@ -29,6 +29,7 @@ export function notifyChange() {
 const WRITE_METHODS = new Set([
   'createEntry',
   'updateContent',
+  'setEntryTags',
   'removeEntry',
   'removeEntries',
   'restoreEntry',
@@ -37,6 +38,7 @@ const WRITE_METHODS = new Set([
   'setWeather',
   'addStamp',
   'updateStamp',
+  'setStampTags',
   'removeStamp',
   'restoreStamp',
   'removeStamps',
@@ -103,6 +105,12 @@ const WRITE_METHODS = new Set([
   'saveFinance',
   'removeFinance',
   'restoreFinance',
+  // 日程 / 定期任务
+  'saveSchedule',
+  'removeSchedule',
+  'restoreSchedule',
+  'purgeSchedule',
+  'purgeTrashedSchedules',
 ])
 
 /** 给存储实现套一层：写成功后自动广播变化，读操作原样透传 */

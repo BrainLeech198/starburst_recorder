@@ -28,6 +28,8 @@ import type {
   HealthSleep,
   HealthTraining,
   IntakeComponent,
+  ScheduleItem,
+  ScheduleRepeat,
   SleepNap,
   SleepWakeEvent,
   TrainingExercise,
@@ -125,6 +127,34 @@ function dateKey(value: unknown) {
 /** 一条记录最多带几张图：随记、日记都按这个上限收，防止手改的备份把库撑爆 */
 const MAX_IMAGES = 9
 
+/** 一条记录最多带几个标签，单个标签最长多少个字 */
+export const MAX_TAGS = 12
+export const MAX_TAG_LENGTH = 20
+
+/**
+ * 标签：去掉首尾空白、压缩内部空白、去重，按上限截断。
+ * 空串、纯空白一律不算标签；大小写不一致的重复按原样保留（中文场景用不上忽略大小写）。
+ */
+export function cleanTags(values: string[]): string[] {
+  const seen = new Set<string>()
+  const tags: string[] = []
+  for (const raw of values) {
+    if (typeof raw !== 'string') continue
+    const name = raw.trim().replace(/\s+/g, ' ').slice(0, MAX_TAG_LENGTH)
+    if (name === '' || seen.has(name)) continue
+    seen.add(name)
+    tags.push(name)
+    if (tags.length >= MAX_TAGS) break
+  }
+  return tags
+}
+
+/** 备份 / 旧记录里的 tags：只认字符串数组，坏项剔掉 */
+export function pickTags(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  return cleanTags(raw.filter((item): item is string => typeof item === 'string'))
+}
+
 /**
  * 记录里内联的图片：只认完整的 dataURL 与正尺寸。
  * 坏图剔掉但**不整行丢弃**——图没了正文还在，这条日记本身还有价值。
@@ -167,6 +197,7 @@ export function pickEntry(raw: unknown): DiaryEntry | null {
     updatedAt: number(item.updatedAt, Date.now()),
     content: text(item.content),
     images: pickImages(item.images),
+    tags: pickTags(item.tags),
     deletedAt: deletedAt(item.deletedAt),
   }
 }
@@ -186,6 +217,7 @@ export function pickStamp(raw: unknown): DiaryStamp | null {
     time: /^\d{2}:\d{2}$/.test(time) ? time : '00:00',
     content: text(item.content),
     images: pickImages(item.images),
+    tags: pickTags(item.tags),
     createdAt: number(item.createdAt, Date.now()),
     updatedAt: number(item.updatedAt, Date.now()),
     deletedAt: deletedAt(item.deletedAt),
@@ -579,6 +611,55 @@ function clockSeconds(ms: number) {
   const date = new Date(ms)
   const pad = (value: number) => String(value).padStart(2, '0')
   return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+const SCHEDULE_REPEATS: ScheduleRepeat[] = ['none', 'daily', 'weekly']
+
+/** 周几：只认 1–7，去重排序；超出范围的手改数据直接丢掉 */
+export function pickWeeklyDays(raw: unknown): number[] {
+  if (!Array.isArray(raw)) return []
+  return [...new Set(raw.map((day) => Number(day)).filter((day) => Number.isInteger(day) && day >= 1 && day <= 7))].sort(
+    (a, b) => a - b,
+  )
+}
+
+/**
+ * 日程 / 定期任务：标题为空或日期不合法就整行丢掉；
+ * 重复方式、周几、完成记录都按上限收紧，手改的备份不至于把页面撑爆。
+ */
+export function pickSchedule(raw: unknown): ScheduleItem | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  const id = text(item.id)
+  const day = dateKey(item.dateKey)
+  const title = text(item.title).trim()
+  if (id === '' || day === null || title === '') return null
+  const repeat = SCHEDULE_REPEATS.includes(item.repeat as ScheduleRepeat)
+    ? (item.repeat as ScheduleRepeat)
+    : 'none'
+  const weeklyDays = repeat === 'weekly' ? pickWeeklyDays(item.weeklyDays) : []
+  const doneDays = Array.isArray(item.doneDays)
+    ? [...new Set(item.doneDays.map((value) => dateKey(value)).filter((value): value is string => value !== null))]
+        .sort()
+        .slice(-400)
+    : []
+  const time = text(item.time)
+  return {
+    id,
+    code: text(item.code) || newCode(),
+    dateKey: day,
+    time: /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : '',
+    title,
+    note: text(item.note),
+    repeat,
+    weeklyDays,
+    remind: item.remind === true,
+    doneAt: deletedAt(item.doneAt),
+    doneDays,
+    createdAt: number(item.createdAt, Date.now()),
+    updatedAt: number(item.updatedAt, Date.now()),
+    deletedAt: deletedAt(item.deletedAt),
+  }
 }
 
 export function rows(value: unknown): unknown[] {

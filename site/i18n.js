@@ -42,7 +42,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.10.4',
+    'hero.cta': '下载 0.11.0',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -113,11 +113,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器走 IndexedDB。',
-    'open.version': '版本 0.10.4',
+    'open.version': '版本 0.11.0',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.10.4 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.11.0 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 95 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -128,11 +128,11 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '二维码分享修好：分享码压缩不再卡死，二维码正常显示；食物、套餐行尾也新增了常驻分享按钮，不用再翻「⋯」菜单',
+      '日历总览：月历用三色深浅表示日记、健康、收支记了多少，点一格进「一天一页」，有日程的日子另有小标记',
     'whatsnew.item2':
-      '批量操作栏不再消失：工具条挂到页面根节点，不会被内容区或安卓底部导航压住，所有批量页面一并生效',
+      '日程与定期任务：一次性、每天、每周都能记，到点在桌面或安卓弹提醒，删掉的条目在回收站里还能恢复',
     'whatsnew.item3':
-      '睡眠条改为前后各 24 小时，白天补觉不再被截断；版本页与各模块的二级按钮补齐统一图标',
+      '周视图与月度回顾：一周摊开看每天的安排与记录，回顾页给出睡眠、训练、花销和定期任务完成率，还能直接生成 AI 周报 / 月报',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -141,7 +141,7 @@ window.SITE_I18N = {
     'download.history': '历史版本',
     'download.current': '当前',
 
-    'footer.version': '版本 0.10.4',
+    'footer.version': '版本 0.11.0',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -184,7 +184,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.10.4',
+    'hero.cta': 'Download 0.11.0',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -260,12 +260,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser.',
-    'open.version': 'Version 0.10.4',
+    'open.version': 'Version 0.11.0',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.10.4 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.11.0 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 95 MB',
     'download.windowsDesc':
@@ -276,13 +276,13 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.10.4",
+    'whatsnew.title': "What's new in 0.11.0",
     'whatsnew.item1':
-      'QR sharing is fixed: the compressed payload no longer deadlocks and the QR code renders; food and meal rows also gained a permanent share button, so the "⋯" menu is no longer the only way in',
+      'Calendar overview: a month grid shaded in three colours for diary, health and finance, with a dot for days that have schedules and a click straight into the day page',
     'whatsnew.item2':
-      'The batch action bar no longer disappears: it is attached to the page root, so neither the content area nor the Android bottom navigation can hide it, across all batch pages',
+      'Schedules and recurring tasks: one-off, daily or weekly, with reminders on desktop and Android; deleted items rest in the trash until you restore them',
     'whatsnew.item3':
-      'The sleep bar now spans 24 hours on each side so naps are no longer clipped; the version page and secondary actions across modules gained the shared icon set',
+      'Week view and monthly review: see each day at a glance, get sleep, training, spending and recurring-task completion in one place, and generate an AI weekly or monthly report',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -291,7 +291,7 @@ window.SITE_I18N = {
     'download.history': 'Previous versions',
     'download.current': 'Current',
 
-    'footer.version': 'Version 0.10.4',
+    'footer.version': 'Version 0.11.0',
     'footer.tagline': 'Data stays on your device',
   },
 };

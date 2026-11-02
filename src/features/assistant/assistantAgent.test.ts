@@ -26,6 +26,7 @@ function emptyData(): BackupData {
     stamps: [],
     days: [],
     presets: [],
+    schedules: [],
     profile: null,
     foods: [],
     meals: [],

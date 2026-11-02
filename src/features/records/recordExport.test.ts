@@ -26,6 +26,7 @@ function base(overrides: Partial<BackupPayload> = {}): BackupPayload {
     stamps: [],
     days: [],
     presets: [],
+    schedules: [],
     profile: null,
     foods: [],
     meals: [],
@@ -46,6 +47,7 @@ function entry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
     updatedAt: 1790000000000,
     content: '今天去了公园。',
     images: [],
+    tags: [],
     deletedAt: null,
     ...overrides,
   }
@@ -59,6 +61,7 @@ function stamp(overrides: Partial<DiaryStamp> = {}): DiaryStamp {
     time: '09:30',
     content: '晒了太阳。',
     images: [],
+    tags: [],
     createdAt: 1790000000000,
     updatedAt: 1790000000000,
     deletedAt: null,

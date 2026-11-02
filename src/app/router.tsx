@@ -28,7 +28,13 @@ const TrainingTrashPage = lazy(() => import('@/features/training/TrainingTrashPa
 const FinancePage = lazy(() => import('@/features/finance/FinancePage'))
 const FinanceTrashPage = lazy(() => import('@/features/finance/FinanceTrashPage'))
 const AssistantPage = lazy(() => import('@/features/assistant/AssistantPage'))
+const SearchPage = lazy(() => import('@/features/search/SearchPage'))
 const CalendarPage = lazy(() => import('@/features/calendar/CalendarPage'))
+const DayPage = lazy(() => import('@/features/day/DayPage'))
+const WeekPage = lazy(() => import('@/features/week/WeekPage'))
+const ReviewPage = lazy(() => import('@/features/review/ReviewPage'))
+const SchedulePage = lazy(() => import('@/features/schedule/SchedulePage'))
+const ScheduleTrashPage = lazy(() => import('@/features/schedule/ScheduleTrashPage'))
 const MePage = lazy(() => import('@/features/me/MePage'))
 const VersionPage = lazy(() => import('@/features/me/VersionPage'))
 const OlderPage = lazy(() => import('@/features/me/OlderPage'))
@@ -77,7 +83,13 @@ export const router = createHashRouter([
       { path: 'finance', element: <FinancePage /> },
       { path: 'finance/trash', element: <FinanceTrashPage /> },
       { path: 'assistant', element: <AssistantPage /> },
+      { path: 'search', element: <SearchPage /> },
       { path: 'calendar', element: <CalendarPage /> },
+      { path: 'day/:date', element: <DayPage /> },
+      { path: 'week/:date', element: <WeekPage /> },
+      { path: 'review', element: <ReviewPage /> },
+      { path: 'schedule', element: <SchedulePage /> },
+      { path: 'schedule/trash', element: <ScheduleTrashPage /> },
       { path: 'me', element: <MePage /> },
       { path: 'me/version', element: <VersionPage /> },
       { path: 'me/older', element: <OlderPage /> },

@@ -15,6 +15,7 @@ const SCHEMA = `
     updatedAt INTEGER NOT NULL,
     content TEXT NOT NULL DEFAULT '',
     images TEXT NOT NULL DEFAULT '[]',
+    tags TEXT NOT NULL DEFAULT '[]',
     deletedAt INTEGER
   );
   CREATE UNIQUE INDEX IF NOT EXISTS idx_entries_code ON diaryEntries(code);
@@ -34,6 +35,7 @@ const SCHEMA = `
     time TEXT NOT NULL,
     content TEXT NOT NULL DEFAULT '',
     images TEXT NOT NULL DEFAULT '[]',
+    tags TEXT NOT NULL DEFAULT '[]',
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER NOT NULL,
     deletedAt INTEGER
@@ -189,6 +191,26 @@ const SCHEMA = `
   );
   CREATE INDEX IF NOT EXISTS idx_finance_day ON financeEntries(dateKey);
   CREATE INDEX IF NOT EXISTS idx_finance_trash ON financeEntries(deletedAt);
+
+  -- 日程 / 定期任务：weeklyDays 与 doneDays 都以 JSON 数组存
+  CREATE TABLE IF NOT EXISTS schedules (
+    id TEXT PRIMARY KEY,
+    code TEXT NOT NULL DEFAULT '',
+    dateKey TEXT NOT NULL,
+    time TEXT NOT NULL DEFAULT '',
+    title TEXT NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    repeat TEXT NOT NULL DEFAULT 'none',
+    weeklyDays TEXT NOT NULL DEFAULT '[]',
+    remind INTEGER NOT NULL DEFAULT 0,
+    doneAt INTEGER,
+    doneDays TEXT NOT NULL DEFAULT '[]',
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    deletedAt INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_schedules_day ON schedules(dateKey);
+  CREATE INDEX IF NOT EXISTS idx_schedules_trash ON schedules(deletedAt);
 `
 
 /**
@@ -209,6 +231,43 @@ function imagesText(images) {
   return JSON.stringify(Array.isArray(images) ? images : [])
 }
 
+/** 标签在库里同样是 JSON 文本；读坏了当空数组，不让一条脏数据拖垮整行 */
+function parseTags(value) {
+  if (typeof value !== 'string' || value === '') return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? cleanTags(parsed) : []
+  } catch {
+    return []
+  }
+}
+
+/** 和渲染进程 cleanTags.ts 保持同一套规则：去空白、去重、截断 */
+function cleanTags(values) {
+  const seen = new Set()
+  const tags = []
+  for (const raw of Array.isArray(values) ? values : []) {
+    if (typeof raw !== 'string') continue
+    const name = raw.trim().replace(/\s+/g, ' ').slice(0, 20)
+    if (name === '' || seen.has(name)) continue
+    seen.add(name)
+    tags.push(name)
+    if (tags.length >= 12) break
+  }
+  return tags
+}
+
+/** 汇总标签：按出现次数倒序，同次数按名称排；只给搜索页的筛选条用 */
+function collectTags(lists) {
+  const counts = new Map()
+  for (const tags of lists) {
+    for (const tag of tags) counts.set(tag, (counts.get(tag) || 0) + 1)
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'zh'))
+    .map(([tag]) => tag)
+}
+
 /** 同一份行数据在 IPC 里保持普通对象：主键字段名原样，deletedAt 统一成 null */
 function entryRow(row) {
   if (!row) return undefined
@@ -220,6 +279,7 @@ function entryRow(row) {
     updatedAt: row.updatedAt,
     content: row.content,
     images: parseImages(row.images),
+    tags: parseTags(row.tags),
     deletedAt: row.deletedAt ?? null,
   }
 }
@@ -242,6 +302,7 @@ function stampRow(row) {
     time: row.time,
     content: row.content,
     images: parseImages(row.images),
+    tags: parseTags(row.tags),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
@@ -548,6 +609,58 @@ function financeRow(row) {
 }
 
 /**
+ * 日程行：weeklyDays / doneDays 是 JSON 文本，读出来还原成数组，坏了当空。
+ * remind 在 SQLite 里是 0/1，这里统一回布尔。
+ */
+function scheduleRow(row) {
+  if (!row) return undefined
+  return {
+    id: row.id,
+    code: row.code ?? '',
+    dateKey: row.dateKey,
+    time: row.time ?? '',
+    title: row.title ?? '',
+    note: row.note ?? '',
+    repeat: row.repeat === 'daily' || row.repeat === 'weekly' ? row.repeat : 'none',
+    weeklyDays: weeklyDaysFromDb(row.weeklyDays),
+    remind: row.remind === 1 || row.remind === true,
+    doneAt: num(row.doneAt),
+    doneDays: doneDaysFromDb(row.doneDays),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    deletedAt: row.deletedAt ?? null,
+  }
+}
+
+function weeklyDaysFromDb(text) {
+  if (typeof text !== 'string' || text.trim() === '') return []
+  try {
+    const list = JSON.parse(text)
+    if (!Array.isArray(list)) return []
+    return [
+      ...new Set(
+        list
+          .map((day) => Number(day))
+          .filter((day) => Number.isInteger(day) && day >= 1 && day <= 7),
+      ),
+    ].sort((a, b) => a - b)
+  } catch {
+    return []
+  }
+}
+
+function doneDaysFromDb(text) {
+  if (typeof text !== 'string' || text.trim() === '') return []
+  try {
+    const list = JSON.parse(text)
+    if (!Array.isArray(list)) return []
+    return [...new Set(list.filter((day) => typeof day === 'string'))].sort().slice(-400)
+  } catch {
+    return []
+  }
+}
+
+/**
  * 打开（不存在就建）数据库，返回一个只有 `call` 和 `close` 的对象。
  * `call` 的方法名必须命中下面的白名单，渲染进程没法拼任意 SQL 进来。
  */
@@ -595,11 +708,15 @@ function createDatabase(file) {
   // 日记与随记的图片字段：老库补一个空数组列，新写入直接带上
   if (!stampColumns.has('images'))
     db.exec("ALTER TABLE diaryStamps ADD COLUMN images TEXT NOT NULL DEFAULT '[]'")
+  if (!stampColumns.has('tags'))
+    db.exec("ALTER TABLE diaryStamps ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'")
   const entryColumns = new Set(
     db.prepare('PRAGMA table_info(diaryEntries)').all().map((row) => row.name),
   )
   if (!entryColumns.has('images'))
     db.exec("ALTER TABLE diaryEntries ADD COLUMN images TEXT NOT NULL DEFAULT '[]'")
+  if (!entryColumns.has('tags'))
+    db.exec("ALTER TABLE diaryEntries ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'")
   // 睡眠的夜醒次数 / 累计分钟：老库补两列，新库建表时就有
   const sleepColumns = new Set(
     db.prepare('PRAGMA table_info(healthSleeps)').all().map((row) => row.name),
@@ -641,6 +758,7 @@ function createDatabase(file) {
       'UPDATE diaryEntries SET content = ?, images = ?, updatedAt = ? WHERE id = ?',
     ),
     removeEntry: db.prepare('UPDATE diaryEntries SET deletedAt = ? WHERE id = ?'),
+    setEntryTags: db.prepare('UPDATE diaryEntries SET tags = ?, updatedAt = ? WHERE id = ?'),
     restoreEntry: db.prepare('UPDATE diaryEntries SET deletedAt = NULL WHERE id = ?'),
     dayInfo: db.prepare('SELECT * FROM diaryDays WHERE dateKey = ?'),
     upsertDay: db.prepare(
@@ -651,6 +769,7 @@ function createDatabase(file) {
       'SELECT * FROM diaryStamps WHERE dateKey = ? AND deletedAt IS NULL ORDER BY time ASC',
     ),
     removeStamp: db.prepare('UPDATE diaryStamps SET deletedAt = ? WHERE id = ?'),
+    setStampTags: db.prepare('UPDATE diaryStamps SET tags = ?, updatedAt = ? WHERE id = ?'),
     restoreStamp: db.prepare('UPDATE diaryStamps SET deletedAt = NULL WHERE id = ?'),
     trashedEntries: db.prepare(
       'SELECT * FROM diaryEntries WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC',
@@ -674,8 +793,8 @@ function createDatabase(file) {
     allDayKeys: db.prepare('SELECT dateKey FROM diaryDays'),
     allPresetIds: db.prepare('SELECT id FROM diaryPresets'),
     upsertEntry: db.prepare(
-      `INSERT INTO diaryEntries (id, code, dateKey, createdAt, updatedAt, content, images, deletedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO diaryEntries (id, code, dateKey, createdAt, updatedAt, content, images, tags, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          code = excluded.code,
          dateKey = excluded.dateKey,
@@ -683,17 +802,19 @@ function createDatabase(file) {
          updatedAt = excluded.updatedAt,
          content = excluded.content,
          images = excluded.images,
+         tags = excluded.tags,
          deletedAt = excluded.deletedAt`,
     ),
     upsertStamp: db.prepare(
-      `INSERT INTO diaryStamps (id, code, dateKey, time, content, images, createdAt, updatedAt, deletedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO diaryStamps (id, code, dateKey, time, content, images, tags, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          code = excluded.code,
          dateKey = excluded.dateKey,
          time = excluded.time,
          content = excluded.content,
          images = excluded.images,
+         tags = excluded.tags,
          createdAt = excluded.createdAt,
          updatedAt = excluded.updatedAt,
          deletedAt = excluded.deletedAt`,
@@ -825,6 +946,24 @@ function createDatabase(file) {
     financeOfMonth: db.prepare(
       'SELECT * FROM financeEntries WHERE dateKey LIKE ? AND deletedAt IS NULL ORDER BY dateKey DESC, createdAt DESC',
     ),
+    activityEntries: db.prepare(
+      'SELECT dateKey, COUNT(*) AS n FROM diaryEntries WHERE deletedAt IS NULL AND dateKey >= ? AND dateKey <= ? GROUP BY dateKey',
+    ),
+    activityStamps: db.prepare(
+      'SELECT dateKey, COUNT(*) AS n FROM diaryStamps WHERE deletedAt IS NULL AND dateKey >= ? AND dateKey <= ? GROUP BY dateKey',
+    ),
+    activityIntakes: db.prepare(
+      'SELECT dateKey, COUNT(*) AS n FROM healthIntakes WHERE deletedAt IS NULL AND dateKey >= ? AND dateKey <= ? GROUP BY dateKey',
+    ),
+    activitySleeps: db.prepare(
+      'SELECT dateKey, COUNT(*) AS n FROM healthSleeps WHERE deletedAt IS NULL AND dateKey >= ? AND dateKey <= ? GROUP BY dateKey',
+    ),
+    activityTrainings: db.prepare(
+      'SELECT dateKey, COUNT(*) AS n FROM healthTrainings WHERE deletedAt IS NULL AND dateKey >= ? AND dateKey <= ? GROUP BY dateKey',
+    ),
+    activityFinance: db.prepare(
+      'SELECT dateKey, COUNT(*) AS n FROM financeEntries WHERE deletedAt IS NULL AND dateKey >= ? AND dateKey <= ? GROUP BY dateKey',
+    ),
     removeFinance: db.prepare('UPDATE financeEntries SET deletedAt = ? WHERE id = ?'),
     restoreFinance: db.prepare('UPDATE financeEntries SET deletedAt = NULL WHERE id = ?'),
     trashedFinance: db.prepare(
@@ -832,6 +971,37 @@ function createDatabase(file) {
     ),
     purgeFinance: db.prepare('DELETE FROM financeEntries WHERE id = ?'),
     purgeTrashedFinance: db.prepare('DELETE FROM financeEntries WHERE deletedAt IS NOT NULL'),
+    schedules: db.prepare(
+      'SELECT * FROM schedules WHERE deletedAt IS NULL ORDER BY dateKey ASC, time ASC, createdAt ASC',
+    ),
+    trashedSchedules: db.prepare(
+      'SELECT * FROM schedules WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC',
+    ),
+    upsertSchedule: db.prepare(
+      `INSERT INTO schedules
+         (id, code, dateKey, time, title, note, repeat, weeklyDays, remind, doneAt, doneDays, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         code = excluded.code,
+         dateKey = excluded.dateKey,
+         time = excluded.time,
+         title = excluded.title,
+         note = excluded.note,
+         repeat = excluded.repeat,
+         weeklyDays = excluded.weeklyDays,
+         remind = excluded.remind,
+         doneAt = excluded.doneAt,
+         doneDays = excluded.doneDays,
+         createdAt = excluded.createdAt,
+         updatedAt = excluded.updatedAt,
+         deletedAt = excluded.deletedAt`,
+    ),
+    removeSchedule: db.prepare('UPDATE schedules SET deletedAt = ? WHERE id = ?'),
+    restoreSchedule: db.prepare('UPDATE schedules SET deletedAt = NULL WHERE id = ?'),
+    purgeSchedule: db.prepare('DELETE FROM schedules WHERE id = ?'),
+    purgeTrashedSchedules: db.prepare('DELETE FROM schedules WHERE deletedAt IS NOT NULL'),
+    everySchedule: db.prepare('SELECT * FROM schedules'),
+    allScheduleIds: db.prepare('SELECT id FROM schedules'),
     sleepDays: db.prepare('SELECT DISTINCT dateKey FROM healthSleeps WHERE deletedAt IS NULL'),
     upsertSleep: db.prepare(
       `INSERT INTO healthSleeps
@@ -959,6 +1129,7 @@ function createDatabase(file) {
       entry.updatedAt,
       entry.content ?? '',
       imagesText(entry.images),
+      JSON.stringify(cleanTags(entry.tags)),
       entry.deletedAt ?? null,
     )
     return entryRow({ ...entry, deletedAt: entry.deletedAt ?? null })
@@ -972,6 +1143,7 @@ function createDatabase(file) {
       stamp.time,
       stamp.content ?? '',
       imagesText(stamp.images),
+      JSON.stringify(cleanTags(stamp.tags)),
       stamp.createdAt,
       stamp.updatedAt,
       stamp.deletedAt ?? null,
@@ -1102,6 +1274,52 @@ function createDatabase(file) {
       next.amount,
       next.photo,
       next.note,
+      next.createdAt,
+      next.updatedAt,
+      next.deletedAt,
+    )
+    return next
+  }
+
+  function saveSchedule(item) {
+    const next = {
+      id: item.id,
+      code: item.code ?? '',
+      dateKey: item.dateKey,
+      time: typeof item.time === 'string' ? item.time : '',
+      title: item.title ?? '',
+      note: item.note ?? '',
+      repeat: item.repeat === 'daily' || item.repeat === 'weekly' ? item.repeat : 'none',
+      weeklyDays: JSON.stringify(
+        Array.isArray(item.weeklyDays)
+          ? [...new Set(item.weeklyDays.filter((day) => Number.isInteger(day) && day >= 1 && day <= 7))].sort(
+              (a, b) => a - b,
+            )
+          : [],
+      ),
+      remind: item.remind === true ? 1 : 0,
+      doneAt: num(item.doneAt),
+      doneDays: JSON.stringify(
+        Array.isArray(item.doneDays)
+          ? [...new Set(item.doneDays.filter((day) => typeof day === 'string'))].sort().slice(-400)
+          : [],
+      ),
+      createdAt: num(item.createdAt) ?? Date.now(),
+      updatedAt: num(item.updatedAt) ?? Date.now(),
+      deletedAt: num(item.deletedAt),
+    }
+    q.upsertSchedule.run(
+      next.id,
+      next.code,
+      next.dateKey,
+      next.time,
+      next.title,
+      next.note,
+      next.repeat,
+      next.weeklyDays,
+      next.remind,
+      next.doneAt,
+      next.doneDays,
       next.createdAt,
       next.updatedAt,
       next.deletedAt,
@@ -1282,6 +1500,50 @@ function createDatabase(file) {
       sleeps: q.everySleep.all().map(sleepRow),
       trainings: q.everyTraining.all().map(trainingRow),
       finance: q.everyFinance.all().map(financeRow),
+      schedules: q.everySchedule.all().map(scheduleRow),
+    }
+  }
+
+  /**
+   * 全局搜索：日记、随记、收支、睡眠，回收站里的不算。
+   * 关键词为空只回标签列表；以 `#` 开头只按标签匹配；其余按正文 / 名称 / 备注 / 标签，忽略大小写。
+   */
+  function searchRecords(keyword) {
+    const entries = q.everyEntry.all().map(entryRow).filter((row) => row.deletedAt === null)
+    const stamps = q.everyStamp.all().map(stampRow).filter((row) => row.deletedAt === null)
+    const finance = q.everyFinance.all().map(financeRow).filter((row) => row.deletedAt === null)
+    const sleeps = q.everySleep.all().map(sleepRow).filter((row) => row.deletedAt === null)
+    const tags = collectTags([
+      ...entries.map((row) => row.tags || []),
+      ...stamps.map((row) => row.tags || []),
+    ])
+    const raw = String(keyword ?? '').trim()
+    if (raw === '') return { entries: [], stamps: [], finance: [], sleeps: [], tags }
+    const needle = raw.toLowerCase()
+    const byTag = raw.startsWith('#')
+    const tagNeedle = byTag ? needle.slice(1) : needle
+    const hit = (texts, rowTags) => {
+      if (byTag) return rowTags.some((tag) => tag.toLowerCase().includes(tagNeedle))
+      return (
+        texts.some((value) => String(value || '').toLowerCase().includes(needle)) ||
+        rowTags.some((tag) => tag.toLowerCase().includes(needle))
+      )
+    }
+    const desc = (a, b) => b.dateKey.localeCompare(a.dateKey)
+    return {
+      entries: entries
+        .filter((row) => hit([row.content], row.tags || []))
+        .sort((a, b) => desc(a, b) || b.createdAt - a.createdAt),
+      stamps: stamps
+        .filter((row) => hit([row.content], row.tags || []))
+        .sort((a, b) => desc(a, b) || b.time.localeCompare(a.time) || b.createdAt - a.createdAt),
+      finance: finance
+        .filter((row) => hit([row.name, row.note, row.category], []))
+        .sort((a, b) => desc(a, b) || b.time.localeCompare(a.time) || b.createdAt - a.createdAt),
+      sleeps: sleeps
+        .filter((row) => hit([row.note], []))
+        .sort(desc),
+      tags,
     }
   }
 
@@ -1299,6 +1561,7 @@ function createDatabase(file) {
     const stamps = Array.isArray(diary && diary.stamps) ? diary.stamps : []
     const days = Array.isArray(diary && diary.days) ? diary.days : []
     const presets = Array.isArray(diary && diary.presets) ? diary.presets : []
+    const schedules = Array.isArray(diary && diary.schedules) ? diary.schedules : []
     const foods = Array.isArray(health && health.foods) ? health.foods : []
     const meals = Array.isArray(health && health.meals) ? health.meals : []
     const intakes = Array.isArray(health && health.intakes) ? health.intakes : []
@@ -1311,6 +1574,7 @@ function createDatabase(file) {
     const oldStamps = replace ? new Set() : new Set(q.allStampIds.all().map((row) => row.id))
     const oldDays = replace ? new Set() : new Set(q.allDayKeys.all().map((row) => row.dateKey))
     const oldPresets = replace ? new Set() : new Set(q.allPresetIds.all().map((row) => row.id))
+    const oldSchedules = replace ? new Set() : new Set(q.allScheduleIds.all().map((row) => row.id))
     const oldFoods = replace ? new Set() : new Set(q.allFoodIds.all().map((row) => row.id))
     const oldMeals = replace ? new Set() : new Set(q.allMealIds.all().map((row) => row.id))
     const oldIntakes = replace ? new Set() : new Set(q.allIntakeIds.all().map((row) => row.id))
@@ -1327,6 +1591,7 @@ function createDatabase(file) {
           db.exec('DELETE FROM diaryStamps')
           db.exec('DELETE FROM diaryDays')
           db.exec('DELETE FROM diaryPresets')
+          db.exec('DELETE FROM schedules')
         }
         if (health) {
           db.exec('DELETE FROM healthProfile')
@@ -1348,6 +1613,7 @@ function createDatabase(file) {
             entry.updatedAt,
             entry.content ?? '',
             imagesText(entry.images),
+            JSON.stringify(cleanTags(entry.tags)),
             entry.deletedAt ?? null,
           )
         }
@@ -1359,6 +1625,7 @@ function createDatabase(file) {
             stamp.time,
             stamp.content ?? '',
             imagesText(stamp.images),
+            JSON.stringify(cleanTags(stamp.tags)),
             stamp.createdAt,
             stamp.updatedAt,
             stamp.deletedAt ?? null,
@@ -1368,6 +1635,7 @@ function createDatabase(file) {
           q.upsertDay.run(day.dateKey, day.weather ?? null, day.updatedAt)
         }
         for (const preset of presets) savePreset(preset)
+        for (const schedule of schedules) saveSchedule(schedule)
       }
       if (health) {
         // 先档案，再食物、套餐、摄入：套餐引用食物，摄入引用套餐，顺序不能反
@@ -1415,6 +1683,7 @@ function createDatabase(file) {
       sleeps: { total: sleeps.length, overwritten: sleeps.filter((item) => oldSleeps.has(item.id)).length },
       trainings: { total: trainings.length, overwritten: trainings.filter((item) => oldTrainings.has(item.id)).length },
       finance: { total: finances.length, overwritten: finances.filter((item) => oldFinance.has(item.id)).length },
+      schedules: { total: schedules.length, overwritten: schedules.filter((item) => oldSchedules.has(item.id)).length },
     }
   }
 
@@ -1496,6 +1765,9 @@ function createDatabase(file) {
     removeEntry: (id) => {
       q.removeEntry.run(Date.now(), id)
     },
+    setEntryTags: (id, tags) => {
+      q.setEntryTags.run(JSON.stringify(cleanTags(tags)), Date.now(), id)
+    },
     removeEntries: (ids) => modifyEntries(ids, 'deletedAt = ?', [Date.now()]),
     restoreEntry: (id) => {
       q.restoreEntry.run(id)
@@ -1516,6 +1788,9 @@ function createDatabase(file) {
     updateStamp,
     removeStamp: (id) => {
       q.removeStamp.run(Date.now(), id)
+    },
+    setStampTags: (id, tags) => {
+      q.setStampTags.run(JSON.stringify(cleanTags(tags)), Date.now(), id)
     },
     restoreStamp: (id) => {
       q.restoreStamp.run(id)
@@ -1589,6 +1864,51 @@ function createDatabase(file) {
       intakes: Number(q.countIntakes.get().n),
     }),
     exportAllData: () => exportAll(),
+    searchRecords: (keyword) => searchRecords(keyword),
+    activityBetween: (from, to) => {
+      const map = new Map()
+      const bump = (dateKey, field, times = 1) => {
+        let row = map.get(dateKey)
+        if (!row) {
+          row = {
+            dateKey,
+            entries: 0,
+            stamps: 0,
+            intakes: 0,
+            sleeps: 0,
+            trainings: 0,
+            finance: 0,
+            weighIns: 0,
+          }
+          map.set(dateKey, row)
+        }
+        row[field] += times
+      }
+      for (const row of q.activityEntries.all(from, to)) {
+        bump(row.dateKey, 'entries', Number(row.n))
+      }
+      for (const row of q.activityStamps.all(from, to)) {
+        bump(row.dateKey, 'stamps', Number(row.n))
+      }
+      for (const row of q.activityIntakes.all(from, to)) {
+        bump(row.dateKey, 'intakes', Number(row.n))
+      }
+      for (const row of q.activitySleeps.all(from, to)) {
+        bump(row.dateKey, 'sleeps', Number(row.n))
+      }
+      for (const row of q.activityTrainings.all(from, to)) {
+        bump(row.dateKey, 'trainings', Number(row.n))
+      }
+      for (const row of q.activityFinance.all(from, to)) {
+        bump(row.dateKey, 'finance', Number(row.n))
+      }
+      // 称重历史在身体档案的 JSON 里，没有单独的表
+      const profile = profileRow(q.healthProfile.get())
+      for (const item of profile?.weighIns ?? []) {
+        if (item.dateKey >= from && item.dateKey <= to) bump(item.dateKey, 'weighIns')
+      }
+      return [...map.values()].sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+    },
     importSections: (data) => writeSections(data),
     replaceSections: (data) => writeSections(data, true),
     importBackup: (data) => writeSections({ diary: data }),
@@ -1719,6 +2039,23 @@ function createDatabase(file) {
     },
     purgeTrashedHealthMeals: () => {
       q.purgeTrashedMeals.run()
+    },
+
+    // ─────────── 日程 / 定期任务 ───────────
+    schedules: () => q.schedules.all().map(scheduleRow),
+    trashedSchedules: () => q.trashedSchedules.all().map(scheduleRow),
+    saveSchedule: (item) => saveSchedule(item),
+    removeSchedule: (id) => {
+      q.removeSchedule.run(Date.now(), id)
+    },
+    restoreSchedule: (id) => {
+      q.restoreSchedule.run(id)
+    },
+    purgeSchedule: (id) => {
+      q.purgeSchedule.run(id)
+    },
+    purgeTrashedSchedules: () => {
+      q.purgeTrashedSchedules.run()
     },
   }
 

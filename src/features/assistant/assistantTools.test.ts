@@ -17,6 +17,7 @@ function emptyData(): BackupData {
     stamps: [],
     days: [],
     presets: [],
+    schedules: [],
     profile: null,
     foods: [],
     meals: [],
@@ -36,6 +37,7 @@ function entry(dateKey: string, content: string, code = 'a000001'): DiaryEntry {
     updatedAt: 0,
     content,
     images: [],
+    tags: [],
     deletedAt: null,
   }
 }
@@ -48,6 +50,7 @@ function stamp(dateKey: string, time: string, content: string): DiaryStamp {
     time,
     content,
     images: [],
+    tags: [],
     createdAt: 0,
     updatedAt: 0,
     deletedAt: null,

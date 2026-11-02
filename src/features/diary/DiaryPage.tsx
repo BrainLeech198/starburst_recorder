@@ -65,6 +65,7 @@ import { buildExport, pickInRange } from './diaryExport'
 import { stripImageTokens } from './imageTokens'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
 import TimeMeta from '@/shared/ui/TimeMeta'
+import TagEditor from '@/shared/ui/TagEditor'
 
 /** 纸条上的正文部分，普通模式和批量模式共用 */
 function SlipBody({ entry }: { entry: DiaryEntry }) {
@@ -537,6 +538,15 @@ export default function DiaryPage() {
                   <Link to={`/diary/${entry.code}`} className="block pr-8">
                     <SlipBody entry={entry} />
                   </Link>
+                )}
+
+                {/* 标签挂在纸条下沿；点一下跳搜索页按这个标签筛，批量模式下不出现 */}
+                {!batch.active && entry.tags.length > 0 && (
+                  <TagEditor
+                    tags={entry.tags}
+                    onTagClick={(tag) => navigate(`/search?q=${encodeURIComponent('#' + tag)}`)}
+                    className="mt-1"
+                  />
                 )}
 
                 <div className="mt-2 text-right font-mono text-xs text-ink-muted opacity-70">

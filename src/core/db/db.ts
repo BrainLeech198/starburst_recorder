@@ -13,6 +13,7 @@ import type {
   HealthProfile,
   HealthSleep,
   HealthTraining,
+  ScheduleItem,
 } from './schema'
 
 export const db = new Dexie('starburst') as Dexie & {
@@ -27,6 +28,7 @@ export const db = new Dexie('starburst') as Dexie & {
   healthSleeps: EntityTable<HealthSleep, 'id'>
   healthTrainings: EntityTable<HealthTraining, 'id'>
   financeEntries: EntityTable<FinanceEntry, 'id'>
+  schedules: EntityTable<ScheduleItem, 'id'>
 }
 
 db.version(1).stores({
@@ -199,3 +201,29 @@ db.version(16)
       })
       .then(() => undefined),
   )
+
+// 日记与随记加标签：表结构不变（标签是记录里的一个字段），只给老记录补空数组
+db.version(17)
+  .stores({})
+  .upgrade((tx) =>
+    tx
+      .table('diaryEntries')
+      .toCollection()
+      .modify((entry: DiaryEntry) => {
+        if (!Array.isArray(entry.tags)) entry.tags = []
+      })
+      .then(() =>
+        tx
+          .table('diaryStamps')
+          .toCollection()
+          .modify((stamp: DiaryStamp) => {
+            if (!Array.isArray(stamp.tags)) stamp.tags = []
+          }),
+      )
+      .then(() => undefined),
+  )
+
+// 日程 / 定期任务：一天可能有多条，按日期查；回收站靠 deletedAt
+db.version(18).stores({
+  schedules: 'id, dateKey, deletedAt',
+})

@@ -1,11 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, ReactNode } from 'react'
+import { useNavigate } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import type { DiaryImage, DiaryStamp } from '@/core/db/schema'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
-import { dayInfo, removeStamp, restoreStamp, setWeather, updateStamp } from './diaryRepo'
+import TagEditor from '@/shared/ui/TagEditor'
+import {
+  dayInfo,
+  removeStamp,
+  restoreStamp,
+  setStampTags,
+  setWeather,
+  updateStamp,
+} from './diaryRepo'
 import { parseWeather, weatherIcons, weatherText } from './weather'
 import { formatClock, todayKey } from '@/core/utils/dateKey'
 import WeatherDialog from './WeatherDialog'
@@ -121,6 +130,7 @@ function StampRow({
   const [presetOpen, setPresetOpen] = useState(false)
   const { t } = useI18n()
   const { showToast } = useToast()
+  const navigate = useNavigate()
   /** 随记配图：选来源（相册 / 拍照 / 手绘）→ 转码 → 立刻写回这条随记 */
   const [sourceOpen, setSourceOpen] = useState(false)
   const [sketchOpen, setSketchOpen] = useState(false)
@@ -309,6 +319,13 @@ function StampRow({
                   {/* 手机上没键盘，这行提示只在能看见键盘的宽度显示 */}
                   <span className="ml-auto hidden text-ink-muted sm:inline">{t('stamp.saveHint')}</span>
                 </div>
+                {/* 标签改动立刻写回，不等「保存」，与图片的处理一致 */}
+                <div className="mt-2 text-[11px] text-ink-muted">{t('tag.title')}</div>
+                <TagEditor
+                  tags={stamp.tags}
+                  onChange={(tags) => void setStampTags(stamp.id, tags)}
+                  className="mt-1"
+                />
               </>
             ) : (
               <button
@@ -339,6 +356,13 @@ function StampRow({
                   onOpen={setViewerIndex}
                 />
                 <TimeMeta createdAt={stamp.createdAt} updatedAt={stamp.updatedAt} tone="paper" />
+                {stamp.tags.length > 0 && (
+                  <TagEditor
+                    tags={stamp.tags}
+                    onTagClick={(tag) => navigate(`/search?q=${encodeURIComponent('#' + tag)}`)}
+                    className="mt-1"
+                  />
+                )}
               </>
             )}
           </>

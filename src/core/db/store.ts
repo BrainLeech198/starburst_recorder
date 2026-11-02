@@ -21,6 +21,7 @@ import type {
   HealthProfile,
   HealthSleep,
   HealthTraining,
+  ScheduleItem,
 } from './schema'
 
 /** 一块数据的导入结果：一共多少条、其中多少条覆盖了库里已有的 */
@@ -41,6 +42,7 @@ export interface ImportStats {
   sleeps: SectionCount
   trainings: SectionCount
   finance: SectionCount
+  schedules: SectionCount
 }
 
 /** 一份整库数据：连回收站里的都在内 */
@@ -56,6 +58,37 @@ export interface BackupData {
   sleeps: HealthSleep[]
   trainings: HealthTraining[]
   finance: FinanceEntry[]
+  /** 日程 / 定期任务；跟着日记块一起备份 */
+  schedules: ScheduleItem[]
+}
+
+/**
+ * 全局搜索的结果：只带四类记录，按日期倒序。
+ * `tags` 是库里在用的全部标签（回收站里的不算），给筛选条用。
+ */
+export interface SearchResults {
+  entries: DiaryEntry[]
+  stamps: DiaryStamp[]
+  finance: FinanceEntry[]
+  sleeps: HealthSleep[]
+  tags: string[]
+}
+
+/**
+ * 某一天记了多少条，日历混色用。
+ *
+ * 只回数字、不带正文和图片：一个月 40 格要查 6 张表，
+ * 把记录整行搬出来会连着内联图片一起读。
+ */
+export interface DayActivity {
+  dateKey: string
+  entries: number
+  stamps: number
+  intakes: number
+  sleeps: number
+  trainings: number
+  finance: number
+  weighIns: number
 }
 
 /**
@@ -69,6 +102,8 @@ export interface BackupSections {
     days: DiaryDay[]
     /** 日记预设库跟着日记块走；旧备份没有这个字段 */
     presets: DiaryPreset[]
+    /** 日程 / 定期任务也跟着日记块走；旧备份没有这个字段 */
+    schedules?: ScheduleItem[]
   }
   health?: {
     /** null 表示这一块不带身体档案 */
@@ -99,6 +134,7 @@ export function zeroStats(): ImportStats {
     sleeps: zero(),
     trainings: zero(),
     finance: zero(),
+    schedules: zero(),
   }
 }
 
@@ -111,6 +147,8 @@ export interface DiaryStore {
   entryByCode(code: string): Promise<DiaryEntry | undefined>
   createEntry(dateKey: string): Promise<DiaryEntry>
   updateContent(id: string, content: string, images: DiaryImage[]): Promise<void>
+  /** 整组替换标签：编辑页保存时一并写入 */
+  setEntryTags(id: string, tags: string[]): Promise<void>
   /** 软删除：只打标记，可撤销 */
   removeEntry(id: string): Promise<void>
   removeEntries(ids: string[]): Promise<number>
@@ -133,6 +171,8 @@ export interface DiaryStore {
     id: string,
     patch: { time?: string; content?: string; images?: DiaryImage[] },
   ): Promise<void>
+  /** 整组替换标签 */
+  setStampTags(id: string, tags: string[]): Promise<void>
   /** 软删除：只打标记，可撤销 */
   removeStamp(id: string): Promise<void>
   restoreStamp(id: string): Promise<void>
@@ -185,6 +225,18 @@ export interface DiaryStore {
   }>
   /** 整库导出：日记、健康、经济，连回收站里的都在内 */
   exportAllData(): Promise<BackupData>
+  /**
+   * 全局搜索：日记、随记、收支、睡眠，回收站里的不算。
+   *
+   * 关键词为空时只回标签列表；以 `#` 开头的关键词只按标签精确匹配。
+   * 匹配范围：正文 / 名称 / 备注 / 标签，忽略大小写。
+   */
+  searchRecords(keyword: string): Promise<SearchResults>
+  /**
+   * 日期区间（含首尾）内每天记了多少条；只回有记录的日子，按日期升序。
+   * 日历的月格子按这个结果混色，不读正文与图片。
+   */
+  activityBetween(from: string, to: string): Promise<DayActivity[]>
   /** 一键清空三块数据，清完不可恢复 */
   clearDiaryData(): Promise<void>
   clearHealthData(): Promise<void>
@@ -318,4 +370,22 @@ export interface DiaryStore {
   /** 从回收站彻底删掉一条，不可恢复 */
   purgeFinance(id: string): Promise<void>
   purgeTrashedFinance(): Promise<void>
+
+  // ─────────── 日程 / 定期任务 ───────────
+
+  /**
+   * 全部在用的日程与定期任务，按起始日期、时刻升序。
+   * 定期任务只有一行，展开成某一天由页面用 `scheduleMath` 算。
+   */
+  schedules(): Promise<ScheduleItem[]>
+  /** 回收站里的日程，最近删的排前面 */
+  trashedSchedules(): Promise<ScheduleItem[]>
+  /** 新增或整行覆盖；返回存进去的那一条 */
+  saveSchedule(item: ScheduleItem): Promise<ScheduleItem>
+  /** 软删除：只打标记，可撤销 */
+  removeSchedule(id: string): Promise<void>
+  restoreSchedule(id: string): Promise<void>
+  /** 从回收站彻底删掉一条，不可恢复 */
+  purgeSchedule(id: string): Promise<void>
+  purgeTrashedSchedules(): Promise<void>
 }

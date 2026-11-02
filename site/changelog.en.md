@@ -1,3 +1,21 @@
+## 0.11.0 · 2026-11-02
+
+### What's new
+
+- **Calendar overview**: the month grid blends diary, health and finance counts into one shade, with a legend that can filter to a single area; days with schedules carry a small dot
+- **Day page**: open any day from the calendar to see diary, notes, food, sleep, training, finance and schedules as one timeline, each linking back to its own page; the date bar supports swiping between days
+- **Schedules and recurring tasks**: one-off, daily or weekly repeats with a time and reminder; desktop shows a system notification, Android pre-schedules local notifications, and one-off items only reserve the next 30 days
+- **Trash**: deleted schedules go to a trash page where they can be restored, purged individually or emptied at once
+- **Week view**: all seven days in one column with plans, completion state, record counts and spending per day, plus a quick add for any day
+- **Monthly review**: days with records, entries written, income and spending, average sleep, training, food and weigh-ins, with a per-day grid and recurring-task completion rate and streaks
+- **AI weekly and monthly reports**: hand this week or month to your own model for an editable review, copy it, or save it as today's diary; an unconfigured model shows a link to settings
+- Search and tags: diary, notes and finance entries carry tags, and search results group by type
+
+### Downloads
+
+- Windows 10/11: `starburst-recorder-0.11.0-setup.exe` (~96 MB)
+- Android 10+: `starburst-recorder-0.11.0.apk` (~62 MB, release-signed)
+
 ## 0.10.4 · 2026-11-01
 
 ### What's new
