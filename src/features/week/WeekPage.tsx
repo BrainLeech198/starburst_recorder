@@ -15,6 +15,7 @@ import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import { Icon } from '@/shared/ui/icons'
 import AiReportDialog from '@/features/ai/AiReportDialog'
+import ViewTabs from '@/features/calendar/ViewTabs'
 import { activityBetween } from '@/features/calendar/calendarRepo'
 import { financeOfMonth } from '@/features/finance/financeRepo'
 import { donePatch, isDoneOn, occurrencesOn } from '@/features/schedule/scheduleMath'
@@ -96,15 +97,10 @@ export default function WeekPage() {
             <Icon name="sparkles" className="h-3.5 w-3.5 shrink-0" />
             {t('ai.reportWeekly')}
           </button>
-          <Link
-            to={`/calendar?month=${dayKey.slice(0, 7)}`}
-            className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-xs text-muted transition-colors hover:text-brand"
-          >
-            <Icon name="arrow-right" className="h-3.5 w-3.5 shrink-0" />
-            {t('week.monthView')}
-          </Link>
         </div>
       </header>
+
+      <ViewTabs active="week" dayKey={dayKey} />
 
       {/* 周导航：‹ 11/02 – 11/08 › + 回到本周 */}
       <div className="mt-3 flex items-center gap-2">

@@ -12,6 +12,7 @@ import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import { Icon } from '@/shared/ui/icons'
 import { activityBetween } from './calendarRepo'
+import ViewTabs from './ViewTabs'
 import { countByDay, dateKeysOfMonth } from '@/features/schedule/scheduleMath'
 import { schedules } from '@/features/schedule/scheduleRepo'
 import {
@@ -83,30 +84,12 @@ export default function CalendarPage() {
           <Icon name="calendar" className="h-4 w-4 shrink-0" />
           {t('nav.calendar')}
         </h1>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Link
-            to={`/review?month=${monthKey}`}
-            className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-xs text-muted transition-colors hover:text-brand"
-          >
-            <Icon name="chart" className="h-3.5 w-3.5 shrink-0" />
-            {t('review.title')}
-          </Link>
-          <Link
-            to={`/week/${todayKey()}`}
-            className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-xs text-muted transition-colors hover:text-brand"
-          >
-            <Icon name="calendar" className="h-3.5 w-3.5 shrink-0" />
-            {t('week.title')}
-          </Link>
-          <Link
-            to="/schedule"
-            className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-xs text-muted transition-colors hover:text-brand"
-          >
-            <Icon name="list" className="h-3.5 w-3.5 shrink-0" />
-            {t('schedule.title')}
-          </Link>
-        </div>
       </header>
+
+      <ViewTabs
+        active="month"
+        dayKey={monthKey === currentMonth ? today : `${monthKey}-15`}
+      />
 
       {/* 月份栏：‹ 2026 年 11 月 › + 回到本月 */}
       <div className="mt-3 flex items-center gap-2">

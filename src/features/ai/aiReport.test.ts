@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { BackupData } from '@/core/db/store'
-import type { DiaryEntry, ScheduleItem } from '@/core/db/schema'
+import type { DiaryEntry, HealthIntake, ScheduleItem } from '@/core/db/schema'
+import { emptyProfile } from '@/features/health/healthMath'
 import { buildReportUserPrompt, reportTotals } from './aiReport'
 
 function emptyData(): BackupData {
@@ -120,5 +121,64 @@ describe('buildReportUserPrompt', () => {
     const prompt = buildReportUserPrompt(data, PERIOD)
     expect(prompt).toContain('练腿（已完成）')
     expect(prompt).toContain('练腿（未完成）')
+  })
+
+  it('总量包含营养、训练时长与体重序列', () => {
+    const data = emptyData()
+    data.profile = {
+      ...emptyProfile(),
+      tdee: 2350,
+      targetKcal: 2050,
+      proteinTarget: 100,
+      weighIns: [
+        { dateKey: '2026-11-02', weightKg: 63.6, createdAt: 1 },
+        { dateKey: '2026-11-08', weightKg: 63.1, createdAt: 2 },
+      ],
+    }
+    const intake = (patch: Partial<HealthIntake>): HealthIntake => ({
+      id: 'i1',
+      code: 'i000001',
+      dateKey: '2026-11-02',
+      time: '12:00',
+      foodId: null,
+      name: '午饭',
+      grams: 0,
+      kcal: 600,
+      protein: 30,
+      carbs: 60,
+      fat: 20,
+      source: 'manual',
+      mealId: '',
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+      ...patch,
+    })
+    data.intakes = [intake({}), intake({ id: 'i2', time: '08:00', kcal: 400, protein: 20 })]
+
+    const totals = reportTotals(data, PERIOD)
+    expect(totals.kcal).toBe(1000)
+    expect(totals.protein).toBe(50)
+    expect(totals.weights).toHaveLength(2)
+
+    const prompt = buildReportUserPrompt(data, PERIOD)
+    expect(prompt).toContain('目标线：维持 2350 千卡 / 目标 2050 千卡 / 蛋白目标 100 g')
+    expect(prompt).toContain('体重序列：11-02 63.6 → 11-08 63.1（变化 -0.5 kg）')
+    expect(prompt).toContain('进食窗 08:00–12:00')
+  })
+
+  it('上周有记录时给出对比块，没有时明说跳过', () => {
+    const data = emptyData()
+    data.entries = [
+      entry({ id: 'a', dateKey: '2026-11-02', content: '本周的事' }),
+      entry({ id: 'b', dateKey: '2026-10-28', content: '上周写的一篇' }),
+    ]
+    const prompt = buildReportUserPrompt(data, PERIOD)
+    expect(prompt).toContain('— 上周总量（对比用）—')
+    // 对比块只给总量，不把上周正文塞进逐日素材
+    expect(prompt).not.toContain('上周写的一篇')
+
+    const alone = buildReportUserPrompt(emptyData(), PERIOD)
+    expect(alone).toContain('上周：没有可用记录')
   })
 })

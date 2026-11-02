@@ -12,6 +12,7 @@ import { useI18n } from '@/shared/i18n/context'
 import EmptyState from '@/shared/ui/EmptyState'
 import { Icon } from '@/shared/ui/icons'
 import AiReportDialog from '@/features/ai/AiReportDialog'
+import ViewTabs from '@/features/calendar/ViewTabs'
 import { activityBetween } from '@/features/calendar/calendarRepo'
 import { isMonthKey, monthRange, shiftMonthKey } from '@/features/calendar/calendarData'
 import { financeOfMonth } from '@/features/finance/financeRepo'
@@ -82,15 +83,10 @@ export default function ReviewPage() {
             <Icon name="sparkles" className="h-3.5 w-3.5 shrink-0" />
             {t('ai.reportMonthly')}
           </button>
-          <Link
-            to={`/calendar?month=${monthKey}`}
-            className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-xs text-muted transition-colors hover:text-brand"
-          >
-            <Icon name="calendar" className="h-3.5 w-3.5 shrink-0" />
-            {t('nav.calendar')}
-          </Link>
         </div>
       </header>
+
+      <ViewTabs active="review" dayKey={scheduleAnchor} />
 
       <div className="mt-3 flex items-center gap-2">
         <div className="flex min-w-0 flex-1 items-center justify-between rounded-xl border border-line bg-surface px-1 py-0.5">

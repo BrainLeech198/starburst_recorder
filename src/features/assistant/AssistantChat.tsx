@@ -21,6 +21,7 @@ import { INPUT } from '@/shared/ui/inputStyles'
 import { SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
 import Modal from '@/shared/ui/Modal'
+import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { runAssistant } from './assistantAgent'
 import {
   executeAssistantAction,
@@ -117,6 +118,8 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   const currentSessionId = useSyncExternalStore(subscribeChat, getCurrentSessionId, getCurrentSessionId)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
+  /** 「清空对话」的红色确认弹窗：一点即清太容易误触 */
+  const [clearOpen, setClearOpen] = useState(false)
   /** 正在等模型回复的那条占位消息 */
   const [pendingId, setPendingId] = useState<string | null>(null)
   /** 正在写入 / 撤销的卡片："消息id:序号" */
@@ -524,8 +527,8 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
       <div
         className={
           compact
-            ? 'min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4'
-            : 'flex-1 space-y-3 py-4'
+            ? 'min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4'
+            : 'flex-1 space-y-4 py-4'
         }
       >
         {!configured && (
@@ -576,7 +579,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             return (
               <div key={item.id} className="flex flex-col items-end gap-1.5">
                 {item.content.trim() !== '' && (
-                  <p className="m-0 max-w-[85%] whitespace-pre-wrap rounded-xl bg-brand/15 px-3 py-2 text-sm text-fg">
+                  <p className="m-0 max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-brand/15 px-3.5 py-2 text-sm text-fg">
                     {item.content}
                   </p>
                 )}
@@ -605,9 +608,9 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             )
           }
           return (
-            <div key={item.id} className="flex flex-col items-start gap-1">
+            <div key={item.id} className="flex flex-col items-start gap-1.5">
               {((item.steps && item.steps.length > 0) || loading) && (
-                <div className="w-full overflow-hidden rounded-xl border border-line bg-surface-2/70">
+                <div className="w-full overflow-hidden rounded-2xl border border-line/70 bg-surface-2/60">
                   <div className="flex items-center gap-2 border-b border-line px-2.5 py-1.5 text-[11px] text-muted">
                     {loading ? (
                       <AssistantWorking
@@ -658,10 +661,10 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
               )}
               {!loading && item.content !== '' && (
                 <div
-                  className={`max-w-[92%] whitespace-pre-wrap rounded-xl px-3 py-2 text-sm ${
+                  className={`max-w-[92%] whitespace-pre-wrap rounded-2xl rounded-bl-md border px-3.5 py-2.5 text-sm leading-relaxed ${
                     item.error
-                      ? 'border border-danger/40 bg-danger/10 text-fg'
-                      : 'bg-surface text-fg'
+                      ? 'border-danger/40 bg-danger/10 text-fg'
+                      : 'border-line bg-surface text-fg'
                   }`}
                 >
                   {item.content}
@@ -878,9 +881,10 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           <div className="mt-2 flex items-center justify-between gap-2">
             <button
               type="button"
-              onClick={() => clearChat()}
-              className="text-[11px] text-muted transition-colors hover:text-danger"
+              onClick={() => setClearOpen(true)}
+              className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-danger/40 px-2.5 py-1 text-[11px] text-danger transition-colors hover:bg-danger/10 active:scale-[0.97]"
             >
+              <Icon name="trash" className="h-3 w-3 shrink-0" />
               {t('assistant.clear')}
             </button>
             <div className="flex shrink-0 items-center gap-2 text-[11px] text-muted">
@@ -1045,6 +1049,20 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             </ul>
           )}
         </Modal>
+      )}
+
+      {clearOpen && (
+        <ConfirmDialog
+          title={t('assistant.clearTitle')}
+          description={t('assistant.clearDesc')}
+          confirmLabel={t('assistant.clear')}
+          tone="danger"
+          onConfirm={() => {
+            clearChat()
+            setClearOpen(false)
+          }}
+          onCancel={() => setClearOpen(false)}
+        />
       )}
     </div>
   )

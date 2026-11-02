@@ -19,6 +19,7 @@ export default function DayNav({
   labels,
   leading,
   trailing,
+  inset = true,
 }: {
   dayKey: string
   onChange: (next: string) => void
@@ -28,12 +29,23 @@ export default function DayNav({
   leading?: ReactNode
   /** 右侧入口；窄屏时整体换到下一行，不挤日期 */
   trailing?: ReactNode
+  /**
+   * 是否为页面第一个元素。默认是：用负外边距抵掉容器 p-4，铺到边缘、顶到顶。
+   * 放在标题等其它内容后面时传 false，否则负上边距会把前面的按钮盖住。
+   */
+  inset?: boolean
 }) {
   const { t } = useI18n()
   const isToday = dayKey === todayKey()
 
   return (
-    <div className="sticky top-0 z-20 -mx-4 -mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 bg-bg/95 px-4 pb-2 pt-3 backdrop-blur">
+    <div
+      className={[
+        'sticky top-0 z-20 flex flex-wrap items-center gap-x-2 gap-y-1 bg-bg/95 px-4 backdrop-blur',
+        '-mx-4',
+        inset ? '-mt-4 pb-2 pt-3' : 'pb-2 pt-2',
+      ].join(' ')}
+    >
       {leading && <div className="flex shrink-0 items-center">{leading}</div>}
 
       {/* 日期控件单独收进一个圆角矩形里，和信息更细的日期内容配在一起 */}

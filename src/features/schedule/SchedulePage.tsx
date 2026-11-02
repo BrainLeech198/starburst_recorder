@@ -1,5 +1,5 @@
 /**
- * 日程页：左边这一天的安排，右边（下方）是长期在用的定期任务。
+ * 日程页：上面是这一天的安排，下面是长期在用的定期任务。
  *
  * 一次性日程和定期任务共用一条时间轴：定期任务不预先展开成很多条记录，
  * 每个日期现场算「今天该不该做」，所以改一次周几，过去的勾也不会跟着变。
@@ -16,9 +16,10 @@ import EmptyState from '@/shared/ui/EmptyState'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import DayNav from '@/shared/ui/DayNav'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
-import { NAV_BACK_BUTTON, ROW_ACTION, SOLID_SMALL_BUTTON } from '@/shared/ui/buttonStyles'
+import { ROW_ACTION, SOLID_SMALL_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
+import ViewTabs from '@/features/calendar/ViewTabs'
 import ScheduleDialog from './ScheduleDialog'
 import {
   donePatch,
@@ -118,22 +119,19 @@ export default function SchedulePage() {
         </div>
       </header>
 
+      <ViewTabs active="schedule" dayKey={dayKey} />
+
       <DayNav
         dayKey={dayKey}
         onChange={goDay}
         onPick={() => setPickerOpen(true)}
+        inset={false}
         labels={{
           prev: t('health.prevDay'),
           next: t('health.nextDay'),
           pick: t('health.pickDate'),
           today: t('health.backToToday'),
         }}
-        leading={
-          <Link to={`/calendar?month=${dayKey.slice(0, 7)}`} className={NAV_BACK_BUTTON}>
-            <Icon name="back" className="h-3.5 w-3.5 shrink-0" />
-            {t('nav.calendar')}
-          </Link>
-        }
       />
 
       <h2 className="mb-2 mt-3 flex items-center gap-2 text-xs font-medium text-muted">
