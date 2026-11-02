@@ -22,6 +22,7 @@ import type {
 import type { DiaryStore, BackupData, BackupSections, ImportStats, SearchResults, DayActivity } from './store'
 import { zeroStats } from './store'
 import { cleanTags } from './normalize'
+import { searchRows } from '@/core/search/match'
 import { newCode, newId } from '@/core/utils/id'
 import { formatClock } from '@/core/utils/dateKey'
 
@@ -302,50 +303,35 @@ export const dexieStore: DiaryStore = {
     }
   },
 
-  async searchRecords(keyword): Promise<SearchResults> {
-    const [entries, stamps, finance, sleeps] = await Promise.all([
-      db.diaryEntries.filter((item) => item.deletedAt === null).toArray(),
-      db.diaryStamps.filter((item) => item.deletedAt === null).toArray(),
-      db.financeEntries.filter((item) => item.deletedAt === null).toArray(),
-      db.healthSleeps.filter((item) => item.deletedAt === null).toArray(),
+  async searchRecords(keyword, categoryIds): Promise<SearchResults> {
+    const [
+      entries,
+      stamps,
+      finance,
+      sleeps,
+      intakes,
+      trainings,
+      schedules,
+      foods,
+      meals,
+      presets,
+    ] = await Promise.all([
+      db.diaryEntries.toArray(),
+      db.diaryStamps.toArray(),
+      db.financeEntries.toArray(),
+      db.healthSleeps.toArray(),
+      db.healthIntakes.toArray(),
+      db.healthTrainings.toArray(),
+      db.schedules.toArray(),
+      db.healthFoods.toArray(),
+      db.healthMeals.toArray(),
+      db.diaryPresets.toArray(),
     ])
-    const tags = collectTags([
-      ...entries.map((item) => item.tags),
-      ...stamps.map((item) => item.tags),
-    ])
-    const raw = keyword.trim()
-    if (raw === '') return { entries: [], stamps: [], finance: [], sleeps: [], tags }
-    const needle = raw.toLowerCase()
-    const byTag = raw.startsWith('#')
-    const tagNeedle = byTag ? needle.slice(1) : needle
-    const hit = (texts: string[], rowTags: string[]) => {
-      if (byTag) return rowTags.some((tag) => tag.toLowerCase().includes(tagNeedle))
-      return (
-        texts.some((value) => value.toLowerCase().includes(needle)) ||
-        rowTags.some((tag) => tag.toLowerCase().includes(needle))
-      )
-    }
-    return {
-      entries: entries
-        .filter((item) => hit([item.content], item.tags))
-        .sort((a, b) => b.dateKey.localeCompare(a.dateKey) || b.createdAt - a.createdAt),
-      stamps: stamps
-        .filter((item) => hit([item.content], item.tags))
-        .sort(
-          (a, b) =>
-            b.dateKey.localeCompare(a.dateKey) || b.time.localeCompare(a.time) || b.createdAt - a.createdAt,
-        ),
-      finance: finance
-        .filter((item) => hit([item.name, item.note, item.category], []))
-        .sort(
-          (a, b) =>
-            b.dateKey.localeCompare(a.dateKey) || b.time.localeCompare(a.time) || b.createdAt - a.createdAt,
-        ),
-      sleeps: sleeps
-        .filter((item) => hit([item.note], []))
-        .sort((a, b) => b.dateKey.localeCompare(a.dateKey)),
-      tags,
-    }
+    return searchRows(
+      { entries, stamps, finance, sleeps, intakes, trainings, schedules, foods, meals, presets },
+      keyword,
+      categoryIds,
+    )
   },
 
   async activityBetween(from, to): Promise<DayActivity[]> {
@@ -923,20 +909,6 @@ export const dexieStore: DiaryStore = {
   async purgeTrashedSchedules() {
     await db.schedules.filter((item) => item.deletedAt !== null).delete()
   },
-}
-
-/**
- * 汇总库里用到的标签：按出现次数倒序，同次数按名称排。
- * 只做展示用，不单独建标签表——标签跟着记录走，删记录就自然消失。
- */
-function collectTags(lists: string[][]): string[] {
-  const counts = new Map<string, number>()
-  for (const tags of lists) {
-    for (const tag of tags) counts.set(tag, (counts.get(tag) ?? 0) + 1)
-  }
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'zh'))
-    .map(([tag]) => tag)
 }
 
 /**

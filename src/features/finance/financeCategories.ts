@@ -5,6 +5,7 @@
  * 这里只管内置的那批，标签走 i18n，页面通过 `categoryKey` 取。
  */
 import type { FinanceKind } from '@/core/db/schema'
+import { MESSAGES } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 
 export interface FinanceCategory {
@@ -38,4 +39,24 @@ export function categoriesOf(kind: FinanceKind): FinanceCategory[] {
 /** 分类 id → i18n key；空串或不认识的 id 都退回「未分类」 */
 export function categoryKey(id: string): MessageKey {
   return FINANCE_CATEGORIES.find((item) => item.id === id)?.label ?? 'finance.uncategorized'
+}
+
+/** 一个文案 key 在全部语言里的写法，去重 */
+function labelsInAllLocales(key: MessageKey): string[] {
+  return [...new Set(Object.values(MESSAGES).map((table) => table[key]).filter(Boolean))]
+}
+
+/**
+ * 关键词对上的分类 id，给全局搜索用。
+ *
+ * 库里只存 id，界面上看到的是各语言的译名，所以搜索也不能拿 id 比字符串：
+ * 把九种语言的译名都过一遍，切哪种界面语言搜「餐饮 / Food / 食事」都是同一批记录。
+ * 反过来说，直接敲 `food` 这种库里的 id 是搜不到的，那不该是用户要记的东西。
+ */
+export function categoryIdsFor(keyword: string): string[] {
+  const needle = keyword.trim().toLowerCase()
+  if (needle === '' || needle.startsWith('#')) return []
+  return FINANCE_CATEGORIES.filter((item) =>
+    labelsInAllLocales(item.label).some((label) => label.toLowerCase().includes(needle)),
+  ).map((item) => item.id)
 }

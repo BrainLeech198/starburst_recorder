@@ -63,7 +63,7 @@ export interface BackupData {
 }
 
 /**
- * 全局搜索的结果：只带四类记录，按日期倒序。
+ * 全局搜索的结果：十类记录，按日期倒序；没有日期的库表（食物 / 套餐 / 预设）按名称排。
  * `tags` 是库里在用的全部标签（回收站里的不算），给筛选条用。
  */
 export interface SearchResults {
@@ -71,6 +71,12 @@ export interface SearchResults {
   stamps: DiaryStamp[]
   finance: FinanceEntry[]
   sleeps: HealthSleep[]
+  intakes: HealthIntake[]
+  trainings: HealthTraining[]
+  schedules: ScheduleItem[]
+  foods: HealthFood[]
+  meals: HealthMeal[]
+  presets: DiaryPreset[]
   tags: string[]
 }
 
@@ -226,12 +232,14 @@ export interface DiaryStore {
   /** 整库导出：日记、健康、经济，连回收站里的都在内 */
   exportAllData(): Promise<BackupData>
   /**
-   * 全局搜索：日记、随记、收支、睡眠，回收站里的不算。
+   * 全局搜索：日记、随记、收支、睡眠、摄入、训练、日程、食物库、套餐、预设，
+   * 回收站里的不算。匹配规则见 `core/search/match.ts`。
    *
    * 关键词为空时只回标签列表；以 `#` 开头的关键词只按标签精确匹配。
-   * 匹配范围：正文 / 名称 / 备注 / 标签，忽略大小写。
+   * `categoryIds` 是调用方把关键词对到收支分类的结果——库里只存分类 id，
+   * 翻译属于界面层的事，存储层不认文案，只按 id 精确比对。
    */
-  searchRecords(keyword: string): Promise<SearchResults>
+  searchRecords(keyword: string, categoryIds?: string[]): Promise<SearchResults>
   /**
    * 日期区间（含首尾）内每天记了多少条；只回有记录的日子，按日期升序。
    * 日历的月格子按这个结果混色，不读正文与图片。

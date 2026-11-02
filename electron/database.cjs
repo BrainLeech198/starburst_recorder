@@ -1505,45 +1505,102 @@ function createDatabase(file) {
   }
 
   /**
-   * 全局搜索：日记、随记、收支、睡眠，回收站里的不算。
-   * 关键词为空只回标签列表；以 `#` 开头只按标签匹配；其余按正文 / 名称 / 备注 / 标签，忽略大小写。
+   * 全局搜索，十类记录一起过，回收站里的不算。
+   *
+   * 规则抄自 `src/core/search/match.ts`（那边是浏览器 / 安卓用的纯函数版）：
+   * 关键词为空只回标签列表；以 `#` 开头只按标签精确匹配；其余按各组的文本字段
+   * 做子串匹配，忽略大小写。`categoryIds` 是调用方翻译好的收支分类 id，
+   * 主进程拿不到文案表，所以只按 id 精确比对。
+   * 两边跑偏由 `src/core/db/desktopSearch.test.ts` 盯住。
    */
-  function searchRecords(keyword) {
-    const entries = q.everyEntry.all().map(entryRow).filter((row) => row.deletedAt === null)
-    const stamps = q.everyStamp.all().map(stampRow).filter((row) => row.deletedAt === null)
-    const finance = q.everyFinance.all().map(financeRow).filter((row) => row.deletedAt === null)
-    const sleeps = q.everySleep.all().map(sleepRow).filter((row) => row.deletedAt === null)
+  function searchRecords(keyword, categoryIds) {
+    const live = (rows) => rows.filter((row) => row.deletedAt === null)
+    const entries = live(q.everyEntry.all().map(entryRow))
+    const stamps = live(q.everyStamp.all().map(stampRow))
+    const finance = live(q.everyFinance.all().map(financeRow))
+    const sleeps = live(q.everySleep.all().map(sleepRow))
+    const intakes = live(q.everyIntake.all().map(intakeRow))
+    const trainings = live(q.everyTraining.all().map(trainingRow))
+    const schedules = live(q.everySchedule.all().map(scheduleRow))
+    const foods = live(q.everyFood.all().map(foodRow))
+    const meals = live(q.everyMeal.all().map(mealRow))
+    const presets = live(q.everyPreset.all().map(presetRow))
+
     const tags = collectTags([
       ...entries.map((row) => row.tags || []),
       ...stamps.map((row) => row.tags || []),
     ])
+    const empty = {
+      entries: [],
+      stamps: [],
+      finance: [],
+      sleeps: [],
+      intakes: [],
+      trainings: [],
+      schedules: [],
+      foods: [],
+      meals: [],
+      presets: [],
+      tags,
+    }
     const raw = String(keyword ?? '').trim()
-    if (raw === '') return { entries: [], stamps: [], finance: [], sleeps: [], tags }
+    if (raw === '') return empty
     const needle = raw.toLowerCase()
     const byTag = raw.startsWith('#')
-    const tagNeedle = byTag ? needle.slice(1) : needle
+    const tagNeedle = byTag ? needle.slice(1).trim() : needle
+    if (byTag && tagNeedle === '') return empty
+    const ids = Array.isArray(categoryIds) ? categoryIds.map(String) : []
+    const text = (value) => String(value ?? '').toLowerCase()
+    const tagsHit = (rowTags) => {
+      const list = rowTags || []
+      return byTag
+        ? list.some((tag) => String(tag).toLowerCase() === tagNeedle)
+        : list.some((tag) => String(tag).toLowerCase().includes(needle))
+    }
     const hit = (texts, rowTags) => {
-      if (byTag) return rowTags.some((tag) => tag.toLowerCase().includes(tagNeedle))
-      return (
-        texts.some((value) => String(value || '').toLowerCase().includes(needle)) ||
-        rowTags.some((tag) => tag.toLowerCase().includes(needle))
-      )
+      if (byTag) return tagsHit(rowTags)
+      return texts.some((value) => text(value).includes(needle)) || tagsHit(rowTags)
     }
     const desc = (a, b) => b.dateKey.localeCompare(a.dateKey)
+    const byTimeDesc = (a, b) => String(b.time ?? '').localeCompare(String(a.time ?? ''))
+    const byCreatedDesc = (a, b) => b.createdAt - a.createdAt
+    const byName = (a, b) => String(a.name ?? '').localeCompare(String(b.name ?? ''), 'zh')
     return {
-      entries: entries
-        .filter((row) => hit([row.content], row.tags || []))
-        .sort((a, b) => desc(a, b) || b.createdAt - a.createdAt),
-      stamps: stamps
-        .filter((row) => hit([row.content], row.tags || []))
-        .sort((a, b) => desc(a, b) || b.time.localeCompare(a.time) || b.createdAt - a.createdAt),
-      finance: finance
-        .filter((row) => hit([row.name, row.note, row.category], []))
-        .sort((a, b) => desc(a, b) || b.time.localeCompare(a.time) || b.createdAt - a.createdAt),
-      sleeps: sleeps
-        .filter((row) => hit([row.note], []))
-        .sort(desc),
       tags,
+      entries: entries
+        .filter((row) => hit([row.content], row.tags))
+        .sort((a, b) => desc(a, b) || byCreatedDesc(a, b)),
+      stamps: stamps
+        .filter((row) => hit([row.content], row.tags))
+        .sort((a, b) => desc(a, b) || byTimeDesc(a, b) || byCreatedDesc(a, b)),
+      finance: finance
+        .filter(
+          (row) => hit([row.name, row.note]) || (!byTag && ids.includes(String(row.category ?? ''))),
+        )
+        .sort((a, b) => desc(a, b) || byTimeDesc(a, b) || byCreatedDesc(a, b)),
+      sleeps: sleeps.filter((row) => hit([row.note])).sort(desc),
+      intakes: intakes
+        .filter((row) =>
+          hit([row.name, ...(row.components || []).map((part) => part.name)]),
+        )
+        .sort((a, b) => desc(a, b) || byTimeDesc(a, b) || byCreatedDesc(a, b)),
+      trainings: trainings
+        .filter((row) => {
+          const exercises = row.exercises || []
+          return hit([
+            row.title,
+            row.note,
+            ...exercises.map((exercise) => exercise.name),
+            ...exercises.map((exercise) => exercise.note),
+          ])
+        })
+        .sort((a, b) => desc(a, b) || byTimeDesc(a, b) || byCreatedDesc(a, b)),
+      schedules: schedules
+        .filter((row) => hit([row.title, row.note]))
+        .sort((a, b) => desc(a, b) || byTimeDesc(a, b) || byCreatedDesc(a, b)),
+      foods: foods.filter((row) => hit([row.name])).sort(byName),
+      meals: meals.filter((row) => hit([row.name])).sort(byName),
+      presets: presets.filter((row) => hit([row.name])).sort(byName),
     }
   }
 
@@ -1864,7 +1921,7 @@ function createDatabase(file) {
       intakes: Number(q.countIntakes.get().n),
     }),
     exportAllData: () => exportAll(),
-    searchRecords: (keyword) => searchRecords(keyword),
+    searchRecords: (keyword, categoryIds) => searchRecords(keyword, categoryIds),
     activityBetween: (from, to) => {
       const map = new Map()
       const bump = (dateKey, field, times = 1) => {
