@@ -44,6 +44,14 @@ Android：`npm run build && npx cap sync android`，再到 `android/` 执行 `gr
 - **发版期间由发版方临时占用** `package.json`、`package-lock.json`、`site/`、`docs/PACKAGING-AND-RELEASE.md`、`docs/PROJECT-NOTES.md`；另一位 AI 要改这些，先等发版收尾或先和用户确认，避免版本号与更新说明互相覆盖。
 - 发版期间工作区里别人写完的改动会被一起打进安装包；不确定是否完成的改动，先在 `CODEBUDDY.md` 或对话里说明状态，不要半截提交。
 
+### 并行提交三条硬规矩
+
+> 起因：0.11.1 体检当天两路 AI 交错 `git add` / `commit` / `reset`，一路的 `reset --soft` 把另一路刚生成的提交从分支上摘掉了。命令本身没错，错在同一时刻有两方在动 HEAD。
+
+1. **同一时刻只有一方可以提交。** 提交前确认另一路没在收尾；拿不准就先问用户，别赌。
+2. **提交前先看 `git log -1`。** 哈希不是自己上次看到的那个，说明 HEAD 已经被别人推进过，重新对齐范围再动。
+3. **共享分支上禁止 `reset` / `stash`。** 要只提自己那几个文件，一律用 pathspec 形式：`git commit -m "..." -- <路径1> <路径2>`——它绕开索引里别人 staged 的内容，也不会改动任何人的 HEAD。
+
 ## 技术底线
 
 - 一套 React 源码同时进 Electron 与 Capacitor；桌面用 SQLite，浏览器 / Android 用 Dexie + IndexedDB。
@@ -63,3 +71,10 @@ Android：`npm run build && npx cap sync android`，再到 `android/` 执行 `gr
 
 至少跑一遍 `npm test`、`npm run typecheck`、`npm run lint`。
 涉及打包或发版时，按 `docs/PACKAGING-AND-RELEASE.md` §4 的清单逐项核对。
+
+## AI 协作与设置页规范
+
+- Vibe Coding 的持久规则、验收标准、小步实施与独立复核：`D:\File\skills\vibe-coding-guardrails\SKILL.md`。涉及 AI 辅助代码改动时先遵循该流程；聊天记录不作为唯一规范来源。
+- 设置页排版约定：`D:\File\skills\settings-layout\SKILL.md`。新增或调整设置界面时遵循紧凑偏好项左右排布、复杂表单上下排布、分组标题与留白层级，并检查窄屏可读性。
+- 规则副本存于本机 `D:\File\skills`，便于复用；本仓库只记录路径与项目约束，不把本机技能目录纳入版本控制。
+- 全量整改按模块分批：先盘点现状与风险，再逐批提出可追踪的改动单元；每批保留最小差异并说明验证。不得覆盖工作区中其他协作者的未提交改动，测试脚本不得为通过而弱化。

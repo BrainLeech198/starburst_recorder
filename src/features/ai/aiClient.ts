@@ -6,13 +6,17 @@
  *   2. 浏览器开发 → 走 vite 的 /__ai 转发（目标地址放在请求头里，改地址不用重启 dev server）
  *   3. 其它环境   → 浏览器直连兜底
  *
+ * 三条路都带期限：服务商的连接挂住时，界面不能一直转圈。
+ * 调用方还能传一个 AbortSignal（组件卸载、用户点停），桌面端靠流水号转成一次 ai:cancel。
+ *
  * 另外这里负责把服务商的原始错误翻译成人话——401、404、429 对新用户来说全是天书。
  */
 import { desktopBridge } from '@/platform/desktop'
-import type { ChatContentPart, ChatRequest, ChatTransportResult } from '@/platform/desktop'
+import type { ChatContentPart, ChatRequest, ChatTransportResult, DesktopBridge } from '@/platform/desktop'
 import { translate } from '@/shared/i18n/context'
 import { logInfo, logWarn } from '@/shared/log/log'
 import type { AiConfig } from './aiConfig'
+import { AI_CHAT_TIMEOUT_MS, AI_MODELS_TIMEOUT_MS, startAiDeadline } from './aiDeadline'
 
 /** 地址可能带结尾斜杠，统一拼成 chat/completions */
 export function chatUrl(baseUrl: string) {
@@ -45,10 +49,47 @@ function authHeaders(apiKey: string) {
   }
 }
 
+/**
+ * 这一趟请求的流水号，主进程靠它认「取消哪一次」。
+ * 不用 crypto.randomUUID：自定义 app:// 协议下不保证算安全上下文，那里可能压根没有这个 API；
+ * 时间戳加自增够保证本机唯一，偶然撞号的后果最多是取消错一个正在飞的请求。
+ */
+let aiSequence = 0
+function nextRequestId() {
+  aiSequence += 1
+  return `${Date.now().toString(36)}-${aiSequence.toString(36)}`
+}
+
+/**
+ * 桌面端的请求交给主进程发，顺带把渲染层的 AbortSignal 翻成一次 ai:cancel。
+ *
+ * 期限归主进程—— socket 在它手里，这边再挂一个定时器只会多一处要维护的数。
+ * 调用方已经取消时不骗主进程去发一个没用的请求，就地按「已取消」交回去。
+ */
+async function viaDesktop(
+  bridge: DesktopBridge,
+  signal: AbortSignal | undefined,
+  run: (requestId: string) => Promise<ChatTransportResult>,
+): Promise<ChatTransportResult> {
+  if (signal?.aborted) {
+    return { ok: false, status: 0, body: '', ms: 0, cancelled: true, error: '请求已取消' }
+  }
+  const requestId = nextRequestId()
+  const abort = () => {
+    void bridge.cancelAi(requestId)
+  }
+  signal?.addEventListener('abort', abort, { once: true })
+  try {
+    return await run(requestId)
+  } finally {
+    signal?.removeEventListener('abort', abort)
+  }
+}
+
 /** 发一次请求，把结果记一条日志再返回；桌面端由主进程记，不在这里重复 */
-export async function chat(request: ChatRequest): Promise<ChatTransportResult> {
+export async function chat(request: ChatRequest, signal?: AbortSignal): Promise<ChatTransportResult> {
   const bridge = desktopBridge()
-  if (bridge) return bridge.chat(request)
+  if (bridge) return viaDesktop(bridge, signal, (requestId) => bridge.chat(request, requestId))
 
   const headers = authHeaders(request.apiKey)
   const bodyObj: Record<string, unknown> = { model: request.model, messages: request.messages, stream: false }
@@ -64,6 +105,7 @@ export async function chat(request: ChatRequest): Promise<ChatTransportResult> {
   if (request.params) Object.assign(bodyObj, request.params)
   const body = JSON.stringify(bodyObj)
   const started = Date.now()
+  const deadline = startAiDeadline(signal, AI_CHAT_TIMEOUT_MS)
 
   let result: ChatTransportResult
   try {
@@ -72,10 +114,16 @@ export async function chat(request: ChatRequest): Promise<ChatTransportResult> {
         method: 'POST',
         headers: { ...headers, 'x-ai-target': chatUrl(request.baseUrl) },
         body,
+        signal: deadline.signal,
       })
       result = (await response.json()) as ChatTransportResult
     } else {
-      const response = await fetch(chatUrl(request.baseUrl), { method: 'POST', headers, body })
+      const response = await fetch(chatUrl(request.baseUrl), {
+        method: 'POST',
+        headers,
+        body,
+        signal: deadline.signal,
+      })
       result = {
         ok: response.ok,
         status: response.status,
@@ -89,8 +137,11 @@ export async function chat(request: ChatRequest): Promise<ChatTransportResult> {
       status: 0,
       body: '',
       ms: Date.now() - started,
-      error: (error as Error).message,
+      cancelled: deadline.why() === 'cancelled',
+      error: deadline.why() === 'timeout' ? '等待超时' : (error as Error).message,
     }
+  } finally {
+    deadline.done()
   }
 
   logChatResult(request.model, result)
@@ -101,6 +152,10 @@ export async function chat(request: ChatRequest): Promise<ChatTransportResult> {
 function logChatResult(model: string, result: ChatTransportResult) {
   if (result.ok) {
     logInfo('AI', 'ai.chat.done', { model, status: result.status, ms: result.ms })
+    return
+  }
+  if (result.cancelled) {
+    logInfo('AI', 'ai.chat.cancelled', { model, ms: result.ms })
     return
   }
   logWarn('AI', 'ai.chat.failed', {
@@ -170,6 +225,7 @@ export function parseModelList(body: string): string[] {
 export async function listModels(
   baseUrl: string,
   apiKey: string,
+  signal?: AbortSignal,
 ): Promise<ModelListResult> {
   const url = modelsUrl(baseUrl)
   const bridge = desktopBridge()
@@ -177,13 +233,19 @@ export async function listModels(
 
   let result: ChatTransportResult
   if (bridge) {
-    result = await bridge.models({ baseUrl, apiKey })
+    result = await viaDesktop(bridge, signal, (requestId) =>
+      bridge.models({ baseUrl, apiKey }, requestId),
+    )
   } else {
+    const deadline = startAiDeadline(signal, AI_MODELS_TIMEOUT_MS)
     try {
       const headers = authHeaders(apiKey)
       const response = import.meta.env.DEV
-        ? await fetch('/__ai/models', { headers: { ...headers, 'x-ai-target': url } })
-        : await fetch(url, { headers })
+        ? await fetch('/__ai/models', {
+            headers: { ...headers, 'x-ai-target': url },
+            signal: deadline.signal,
+          })
+        : await fetch(url, { headers, signal: deadline.signal })
       result = import.meta.env.DEV
         ? ((await response.json()) as ChatTransportResult)
         : {
@@ -198,11 +260,18 @@ export async function listModels(
         status: 0,
         body: '',
         ms: Date.now() - started,
-        error: (error as Error).message,
+        cancelled: deadline.why() === 'cancelled',
+        error: deadline.why() === 'timeout' ? '等待超时' : (error as Error).message,
       }
+    } finally {
+      deadline.done()
     }
   }
 
+  if (result.cancelled) {
+    // 调用方自己按停的，不用反过来告诉他「连不上」
+    return { ok: false, models: [], error: '', ms: result.ms }
+  }
   if (!result.ok) {
     logWarn('AI', 'ai.models.failed', { status: result.status, ms: result.ms })
     return { ok: false, models: [], error: modelsHint(result, baseUrl), ms: result.ms }

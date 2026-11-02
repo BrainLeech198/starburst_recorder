@@ -63,16 +63,30 @@ export interface ChatTransportResult {
   ms: number
   /** 没连上这类本地错误的原因（status 为 0 时才有） */
   error?: string
+  /**
+   * 这一趟是被调用方取消的（组件卸载、用户点停），不是服务商出了问题。
+   * 只有主进程那条路会带；超时不带这个标记，走 error 说明。
+   */
+  cancelled?: boolean
 }
 
 export interface DesktopBridge {
   isDesktop: boolean
   setSize: (width: number, height: number) => Promise<boolean>
   getSize: () => Promise<{ width: number; height: number } | null>
-  /** 从主进程发 AI 请求：绕开 CORS，key 也不经过渲染进程的网络栈 */
-  chat: (request: ChatRequest) => Promise<ChatTransportResult>
+  /**
+   * 从主进程发 AI 请求：绕开 CORS，key 也不经过渲染进程的网络栈。
+   * requestId 只是这一趟的流水号，主进程靠它认「取消谁」，不进请求体。
+   * AbortSignal 过不去 IPC，所以取消要另走 cancelAi。
+   */
+  chat: (request: ChatRequest, requestId: string) => Promise<ChatTransportResult>
   /** 从主进程拉服务商的模型列表（GET {baseUrl}/models），同样绕开 CORS */
-  models: (request: { baseUrl: string; apiKey: string }) => Promise<ChatTransportResult>
+  models: (
+    request: { baseUrl: string; apiKey: string },
+    requestId: string,
+  ) => Promise<ChatTransportResult>
+  /** 让主进程掐掉还在飞的 AI 请求；已经不在飞了返回 false */
+  cancelAi: (requestId: string) => Promise<boolean>
   /** 数据实际落盘的位置（桌面程序里才有，浏览器里 null） */
   dataPath: () => Promise<string | null>
   /** 用系统文件管理器打开那个目录，返回是否成功 */

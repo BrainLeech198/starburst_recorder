@@ -5,9 +5,11 @@ contextBridge.exposeInMainWorld('desktop', {
   isDesktop: true,
   setSize: (width, height) => ipcRenderer.invoke('window:set-size', width, height),
   getSize: () => ipcRenderer.invoke('window:get-size'),
-  // 由主进程代发，网页那边不用操心跨域
-  chat: (request) => ipcRenderer.invoke('ai:chat', request),
-  models: (request) => ipcRenderer.invoke('ai:models', request),
+  // 由主进程代发，网页那边不用操心跨域。
+  // requestId 是渲染层生成的流水号，只用来「取消这一次」，不进请求体。
+  chat: (request, requestId) => ipcRenderer.invoke('ai:chat', request, requestId),
+  models: (request, requestId) => ipcRenderer.invoke('ai:models', request, requestId),
+  cancelAi: (requestId) => ipcRenderer.invoke('ai:cancel', requestId),
   dataPath: () => ipcRenderer.invoke('data:path'),
   openDataFolder: () => ipcRenderer.invoke('data:open-folder'),
   // 本地数据库只有这两个动作：按白名单调方法、拿文件路径

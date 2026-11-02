@@ -21,6 +21,7 @@ const fs = require('node:fs')
 const os = require('node:os')
 const { Readable } = require('node:stream')
 const { createDatabase } = require('./database.cjs')
+const { isAllowedDownloadUrl, isInstallerName, resolveInstallerPath, INSTALLER_OR_PARTIAL } = require('./updateGuards.cjs')
 const log = require('./log.cjs')
 
 /** 窗口不能小于这个尺寸，免得版式被压坏 */
@@ -351,36 +352,47 @@ function aiHeaders(apiKey) {
   }
 }
 
+/**
+ * 每一趟 AI 请求都带期限与可取消的流水号，实现在 `aiRequest.cjs`：
+ * 那边是不依赖 electron 的纯逻辑，拿假 fetch 就能把「超时 / 取消 / 不在飞表里留残项」跑一遍。
+ */
+const { CHAT_TIMEOUT_MS, MODELS_TIMEOUT_MS, abortResult, cancelAiRequest, withAiRequest } =
+  require('./aiRequest.cjs')
+
+/** 渲染层卸载组件或用户点停时取消；请求已经不在了就返回 false */
+ipcMain.handle('ai:cancel', (_event, requestId) => cancelAiRequest(requestId))
+
 /** GET {baseUrl}/models：设置页的模型下拉靠它，失败就当没有，不影响手填 */
-ipcMain.handle('ai:models', async (_event, request) => {
-  const started = Date.now()
+ipcMain.handle('ai:models', async (_event, request, requestId) => {
   const baseUrl = String(request?.baseUrl ?? '').trim()
   if (!baseUrl) {
     return { ok: false, status: 0, body: '', ms: 0, error: '服务地址还没填' }
   }
 
-  try {
-    const response = await net.fetch(`${baseUrl.replace(/\/+$/, '')}/models`, {
-      headers: aiHeaders(request?.apiKey),
-    })
-    return {
-      ok: response.ok,
-      status: response.status,
-      body: await response.text(),
-      ms: Date.now() - started,
-    }
-  } catch (error) {
+  const outcome = await withAiRequest(requestId, MODELS_TIMEOUT_MS, (signal) =>
+    net.fetch(`${baseUrl.replace(/\/+$/, '')}/models`, { headers: aiHeaders(request?.apiKey), signal }),
+  )
+  if (outcome.aborted) return abortResult(outcome.aborted, outcome.ms)
+  if (outcome.error) {
     return {
       ok: false,
       status: 0,
       body: '',
-      ms: Date.now() - started,
-      error: String(error?.message ?? error),
+      ms: outcome.ms,
+      error: String(outcome.error?.message ?? outcome.error),
     }
+  }
+
+  const response = outcome.value
+  return {
+    ok: response.ok,
+    status: response.status,
+    body: await response.text(),
+    ms: outcome.ms,
   }
 })
 
-ipcMain.handle('ai:chat', async (_event, request) => {
+ipcMain.handle('ai:chat', async (_event, request, requestId) => {
   const started = Date.now()
   const baseUrl = String(request?.baseUrl ?? '').trim()
   const model = String(request?.model ?? '').trim()
@@ -405,16 +417,29 @@ ipcMain.handle('ai:chat', async (_event, request) => {
       Object.assign(requestBody, request.params)
     }
 
-    const response = await net.fetch(chatUrl(baseUrl), {
-      method: 'POST',
-      headers: aiHeaders(apiKey),
-      body: JSON.stringify(requestBody),
-    })
+    const outcome = await withAiRequest(requestId, CHAT_TIMEOUT_MS, (signal) =>
+      net.fetch(chatUrl(baseUrl), {
+        method: 'POST',
+        headers: aiHeaders(apiKey),
+        body: JSON.stringify(requestBody),
+        signal,
+      }),
+    )
+    if (outcome.aborted) {
+      const result = abortResult(outcome.aborted, outcome.ms)
+      if (result.cancelled) log.info('AI', `AI 请求已取消 | 模型 ${model} | 耗时 ${result.ms} ms`)
+      else log.warn('AI', `AI 请求超时 | 模型 ${model} | 等待 ${result.ms} ms 无响应`)
+      return result
+    }
+    if (outcome.error) throw outcome.error
+
+    const response = outcome.value
+    const body = await response.text()
     const result = {
       ok: response.ok,
       status: response.status,
-      body: await response.text(),
-      ms: Date.now() - started,
+      body,
+      ms: outcome.ms,
     }
     if (result.ok) {
       log.info('AI', `AI 请求完成 | 模型 ${model} | 状态 ${result.status} | 耗时 ${result.ms} ms`)
@@ -642,8 +667,11 @@ ipcMain.handle('update:check', async (_event, locale, channel) => {
 /** 下载安装包到「下载」目录；边下边写盘，进度用 update:progress 推给页面 */
 ipcMain.handle('update:download', async (event, url, fileName) => {
   try {
+    if (!isAllowedDownloadUrl(url)) return { ok: false, error: 'untrusted download url' }
     const dir = app.getPath('downloads')
-    const safe = String(fileName || 'starburst-update.bin').replace(/[/:*?"<>|\\]/g, '_')
+    const safe = String(fileName || '').replace(/[/:*?"<>|\\]/g, '_')
+    // 文件名也限死成我们自己的安装包形状：否则等于允许往「下载」目录里写任意文件
+    if (!isInstallerName(safe)) return { ok: false, error: 'unexpected installer file name' }
     const target = path.join(dir, safe)
 
     // 上一次已经下完整了就直接复用：用户拉起安装器后又关掉时，不必再下一遍
@@ -709,7 +737,11 @@ ipcMain.handle('app:open-external', async (_event, url) => {
  * 不退出的话，Inno Setup 会一直等旧进程释放文件，用户得自己再关一次。
  */
 ipcMain.handle('update:install', async (_event, filePath) => {
-  const failure = await shell.openPath(String(filePath))
+  // 只允许拉起「下载」目录里那个由我们自己下载并命名的安装包；
+  // 传别的路径等于把「点一下更新」变成「执行任意程序」
+  const installer = resolveInstallerPath(app.getPath('downloads'), filePath)
+  if (!installer) return false
+  const failure = await shell.openPath(installer)
   if (failure !== '') return false
   // 给安装程序一点启动时间，再退出，避免刚拉起就被结束
   setTimeout(() => app.quit(), 1200)
@@ -717,7 +749,7 @@ ipcMain.handle('update:install', async (_event, filePath) => {
 })
 
 /** 只删我们自己下载的安装包，别碰用户下载目录里的其它东西；.part 是下到一半的残留 */
-const UPDATE_INSTALLER = /^starburst-recorder-\d+\.\d+\.\d+-setup\.exe(\.part)?$/i
+const UPDATE_INSTALLER = INSTALLER_OR_PARTIAL
 
 async function removeUpdateInstallers() {
   const dir = app.getPath('downloads')
