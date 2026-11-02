@@ -367,12 +367,17 @@ export interface DiaryStore {
 
   /** 某个月的收支（按 dateKey 前 7 位），日期倒序、同一天按创建时间倒序 */
   financeOfMonth(monthKey: string): Promise<FinanceEntry[]>
+  /** 有收支记录的所有日期，日历上用来标「这天记过」 */
+  financeDays(): Promise<string[]>
   addFinance(entry: FinanceEntry): Promise<FinanceEntry>
   /** 整行更新已有收支；找不到 id 时按新增处理 */
   saveFinance(entry: FinanceEntry): Promise<FinanceEntry>
   /** 软删除：只打标记，可撤销 */
   removeFinance(id: string): Promise<void>
+  /** 批量软删除，返回实际改到的行数 */
+  removeFinances(ids: string[]): Promise<number>
   restoreFinance(id: string): Promise<void>
+  restoreFinances(ids: string[]): Promise<number>
   /** 回收站里的收支，按删除时间倒序 */
   trashedFinance(): Promise<FinanceEntry[]>
   /** 从回收站彻底删掉一条，不可恢复 */

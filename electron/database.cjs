@@ -946,6 +946,9 @@ function createDatabase(file) {
     financeOfMonth: db.prepare(
       'SELECT * FROM financeEntries WHERE dateKey LIKE ? AND deletedAt IS NULL ORDER BY dateKey DESC, createdAt DESC',
     ),
+    financeDays: db.prepare(
+      'SELECT DISTINCT dateKey FROM financeEntries WHERE deletedAt IS NULL',
+    ),
     activityEntries: db.prepare(
       'SELECT dateKey, COUNT(*) AS n FROM diaryEntries WHERE deletedAt IS NULL AND dateKey >= ? AND dateKey <= ? GROUP BY dateKey',
     ),
@@ -2031,14 +2034,19 @@ function createDatabase(file) {
     sleepOfDay: (dateKey) => sleepRow(q.sleepOfDay.get(dateKey)),
     sleepsBetween: (from, to) => q.sleepsBetween.all(from, to).map(sleepRow),
     financeOfMonth: (monthKey) => q.financeOfMonth.all(`${monthKey}%`).map(financeRow),
+    financeDays: () => q.financeDays.all().map((row) => row.dateKey),
     addFinance: (entry) => saveFinance(entry),
     saveFinance: (entry) => saveFinance(entry),
     removeFinance: (id) => {
       q.removeFinance.run(Date.now(), id)
     },
+    removeFinances: (ids) =>
+      modifyHealthRows('financeEntries', ids, 'deletedAt = ?', [Date.now()]),
     restoreFinance: (id) => {
       q.restoreFinance.run(id)
     },
+    restoreFinances: (ids) =>
+      modifyHealthRows('financeEntries', ids, 'deletedAt = NULL', []),
     trashedFinance: () => q.trashedFinance.all().map(financeRow),
     purgeFinance: (id) => {
       q.purgeFinance.run(id)

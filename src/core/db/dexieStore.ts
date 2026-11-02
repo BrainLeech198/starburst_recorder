@@ -836,6 +836,11 @@ export const dexieStore: DiaryStore = {
     )
   },
 
+  async financeDays(): Promise<string[]> {
+    const rows = await db.financeEntries.filter((entry) => entry.deletedAt === null).toArray()
+    return [...new Set(rows.map((entry) => entry.dateKey))]
+  },
+
   async addFinance(entry) {
     await db.financeEntries.add(entry)
     return entry
@@ -851,8 +856,18 @@ export const dexieStore: DiaryStore = {
     await db.financeEntries.update(id, { deletedAt: Date.now() })
   },
 
+  async removeFinances(ids) {
+    if (ids.length === 0) return 0
+    return db.financeEntries.where('id').anyOf(ids).modify({ deletedAt: Date.now() })
+  },
+
   async restoreFinance(id) {
     await db.financeEntries.update(id, { deletedAt: null })
+  },
+
+  async restoreFinances(ids) {
+    if (ids.length === 0) return 0
+    return db.financeEntries.where('id').anyOf(ids).modify({ deletedAt: null })
   },
 
   async trashedFinance(): Promise<FinanceEntry[]> {

@@ -1,24 +1,33 @@
 /**
- * 经济首页 = 月账本。
+ * 经济首页 = 月账本，交互向摄入页看齐。
  *
  * 一屏之内按「结余 → 记一笔 → 按天流水」排：
- *   - 月份进 URL，翻月和刷新都停在同一页
- *   - 顶部结余卡同时给出收入 / 支出，右侧就是记一笔
- *   - 流水按天折成一节，日头和收尾都带小计，长月份也好扫
+ *   - 时段进 URL，翻页和刷新都停在同一页；日 / 月 / 年随视角换单位
+ *   - 日视图的日期栏直接点开日历，记过的天标亮
+ *   - 记一笔 / 批量收进按钮条，批量和摄入一个套路：勾选 → 底部条 → 删除可撤销
+ *   - 整页左右滑就翻到上一个 / 下一个时段
+ *   - 单击一行先看详情，改金额走行内或详情里的编辑按钮
  *
  * 分类先用内置的那批，数据层只存分类 id；预算、账户、定期账单留到后面再加。
  */
 import EmptyState from '@/shared/ui/EmptyState'
+import RowCheckbox from '@/shared/ui/RowCheckbox'
 import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { FinanceEntry } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
-import { formatDate, formatMonthDay, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
+import { formatMonthDay, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
-import { SOLID_BUTTON, OUTLINE_BUTTON } from '@/shared/ui/buttonStyles'
+import BatchActions from '@/shared/ui/BatchActions'
+import ToolbarRow from '@/shared/ui/ToolbarRow'
+import TimeMeta from '@/shared/ui/TimeMeta'
+import DayNav from '@/shared/ui/DayNav'
+import { useBatchSelect } from '@/shared/ui/useBatchSelect'
+import { useDaySwipe } from '@/shared/ui/useDaySwipe'
+import { BAR_BUTTON, BAR_DANGER, SOLID_BUTTON, OUTLINE_BUTTON } from '@/shared/ui/buttonStyles'
 import Tab from '@/shared/ui/Tab'
 import { Icon } from '@/shared/ui/icons'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
@@ -31,11 +40,20 @@ import {
   summarizeFinance,
 } from './financeMath'
 import { categoryKey } from './financeCategories'
-import { exportAllData, financeOfMonth, removeFinance, restoreFinance } from './financeRepo'
+import {
+  exportAllData,
+  financeDays,
+  financeOfMonth,
+  removeFinance,
+  removeFinances,
+  restoreFinance,
+  restoreFinances,
+} from './financeRepo'
 import FinanceEntryDialog from './FinanceEntryDialog'
 import FinanceDetailDialog from './FinanceDetailDialog'
 import FinanceAiDialog from './FinanceAiDialog'
 import type { BackupData } from '@/core/db/store'
+import DatePickerDialog from '@/features/diary/DatePickerDialog'
 import RecordExportDialog from '@/features/records/RecordExportDialog'
 import { buildSingleRecordExport } from '@/features/records/recordExport'
 import {
@@ -119,7 +137,6 @@ export default function FinancePage() {
   const summary = summarizeFinance(rows)
   const days = groupFinanceByDay(rows)
   const slices = expenseByCategory(rows)
-  const isToday = dayKey === todayKey()
   const isCurrentYear = viewYear === currentYear
 
   // 近半年趋势：每月各查一次汇总，跨年也按真实月份排
@@ -138,6 +155,12 @@ export default function FinancePage() {
   const [dialog, setDialog] = useState<{ entry: FinanceEntry | null; date: string } | null>(null)
   /** 单击流水行打开的查看弹窗 */
   const [viewEntry, setViewEntry] = useState<FinanceEntry | null>(null)
+  /** 批量模式，状态机与摄入 / 日记共用 */
+  const batch = useBatchSelect()
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
+  /** 日视图的日期弹窗；打开时查一遍记过收支的天用来标亮 */
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [writtenDays, setWrittenDays] = useState<Set<string>>(new Set())
   const [aiOpen, setAiOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<FinanceEntry | null>(null)
   /** 挑选导出时取来的整库数据；非 null 就打开挑选弹窗 */
@@ -155,10 +178,16 @@ export default function FinancePage() {
     })
   }
 
-  /** 挑选导出：把本月流水全部勾上，交给通用弹窗 */
+  /** 挑选导出：批量模式勾了谁就预选谁，否则把当前时段流水全部勾上 */
   async function handleOpenExport() {
-    if (rows.length === 0) return
-    setExportInitial({ finance: rows.map((row) => row.id) })
+    const ids = batch.active ? batch.selected : rows.map((row) => row.id)
+    if (ids.length === 0) return
+    setExportInitial({ finance: ids })
+    setExportData(await exportAllData())
+  }
+
+  /** 批量条上的导出：先取整库数据，再打开挑选弹窗 */
+  async function handleBatchExport() {
     setExportData(await exportAllData())
   }
 
@@ -196,14 +225,18 @@ export default function FinancePage() {
   const monthFormatter = new Intl.DateTimeFormat(locale, { month: 'short' })
 
   function setMonth(next: string) {
+    // 换时段要退出批量：选中的 id 属于旧时段，留着会删到看不见的记录
+    batch.exit()
     setSearchParams({ month: next }, { replace: true })
   }
 
   function setDayKey(next: string) {
+    batch.exit()
     setSearchParams({ view: 'day', date: next }, { replace: true })
   }
 
   function setYear(next: number) {
+    batch.exit()
     setSearchParams({ view: 'year', year: String(next) }, { replace: true })
   }
 
@@ -219,6 +252,17 @@ export default function FinancePage() {
     if (view === 'day') setDayKey(shiftDay(dayKey, delta))
     else if (view === 'year') setYear(viewYear + delta)
     else setMonth(shiftMonth(monthKey, delta))
+  }
+
+  // 左右滑动翻时段：日视图换天，月 / 年视图换月换年，和翻页箭头同一套步进
+  const swipe = useDaySwipe(
+    () => step(-1),
+    () => step(1),
+  )
+
+  async function openPicker() {
+    setWrittenDays(new Set(await financeDays()))
+    setPickerOpen(true)
   }
 
   /** 看的是哪段就往哪段记；不在当前时段时落在它的第一天 */
@@ -242,21 +286,30 @@ export default function FinancePage() {
     })
   }
 
+  async function handleBatchDelete() {
+    const ids = batch.selected
+    setBatchDeleteOpen(false)
+    await removeFinances(ids)
+    batch.clear()
+    showToast({
+      message: t('finance.batchDeleted', { n: ids.length }),
+      actionLabel: t('diary.undo'),
+      onAction: () => {
+        void restoreFinances(ids)
+      },
+    })
+  }
+
   return (
-    <div className="w-full p-4">
+    <div
+      className={'w-full p-4 ' + swipe.animationClass}
+      onTouchStart={swipe.onTouchStart}
+      onTouchEnd={swipe.onTouchEnd}
+      onAnimationEnd={swipe.onAnimationEnd}
+    >
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="m-0 text-lg font-medium text-fg">{t('nav.finance')}</h1>
         <div className="flex flex-wrap items-center gap-2">
-          {view === 'day' && !isToday && (
-            <button
-              type="button"
-              onClick={() => setDayKey(todayKey())}
-              className="inline-flex items-center text-xs text-brand transition-opacity hover:opacity-80"
-            >
-              <Icon name="calendar" className="mr-1 h-3.5 w-3.5 shrink-0" />
-              {t('finance.today')}
-            </button>
-          )}
           {view === 'year' && !isCurrentYear && (
             <button
               type="button"
@@ -325,100 +378,73 @@ export default function FinancePage() {
         </Tab>
       </nav>
 
-      {/* 时段翻页：标题居中，左右各一个箭头，随视角换单位 */}
-      <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-line bg-surface px-2 py-1">
-        <button
-          type="button"
-          aria-label={
-            view === 'day'
-              ? t('finance.prevDay')
-              : view === 'year'
-                ? t('finance.prevYear')
-                : t('finance.prevMonth')
-          }
-          onClick={() => step(-1)}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:text-brand"
-        >
-          ‹
-        </button>
-        <span className="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
-          {view === 'month' && relativeMonthKey && (
-            <span
-              className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium leading-none ${
-                relativeMonthKey === 'finance.thisMonth'
-                  ? 'bg-success/15 text-success'
-                  : 'bg-warning/15 text-warning'
-              }`}
-            >
-              {t(relativeMonthKey)}
-            </span>
-          )}
-          {view === 'day' && isToday && (
-            <span className="shrink-0 rounded bg-success/15 px-1.5 py-0.5 text-[11px] font-medium leading-none text-success">
-              {t('finance.today')}
-            </span>
-          )}
-          {view === 'year' && isCurrentYear && (
-            <span className="shrink-0 rounded bg-success/15 px-1.5 py-0.5 text-[11px] font-medium leading-none text-success">
-              {t('finance.thisYear')}
-            </span>
-          )}
-          <span className="text-sm font-medium tabular-nums text-fg">
-            {view === 'day'
-              ? formatDate(dayKey, t)
-              : view === 'year'
+      {/* 日视图：日期栏直接用公共 DayNav，日期本身能点开日历（记过的天标亮） */}
+      {view === 'day' ? (
+        <DayNav
+          dayKey={dayKey}
+          onChange={setDayKey}
+          onPick={() => void openPicker()}
+          inset={false}
+          className="mt-2"
+          labels={{
+            prev: t('finance.prevDay'),
+            next: t('finance.nextDay'),
+            pick: t('finance.pickDate'),
+            today: t('finance.backToToday'),
+          }}
+        />
+      ) : (
+        /* 月 / 年翻页：标题居中，左右各一个箭头 */
+        <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-line bg-surface px-2 py-1">
+          <button
+            type="button"
+            aria-label={view === 'year' ? t('finance.prevYear') : t('finance.prevMonth')}
+            onClick={() => step(-1)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:text-brand"
+          >
+            ‹
+          </button>
+          <span className="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
+            {relativeMonthKey && (
+              <span
+                className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium leading-none ${
+                  relativeMonthKey === 'finance.thisMonth'
+                    ? 'bg-success/15 text-success'
+                    : 'bg-warning/15 text-warning'
+                }`}
+              >
+                {t(relativeMonthKey)}
+              </span>
+            )}
+            {isCurrentYear && (
+              <span className="shrink-0 rounded bg-success/15 px-1.5 py-0.5 text-[11px] font-medium leading-none text-success">
+                {t('finance.thisYear')}
+              </span>
+            )}
+            <span className="text-sm font-medium tabular-nums text-fg">
+              {view === 'year'
                 ? t('finance.yearTitle', { year: viewYear })
                 : t('finance.monthTitle', { year: monthYear, month: monthNumber })}
-          </span>
-          {view === 'day' ? (
-            <span className="hidden shrink-0 text-xs text-muted min-[360px]:inline">
-              {t(weekdayKey(dayKey))}
             </span>
-          ) : view === 'month' ? (
             <span className="hidden shrink-0 text-xs tabular-nums text-muted min-[360px]:inline">
               {monthRange}
             </span>
-          ) : null}
-        </span>
-        <button
-          type="button"
-          aria-label={
-            view === 'day'
-              ? t('finance.nextDay')
-              : view === 'year'
-                ? t('finance.nextYear')
-                : t('finance.nextMonth')
-          }
-          onClick={() => step(1)}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:text-brand"
-        >
-          ›
-        </button>
-      </div>
+          </span>
+          <button
+            type="button"
+            aria-label={view === 'year' ? t('finance.nextYear') : t('finance.nextMonth')}
+            onClick={() => step(1)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:text-brand"
+          >
+            ›
+          </button>
+        </div>
+      )}
 
-      {/* 结余卡：大数字 + 收支两栏，右上角直接记一笔 */}
-      <section className="mt-3 rounded-2xl border border-line bg-surface p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="m-0 text-[11px] text-muted">
-              {view === 'day'
-                ? t('finance.balanceDay')
-                : view === 'year'
-                  ? t('finance.balanceYear')
-                  : t('finance.balance')}
-            </p>
-            <p
-              className={`m-0 mt-1 text-3xl font-medium tabular-nums ${
-                summary.balance < 0 ? 'text-danger' : 'text-fg'
-              }`}
-            >
-              {money(summary.balance)}
-            </p>
-            <p className="m-0 mt-1 text-[11px] text-muted">
-              {t('finance.entryCount', { n: rows.length })}
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-col gap-2">
+      {/* 按钮条：记一笔 / 批量 / 问 AI 收进同一条，和摄入页的按钮行一个结构 */}
+      <ToolbarRow className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+        {!batch.active ? (
+          <>
             <button
               type="button"
               onClick={() => setDialog({ entry: null, date: defaultDate() })}
@@ -427,11 +453,45 @@ export default function FinancePage() {
               <Icon name="plus" />
               {t('finance.add')}
             </button>
+            <button
+              type="button"
+              onClick={() => batch.enter()}
+              disabled={rows.length === 0}
+              className={`${SOLID_BUTTON} disabled:opacity-40`}
+            >
+              <Icon name="list" />
+              {t('finance.batch')}
+            </button>
             <button type="button" onClick={() => setAiOpen(true)} className={OUTLINE_BUTTON}>
               <Icon name="sparkles" />
               {t('finance.aiAsk')}
             </button>
-          </div>
+          </>
+        ) : (
+          <span className="col-span-2 px-1 text-xs text-muted">{t('finance.batchHint')}</span>
+        )}
+      </ToolbarRow>
+
+      {/* 结余卡：大数字 + 收支两栏 */}
+      <section className="mt-3 rounded-2xl border border-line bg-surface p-4">
+        <div className="min-w-0">
+          <p className="m-0 text-[11px] text-muted">
+            {view === 'day'
+              ? t('finance.balanceDay')
+              : view === 'year'
+                ? t('finance.balanceYear')
+                : t('finance.balance')}
+          </p>
+          <p
+            className={`m-0 mt-1 text-3xl font-medium tabular-nums ${
+              summary.balance < 0 ? 'text-danger' : 'text-fg'
+            }`}
+          >
+            {money(summary.balance)}
+          </p>
+          <p className="m-0 mt-1 text-[11px] text-muted">
+            {t('finance.entryCount', { n: rows.length })}
+          </p>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 border-t border-dashed border-line pt-3">
           <div className="min-w-0">
@@ -585,11 +645,8 @@ export default function FinancePage() {
         </section>
       ) : (
         days.map((day) => (
-          <section
-            key={day.dateKey}
-            className="mt-3 overflow-hidden rounded-2xl border border-line bg-surface"
-          >
-            <header className="flex items-center justify-between gap-2 bg-surface-2 px-3 py-2">
+          <section key={day.dateKey} className="mt-3">
+            <header className="flex items-center justify-between gap-2 rounded-t-xl border border-b-0 border-line bg-surface-2 px-3 py-2">
               <span className="min-w-0 truncate text-xs text-fg">
                 {formatMonthDay(day.dateKey, t)} · {t(weekdayKey(day.dateKey))}
               </span>
@@ -605,74 +662,144 @@ export default function FinancePage() {
                 </span>
               </div>
             </header>
-            <ul className="m-0 list-none p-0">
-              {day.entries.map((entry) => (
-                <li
-                  key={entry.id}
-                  className="flex items-center gap-2 border-t border-line px-3 py-2.5"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setViewEntry(entry)}
-                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+            <ul className="m-0 mt-2 list-none space-y-2 p-0">
+              {day.entries.map((entry) => {
+                const selected = batch.isSelected(entry.id)
+                return (
+                  <li
+                    key={entry.id}
+                    className={`flex items-center gap-3 rounded-xl border p-3 ${
+                      selected ? 'border-brand bg-brand/10' : 'border-line bg-surface'
+                    }`}
                   >
+                    {batch.active && (
+                      <RowCheckbox
+                        checked={selected}
+                        label={entry.name}
+                        onToggle={() => batch.toggle(entry.id)}
+                      />
+                    )}
                     {entry.photo && (
                       <img
                         src={entry.photo}
                         alt=""
-                        className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                        loading="lazy"
+                        decoding="async"
+                        className="h-11 w-11 shrink-0 rounded-lg border border-line/60 object-cover"
                       />
                     )}
-                    <span className="shrink-0 rounded-md border border-line px-1.5 py-0.5 text-[10px] text-muted">
-                      {t(categoryKey(entry.category))}
+                    <span className="shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] tabular-nums text-muted">
+                      {entry.time}
                     </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm text-fg">{entry.name}</span>
-                      <span className="block truncate text-[11px] tabular-nums text-muted">
-                        {entry.time}
-                        {entry.note !== '' && ` · ${entry.note}`}
-                      </span>
+                    <div className="min-w-0 flex-1">
+                      <button
+                        type="button"
+                        disabled={batch.active}
+                        onClick={() => setViewEntry(entry)}
+                        className="block w-full rounded text-left transition-colors hover:text-brand disabled:cursor-default"
+                      >
+                        <p className="m-0 flex items-baseline gap-2 text-sm text-fg">
+                          <span className="min-w-0 truncate">{entry.name}</span>
+                          <span className="shrink-0 font-mono text-[10px] text-muted">
+                            {entry.code}
+                          </span>
+                          <span className="shrink-0 rounded-md border border-line px-1.5 py-0.5 text-[10px] text-muted">
+                            {t(categoryKey(entry.category))}
+                          </span>
+                        </p>
+                        {entry.note !== '' && (
+                          <p className="m-0 mt-0.5 truncate text-xs text-muted">{entry.note}</p>
+                        )}
+                      </button>
+                      <TimeMeta createdAt={entry.createdAt} updatedAt={entry.updatedAt} />
+                    </div>
+                    <span
+                      className={`shrink-0 text-sm tabular-nums ${
+                        entry.kind === 'income' ? 'text-success' : 'text-danger'
+                      }`}
+                    >
+                      {entry.kind === 'income' ? '+' : '-'}
+                      {money(entry.amount)}
                     </span>
-                  </button>
-                  <span
-                    className={`shrink-0 text-sm tabular-nums ${
-                      entry.kind === 'income' ? 'text-success' : 'text-danger'
-                    }`}
-                  >
-                    {entry.kind === 'income' ? '+' : '-'}
-                    {money(entry.amount)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setDialog({ entry, date: entry.dateKey })}
-                    title={t('finance.editEntry')}
-                    aria-label={t('finance.editEntry')}
-                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm text-muted transition-colors hover:text-brand"
-                  >
-                    ✎
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleExportEntry(entry)}
-                    title={t('records.export')}
-                    className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg px-1.5 font-mono text-[10px] text-muted transition-colors hover:text-brand"
-                  >
-                    JSON
-                    <span className="sr-only">{t('records.export')}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPendingDelete(entry)}
-                    aria-label={t('common.delete')}
-                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-danger"
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
+                    {!batch.active && (
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setDialog({ entry, date: entry.dateKey })}
+                          title={t('finance.editEntry')}
+                          aria-label={t('finance.editEntry')}
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm text-muted transition-colors hover:text-brand"
+                        >
+                          ✎
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleExportEntry(entry)}
+                          title={t('records.export')}
+                          className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg px-1.5 font-mono text-[10px] text-muted transition-colors hover:text-brand"
+                        >
+                          JSON
+                          <span className="sr-only">{t('records.export')}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPendingDelete(entry)}
+                          aria-label={t('common.delete')}
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-danger"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           </section>
         ))
+      )}
+
+      {batch.active && (
+        <BatchActions select={batch} ids={rows.map((row) => row.id)} unit={t('finance.unitEntry')}>
+          <button
+            type="button"
+            onClick={() => void handleBatchExport()}
+            disabled={batch.count === 0}
+            className={BAR_BUTTON}
+          >
+            {t('finance.exportEntries')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setBatchDeleteOpen(true)}
+            disabled={batch.count === 0}
+            className={BAR_DANGER}
+          >
+            {t('common.delete')}
+          </button>
+        </BatchActions>
+      )}
+
+      {batchDeleteOpen && (
+        <ConfirmDialog
+          title={t('finance.batchDeleteTitle', { n: batch.count })}
+          description={t('finance.batchDeleteBody')}
+          confirmLabel={t('common.delete')}
+          onConfirm={() => void handleBatchDelete()}
+          onCancel={() => setBatchDeleteOpen(false)}
+        />
+      )}
+
+      {pickerOpen && (
+        <DatePickerDialog
+          value={dayKey}
+          highlightDays={writtenDays}
+          onConfirm={(next) => {
+            setPickerOpen(false)
+            setDayKey(next)
+          }}
+          onCancel={() => setPickerOpen(false)}
+        />
       )}
 
       {viewEntry && (

@@ -3,10 +3,13 @@ import { store } from '@/core/db'
 
 export const {
   financeOfMonth,
+  financeDays,
   addFinance,
   saveFinance,
   removeFinance,
+  removeFinances,
   restoreFinance,
+  restoreFinances,
   trashedFinance,
   purgeFinance,
   purgeTrashedFinance,

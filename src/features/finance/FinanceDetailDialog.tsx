@@ -7,6 +7,7 @@
 import type { FinanceEntry } from '@/core/db/schema'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
+import TimeMeta from '@/shared/ui/TimeMeta'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
 import { formatDate } from '@/core/utils/dateKey'
@@ -51,6 +52,8 @@ export default function FinanceDetailDialog({
         {isIncome ? '+' : '-'}
         {money(entry.amount)}
       </p>
+
+      <TimeMeta createdAt={entry.createdAt} updatedAt={entry.updatedAt} />
 
       {entry.photo && (
         <img

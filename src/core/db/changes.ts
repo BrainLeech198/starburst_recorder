@@ -106,7 +106,9 @@ export const WRITE_METHODS = new Set([
   'addFinance',
   'saveFinance',
   'removeFinance',
+  'removeFinances',
   'restoreFinance',
+  'restoreFinances',
   'purgeFinance',
   'purgeTrashedFinance',
   // 日程 / 定期任务

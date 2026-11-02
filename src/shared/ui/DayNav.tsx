@@ -20,6 +20,7 @@ export default function DayNav({
   leading,
   trailing,
   inset = true,
+  className = '',
 }: {
   dayKey: string
   onChange: (next: string) => void
@@ -34,6 +35,8 @@ export default function DayNav({
    * 放在标题等其它内容后面时传 false，否则负上边距会把前面的按钮盖住。
    */
   inset?: boolean
+  /** 追加布局类（如 mt-2）；放在固定样式后面，能覆盖同名边距 */
+  className?: string
 }) {
   const { t } = useI18n()
   const isToday = dayKey === todayKey()
@@ -44,6 +47,7 @@ export default function DayNav({
         'sticky top-0 z-20 flex flex-wrap items-center gap-x-2 gap-y-1 bg-bg/95 px-4 backdrop-blur',
         '-mx-4',
         inset ? '-mt-4 pb-2 pt-3' : 'pb-2 pt-2',
+        className,
       ].join(' ')}
     >
       {leading && <div className="flex shrink-0 items-center">{leading}</div>}

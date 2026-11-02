@@ -231,9 +231,12 @@ export const sqliteStore: DiaryStore = {
   removeFinance: async (id) => {
     await call('removeFinance', id)
   },
+  removeFinances: (ids) => call('removeFinances', ids),
   restoreFinance: async (id) => {
     await call('restoreFinance', id)
   },
+  restoreFinances: (ids) => call('restoreFinances', ids),
+  financeDays: () => call('financeDays'),
   trashedFinance: () => call('trashedFinance'),
   purgeFinance: (id) => call('purgeFinance', id),
   purgeTrashedFinance: () => call('purgeTrashedFinance'),
