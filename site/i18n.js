@@ -54,7 +54,7 @@ window.SITE_I18N = {
 
     'features.kicker': '功能',
     'features.title': '一张纸上的生活',
-    'features.desc': '日记、健康、财务已经能天天用，日历还在路上——没做完的功能，我们不会说它做完了。',
+    'features.desc': '日记、健康、财务与日历都能天天用，日程、周视图和月度回顾也接上了。',
     'features.diary': '日记',
     'features.diaryDesc': '随手记一句、按天翻看，也能一次导入整页手写照片，让 AI 认成文字。',
     'features.health': '健康',
@@ -65,7 +65,7 @@ window.SITE_I18N = {
     'features.finance': '财务',
     'features.financeDesc': '记下每一笔收支，按月看结余，也能按天回看。',
     'features.calendar': '日历',
-    'features.calendarDesc': '把日子摊开看：哪几天写了，哪几天空着。',
+    'features.calendarDesc': '月历把日记、健康、收支混成深浅，点一格就能进那一天的全部记录。',
     'features.ready': '已可用',
     'features.wip': '建设中',
 
@@ -197,7 +197,7 @@ window.SITE_I18N = {
     'features.kicker': 'Features',
     'features.title': 'A life kept on paper slips',
     'features.desc':
-      'Diary, health and finance are ready for daily use; calendar is still on the way. We will not call a feature finished before it is.',
+      'Diary, health, finance and calendar are ready for daily use, with schedules, a week view and monthly reviews now in place.',
     'features.diary': 'Diary',
     'features.diaryDesc':
       'Jot a line, flip back by day, or import a photo of a handwritten page and let AI read it.',
@@ -211,7 +211,7 @@ window.SITE_I18N = {
     'features.financeDesc':
       'Log every bit of income and spending, see the monthly balance and look back day by day.',
     'features.calendar': 'Calendar',
-    'features.calendarDesc': 'Lay the days out flat: which ones have entries, which are blank.',
+    'features.calendarDesc': 'The month grid blends diary, health and finance into one shade — tap a day to see everything recorded there.',
     'features.ready': 'Ready',
     'features.wip': 'In progress',
 
