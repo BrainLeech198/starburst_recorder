@@ -9,7 +9,7 @@
  * 运行中的计时与停止、排队发送、消息级操作（复制 / 重新生成 / 编辑分叉 / 删除）、
  * 多选与导出，以及上下文与 token 用量。
  */
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { Link } from 'react-router'
 import type { ChatContentPart } from '@/platform/desktop'
 import { todayKey } from '@/core/utils/dateKey'
@@ -177,7 +177,20 @@ function historyContent(item: ChatMessageRecord, withImages: boolean): string | 
 }
 
 export default function AssistantChat({ compact = false }: { compact?: boolean }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const timestampFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+      }),
+    [locale],
+  )
   const { showToast } = useToast()
   const messages = useSyncExternalStore(subscribeChat, getChatMessages, getChatMessages)
   const sessions = useSyncExternalStore(subscribeChat, getChatSessions, getChatSessions)
@@ -1087,6 +1100,14 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           const loading = item.id === pendingId && item.content === ''
           const isEditing = editingId === item.id
           const checked = selected.includes(item.id)
+          const timestamp = (
+            <time
+              dateTime={new Date(item.at).toISOString()}
+              className="text-[10px] leading-4 tabular-nums text-muted"
+            >
+              {timestampFormatter.format(item.at)}
+            </time>
+          )
           return (
             <div key={item.id} className="flex w-full items-start gap-2">
               {selectMode && (
@@ -1107,53 +1128,56 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
               >
                 {item.role === 'user' ? (
                   isEditing ? (
-                    <div className="w-full max-w-[92%] rounded-xl border border-brand/40 bg-surface p-2.5">
-                      <textarea
-                        autoFocus
-                        value={editText}
-                        onChange={(event) => setEditText(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Escape') {
-                            setEditingId('')
-                            setEditText('')
-                          }
-                          if (
-                            event.key === 'Enter' &&
-                            (event.ctrlKey || event.metaKey) &&
-                            !event.nativeEvent.isComposing
-                          ) {
-                            event.preventDefault()
-                            submitEdit()
-                          }
-                        }}
-                        rows={3}
-                        aria-label={t('assistant.edit')}
-                        className={`${INPUT} resize-y text-sm`}
-                      />
-                      <p className="mt-1.5 text-[10px] text-muted">
-                        {t('assistant.editHint')}
-                      </p>
-                      <div className="mt-2 flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingId('')
-                            setEditText('')
+                    <>
+                      <div className="w-full max-w-[92%] rounded-xl border border-brand/40 bg-surface p-2.5">
+                        <textarea
+                          autoFocus
+                          value={editText}
+                          onChange={(event) => setEditText(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Escape') {
+                              setEditingId('')
+                              setEditText('')
+                            }
+                            if (
+                              event.key === 'Enter' &&
+                              (event.ctrlKey || event.metaKey) &&
+                              !event.nativeEvent.isComposing
+                            ) {
+                              event.preventDefault()
+                              submitEdit()
+                            }
                           }}
-                          className="text-[11px] text-muted transition-colors hover:text-fg"
-                        >
-                          {t('common.cancel')}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={busy || editText.trim() === ''}
-                          onClick={submitEdit}
-                          className="text-[11px] font-medium text-brand transition-opacity hover:opacity-80 disabled:opacity-40"
-                        >
-                          {t('assistant.editSave')}
-                        </button>
+                          rows={3}
+                          aria-label={t('assistant.edit')}
+                          className={`${INPUT} resize-y text-sm`}
+                        />
+                        <p className="mt-1.5 text-[10px] text-muted">
+                          {t('assistant.editHint')}
+                        </p>
+                        <div className="mt-2 flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingId('')
+                              setEditText('')
+                            }}
+                            className="text-[11px] text-muted transition-colors hover:text-fg"
+                          >
+                            {t('common.cancel')}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy || editText.trim() === ''}
+                            onClick={submitEdit}
+                            className="text-[11px] font-medium text-brand transition-opacity hover:opacity-80 disabled:opacity-40"
+                          >
+                            {t('assistant.editSave')}
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                      {timestamp}
+                    </>
                   ) : (
                     <>
                       {item.content.trim() !== '' && (
@@ -1182,6 +1206,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                           )}
                         </div>
                       )}
+                      {timestamp}
                       {!selectMode && (
                         <div className="flex items-center gap-0.5">
                           {item.content.trim() !== '' && (
@@ -1296,6 +1321,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                         )}
                       </div>
                     )}
+                    {!loading && timestamp}
                     {item.compacted !== undefined && item.compacted > 0 && (
                       <p className="m-0 text-[10px] text-muted">
                         {t('assistant.compacted', { n: item.compacted })}
