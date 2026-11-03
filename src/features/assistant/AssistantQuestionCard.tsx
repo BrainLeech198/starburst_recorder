@@ -63,7 +63,7 @@ export default function AssistantQuestionCard({
               onClick={() =>
                 state.multiSelect ? toggle(option.label) : onAnswer([option.label])
               }
-              className={choiceTile(active, 'w-full px-3 py-2 text-left')}
+              className={choiceTile(active, 'w-full min-h-11 px-3 py-2 text-left md:min-h-0')}
             >
               <span className="block text-sm text-fg">
                 {state.multiSelect && (active ? '✓ ' : '')}
@@ -83,7 +83,7 @@ export default function AssistantQuestionCard({
             type="button"
             disabled={busy || picked.length === 0}
             onClick={() => onAnswer(picked)}
-            className={SOLID_SMALL_BUTTON + ' disabled:opacity-40'}
+            className={SOLID_SMALL_BUTTON + ' min-h-11 disabled:opacity-40 md:min-h-8'}
           >
             {t('assistant.questionConfirm')}
           </button>

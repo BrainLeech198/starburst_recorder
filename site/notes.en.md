@@ -2,28 +2,30 @@ A local-first personal recorder with built-in AI: jot down today and AI turns it
 
 ## What's new
 
-- **The assistant now sees what happened to its cards**: confirm, reject, undo or a failed write is fed back on the next turn. Rejected cards are not proposed again, and failures explain the reason before you decide whether to retry.
-- **Backups cover your preferences**: appearance, language, care mode, assistant memory and skills, AI models, image quality, weather location and update channel now travel with the backup. If the file contains an API key, the export warns you not to share it.
-- **AI chats are part of the backup**: a new "AI chats" section can be exported on its own; merging matches by chat id, replacing restores the whole set, and empty chats are left out.
-- **All records gained filters**: All / Diary / Notes, each with its own count. Filter and page live in the URL, so opening an entry and coming back lands you exactly where you were; the trash sits in the header.
-- **Back is a real stack now**: entries opened from search, the calendar or a list return to where they came from, and the page's own parent is only the fallback. Leaving an edited entry with unsaved changes no longer pushes an extra history entry either.
-- **The training card no longer sends both buttons to the same place**: "Log one" opens the form in place, and "View records" goes to the training page.
-- **All four reports live in Review**: daily, weekly, monthly and yearly reports moved into the Review tab; the week view no longer carries its own weekly-report button.
-- **Reports follow a more detailed multi-dimensional format**: conclusion, comparison with the previous period, the three calorie lines, protein sources, macro split, meal timing and eating window, calorie sources, training recovery, weight and body signals, within-week or month-by-month patterns, risks and next steps. If the data has no exercise burn or sodium / processing labels, the report does not guess.
-- **Small UI fixes**: spillover days in the month grid show their date instead of being blank clickable cells; delete-card titles now use the same list as the permission layer.
+- **Every answer is actionable now**: copy it, regenerate it, or delete from that message onward. Regenerating keeps the old answer — flip back with "Version 1/2" and compare.
+- **Edit one line, branch from there**: editing a sent message saves it into a new branch while the original chat stays untouched; branches in the same group switch straight from the chat list.
+- **Multi-select and export**: select or select-all messages, then copy, export or delete in bulk. Export as Markdown, TXT, JSON or a long image, with optional tool traces and action cards; desktop saves straight to Downloads and Android opens the system picker.
+- **Answers render Markdown**: headings, lists, code blocks, quotes, tables and links all display properly. No innerHTML, and links are limited to http(s) and mailto.
+- **Stop, steer, queue**: stop generation at any time without leaving a half-written answer; a requirement added mid-reply is carried into the next step; messages sent while it is working queue up and go one by one.
+- **Plan mode**: the assistant first gives a 2–5 step plan, without acting or showing confirmation cards; turn plan mode off after confirming and it executes. The switch travels with your preferences in backups.
+- **@ references**: reference today / yesterday / the last 7 days, or a diary entry, note, transaction, food item or meal template, so the request is precise.
+- **/ shortcuts**: type / to bring up common questions and fill them straight into the input.
+- **Undo this turn's writes**: completed actions from one reply can be rolled back in one tap, and anything that failed is called out.
+- **The date bar no longer truncates dates**: relative day and weekday step aside based on the actual width of that row; thresholds scale with text size so the date always stays whole.
+- **Touch targets and alignment**: assistant card cancel / undo, options and message actions are now 44px tall; the schedule header buttons align right.
 
 ## Download
 
 | Platform | File |
 | --- | --- |
-| Windows 10/11 | `starburst-recorder-0.12.1-setup.exe` (~96 MB) |
-| Android 10+ | `starburst-recorder-0.12.1.apk` (~62 MB, release-signed) |
+| Windows 10/11 | `starburst-recorder-0.13.0-setup.exe` (~96 MB) |
+| Android 10+ | `starburst-recorder-0.13.0.apk` (~62 MB, release-signed) |
 
 Android is sideloaded: allow "install unknown apps". If you previously installed a debug build, uninstall it first (different signature — the upgrade install will fail).
 Storage follows the platform: SQLite on desktop, IndexedDB in browsers and WebViews.
 
 ## Known limitations
 
-0.12.1 is still an early build, and the data format may change between versions — export a backup of anything you care about before upgrading. Older backups still import; AI chats now travel with the backup and get noticeably larger when they carry image attachments. Preferences are in the backup too — do not share a backup that contains your API key. Assistant chats stay on this device but are included in the "AI chats" backup section. Health Connect import on Android is experimental and not yet verified on a real device; tell us if it cannot read anything.
+0.13.0 is still an early build, and the data format may change between versions — export a backup of anything you care about before upgrading. Older backups still import; AI chats now travel with the backup and get noticeably larger when they carry image attachments. Preferences are in the backup too — do not share a backup that contains your API key. Health Connect import on Android is experimental and not yet verified on a real device; tell us if it cannot read anything.
 
 MIT licensed. Mirror: https://github.com/BrainLeech198/starburst_recorder

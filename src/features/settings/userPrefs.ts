@@ -28,6 +28,7 @@ export const PREF_GROUPS = {
     'sb_ai_models',
     'sb_ai_active',
     'sb_ai_reasoning_v1',
+    'starburst.assistant.plan',
     'sb_assistant_memories',
     'sb_assistant_skills_v1',
     'sb_assistant_permission_v1',

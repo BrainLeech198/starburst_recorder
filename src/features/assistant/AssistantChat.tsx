@@ -5,8 +5,9 @@
  * 对话、动作卡片都存在本地（assistantChatStore），两个入口共享；
  * 助手能「查」，也能提出「记一笔」——但写库必须等用户点确认。
  *
- * 除了聊天，这里还负责：多段会话的切换、推荐问、图片/文本附件、
- * 运行中的计时，以及上下文与 token 用量。
+ * 除了聊天，这里还负责：多段会话与分支切换、推荐问、图片/文本附件、
+ * 运行中的计时与停止、排队发送、消息级操作（复制 / 重新生成 / 编辑分叉 / 删除）、
+ * 多选与导出，以及上下文与 token 用量。
  */
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Link } from 'react-router'
@@ -20,6 +21,7 @@ import { loadReasoning, saveReasoning } from '@/features/ai/aiReasoning'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
+import { copyTextToClipboard } from '@/platform/clipboard'
 import Modal from '@/shared/ui/Modal'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { runAssistant } from './assistantAgent'
@@ -34,6 +36,10 @@ import { loadPermission, runsWithoutConfirm } from './assistantPermission'
 import AssistantQuestionCard from './AssistantQuestionCard'
 import AssistantActionCard from './AssistantActionCard'
 import AssistantWorking from './AssistantWorking'
+import AssistantExportDialog from './AssistantExportDialog'
+import AssistantMarkdown from './AssistantMarkdown'
+import AssistantRefPicker from './AssistantRefPicker'
+import { buildChatCopy } from './chatExport'
 import {
   attachmentPromptText,
   imageParts,
@@ -43,16 +49,27 @@ import {
 import { contextWindow, formatTokens } from './assistantContext'
 import { requestSuggestions, suggestKeys, summarizeSituation } from './assistantSuggest'
 import {
+  appendChatVariant,
+  beginChatRegeneration,
   clearChat,
   createChatMessage,
+  deleteChatFrom,
+  deleteChatMessages,
   deleteChatSession,
+  forkChatSession,
   getChatMessages,
   getChatSessions,
   getCurrentSessionId,
+  getForkSiblings,
+  newChatMessageId,
   newChatSession,
+  patchChatAction,
+  patchChatMessage,
   renameChatSession,
-  switchChatSession,
+  restoreChatVariant,
   subscribeChat,
+  switchChatSession,
+  switchChatVariant,
   updateChat,
   pendingActionNotes,
   resolvedActionNotes,
@@ -77,6 +94,24 @@ function whenLabel(at: number) {
   return `${date.getMonth() + 1}-${date.getDate()} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+const PLAN_KEY = 'starburst.assistant.plan'
+
+function readPlanMode() {
+  try {
+    return localStorage.getItem(PLAN_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function savePlanMode(on: boolean) {
+  try {
+    localStorage.setItem(PLAN_KEY, on ? '1' : '0')
+  } catch {
+    // 隐私模式写不进去就只在本次会话生效
+  }
+}
+
 const EXAMPLE_KEYS = [
   'assistant.example1',
   'assistant.example2',
@@ -85,19 +120,51 @@ const EXAMPLE_KEYS = [
   'assistant.example5',
 ] as const
 
+/** 斜杠命令直接复用推荐问的句子，省得同一句话翻两遍 */
+const SLASH_KEYS = [
+  'assistant.suggest.summary',
+  'assistant.suggest.weight',
+  'assistant.suggest.food',
+  'assistant.suggest.sleep',
+  'assistant.suggest.finance',
+  'assistant.suggest.mood',
+  'assistant.suggest.log',
+  'assistant.suggest.plan',
+  'assistant.suggest.more',
+] as const
+
 /**
  * 控件按「形状 + 重量」分档，避免一屏全是同一种圆角胶囊：
  * 圆形主按钮（新对话）、文字 + 计数徽标（历史）、虚线折叠头（推荐问）、
  * 主色芯片（推荐内容）、方形图标钮（附件）、实心胶囊（发送）。
  */
 const CHAT_ICON_BRAND =
-  'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand text-sm text-on-brand transition hover:opacity-90 active:scale-[0.94] disabled:opacity-40'
-const CHAT_TOOL = 'inline-flex h-7 shrink-0 items-center gap-1 px-1 text-[11px] text-muted transition-colors hover:text-brand disabled:opacity-50'
+  'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-sm text-on-brand transition hover:opacity-90 active:scale-[0.94] disabled:opacity-40 md:h-7 md:w-7'
+const CHAT_TOOL = 'inline-flex h-11 shrink-0 items-center gap-1 px-1.5 text-[11px] text-muted transition-colors hover:text-brand disabled:opacity-50 md:h-7 md:px-1'
 const CHAT_COUNT = 'rounded-full bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-muted'
-const CHAT_CHIP = 'rounded-full bg-brand/10 px-2.5 py-1 text-[11px] text-brand transition-colors hover:bg-brand/20 disabled:opacity-50'
+const CHAT_CHIP = 'inline-flex min-h-11 items-center rounded-full bg-brand/10 px-3 py-1.5 text-[11px] text-brand transition-colors hover:bg-brand/20 disabled:opacity-50 md:min-h-0 md:px-2.5 md:py-1'
 const CHAT_ICON = 'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2 text-base text-muted transition-colors hover:bg-brand/10 hover:text-brand disabled:opacity-40'
 const CHAT_SEND = 'inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-brand px-4 text-sm font-medium text-on-brand transition hover:opacity-90 active:scale-[0.97] disabled:opacity-40'
-const CHAT_ROW = 'flex min-w-0 flex-1 flex-col px-2.5 py-2 text-left transition-colors'
+const CHAT_STOP =
+  'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-danger/40 text-sm text-danger transition-colors hover:bg-danger/10 disabled:opacity-40'
+const CHAT_ROW = 'flex min-h-12 min-w-0 flex-1 flex-col px-2.5 py-2 text-left transition-colors'
+const MESSAGE_ACTION =
+  'inline-flex min-h-11 items-center px-1.5 text-[11px] text-muted transition-colors hover:text-brand disabled:opacity-40 md:min-h-0 md:px-1'
+
+interface QueuedMessage {
+  id: string
+  text: string
+  files: ChatAttachment[]
+}
+
+interface DeleteRequest {
+  /** 从这条开始删到末尾 */
+  fromId?: string
+  /** 多选删除 */
+  ids?: string[]
+  title: string
+  desc: string
+}
 
 /**
  * 一条消息变成请求里的 content。
@@ -129,6 +196,8 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   const [configured, setConfigured] = useState(() => isConfigured(loadAiConfig()))
   /** 深度思考开关：跟设置页共用同一份 localStorage */
   const [reasoning, setReasoning] = useState(() => loadReasoning())
+  /** 计划模式：先要步骤，确认后再动手 */
+  const [planMode, setPlanMode] = useState(readPlanMode)
   /** 还没发出去的附件 */
   const [drafts, setDrafts] = useState<ChatAttachment[]>([])
   /** 会话列表弹窗 */
@@ -143,6 +212,27 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   const [renameText, setRenameText] = useState('')
   /** 待确认删除的会话 id：避免误点 ✕ 就把对话删掉 */
   const [deletingId, setDeletingId] = useState('')
+  /** 正在编辑的用户消息 */
+  const [editingId, setEditingId] = useState('')
+  const [editText, setEditText] = useState('')
+  /** 多选模式与选中的消息 */
+  const [selectMode, setSelectMode] = useState(false)
+  const [selected, setSelected] = useState<string[]>([])
+  /** 导出弹窗：null 关闭，[] 表示全部消息 */
+  const [exportIds, setExportIds] = useState<string[] | null>(null)
+  /** 删除确认 */
+  const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null)
+  /** 生成中排队等待的消息 */
+  const [queue, setQueue] = useState<QueuedMessage[]>([])
+  const queueRef = useRef<QueuedMessage[]>([])
+  /** 生成中插话：在下一轮请求前交给模型，不打断当前这轮 */
+  const [steerMode, setSteerMode] = useState(false)
+  const guidanceRef = useRef<string[]>([])
+  /** 斜杠命令菜单与 @ 引用弹窗 */
+  const [slashOpen, setSlashOpen] = useState(false)
+  const [refOpen, setRefOpen] = useState(false)
+  /** 当前这一轮的取消句柄 */
+  const abortRef = useRef<AbortController | null>(null)
   /** 上一轮已经读出来的整库快照，展开推荐问时直接拿来当「当前情况」 */
   const dataRef = useRef<Awaited<ReturnType<typeof exportAllData>> | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
@@ -153,28 +243,51 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     bottomRef.current?.scrollIntoView({ block: 'end' })
   }, [messages, pendingId, currentSessionId])
 
-  function patchMessage(id: string, patch: Partial<ChatMessageRecord>) {
-    updateChat((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)))
+  function patchAction(messageId: string, index: number, patch: Partial<ChatActionState>) {
+    patchChatAction(messageId, index, patch)
   }
 
-  function patchAction(messageId: string, index: number, patch: Partial<ChatActionState>) {
-    updateChat((current) =>
-      current.map((item) => {
-        if (item.id !== messageId || !item.actions) return item
-        return {
-          ...item,
-          actions: item.actions.map((action, position) =>
-            position === index ? { ...action, ...patch } : action,
-          ),
-        }
-      }),
-    )
+  function resetComposer() {
+    setEditingId('')
+    setEditText('')
+    setSelectMode(false)
+    setSelected([])
+    setSlashOpen(false)
+    queueRef.current = []
+    setQueue([])
+    guidanceRef.current = []
+    setSteerMode(false)
+  }
+
+  function enqueue(text: string, files: ChatAttachment[]) {
+    if (text.trim() === '' && files.length === 0) return
+    queueRef.current = [...queueRef.current, { id: newChatMessageId(), text, files }].slice(0, 10)
+    setQueue([...queueRef.current])
+  }
+
+  function removeQueued(id: string) {
+    queueRef.current = queueRef.current.filter((item) => item.id !== id)
+    setQueue([...queueRef.current])
+  }
+
+  /** 停止当前生成，并把还没发出去的排队消息一起取消 */
+  function stop() {
+    abortRef.current?.abort()
+    queueRef.current = []
+    setQueue([])
+    guidanceRef.current = []
   }
 
   /**
-   * 跑一轮。appendUser=false 是「重试」：不重复加用户气泡，只把失败的那条替换掉。
+   * 跑一轮。appendUser=false 是「重试 / 重新生成」：不重复加用户气泡。
+   * targetId 指向要重新生成的助手消息；给了它就把新回答追加成一版，旧回答保留。
    */
-  async function run(text: string, appendUser: boolean, files: ChatAttachment[] = []) {
+  async function run(
+    text: string,
+    appendUser: boolean,
+    files: ChatAttachment[] = [],
+    targetId?: string,
+  ) {
     const config = loadAiConfig()
     const ready = isConfigured(config)
     setConfigured(ready)
@@ -187,35 +300,59 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           ...(attachments.length > 0 ? { attachments } : {}),
         })
       : null
-    const pending = createChatMessage({ role: 'assistant', content: '' })
-    // 失败气泡先拿掉，重试时不要叠两条
-    updateChat((current) => [
-      ...current.filter((item) => !item.error),
-      ...(userMessage ? [userMessage] : []),
-      pending,
-    ])
+    const existing = getChatMessages()
+    const target = targetId ? existing.find((item) => item.id === targetId) ?? null : null
+    const pending = target ?? createChatMessage({ role: 'assistant', content: '' })
+
+    if (target) {
+      beginChatRegeneration(target.id)
+    } else {
+      // 失败气泡先拿掉，重试时不要叠两条
+      updateChat((current) => [
+        ...current.filter((item) => !item.error),
+        ...(userMessage ? [userMessage] : []),
+        pending,
+      ])
+    }
     setPendingId(pending.id)
+    setBusy(true)
+    const controller = new AbortController()
+    abortRef.current = controller
 
     if (!ready) {
-      patchMessage(pending.id, {
-        content: t('assistant.needConfig'),
-        error: true,
-      })
+      if (target) {
+        restoreChatVariant(target.id)
+      } else {
+        patchChatMessage(pending.id, {
+          content: t('assistant.needConfig'),
+          error: true,
+        })
+      }
       setPendingId(null)
       setBusy(false)
+      if (abortRef.current === controller) abortRef.current = null
+      // 没配模型时也把排队的消息接下去，别让队列卡在第一条
+      const next = queueRef.current[0]
+      if (next) {
+        queueRef.current = queueRef.current.slice(1)
+        setQueue([...queueRef.current])
+        void run(next.text, true, next.files)
+      }
       return
     }
 
-    setBusy(true)
     const permission = loadPermission()
     try {
       // 每轮都取一份最新快照：刚刚在别的页面记的东西也能查到
       const data = await exportAllData()
       dataRef.current = data
-      // 历史里只放已经说出口的话；正在加载的占位和错误提示都不算
-      const source = [...messages, ...(userMessage ? [userMessage] : [])].filter(
+      // 历史里只放已经说出口的话；正在加载的占位、错误和停止的消息都不算
+      const source = getChatMessages().filter(
         (item) =>
-          !item.error && (item.content.trim() !== '' || (item.attachments?.length ?? 0) > 0),
+          item.id !== pending.id &&
+          !item.error &&
+          !item.stopped &&
+          (item.content.trim() !== '' || (item.attachments?.length ?? 0) > 0),
       )
       const lastUserIndex = source.reduce(
         (found, item, index) => (item.role === 'user' ? index : found),
@@ -238,6 +375,9 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         skills: enabledSkills(),
         permission,
         reasoning,
+        planMode,
+        signal: controller.signal,
+        takeGuidance: () => guidanceRef.current.splice(0),
         onStep: (step) => {
           updateChat((current) =>
             current.map((item) =>
@@ -247,25 +387,70 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         },
       })
 
-      patchMessage(pending.id, {
-        content: result.ok
-          ? result.reply || (result.question ? result.question.question : '')
-          : result.error,
-        error: !result.ok,
-        actions: result.ok
-          ? result.pending?.map((action) => ({ action, status: 'pending' as const }))
-          : undefined,
-        question:
-          result.ok && result.question
-            ? ({ ...result.question, status: 'open' } satisfies ChatQuestionState)
-            : undefined,
-        ms: elapsedSince(pending.at),
-        ...(result.ok && result.usage ? { usage: result.usage } : {}),
-        ...(result.ok && result.compacted ? { compacted: result.compacted } : {}),
-      })
+      if (!result.ok) {
+        if (result.cancelled) {
+          if (target) {
+            restoreChatVariant(target.id)
+            showToast({ message: t('assistant.stopped') })
+          } else {
+            patchChatMessage(pending.id, {
+              content: t('assistant.stopped'),
+              stopped: true,
+              error: false,
+              ms: elapsedSince(pending.at),
+            })
+          }
+          return
+        }
+        if (target) {
+          restoreChatVariant(target.id)
+          showToast({ message: result.error })
+        } else {
+          patchChatMessage(pending.id, {
+            content: result.error,
+            error: true,
+            ms: elapsedSince(pending.at),
+          })
+        }
+        return
+      }
+
+      const content = result.reply || (result.question ? result.question.question : '')
+      const actions = result.pending?.map((action) => ({
+        action,
+        status: 'pending' as const,
+      }))
+      const question = result.question
+        ? ({ ...result.question, status: 'open' } satisfies ChatQuestionState)
+        : undefined
+      const ms = elapsedSince(pending.at)
+
+      if (target) {
+        appendChatVariant(target.id, {
+          content,
+          ...(result.steps.length > 0 ? { steps: result.steps } : {}),
+          ...(actions && actions.length > 0 ? { actions } : {}),
+          ...(question ? { question } : {}),
+          ...(result.usage ? { usage: result.usage } : {}),
+          ...(result.compacted ? { compacted: result.compacted } : {}),
+          ms,
+          at: pending.at,
+        })
+      } else {
+        patchChatMessage(pending.id, {
+          content,
+          error: false,
+          steps: result.steps.length > 0 ? result.steps : undefined,
+          actions: actions && actions.length > 0 ? actions : undefined,
+          question,
+          ms,
+          ...(result.usage ? { usage: result.usage } : {}),
+          ...(result.compacted ? { compacted: result.compacted } : {}),
+        })
+      }
 
       // 新增自动保存：只有纯新增动作立刻落库，其余仍留在待确认卡片上
-      if (result.ok && result.pending) {
+      if (result.pending) {
         for (const [index, action] of result.pending.entries()) {
           if (!runsWithoutConfirm(permission, action.kind)) continue
           try {
@@ -284,24 +469,47 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         }
       }
     } catch (error) {
-      patchMessage(pending.id, {
-        content: (error as Error).message,
-        error: true,
-        ms: elapsedSince(pending.at),
-      })
+      if (target) {
+        restoreChatVariant(target.id)
+        showToast({ message: (error as Error).message })
+      } else {
+        patchChatMessage(pending.id, {
+          content: (error as Error).message,
+          error: true,
+          ms: elapsedSince(pending.at),
+        })
+      }
     } finally {
+      if (abortRef.current === controller) abortRef.current = null
       setPendingId(null)
       setBusy(false)
+      // 这一轮已经结束时还没被工具循环取走的插话，转成普通排队消息，别让用户白打
+      const leftover = guidanceRef.current.splice(0, guidanceRef.current.length)
+      if (leftover.length > 0) {
+        queueRef.current = [
+          ...queueRef.current,
+          ...leftover.map((text) => ({ id: newChatMessageId(), text, files: [] })),
+        ]
+        setQueue([...queueRef.current])
+      }
+      // 当前这一轮结束后，自动接下一条排队消息
+      const next = queueRef.current[0]
+      if (next) {
+        queueRef.current = queueRef.current.slice(1)
+        setQueue([...queueRef.current])
+        void run(next.text, true, next.files)
+      }
     }
   }
 
   function send() {
     const text = input.trim()
-    if ((text === '' && drafts.length === 0) || busy) return
+    if (text === '' && drafts.length === 0) return
     const files = drafts
     setInput('')
     setDrafts([])
     setSuggestOpen(false)
+    setSlashOpen(false)
     // 用户绕过选择题直接说话：把还挂着的题标成跳过，别让它一直亮着
     updateChat((current) =>
       current.map((item) =>
@@ -310,6 +518,15 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           : item,
       ),
     )
+    if (busy || abortRef.current !== null) {
+      if (steerMode && files.length === 0) {
+        guidanceRef.current.push(text)
+        showToast({ message: t('assistant.steerQueued') })
+        return
+      }
+      enqueue(text, files)
+      return
+    }
     void run(text, true, files)
   }
 
@@ -320,20 +537,76 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     void run(lastUser.content, false, lastUser.attachments ?? [])
   }
 
+  /** 重新生成：最后一条就地加一版；更早的回答开新分支，后面的对话留在原会话里 */
+  function regenerate(item: ChatMessageRecord) {
+    if (busy) return
+    const list = getChatMessages()
+    const index = list.findIndex((message) => message.id === item.id)
+    if (index < 0) return
+    let userIndex = -1
+    for (let at = index - 1; at >= 0; at--) {
+      if (list[at].role === 'user') {
+        userIndex = at
+        break
+      }
+    }
+    if (userIndex < 0) return
+    const user = list[userIndex]
+    const hasLater = index < list.length - 1
+    if (hasLater) {
+      const forked = forkChatSession(userIndex + 1)
+      if (!forked) return
+      resetComposer()
+      showToast({ message: t('assistant.editForked') })
+      void run(user.content, false, user.attachments ?? [])
+      return
+    }
+    void run(user.content, false, user.attachments ?? [], item.id)
+  }
+
+  function startEdit(item: ChatMessageRecord) {
+    if (busy) return
+    setSelectMode(false)
+    setSelected([])
+    setEditingId(item.id)
+    setEditText(item.content)
+  }
+
+  /** 编辑用户消息：原会话保留，改写后的这句话在新分支里继续 */
+  function submitEdit() {
+    if (busy || editingId === '') return
+    const text = editText.trim()
+    if (text === '') return
+    const list = getChatMessages()
+    const index = list.findIndex((item) => item.id === editingId)
+    if (index < 0) return
+    const attachments = list[index].attachments ?? []
+    const forked = forkChatSession(index, { content: text, attachments })
+    setEditingId('')
+    setEditText('')
+    if (!forked) return
+    showToast({ message: t('assistant.editForked') })
+    void run(text, false, attachments)
+  }
+
   /** 选择题选完：卡片留痕，再把「我的选择」作为下一条用户消息继续对话 */
-  function answerQuestion(messageId: string, selected: string[]) {
-    if (busy || working !== '' || selected.length === 0) return
+  function answerQuestion(messageId: string, selectedOptions: string[]) {
+    if (busy || working !== '' || selectedOptions.length === 0) return
     updateChat((current) =>
       current.map((item) =>
         item.id === messageId && item.question
           ? {
               ...item,
-              question: { ...item.question, status: 'answered' as const, selected },
+              question: {
+                ...item.question,
+                status: 'answered' as const,
+                selected: selectedOptions,
+              },
             }
           : item,
       ),
     )
-    void run(t('assistant.questionAnswer', { choices: selected.join('、') }), true)
+    void run(t('assistant.questionAnswer', { choices: selectedOptions.join('、') }), true)
   }
 
   async function confirmAction(messageId: string, index: number, state: ChatActionState) {
@@ -382,6 +655,35 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     }
   }
 
+  /** 一键撤销这一轮所有已写入的动作，按写入的倒序回滚 */
+  async function rollbackWrites(item: ChatMessageRecord) {
+    if (busy || working !== '') return
+    const done = (item.actions ?? [])
+      .map((state, index) => ({ state, index }))
+      .filter((entry) => entry.state.status === 'done')
+    if (done.length === 0) return
+    setWorking(`rollback:${item.id}`)
+    let failed = 0
+    for (const { state, index } of [...done].reverse()) {
+      try {
+        await undoAssistantAction(state.action, {
+          recordId: state.recordId ?? null,
+          previous: state.previous,
+        })
+        patchAction(item.id, index, { status: 'undone' })
+      } catch {
+        failed++
+      }
+    }
+    setWorking('')
+    showToast({
+      message:
+        failed === 0
+          ? t('assistant.rollbackDone', { n: done.length })
+          : t('assistant.rollbackFailed', { n: failed }),
+    })
+  }
+
   /** 选文件：一次最多带三个，读不了就弹一句原因 */
   async function handleFiles(event: React.ChangeEvent<HTMLInputElement>) {
     const picked = [...(event.target.files ?? [])]
@@ -409,6 +711,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     newChatSession()
     setInput('')
     setDrafts([])
+    resetComposer()
   }
 
   /** 提交改名；留空就回到自动命名 */
@@ -423,6 +726,63 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     setDeletingId('')
     setRenamingId(id)
     setRenameText(title)
+  }
+
+  async function copy(text: string) {
+    const ok = await copyTextToClipboard(text)
+    showToast({ message: t(ok ? 'assistant.copied' : 'assistant.copyFailed') })
+  }
+
+  function toggleSelect(id: string) {
+    setSelected((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+    )
+  }
+
+  function askDeleteFrom(item: ChatMessageRecord) {
+    if (busy) return
+    const list = getChatMessages()
+    const index = list.findIndex((message) => message.id === item.id)
+    if (index < 0) return
+    setDeleteRequest({
+      fromId: item.id,
+      title: t('assistant.deleteFromTitle'),
+      desc: t('assistant.deleteFromDesc', { n: list.length - index }),
+    })
+  }
+
+  function askDeleteSelected() {
+    if (selected.length === 0 || busy) return
+    setDeleteRequest({
+      ids: [...selected],
+      title: t('assistant.batchDeleteTitle', { n: selected.length }),
+      desc: t('assistant.batchDeleteDesc'),
+    })
+  }
+
+  function confirmDelete() {
+    if (!deleteRequest) return
+    if (deleteRequest.fromId) {
+      const removed = deleteChatFrom(deleteRequest.fromId)
+      showToast({ message: t('assistant.deletedToast', { n: removed }) })
+    } else if (deleteRequest.ids) {
+      deleteChatMessages(deleteRequest.ids)
+      showToast({ message: t('assistant.deletedToast', { n: deleteRequest.ids.length }) })
+    }
+    setDeleteRequest(null)
+    setSelectMode(false)
+    setSelected([])
+  }
+
+  /** 分支之间循环切换；分支共享同一段前缀，各自接着自己的改法往下走 */
+  function cycleBranch(delta: number) {
+    if (busy) return
+    const siblings = getForkSiblings(currentSessionId)
+    if (siblings.length < 2) return
+    const index = siblings.findIndex((item) => item.id === currentSessionId)
+    const next = siblings[(index + delta + siblings.length) % siblings.length]
+    switchChatSession(next.id)
+    resetComposer()
   }
 
   function renderActions(item: ChatMessageRecord) {
@@ -477,7 +837,13 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   /** 最后一条正常回答：推荐问以它为锚点 */
   const lastReply = [...messages]
     .reverse()
-    .find((item) => item.role === 'assistant' && !item.error && item.content.trim() !== '')
+    .find(
+      (item) =>
+        item.role === 'assistant' &&
+        !item.error &&
+        !item.stopped &&
+        item.content.trim() !== '',
+    )
 
   /** 上下文进度：以最后一次请求的提示词长度做分子，模型窗口做分母 */
   const lastWithUsage = [...messages]
@@ -490,6 +856,27 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
 
   const currentSession = sessions.find((item) => item.id === currentSessionId)
   const sessionTitle = currentSession?.title || t('assistant.untitled')
+  const siblings = getForkSiblings(currentSessionId)
+  const branchIndex = Math.max(0, siblings.findIndex((item) => item.id === currentSessionId))
+  const allSelected = messages.length > 0 && selected.length === messages.length
+
+  const exportLabels = {
+    user: t('assistant.exportUser'),
+    assistant: t('assistant.exportAssistant'),
+    tools: t('assistant.exportTrace'),
+    actions: t('assistant.exportActions'),
+    attachments: t('assistant.exportAttachments'),
+    exportedAt: t('assistant.exportedAt'),
+  }
+
+  /** 斜杠命令：输入 / 后按文字过滤推荐问里的句子 */
+  const slashItems = SLASH_KEYS.map((key) => ({ key, text: t(key) }))
+  const slashQuery = input.startsWith('/') ? input.slice(1).trim().toLowerCase() : ''
+  const slashShown = slashOpen
+    ? slashItems.filter(
+        (item) => slashQuery === '' || item.text.toLowerCase().includes(slashQuery),
+      )
+    : []
 
   return (
     <div className={compact ? 'flex min-h-0 flex-1 flex-col' : 'flex flex-1 flex-col'}>
@@ -503,10 +890,35 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         </span>
         <div className="min-w-0 flex-1">
           <p className="m-0 truncate text-xs font-medium text-fg">{sessionTitle}</p>
-          <p className="m-0 text-[10px] text-muted">
-            {t('assistant.sessionMeta', { n: messages.length })}
+          <p className="m-0 flex items-center gap-1 text-[10px] text-muted">
+            <span>{t('assistant.sessionMeta', { n: messages.length })}</span>
+            {siblings.length > 1 && (
+              <button
+                type="button"
+                onClick={() => cycleBranch(1)}
+                disabled={busy}
+                aria-label={t('assistant.next')}
+                className="inline-flex min-h-9 items-center rounded-full bg-surface-2 px-2 py-0.5 text-[10px] text-muted transition-colors hover:text-brand disabled:opacity-40 md:min-h-0"
+              >
+                {t('assistant.branch', { n: branchIndex + 1, total: siblings.length })}
+              </button>
+            )}
           </p>
         </div>
+        {messages.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectMode((value) => !value)
+              setSelected([])
+              setEditingId('')
+            }}
+            aria-pressed={selectMode}
+            className={CHAT_TOOL}
+          >
+            {selectMode ? t('assistant.selectCancel') : t('assistant.select')}
+          </button>
+        )}
         <button
           type="button"
           onClick={startNewChat}
@@ -526,6 +938,55 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           <span className={CHAT_COUNT}>{sessions.length}</span>
         </button>
       </div>
+
+      {/* 多选工具条：批量复制、导出、删除 */}
+      {selectMode && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line py-2 text-[11px]">
+          <span className="text-muted">
+            {t('assistant.selected', { n: selected.length })}
+          </span>
+          <button
+            type="button"
+            onClick={() =>
+              setSelected(allSelected ? [] : messages.map((item) => item.id))
+            }
+            className="inline-flex min-h-11 items-center px-1 text-brand transition-opacity hover:opacity-80 md:min-h-0"
+          >
+            {t('assistant.selectAll')}
+          </button>
+          <button
+            type="button"
+            disabled={selected.length === 0}
+            onClick={() =>
+              void copy(
+                buildChatCopy(
+                  messages.filter((item) => selected.includes(item.id)),
+                  exportLabels,
+                ),
+              )
+            }
+            className={MESSAGE_ACTION}
+          >
+            {t('assistant.batchCopy')}
+          </button>
+          <button
+            type="button"
+            disabled={selected.length === 0}
+            onClick={() => setExportIds([...selected])}
+            className={MESSAGE_ACTION}
+          >
+            {t('assistant.batchExport')}
+          </button>
+          <button
+            type="button"
+            disabled={selected.length === 0 || busy}
+            onClick={askDeleteSelected}
+            className="inline-flex min-h-11 items-center px-1 text-[11px] text-danger transition-opacity hover:opacity-80 disabled:opacity-40 md:min-h-0"
+          >
+            {t('assistant.batchDelete')}
+          </button>
+        </div>
+      )}
 
       <div
         className={
@@ -577,125 +1038,301 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
 
         {messages.map((item) => {
           const loading = item.id === pendingId && item.content === ''
-          if (item.role === 'user') {
-            const attachments = item.attachments ?? []
-            return (
-              <div key={item.id} className="flex flex-col items-end gap-1.5">
-                {item.content.trim() !== '' && (
-                  <p className="m-0 max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-brand/15 px-3.5 py-2 text-sm text-fg">
-                    {item.content}
-                  </p>
-                )}
-                {attachments.length > 0 && (
-                  <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
-                    {attachments.map((file, index) =>
-                      file.dataUrl ? (
-                        <img
-                          key={`${item.id}-att-${index}`}
-                          src={file.dataUrl}
-                          alt={file.name}
-                          className="h-16 w-16 rounded-lg border border-line object-cover"
-                        />
-                      ) : (
-                        <span
-                          key={`${item.id}-att-${index}`}
-                          className="max-w-[12rem] truncate rounded-lg border border-line bg-surface-2 px-2 py-1 text-[11px] text-muted"
+          const isEditing = editingId === item.id
+          const checked = selected.includes(item.id)
+          return (
+            <div key={item.id} className="flex w-full items-start gap-2">
+              {selectMode && (
+                <label className="-my-2 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center md:m-0 md:h-4 md:w-4">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleSelect(item.id)}
+                    aria-label={t('assistant.select')}
+                    className="h-5 w-5 accent-[var(--color-brand)] md:h-4 md:w-4"
+                  />
+                </label>
+              )}
+              <div
+                className={`flex min-w-0 flex-1 flex-col gap-1.5 ${
+                  item.role === 'user' ? 'items-end' : 'items-start'
+                }`}
+              >
+                {item.role === 'user' ? (
+                  isEditing ? (
+                    <div className="w-full max-w-[92%] rounded-xl border border-brand/40 bg-surface p-2.5">
+                      <textarea
+                        autoFocus
+                        value={editText}
+                        onChange={(event) => setEditText(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Escape') {
+                            setEditingId('')
+                            setEditText('')
+                          }
+                          if (
+                            event.key === 'Enter' &&
+                            (event.ctrlKey || event.metaKey) &&
+                            !event.nativeEvent.isComposing
+                          ) {
+                            event.preventDefault()
+                            submitEdit()
+                          }
+                        }}
+                        rows={3}
+                        aria-label={t('assistant.edit')}
+                        className={`${INPUT} resize-y text-sm`}
+                      />
+                      <p className="mt-1.5 text-[10px] text-muted">
+                        {t('assistant.editHint')}
+                      </p>
+                      <div className="mt-2 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingId('')
+                            setEditText('')
+                          }}
+                          className="text-[11px] text-muted transition-colors hover:text-fg"
                         >
-                          {file.name}
-                        </span>
-                      ),
+                          {t('common.cancel')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy || editText.trim() === ''}
+                          onClick={submitEdit}
+                          className="text-[11px] font-medium text-brand transition-opacity hover:opacity-80 disabled:opacity-40"
+                        >
+                          {t('assistant.editSave')}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {item.content.trim() !== '' && (
+                        <p className="m-0 max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-brand/15 px-3.5 py-2 text-sm text-fg">
+                          {item.content}
+                        </p>
+                      )}
+                      {(item.attachments ?? []).length > 0 && (
+                        <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
+                          {(item.attachments ?? []).map((file, index) =>
+                            file.dataUrl ? (
+                              <img
+                                key={`${item.id}-att-${index}`}
+                                src={file.dataUrl}
+                                alt={file.name}
+                                className="h-16 w-16 rounded-lg border border-line object-cover"
+                              />
+                            ) : (
+                              <span
+                                key={`${item.id}-att-${index}`}
+                                className="max-w-[12rem] truncate rounded-lg border border-line bg-surface-2 px-2 py-1 text-[11px] text-muted"
+                              >
+                                {file.name}
+                              </span>
+                            ),
+                          )}
+                        </div>
+                      )}
+                      {!selectMode && (
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          {item.content.trim() !== '' && (
+                            <button
+                              type="button"
+                              onClick={() => void copy(item.content)}
+                              className={MESSAGE_ACTION}
+                            >
+                              {t('assistant.copy')}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            disabled={busy || loading}
+                            onClick={() => startEdit(item)}
+                            className={MESSAGE_ACTION}
+                          >
+                            {t('assistant.edit')}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy || loading}
+                            onClick={() => askDeleteFrom(item)}
+                            className={MESSAGE_ACTION}
+                          >
+                            {t('assistant.deleteFrom')}
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )
+                ) : (
+                  <>
+                    {((item.steps && item.steps.length > 0) || loading) && (
+                      <div className="w-full overflow-hidden rounded-2xl border border-line/70 bg-surface-2/60">
+                        <div className="flex items-center gap-2 border-b border-line px-2.5 py-1.5 text-[11px] text-muted">
+                          {loading ? (
+                            <AssistantWorking
+                              startedAt={item.at}
+                              stepName={item.steps?.[item.steps.length - 1]?.name}
+                            />
+                          ) : (
+                            <>
+                              <span
+                                className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-brand"
+                                aria-hidden="true"
+                              />
+                              <span>{t('assistant.checked', { n: item.steps?.length ?? 0 })}</span>
+                            </>
+                          )}
+                          {!loading && item.ms !== undefined && (
+                            <span className="ml-auto shrink-0 font-mono text-[10px]">
+                              {t('assistant.traceMs', { s: (item.ms / 1000).toFixed(1) })}
+                            </span>
+                          )}
+                        </div>
+                        {item.steps && item.steps.length > 0 && (
+                          <ul className="m-0 list-none divide-y divide-line p-0">
+                            {item.steps.map((step, index) => (
+                              <li key={`${item.id}-${index}`}>
+                                <details className="group px-2.5 py-1.5">
+                                  <summary className="flex cursor-pointer select-none items-center gap-2 text-[11px]">
+                                    <span className="font-mono text-[10px] text-brand">{step.name}</span>
+                                    <span className="min-w-0 flex-1 truncate text-muted">
+                                      {firstLine(step.text)}
+                                    </span>
+                                    <span
+                                      className="text-[10px] text-muted transition-transform group-open:rotate-180"
+                                      aria-hidden="true"
+                                    >
+                                      ▾
+                                    </span>
+                                  </summary>
+                                  <div className="mt-1.5 whitespace-pre-wrap break-words border-l-2 border-brand/30 pl-2 text-[11px] text-muted">
+                                    {step.text}
+                                  </div>
+                                </details>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
                     )}
-                  </div>
+                    {!loading && item.content !== '' && (
+                      <div
+                        className={`max-w-[92%] rounded-2xl rounded-bl-md border px-3.5 py-2.5 text-sm leading-relaxed ${
+                          item.error
+                            ? 'border-danger/40 bg-danger/10 text-fg'
+                            : 'border-line bg-surface text-fg'
+                        }`}
+                      >
+                        {item.error ? (
+                          <p className="m-0 whitespace-pre-wrap">{item.content}</p>
+                        ) : (
+                          <AssistantMarkdown text={item.content} />
+                        )}
+                        {(item.error || item.stopped) && (
+                          <button
+                            type="button"
+                            onClick={retry}
+                            disabled={busy}
+                            className="mt-2 inline-flex min-h-9 items-center gap-1 text-[11px] text-danger underline-offset-2 transition-colors hover:underline disabled:opacity-50"
+                          >
+                            {t('assistant.retry')}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {item.compacted !== undefined && item.compacted > 0 && (
+                      <p className="m-0 text-[10px] text-muted">
+                        {t('assistant.compacted', { n: item.compacted })}
+                      </p>
+                    )}
+                    {item.question && !selectMode && (
+                      <AssistantQuestionCard
+                        state={item.question}
+                        busy={busy || working !== ''}
+                        onAnswer={(selectedOptions) =>
+                          answerQuestion(item.id, selectedOptions)
+                        }
+                      />
+                    )}
+                    {!selectMode && renderActions(item)}
+                    {!selectMode &&
+                      (item.actions?.filter((state) => state.status === 'done').length ?? 0) > 0 && (
+                        <button
+                          type="button"
+                          disabled={busy || working !== ''}
+                          onClick={() => void rollbackWrites(item)}
+                          className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-[10px] text-muted transition-colors hover:border-danger/40 hover:text-danger disabled:opacity-40 md:min-h-0"
+                        >
+                          <Icon name="trash" className="h-3 w-3 shrink-0" />
+                          {t('assistant.rollback', {
+                            n:
+                              item.actions?.filter((state) => state.status === 'done').length ?? 0,
+                          })}
+                        </button>
+                      )}
+                    {!selectMode && !loading && (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        {item.variants && item.variants.length > 1 && (
+                          <span className="flex items-center gap-1 text-[10px] text-muted">
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => switchChatVariant(item.id, -1)}
+                              aria-label={t('assistant.previous')}
+                              className="inline-flex h-9 w-8 items-center justify-center text-[12px] text-muted transition-colors hover:text-brand disabled:opacity-40 md:h-6 md:w-5"
+                            >
+                              ‹
+                            </button>
+                            <span>
+                              {t('assistant.version', {
+                                n: (item.variantIndex ?? 0) + 1,
+                                total: item.variants.length,
+                              })}
+                            </span>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => switchChatVariant(item.id, 1)}
+                              aria-label={t('assistant.next')}
+                              className="inline-flex h-9 w-8 items-center justify-center text-[12px] text-muted transition-colors hover:text-brand disabled:opacity-40 md:h-6 md:w-5"
+                            >
+                              ›
+                            </button>
+                          </span>
+                        )}
+                        {item.content.trim() !== '' && (
+                          <button
+                            type="button"
+                            onClick={() => void copy(item.content)}
+                            className={MESSAGE_ACTION}
+                          >
+                            {t('assistant.copy')}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => regenerate(item)}
+                          className={MESSAGE_ACTION}
+                        >
+                          {t('assistant.regenerate')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => askDeleteFrom(item)}
+                          className={MESSAGE_ACTION}
+                        >
+                          {t('assistant.deleteFrom')}
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
-            )
-          }
-          return (
-            <div key={item.id} className="flex flex-col items-start gap-1.5">
-              {((item.steps && item.steps.length > 0) || loading) && (
-                <div className="w-full overflow-hidden rounded-2xl border border-line/70 bg-surface-2/60">
-                  <div className="flex items-center gap-2 border-b border-line px-2.5 py-1.5 text-[11px] text-muted">
-                    {loading ? (
-                      <AssistantWorking
-                        startedAt={item.at}
-                        stepName={item.steps?.[item.steps.length - 1]?.name}
-                      />
-                    ) : (
-                      <>
-                        <span
-                          className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-brand"
-                          aria-hidden="true"
-                        />
-                        <span>{t('assistant.checked', { n: item.steps?.length ?? 0 })}</span>
-                      </>
-                    )}
-                    {!loading && item.ms !== undefined && (
-                      <span className="ml-auto shrink-0 font-mono text-[10px]">
-                        {t('assistant.traceMs', { s: (item.ms / 1000).toFixed(1) })}
-                      </span>
-                    )}
-                  </div>
-                  {item.steps && item.steps.length > 0 && (
-                    <ul className="m-0 list-none divide-y divide-line p-0">
-                      {item.steps.map((step, index) => (
-                        <li key={`${item.id}-${index}`}>
-                          <details className="group px-2.5 py-1.5">
-                            <summary className="flex cursor-pointer select-none items-center gap-2 text-[11px]">
-                              <span className="font-mono text-[10px] text-brand">{step.name}</span>
-                              <span className="min-w-0 flex-1 truncate text-muted">
-                                {firstLine(step.text)}
-                              </span>
-                              <span
-                                className="text-[10px] text-muted transition-transform group-open:rotate-180"
-                                aria-hidden="true"
-                              >
-                                ▾
-                              </span>
-                            </summary>
-                            <div className="mt-1.5 whitespace-pre-wrap break-words border-l-2 border-brand/30 pl-2 text-[11px] text-muted">
-                              {step.text}
-                            </div>
-                          </details>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-              {!loading && item.content !== '' && (
-                <div
-                  className={`max-w-[92%] whitespace-pre-wrap rounded-2xl rounded-bl-md border px-3.5 py-2.5 text-sm leading-relaxed ${
-                    item.error
-                      ? 'border-danger/40 bg-danger/10 text-fg'
-                      : 'border-line bg-surface text-fg'
-                  }`}
-                >
-                  {item.content}
-                  {item.error && (
-                    <button
-                      type="button"
-                      onClick={retry}
-                      disabled={busy}
-                      className="mt-2 inline-flex items-center gap-1 text-[11px] text-danger underline-offset-2 transition-colors hover:underline disabled:opacity-50"
-                    >
-                      {t('assistant.retry')}
-                    </button>
-                  )}
-                </div>
-              )}
-              {item.compacted !== undefined && item.compacted > 0 && (
-                <p className="m-0 text-[10px] text-muted">
-                  {t('assistant.compacted', { n: item.compacted })}
-                </p>
-              )}
-              {item.question && (
-                <AssistantQuestionCard
-                  state={item.question}
-                  busy={busy || working !== ''}
-                  onAnswer={(selected) => answerQuestion(item.id, selected)}
-                />
-              )}
-              {renderActions(item)}
             </div>
           )
         })}
@@ -742,32 +1379,95 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             </span>
             {t('assistant.healthNote')}
           </p>
-          <button
-            type="button"
-            aria-pressed={reasoning}
-            disabled={busy}
-            onClick={() => {
-              const next = !reasoning
-              setReasoning(next)
-              saveReasoning(next)
-            }}
-            className="inline-flex h-6 shrink-0 items-center gap-1.5 text-[11px] text-muted transition-colors hover:text-fg disabled:opacity-50"
-          >
-            <span
-              className={`relative inline-block h-3.5 w-6 rounded-full transition-colors ${
-                reasoning ? 'bg-brand' : 'bg-surface-2 ring-1 ring-inset ring-line'
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              aria-pressed={planMode}
+              disabled={busy}
+              onClick={() => {
+                const next = !planMode
+                setPlanMode(next)
+                savePlanMode(next)
+              }}
+              className={`inline-flex h-11 items-center rounded-full px-3 text-[11px] transition-colors disabled:opacity-50 md:h-6 md:px-2 ${
+                planMode
+                  ? 'bg-brand/15 text-brand'
+                  : 'text-muted hover:text-fg'
               }`}
-              aria-hidden="true"
+            >
+              {t('assistant.planMode')}
+            </button>
+            <button
+              type="button"
+              aria-pressed={reasoning}
+              disabled={busy}
+              onClick={() => {
+                const next = !reasoning
+                setReasoning(next)
+                saveReasoning(next)
+              }}
+              className="inline-flex h-11 shrink-0 items-center gap-1.5 px-1 text-[11px] text-muted transition-colors hover:text-fg disabled:opacity-50 md:h-6 md:px-0"
             >
               <span
-                className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white shadow-sm transition-[left] duration-150 motion-reduce:transition-none ${
-                  reasoning ? 'left-3' : 'left-0.5'
+                className={`relative inline-block h-3.5 w-6 rounded-full transition-colors ${
+                  reasoning ? 'bg-brand' : 'bg-surface-2 ring-1 ring-inset ring-line'
                 }`}
-              />
-            </span>
-            <span className={reasoning ? 'text-brand' : ''}>{t('assistant.reasoning')}</span>
-          </button>
+                aria-hidden="true"
+              >
+                <span
+                  className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white shadow-sm transition-[left] duration-150 motion-reduce:transition-none ${
+                    reasoning ? 'left-3' : 'left-0.5'
+                  }`}
+                />
+              </span>
+              <span className={reasoning ? 'text-brand' : ''}>{t('assistant.reasoning')}</span>
+            </button>
+          </div>
         </div>
+        {planMode && (
+          <p className="m-0 mb-2 text-[10px] text-brand">{t('assistant.planHint')}</p>
+        )}
+
+        {/* 生成中的两种说话方式：排队等下一轮，或插话到当前这轮的工具循环里 */}
+        {busy && (
+          <div className="mb-2 flex items-center gap-2 text-[10px]">
+            <button
+              type="button"
+              aria-pressed={steerMode}
+              onClick={() => setSteerMode((value) => !value)}
+              className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-3 transition-colors md:min-h-0 md:px-2 md:py-0.5 ${
+                steerMode
+                  ? 'bg-brand/15 text-brand'
+                  : 'bg-surface-2 text-muted hover:text-fg'
+              }`}
+            >
+              {t('assistant.steer')}
+            </button>
+            <span className="min-w-0 flex-1 truncate text-muted">
+              {steerMode ? t('assistant.steerHint') : t('assistant.queueHint')}
+            </span>
+          </div>
+        )}
+
+        {/* 排队中的消息：当前一轮结束后按顺序自动发出 */}
+        {queue.length > 0 && (
+          <div className="mb-2 flex flex-col gap-1 rounded-lg border border-dashed border-brand/30 bg-brand/[0.04] px-2 py-1.5">
+            <span className="text-[10px] text-brand">{t('assistant.queue')}</span>
+            {queue.map((item) => (
+              <span key={item.id} className="flex items-center gap-1.5 text-[11px] text-muted">
+                <span className="min-w-0 flex-1 truncate">{item.text || item.files[0]?.name}</span>
+                <button
+                  type="button"
+                  onClick={() => removeQueued(item.id)}
+                  aria-label={t('assistant.queueRemove')}
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center text-muted transition-colors hover:text-danger md:h-5 md:w-5"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* 推荐问：默认收起，展开时让模型按对话与记忆现想三条 */}
         {messages.length > 0 && !busy && lastReply && (
@@ -797,25 +1497,52 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                 <p className="m-0 mt-1.5 text-[11px] text-muted">
                   {t('assistant.suggestLoading')}
                 </p>
-              ) : (
-                suggestions?.items.length ? (
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {suggestions.items.map((text) => (
-                      <button
-                        key={text}
-                        type="button"
-                        onClick={() => {
-                          setSuggestOpen(false)
-                          void run(text, true)
-                        }}
-                        className={CHAT_CHIP}
-                      >
-                        {text}
-                      </button>
-                    ))}
-                  </div>
-                ) : null
-              ))}
+              ) : suggestions?.items.length ? (
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {suggestions.items.map((text) => (
+                    <button
+                      key={text}
+                      type="button"
+                      onClick={() => {
+                        setSuggestOpen(false)
+                        void run(text, true)
+                      }}
+                      className={CHAT_CHIP}
+                    >
+                      {text}
+                    </button>
+                  ))}
+                </div>
+              ) : null)}
+          </div>
+        )}
+
+        {/* 斜杠命令：选中后把整句放进输入框，还能继续改 */}
+        {slashOpen && (
+          <div className="mb-2 overflow-hidden rounded-xl border border-line bg-surface">
+            <p className="m-0 border-b border-line px-2.5 py-1.5 text-[10px] text-muted">
+              {t('assistant.slashTitle')}
+            </p>
+            {slashShown.length === 0 ? (
+              <p className="m-0 px-2.5 py-2 text-[11px] text-muted">
+                {t('assistant.slashEmpty')}
+              </p>
+            ) : (
+              slashShown.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => {
+                    setInput(item.text)
+                    setSlashOpen(false)
+                  }}
+                  className="flex min-h-11 w-full items-start gap-2 px-2.5 py-2 text-left text-[11px] text-fg transition-colors hover:bg-brand/10 hover:text-brand md:min-h-0 md:py-1.5"
+                >
+                  <span className="shrink-0 font-mono text-[10px] text-brand">/</span>
+                  <span className="min-w-0 flex-1">{item.text}</span>
+                </button>
+              ))
+            )}
           </div>
         )}
 
@@ -831,7 +1558,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                   type="button"
                   onClick={() => setDrafts((current) => current.filter((_, at) => at !== index))}
                   aria-label={t('assistant.attachRemove')}
-                  className="shrink-0 text-muted transition-colors hover:text-fg"
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center text-muted transition-colors hover:text-fg md:h-5 md:w-5"
                 >
                   ×
                 </button>
@@ -840,7 +1567,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           </div>
         )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
           <input
             ref={fileRef}
             type="file"
@@ -850,46 +1577,130 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             className="hidden"
             aria-label={t('assistant.attach')}
           />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={busy || drafts.length >= MAX_ATTACHMENTS}
-            aria-label={t('assistant.attach')}
-            title={t('assistant.attach')}
-            className={CHAT_ICON}
-          >
-            ＋
-          </button>
           <input
             value={input}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.nativeEvent.isComposing) send()
+            onChange={(event) => {
+              const value = event.target.value
+              setInput(value)
+              setSlashOpen(value.startsWith('/'))
             }}
-            disabled={busy}
-            placeholder={t('assistant.inputPlaceholder')}
+            onKeyDown={(event) => {
+              if (slashOpen) {
+                if (event.key === 'Escape') {
+                  event.preventDefault()
+                  setSlashOpen(false)
+                  return
+                }
+                if (
+                  (event.key === 'Enter' || event.key === 'Tab') &&
+                  slashShown.length > 0 &&
+                  !event.nativeEvent.isComposing
+                ) {
+                  event.preventDefault()
+                  setInput(slashShown[0].text)
+                  setSlashOpen(false)
+                  return
+                }
+              }
+              if (event.key === 'Escape' && busy) {
+                event.preventDefault()
+                stop()
+                return
+              }
+              if (
+                event.key === 'ArrowUp' &&
+                input === '' &&
+                drafts.length === 0 &&
+                !busy
+              ) {
+                const lastUser = [...messages].reverse().find((item) => item.role === 'user')
+                if (lastUser) {
+                  event.preventDefault()
+                  startEdit(lastUser)
+                  return
+                }
+              }
+              if (
+                event.key === 'Enter' &&
+                !event.nativeEvent.isComposing &&
+                (!event.shiftKey || event.ctrlKey || event.metaKey)
+              ) {
+                event.preventDefault()
+                send()
+              }
+            }}
+            placeholder={
+              busy
+                ? steerMode
+                  ? t('assistant.steerHint')
+                  : t('assistant.queueHint')
+                : t('assistant.inputPlaceholder')
+            }
             aria-label={t('assistant.inputPlaceholder')}
-            className={INPUT + ' flex-1'}
+            className={`${INPUT} order-first w-full md:order-none md:w-auto md:flex-1`}
           />
-          <button
-            type="button"
-            onClick={send}
-            disabled={busy || (input.trim() === '' && drafts.length === 0)}
-            className={CHAT_SEND}
-          >
-            {t('assistant.send')}
-          </button>
-        </div>
-        {messages.length > 0 && !busy && (
-          <div className="mt-2 flex items-center justify-between gap-2">
+          {/* 手机上输入框独占一行，图标与发送放到下一行；桌面合成一行 */}
+          <div className="flex w-full items-center gap-2 md:contents">
             <button
               type="button"
-              onClick={() => setClearOpen(true)}
-              className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-danger/40 px-2.5 py-1 text-[11px] text-danger transition-colors hover:bg-danger/10 active:scale-[0.97]"
+              onClick={() => fileRef.current?.click()}
+              disabled={drafts.length >= MAX_ATTACHMENTS}
+              aria-label={t('assistant.attach')}
+              title={t('assistant.attach')}
+              className={CHAT_ICON}
             >
-              <Icon name="trash" className="h-3 w-3 shrink-0" />
-              {t('assistant.clear')}
+              ＋
             </button>
+            <button
+              type="button"
+              onClick={() => setRefOpen(true)}
+              aria-label={t('assistant.refTitle')}
+              title={t('assistant.refTitle')}
+              className={`${CHAT_ICON} font-mono text-sm`}
+            >
+              @
+            </button>
+            {busy && (
+              <button
+                type="button"
+                onClick={stop}
+                aria-label={t('assistant.stop')}
+                title={t('assistant.stop')}
+                className={CHAT_STOP}
+              >
+                ■
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={send}
+              disabled={input.trim() === '' && drafts.length === 0}
+              className={`${CHAT_SEND} ml-auto md:ml-0`}
+            >
+              {busy ? (steerMode ? t('assistant.steer') : t('assistant.queue')) : t('assistant.send')}
+            </button>
+          </div>
+        </div>
+        {messages.length > 0 && (
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setClearOpen(true)}
+                disabled={busy}
+                className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-danger/40 px-2.5 py-1 text-[11px] text-danger transition-colors hover:bg-danger/10 active:scale-[0.97] disabled:opacity-40 md:min-h-0"
+              >
+                <Icon name="trash" className="h-3 w-3 shrink-0" />
+                {t('assistant.clear')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setExportIds([])}
+                className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-[11px] text-muted transition-colors hover:text-brand md:min-h-0"
+              >
+                {t('assistant.export')}
+              </button>
+            </div>
             <div className="flex shrink-0 items-center gap-2 text-[11px] text-muted">
               <Link to="/me/agent/memory" className="transition-colors hover:text-brand">
                 {t('assistant.memoryLink', { count: loadMemories().length })}
@@ -921,7 +1732,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
               onClick={() => setSessionOpen(false)}
               aria-label={t('common.close')}
               title={t('common.close')}
-              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[13px] text-muted transition-colors hover:bg-surface-2 hover:text-fg md:h-7 md:w-7"
             >
               ✕
             </button>
@@ -955,19 +1766,19 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                             }}
                             placeholder={t('assistant.renameHint')}
                             aria-label={t('assistant.rename')}
-                            className={INPUT + ' h-8 flex-1 text-xs'}
+                            className={INPUT + ' h-11 flex-1 text-xs md:h-8'}
                           />
                           <button
                             type="button"
                             onClick={commitRename}
-                            className="shrink-0 text-[11px] font-medium text-brand transition-colors hover:opacity-80"
+                            className="inline-flex min-h-11 shrink-0 items-center px-1 text-[11px] font-medium text-brand transition-colors hover:opacity-80 md:min-h-0"
                           >
                             {t('assistant.renameSave')}
                           </button>
                           <button
                             type="button"
                             onClick={() => setRenamingId('')}
-                            className="shrink-0 text-[11px] text-muted transition-colors hover:text-fg"
+                            className="inline-flex min-h-11 shrink-0 items-center px-1 text-[11px] text-muted transition-colors hover:text-fg md:min-h-0"
                           >
                             {t('common.cancel')}
                           </button>
@@ -977,9 +1788,12 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                           <button
                             type="button"
                             onClick={() => {
+                              if (busy) return
                               switchChatSession(session.id)
+                              resetComposer()
                               setSessionOpen(false)
                             }}
+                            disabled={busy}
                             className={CHAT_ROW}
                           >
                             <span
@@ -993,6 +1807,12 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                               {t('assistant.sessionMeta', { n: session.messages.length })}
                               <span aria-hidden="true">·</span>
                               {whenLabel(session.updatedAt)}
+                              {session.forkGroup && (
+                                <>
+                                  <span aria-hidden="true">·</span>
+                                  <span className="text-brand">{t('assistant.branchTag')}</span>
+                                </>
+                              )}
                             </span>
                           </button>
                           <button
@@ -1000,7 +1820,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                             onClick={() => startRename(session.id, session.title)}
                             aria-label={t('assistant.rename')}
                             title={t('assistant.rename')}
-                            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] text-muted transition-colors hover:bg-surface-2 hover:text-brand"
+                            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[12px] text-muted transition-colors hover:bg-surface-2 hover:text-brand md:h-7 md:w-7"
                           >
                             ✎
                           </button>
@@ -1012,7 +1832,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                             }}
                             aria-label={t('assistant.sessionDelete')}
                             title={t('assistant.sessionDelete')}
-                            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] text-muted transition-colors hover:bg-danger/10 hover:text-danger"
+                            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[12px] text-muted transition-colors hover:bg-danger/10 hover:text-danger md:h-7 md:w-7"
                           >
                             ✕
                           </button>
@@ -1029,7 +1849,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                             <button
                               type="button"
                               onClick={() => setDeletingId('')}
-                              className="text-muted transition-colors hover:text-fg"
+                              className="inline-flex min-h-11 items-center px-1 text-muted transition-colors hover:text-fg md:min-h-0"
                             >
                               {t('common.cancel')}
                             </button>
@@ -1039,7 +1859,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                                 deleteChatSession(session.id)
                                 setDeletingId('')
                               }}
-                              className="font-medium text-danger transition-opacity hover:opacity-80"
+                              className="inline-flex min-h-11 items-center px-1 font-medium text-danger transition-opacity hover:opacity-80 md:min-h-0"
                             >
                               {t('common.delete')}
                             </button>
@@ -1062,9 +1882,39 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           tone="danger"
           onConfirm={() => {
             clearChat()
+            resetComposer()
             setClearOpen(false)
           }}
           onCancel={() => setClearOpen(false)}
+        />
+      )}
+
+      {deleteRequest && (
+        <ConfirmDialog
+          title={deleteRequest.title}
+          description={deleteRequest.desc}
+          tone="danger"
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteRequest(null)}
+        />
+      )}
+
+      {exportIds !== null && (
+        <AssistantExportDialog
+          messages={messages}
+          title={sessionTitle}
+          selectedIds={exportIds}
+          onClose={() => setExportIds(null)}
+        />
+      )}
+
+      {refOpen && (
+        <AssistantRefPicker
+          onPick={(text) => {
+            setInput((value) => (value.trim() === '' ? text : `${value.trimEnd()} ${text}`))
+            setRefOpen(false)
+          }}
+          onClose={() => setRefOpen(false)}
         />
       )}
     </div>

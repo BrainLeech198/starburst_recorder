@@ -14,6 +14,7 @@
 import type { AssistantQuestion, AssistantStep } from './assistantAgent'
 import { describeAction, type AssistantAction } from './assistantActionBuild'
 import type { TokenUsage } from './assistantContext'
+import { translate } from '@/shared/i18n/context'
 
 export type ChatActionStatus = 'pending' | 'done' | 'undone' | 'canceled' | 'failed'
 export type ChatQuestionStatus = 'open' | 'answered' | 'skipped'
@@ -44,6 +45,21 @@ export interface ChatActionState {
   error?: string
 }
 
+/** 一条回答的完整快照：重新生成时旧版本留在这里，可以左右切换 */
+export interface ChatVariantSnapshot {
+  content: string
+  steps?: AssistantStep[]
+  actions?: ChatActionState[]
+  question?: ChatQuestionState
+  error?: boolean
+  /** 这一版是被用户按「停止」中断的 */
+  stopped?: boolean
+  ms?: number
+  usage?: TokenUsage & { context?: number }
+  compacted?: number
+  at: number
+}
+
 export interface ChatMessageRecord {
   id: string
   role: 'user' | 'assistant'
@@ -52,6 +68,8 @@ export interface ChatMessageRecord {
   attachments?: ChatAttachment[]
   steps?: AssistantStep[]
   error?: boolean
+  /** 用户按了停止，重新生成或重发即可 */
+  stopped?: boolean
   actions?: ChatActionState[]
   question?: ChatQuestionState
   at: number
@@ -61,6 +79,10 @@ export interface ChatMessageRecord {
   usage?: TokenUsage & { context?: number }
   /** 这一轮有多少条较早对话被压缩掉了 */
   compacted?: number
+  /** 重新生成留下的回答版本；只有一条时不会生成这个字段 */
+  variants?: ChatVariantSnapshot[]
+  /** 当前显示第几版，从 0 开始 */
+  variantIndex?: number
 }
 
 /** 一段会话 */
@@ -71,14 +93,23 @@ export interface ChatSession {
   messages: ChatMessageRecord[]
   createdAt: number
   updatedAt: number
+  /** 同一组分叉出来的会话共用一个组 id，界面上用 ‹ 1/2 › 切换 */
+  forkGroup?: string
+  /** 从哪一段会话分出来的 */
+  forkFrom?: string
+  /** 分叉点在原会话里的消息序号（保留前多少条） */
+  forkAt?: number
 }
 
 const SESSIONS_KEY = 'sb_assistant_sessions_v1'
 /** 老版本只有一段对话，迁移一次后删掉 */
 const LEGACY_KEY = 'sb_assistant_chat_v1'
 const MAX_MESSAGES = 60
-const MAX_SESSIONS = 20
+/** 编辑消息会分叉，上限比原来宽一点；超出时仍优先保住当前会话与刚分叉的来源 */
+const MAX_SESSIONS = 30
 const MAX_ATTACHMENTS = 3
+/** 一条回答最多留几版，再多的重新生成只保留最近的 */
+const MAX_VARIANTS = 8
 
 const ACTION_KINDS = new Set([
   'scheduleCreate',
@@ -238,34 +269,80 @@ function normalizeQuestion(raw: unknown): ChatQuestionState | null {
   }
 }
 
+function normalizeSteps(raw: unknown): AssistantStep[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const steps = raw
+    .map((step) => {
+      if (!step || typeof step !== 'object') return null
+      const value = step as Record<string, unknown>
+      if (typeof value.name !== 'string' || typeof value.text !== 'string') return null
+      return { name: value.name, text: value.text }
+    })
+    .filter((step): step is AssistantStep => step !== null)
+  return steps.length > 0 ? steps : undefined
+}
+
+function normalizeVariant(raw: unknown): ChatVariantSnapshot | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  if (typeof item.content !== 'string') return null
+  const actions = Array.isArray(item.actions)
+    ? item.actions
+        .map(normalizeAction)
+        .filter((action): action is ChatActionState => action !== null)
+    : undefined
+  const question = normalizeQuestion(item.question)
+  const usage = normalizeUsage(item.usage)
+  const steps = normalizeSteps(item.steps)
+  return {
+    content: item.content,
+    ...(steps ? { steps } : {}),
+    ...(actions && actions.length > 0 ? { actions } : {}),
+    ...(question ? { question } : {}),
+    ...(item.error === true ? { error: true } : {}),
+    ...(item.stopped === true ? { stopped: true } : {}),
+    ...(typeof item.ms === 'number' && Number.isFinite(item.ms) ? { ms: item.ms } : {}),
+    ...(usage ? { usage } : {}),
+    ...(typeof item.compacted === 'number' && Number.isFinite(item.compacted) && item.compacted > 0
+      ? { compacted: item.compacted }
+      : {}),
+    at: typeof item.at === 'number' && Number.isFinite(item.at) ? item.at : Date.now(),
+  }
+}
+
 function normalizeMessage(raw: unknown): ChatMessageRecord | null {
   if (!raw || typeof raw !== 'object') return null
   const item = raw as Record<string, unknown>
   if (typeof item.id !== 'string' || item.id === '') return null
   if (item.role !== 'user' && item.role !== 'assistant') return null
   if (typeof item.content !== 'string') return null
-  const steps = Array.isArray(item.steps)
-    ? item.steps
-        .map((step) => {
-          if (!step || typeof step !== 'object') return null
-          const value = step as Record<string, unknown>
-          if (typeof value.name !== 'string' || typeof value.text !== 'string') return null
-          return { name: value.name, text: value.text }
-        })
-        .filter((step): step is AssistantStep => step !== null)
-    : undefined
+  const steps = normalizeSteps(item.steps)
   const actions = Array.isArray(item.actions)
     ? item.actions.map(normalizeAction).filter((action): action is ChatActionState => action !== null)
     : undefined
   const question = normalizeQuestion(item.question)
   const usage = normalizeUsage(item.usage)
+  const variants = Array.isArray(item.variants)
+    ? item.variants
+        .map(normalizeVariant)
+        .filter((variant): variant is ChatVariantSnapshot => variant !== null)
+        .slice(-MAX_VARIANTS)
+    : undefined
+  const variantIndex =
+    variants && variants.length > 0
+      ? Math.min(
+          variants.length - 1,
+          Math.max(0, typeof item.variantIndex === 'number' ? Math.floor(item.variantIndex) : 0),
+        )
+      : undefined
   return {
     id: item.id,
     role: item.role,
     content: item.content,
     attachments: normalizeAttachments(item.attachments),
-    steps: steps && steps.length > 0 ? steps : undefined,
+    steps,
     error: item.error === true,
+    ...(item.stopped === true ? { stopped: true } : {}),
     actions: actions && actions.length > 0 ? actions : undefined,
     question: question ?? undefined,
     at: typeof item.at === 'number' && Number.isFinite(item.at) ? item.at : Date.now(),
@@ -274,6 +351,7 @@ function normalizeMessage(raw: unknown): ChatMessageRecord | null {
     ...(typeof item.compacted === 'number' && Number.isFinite(item.compacted) && item.compacted > 0
       ? { compacted: item.compacted }
       : {}),
+    ...(variants && variants.length > 1 ? { variants, variantIndex } : {}),
   }
 }
 
@@ -302,6 +380,15 @@ function normalizeSession(raw: unknown): ChatSession | null {
     messages,
     createdAt: typeof item.createdAt === 'number' ? item.createdAt : now,
     updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : now,
+    ...(typeof item.forkGroup === 'string' && item.forkGroup !== ''
+      ? { forkGroup: item.forkGroup }
+      : {}),
+    ...(typeof item.forkFrom === 'string' && item.forkFrom !== ''
+      ? { forkFrom: item.forkFrom }
+      : {}),
+    ...(typeof item.forkAt === 'number' && Number.isFinite(item.forkAt) && item.forkAt >= 0
+      ? { forkAt: Math.floor(item.forkAt) }
+      : {}),
   }
 }
 
@@ -366,17 +453,25 @@ function ensureCurrent() {
   if (!sessions.some((item) => item.id === currentId)) currentId = sessions[0].id
 }
 
-function trimSessions() {
+function trimSessions(extraKeep: string[] = []) {
   if (sessions.length <= MAX_SESSIONS) return
-  // 留最近的，但当前这段无论如何不能丢
-  const keep = [...sessions]
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, MAX_SESSIONS)
-  if (!keep.some((item) => item.id === currentId)) {
-    const current = sessions.find((item) => item.id === currentId)
-    if (current) keep[MAX_SESSIONS - 1] = current
+  const protectedIds = new Set([currentId, ...extraKeep])
+  const kept = [...sessions].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, MAX_SESSIONS)
+  // 当前会话和刚分叉出来的来源无论如何都要留下：挤掉末尾一条没被保护的
+  for (const id of protectedIds) {
+    if (kept.some((item) => item.id === id)) continue
+    const item = sessions.find((session) => session.id === id)
+    if (!item) continue
+    let drop = -1
+    for (let at = kept.length - 1; at >= 0; at--) {
+      if (!protectedIds.has(kept[at].id)) {
+        drop = at
+        break
+      }
+    }
+    if (drop >= 0) kept[drop] = item
   }
-  sessions = keep
+  sessions = kept
 }
 
 function persist() {
@@ -546,6 +641,247 @@ export function deleteChatSession(id: string) {
   ensureCurrent()
   persist()
   notify()
+}
+
+/** 把一条消息当前展示的内容收成快照；不含 variants 自身，避免套娃 */
+export function snapshotOfMessage(item: ChatMessageRecord): ChatVariantSnapshot {
+  return {
+    content: item.content,
+    ...(item.steps && item.steps.length > 0 ? { steps: item.steps } : {}),
+    ...(item.actions && item.actions.length > 0 ? { actions: item.actions } : {}),
+    ...(item.question ? { question: item.question } : {}),
+    ...(item.error ? { error: true } : {}),
+    ...(item.stopped ? { stopped: true } : {}),
+    ...(item.ms !== undefined ? { ms: item.ms } : {}),
+    ...(item.usage ? { usage: item.usage } : {}),
+    ...(item.compacted !== undefined ? { compacted: item.compacted } : {}),
+    at: item.at,
+  }
+}
+
+function applySnapshot(
+  item: ChatMessageRecord,
+  snapshot: ChatVariantSnapshot,
+): ChatMessageRecord {
+  return {
+    ...item,
+    content: snapshot.content,
+    steps: snapshot.steps,
+    actions: snapshot.actions,
+    question: snapshot.question,
+    error: snapshot.error,
+    stopped: snapshot.stopped,
+    ms: snapshot.ms,
+    usage: snapshot.usage,
+    compacted: snapshot.compacted,
+  }
+}
+
+/** 顶层字段改过以后同步进当前那一版，切回来时不会看到旧状态 */
+function syncActiveVariant(item: ChatMessageRecord): ChatMessageRecord {
+  if (!item.variants || item.variants.length === 0) return item
+  const index = item.variantIndex ?? item.variants.length - 1
+  if (!item.variants[index]) return item
+  return {
+    ...item,
+    variants: item.variants.map((variant, at) =>
+      at === index ? snapshotOfMessage(item) : variant,
+    ),
+  }
+}
+
+/** 改一条消息；默认把改动同步进当前版本，重新生成 / 切版本时靠它保持状态一致 */
+export function patchChatMessage(
+  id: string,
+  patch: Partial<ChatMessageRecord>,
+  syncVariant = true,
+) {
+  updateChat((current) =>
+    current.map((item) => {
+      if (item.id !== id) return item
+      const next = { ...item, ...patch }
+      return syncVariant ? syncActiveVariant(next) : next
+    }),
+  )
+}
+
+export function patchChatAction(messageId: string, index: number, patch: Partial<ChatActionState>) {
+  updateChat((current) =>
+    current.map((item) => {
+      if (item.id !== messageId || !item.actions) return item
+      const next = {
+        ...item,
+        actions: item.actions.map((action, position) =>
+          position === index ? { ...action, ...patch } : action,
+        ),
+      }
+      return syncActiveVariant(next)
+    }),
+  )
+}
+
+/**
+ * 重新生成前先把当前回答留成第 1 版，再把画面清空。
+ * 清空时不走 syncActiveVariant——否则会把刚留下来的旧版本也擦掉。
+ */
+export function beginChatRegeneration(id: string) {
+  updateChat((current) =>
+    current.map((item) => {
+      if (item.id !== id) return item
+      const variants = item.variants?.length ? item.variants : [snapshotOfMessage(item)]
+      return {
+        ...item,
+        variants,
+        variantIndex: 0,
+        content: '',
+        steps: undefined,
+        actions: undefined,
+        question: undefined,
+        error: false,
+        stopped: false,
+        ms: undefined,
+        usage: undefined,
+        compacted: undefined,
+      }
+    }),
+  )
+}
+
+/** 新回答生成完，追加成一版并切过去 */
+export function appendChatVariant(id: string, snapshot: ChatVariantSnapshot) {
+  updateChat((current) =>
+    current.map((item) => {
+      if (item.id !== id) return item
+      const variants = [...(item.variants ?? []), snapshot].slice(-MAX_VARIANTS)
+      return {
+        ...applySnapshot(item, snapshot),
+        variants,
+        variantIndex: variants.length - 1,
+      }
+    }),
+  )
+}
+
+/** 停止 / 失败时回到生成前那一版，不把空回答留在对话里 */
+export function restoreChatVariant(id: string) {
+  updateChat((current) =>
+    current.map((item) => {
+      if (item.id !== id) return item
+      const index = item.variantIndex ?? 0
+      const snapshot = item.variants?.[index]
+      if (!snapshot) return item
+      return { ...applySnapshot(item, snapshot), variants: item.variants, variantIndex: index }
+    }),
+  )
+}
+
+/** 左右切换同一轮回答的版本，越界就绕回另一头 */
+export function switchChatVariant(id: string, delta: number) {
+  updateChat((current) =>
+    current.map((item) => {
+      if (item.id !== id || !item.variants || item.variants.length < 2) return item
+      const total = item.variants.length
+      const index = ((item.variantIndex ?? total - 1) + delta + total) % total
+      return {
+        ...applySnapshot(item, item.variants[index]),
+        variants: item.variants,
+        variantIndex: index,
+      }
+    }),
+  )
+}
+
+/** 删掉这一条和它之后的所有消息；返回删了几条 */
+export function deleteChatFrom(id: string): number {
+  const session = sessions.find((item) => item.id === currentId)
+  if (!session) return 0
+  const index = session.messages.findIndex((item) => item.id === id)
+  if (index < 0) return 0
+  const removed = session.messages.length - index
+  session.messages = session.messages.slice(0, index)
+  if (session.messages.length === 0) session.title = ''
+  session.updatedAt = Date.now()
+  persist()
+  notify()
+  return removed
+}
+
+/** 多选删除：只删点中的消息，其他顺序不变 */
+export function deleteChatMessages(ids: string[]) {
+  if (ids.length === 0) return
+  const drop = new Set(ids)
+  const session = sessions.find((item) => item.id === currentId)
+  if (!session) return
+  session.messages = session.messages.filter((item) => !drop.has(item.id))
+  if (session.messages.length === 0) session.title = ''
+  session.updatedAt = Date.now()
+  persist()
+  notify()
+}
+
+export interface ChatForkDraft {
+  content: string
+  attachments?: ChatAttachment[]
+}
+
+/**
+ * 从当前会话的第 end 条之前分出一支新会话。
+ *
+ * 编辑用户消息时传 draft，把改写后的那句话接在保留的前缀后面；
+ * 原会话一个字都不动，所以旧回答永远找得回来。分支之间用 forkGroup 认亲，
+ * 界面上按创建顺序显示 ‹ 1/2 ›。
+ */
+export function forkChatSession(end: number, draft?: ChatForkDraft): string | null {
+  ensureCurrent()
+  const source = sessions.find((item) => item.id === currentId)
+  if (!source) return null
+  const keep = Math.max(0, Math.min(source.messages.length, Math.floor(end)))
+  const messages = JSON.parse(
+    JSON.stringify(source.messages.slice(0, keep)),
+  ) as ChatMessageRecord[]
+  if (draft && draft.content.trim() !== '') {
+    messages.push(
+      createChatMessage({
+        role: 'user',
+        content: draft.content,
+        ...(draft.attachments && draft.attachments.length > 0
+          ? { attachments: draft.attachments }
+          : {}),
+      }),
+    )
+  }
+  if (messages.length === 0) return null
+
+  const now = Date.now()
+  const group = source.forkGroup ?? source.id
+  const branchNo = sessions.filter((item) => (item.forkGroup ?? item.id) === group).length + 1
+  const baseTitle = source.title.trim() || deriveTitle(messages) || translate('assistant.untitled')
+  const session: ChatSession = {
+    id: newId('s'),
+    title: `${baseTitle} · ${translate('assistant.branchTag')} ${branchNo}`.slice(0, 60),
+    messages: messages.slice(-MAX_MESSAGES),
+    createdAt: now,
+    updatedAt: now,
+    forkGroup: group,
+    forkFrom: source.id,
+    forkAt: keep,
+  }
+  sessions = [session, ...sessions]
+  currentId = session.id
+  trimSessions([source.id])
+  persist()
+  notify()
+  return session.id
+}
+
+/** 同一组分叉出来的会话，按创建时间排；没有分叉就只返回自己 */
+export function getForkSiblings(id: string): ChatSession[] {
+  const session = sessions.find((item) => item.id === id)
+  if (!session) return []
+  const group = session.forkGroup ?? session.id
+  return sessions
+    .filter((item) => (item.forkGroup ?? item.id) === group)
+    .sort((a, b) => a.createdAt - b.createdAt)
 }
 
 export function createChatMessage(

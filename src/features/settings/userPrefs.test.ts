@@ -83,6 +83,7 @@ describe('readPrefs', () => {
   it('白名单本身就是导出范围，别在别处另列一份', () => {
     expect(PREF_KEYS).toContain('sb_assistant_memories')
     expect(PREF_KEYS).toContain('sb_ai_models')
+    expect(PREF_KEYS).toContain('starburst.assistant.plan')
     expect(new Set(PREF_KEYS).size).toBe(PREF_KEYS.length)
   })
 })

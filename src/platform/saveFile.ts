@@ -29,6 +29,13 @@ export interface TextFile {
   content: string
 }
 
+/** 图片这类二进制文件：字节已经准备好，保存路径与文本一致 */
+export interface BinaryFile {
+  filename: string
+  mime: string
+  bytes: Uint8Array
+}
+
 /** 存到哪儿了，调用方据此说人话，别一律说"已导出" */
 export type SaveOutcome =
   /** 浏览器 / 桌面：直接落进下载目录 */
@@ -52,11 +59,14 @@ function inAndroidShell() {
 }
 
 function downloadInBrowser(file: TextFile) {
-  const blob = new Blob([file.content], { type: file.mime })
+  downloadBlob(file.filename, new Blob([file.content], { type: file.mime }))
+}
+
+function downloadBlob(filename: string, blob: Blob) {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
-  anchor.download = file.filename
+  anchor.download = filename
   anchor.click()
   URL.revokeObjectURL(url)
 }
@@ -73,6 +83,25 @@ export async function saveTextFile(file: TextFile): Promise<SaveOutcome> {
 
   const bytes = new TextEncoder().encode(file.content)
   for (const piece of chunkToBase64(bytes)) {
+    await nativeSave.chunk({ token: begun.token, data: piece })
+  }
+  const done = await nativeSave.end({ token: begun.token })
+  return done.saved ? { kind: 'saved' } : { kind: 'canceled' }
+}
+
+/** 二进制文件（对话长图这类）：浏览器直接下载，安卓走同一套分块保存 */
+export async function saveBinaryFile(file: BinaryFile): Promise<SaveOutcome> {
+  if (!inAndroidShell()) {
+    // 复制一份，避免 Uint8Array 的底层缓冲带偏移，Blob 读到多余字节
+    const copy = new Uint8Array(file.bytes)
+    downloadBlob(file.filename, new Blob([copy.buffer], { type: file.mime }))
+    return { kind: 'downloaded' }
+  }
+
+  const begun = await nativeSave.begin({ filename: file.filename, mime: file.mime })
+  if (begun.canceled || begun.token === undefined) return { kind: 'canceled' }
+
+  for (const piece of chunkToBase64(file.bytes)) {
     await nativeSave.chunk({ token: begun.token, data: piece })
   }
   const done = await nativeSave.end({ token: begun.token })

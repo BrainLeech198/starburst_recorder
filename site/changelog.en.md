@@ -1,3 +1,26 @@
+## 0.13.0 · 2026-11-03
+
+Assistant answers can be edited, branched and taken away — and you control the generation
+
+### What's new
+
+- **Every answer is actionable now** — copy it, regenerate it, or delete from that message onward. Regenerating keeps the old answer as a previous version; flip back with "Version 1/2" and compare.
+- **Edit one line, branch from there** — editing a sent message saves it into a new branch while the original chat stays untouched; branches in the same group switch straight from the chat list.
+- **Multi-select and export** — select or select-all messages, then copy, export or delete in bulk. Export as Markdown, TXT, JSON or a long image, with optional tool traces and action cards; Android opens the system picker.
+- **Answers render Markdown** — headings, lists, code blocks, quotes, tables and links all display properly. No innerHTML, and links are limited to http(s) and mailto.
+- **Stop, steer, queue** — stop generation at any time without leaving a half-written answer; a requirement added mid-reply is carried into the next step; messages sent while it is working queue up and go one by one.
+- **Plan mode** — the assistant first gives a 2–5 step plan, without acting or showing confirmation cards; turn plan mode off after confirming and it executes. The switch travels with your preferences in backups.
+- **@ references** — reference today / yesterday / the last 7 days, or a diary entry, note, transaction, food item or meal template, so the request is precise.
+- **/ shortcuts** — type / to bring up common questions and fill them straight into the input.
+- **Undo this turn's writes** — completed actions from one reply can be rolled back in one tap, and anything that failed is called out.
+- **The date bar no longer truncates dates** — relative day and weekday step aside based on the actual width of that row; thresholds scale with text size so the date always stays whole.
+- **Touch targets and alignment** — assistant card cancel/undo, options and message actions are now 44px tall; the schedule header buttons align right.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.13.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.13.0/starburst-recorder-0.13.0-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.13.0/starburst-recorder-0.13.0-setup.exe)
+- Android 10+: [`starburst-recorder-0.13.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.13.0/starburst-recorder-0.13.0.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.13.0/starburst-recorder-0.13.0.apk)
+
 ## 0.12.1 · 2026-11-02
 
 The backup now carries your settings too, and Back follows the trail you came in on

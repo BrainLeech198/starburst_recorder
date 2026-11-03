@@ -269,6 +269,63 @@ describe('permission', () => {
   })
 })
 
+describe('计划模式与生成中引导', () => {
+  it('计划模式先给步骤，不下发写工具', async () => {
+    const prompt = buildSystemPrompt('2026-10-28', false, [], [], [], [], 'confirm', [], true)
+    expect(prompt).toContain('【计划模式】')
+    expect(prompt).not.toContain('add_finance')
+
+    let sentTools = ''
+    const result = await runAssistant({
+      config: CONFIG,
+      history: [],
+      data: emptyData(),
+      today: '2026-10-28',
+      planMode: true,
+      request: async (request) => {
+        sentTools = JSON.stringify(request.tools ?? [])
+        return transport(body({ content: '第一步查记录，第二步整理，第三步等你确认。' }))
+      },
+    })
+    expect(result.ok).toBe(true)
+    expect(sentTools).not.toContain('add_finance')
+    expect(sentTools).not.toContain('delete_diary')
+  })
+
+  it('生成中补充的要求会进到下一轮请求', async () => {
+    let round = 0
+    let sent = ''
+    const result = await runAssistant({
+      config: CONFIG,
+      history: [{ role: 'user', content: '最近睡得怎么样？' }],
+      data: emptyData(),
+      today: '2026-10-28',
+      takeGuidance: () => (round === 1 ? ['只看本周'] : []),
+      request: async (request) => {
+        round += 1
+        if (round === 1) {
+          return transport(
+            body({
+              tool_calls: [
+                {
+                  id: 'call_1',
+                  type: 'function',
+                  function: { name: 'query_day', arguments: '{"date":"2026-10-28"}' },
+                },
+              ],
+            }),
+          )
+        }
+        sent = JSON.stringify(request.messages)
+        return transport(body({ content: '这周睡得还行。' }))
+      },
+    })
+    expect(result.ok).toBe(true)
+    expect(sent).toContain('只看本周')
+    expect(sent).toContain('生成过程中补充')
+  })
+})
+
 describe('旧记录照片', () => {
   it('只在用户明确指定照片时把选中的一张放进后续模型请求', async () => {
     const data = emptyData()

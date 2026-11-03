@@ -1,3 +1,26 @@
+## 0.13.0 · 2026-11-03
+
+助手对话能改、能分叉、能带走，生成过程也由你控制
+
+### 这一版有什么
+
+- **每条回答都能动手了**：复制、重新生成、删除这条及之后。重新生成会把旧回答留成上一版，用「版本 1/2」左右翻回去比较
+- **改一句话就另起一支**：编辑发过的用户消息，保存后从那里分叉出一条新会话，原对话一个字不动；同一组分支在会话列表里直接切换
+- **多选与导出**：消息可多选、全选，批量复制、导出或删除；导出支持 Markdown、TXT、JSON 与长图，可选带不带工具轨迹和动作卡片，安卓会弹系统选择器
+- **回答按 Markdown 渲染**：标题、列表、代码块、引用、表格与链接都能正常显示；不用 innerHTML，链接只放行 http(s) 与 mailto
+- **能停、能插话、能排队**：生成中可以随时停止，停止不会留下半截回答；回复过程中补一句要求，会在下一步带上；连着发几条会排队逐条发送
+- **计划模式**：先给 2–5 步计划，不动手也不弹确认卡；确认后关掉计划模式再执行。开关状态跟着偏好设置一起备份
+- **@ 引用记录**：输入框里引用今天 / 昨天 / 最近 7 天，或日记、随记、收支、食物、套餐，把话说准
+- **/ 快捷指令**：输入 / 唤出常用问法，直接填进输入框
+- **撤销本轮写入**：一条回答里已完成的动作可以一键撤回，没撤掉的会说明是哪几条
+- **日期栏不再截断日期**：按这一栏的实际宽度决定相对日与星期要不要让位；字号放大时阈值跟着放大，日期始终完整
+- **触控与对齐**：助手卡片的取消 / 撤销、选项与消息操作补到 44px 触控高度；日程页标题栏按钮统一右对齐
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.13.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.13.0/starburst-recorder-0.13.0-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.13.0/starburst-recorder-0.13.0-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.13.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.13.0/starburst-recorder-0.13.0.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.13.0/starburst-recorder-0.13.0.apk)
+
 ## 0.12.1 · 2026-11-02
 
 备份把设置也带走了，返回改成走回原路

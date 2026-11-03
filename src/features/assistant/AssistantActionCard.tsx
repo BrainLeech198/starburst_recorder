@@ -296,7 +296,7 @@ export default function AssistantActionCard({ state, busy, onConfirm, onCancel, 
             type="button"
             onClick={onCancel}
             disabled={busy}
-            className="text-[11px] text-muted transition-colors hover:text-fg"
+            className="inline-flex min-h-11 items-center text-[11px] text-muted transition-colors hover:text-fg md:min-h-0"
           >
             {t('assistant.action.cancel')}
           </button>
@@ -308,7 +308,7 @@ export default function AssistantActionCard({ state, busy, onConfirm, onCancel, 
           type="button"
           onClick={onUndo}
           disabled={busy}
-          className="mt-2 text-[11px] text-muted transition-colors hover:text-danger disabled:opacity-50"
+          className="mt-2 inline-flex min-h-11 items-center text-[11px] text-muted transition-colors hover:text-danger disabled:opacity-50 md:min-h-0"
         >
           {t('assistant.action.undo')}
         </button>

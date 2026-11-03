@@ -44,7 +44,9 @@ export default function DayNav({
   return (
     <div
       className={[
-        'sticky top-0 z-20 flex flex-wrap items-center gap-x-2 gap-y-1 bg-bg/95 px-4 backdrop-blur',
+        // @container：下面靠「这一条到底有多宽」决定星期 / 相对日要不要让位，
+        // 不能用屏幕宽度——文字放大后可用空间变小，视口宽度却没变
+        '@container sticky top-0 z-20 flex flex-wrap items-center gap-x-2 gap-y-1 bg-bg/95 px-4 backdrop-blur',
         '-mx-4',
         inset ? '-mt-4 pb-2 pt-3' : 'pb-2 pt-2',
         className,
@@ -63,7 +65,12 @@ export default function DayNav({
           ‹
         </button>
 
-        {/* 日期本身就是日期选择入口 */}
+        {/* 日期本身就是日期选择入口。三条信息的取舍顺序：
+            日期永远完整（不截断）；相对日（是今天 / 昨天）和星期是重复信息，
+            这一条放不下时整段隐藏，而不是把日期截成「2026年11…」。
+            阈值按容器宽度、单位用 rem——字号放大时阈值跟着放大。
+            非今天时右边多一个「今天」按钮，相对日本身也更含糊（前几天 / 后几天），
+            所以门槛抬高一档，先让位给它。 */}
         <button
           type="button"
           onClick={onPick}
@@ -73,27 +80,18 @@ export default function DayNav({
           {/* 今天绿、其他日期黄：一眼知道在看哪一天 */}
           <span
             className={[
-              'shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium leading-none',
+              'hidden shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium leading-none',
+              isToday ? '@min-[17.5rem]:inline' : '@min-[22rem]:inline',
               isToday ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning',
             ].join(' ')}
           >
             {t(relativeDayKey(dayKey))}
           </span>
-          <span className="min-w-0 truncate text-sm">{formatDate(dayKey, t)}</span>
-          <span className="hidden shrink-0 text-xs text-muted min-[360px]:inline">
+          <span className="shrink-0 whitespace-nowrap text-sm">{formatDate(dayKey, t)}</span>
+          <span className="hidden shrink-0 text-xs text-muted @min-[20rem]:inline">
             {t(weekdayKey(dayKey))}
           </span>
         </button>
-
-        {!isToday && (
-          <button
-            type="button"
-            onClick={() => onChange(todayKey())}
-            className="ml-1 shrink-0 whitespace-nowrap rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-brand"
-          >
-            {labels.today}
-          </button>
-        )}
 
         <button
           type="button"
@@ -104,6 +102,17 @@ export default function DayNav({
           ›
         </button>
       </div>
+
+      {/* 「回到今天」放在日期框外面：这一条放不下时它会自己换到下一行，不挤日期 */}
+      {!isToday && (
+        <button
+          type="button"
+          onClick={() => onChange(todayKey())}
+          className="shrink-0 whitespace-nowrap rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-brand"
+        >
+          {labels.today}
+        </button>
+      )}
 
       {trailing && <div className="ml-auto flex shrink-0 items-center gap-1">{trailing}</div>}
     </div>

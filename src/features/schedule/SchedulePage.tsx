@@ -100,7 +100,7 @@ export default function SchedulePage() {
           <Icon name="list" className="h-4 w-4 shrink-0" />
           {t('schedule.title')}
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           <Link
             to="/schedule/trash"
             className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-xs text-muted transition-colors hover:text-brand"
