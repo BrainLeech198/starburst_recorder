@@ -48,11 +48,13 @@ const mealAdapter: ShareAdapter = {
   import: importSharedDoc,
 }
 
-const ADAPTERS: Record<ShareKind, ShareAdapter> = {
+const ADAPTERS: Partial<Record<ShareKind, ShareAdapter>> = {
   food: foodAdapter,
   meal: mealAdapter,
 }
 
 export function getShareAdapter(doc: ShareDoc): ShareAdapter {
-  return ADAPTERS[doc.kind]
+  const adapter = ADAPTERS[doc.kind]
+  if (!adapter) throw new Error(`Share adapter not implemented: ${doc.kind}`)
+  return adapter
 }

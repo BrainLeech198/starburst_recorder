@@ -126,4 +126,20 @@ describe('shareCode', () => {
     expect(fitsShareQr('a'.repeat(SHARE_QR_MAX_CHARS))).toBe(true)
     expect(fitsShareQr('a'.repeat(SHARE_QR_MAX_CHARS + 1))).toBe(false)
   })
+
+  it('接受四类记录分享协议，并拒绝越界字段', async () => {
+    const base = { app: SHARE_APP, v: SHARE_VERSION, createdAt: 1, title: '分享记录' }
+    const records = [
+      { ...base, kind: 'diary', data: { dateKey: '2026-11-03', content: '今天很好', images: [], tags: ['生活'] } },
+      { ...base, kind: 'stamp', data: { dateKey: '2026-11-03', time: '12:30', content: '午餐', images: [], tags: [] } },
+      { ...base, kind: 'intake', data: { dateKey: '2026-11-03', time: '12:30', name: '米饭', grams: 150, kcal: 174, protein: 3.6, carbs: 38, fat: 0.4 } },
+      { ...base, kind: 'finance', data: { dateKey: '2026-11-03', time: '12:30:00', kind: 'expense', category: 'food', name: '午餐', amount: 25, photo: null, note: '' } },
+    ]
+    for (const record of records) {
+      const decoded = await decodeShare(JSON.stringify(record))
+      expect(decoded.kind).toBe(record.kind)
+    }
+    await expect(decodeShare(JSON.stringify({ ...records[2], data: { ...records[2].data, grams: -1 } }))).rejects.toThrow()
+    await expect(decodeShare(JSON.stringify({ ...records[3], data: { ...records[3].data, amount: 0 } }))).rejects.toThrow()
+  })
 })

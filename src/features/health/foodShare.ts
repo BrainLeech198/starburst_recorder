@@ -133,5 +133,7 @@ async function importSharedMeal(doc: ShareMealDoc, t: Translate): Promise<string
 }
 
 export function importSharedDoc(doc: ShareDoc, t: Translate): Promise<string> {
-  return doc.kind === 'food' ? importSharedFood(doc, t) : importSharedMeal(doc, t)
+  if (doc.kind === 'food') return importSharedFood(doc, t)
+  if (doc.kind === 'meal') return importSharedMeal(doc, t)
+  return Promise.reject(new Error(`Unsupported food share kind: ${doc.kind}`))
 }
