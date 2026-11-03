@@ -116,6 +116,19 @@ export default function SettingsPage() {
           hint={t('push.description')}
         />
       )}
+      {/* 邮箱订阅与反馈：三个平台都要用，不挂在 pushSupported 之下 */}
+      <SettingRow
+        to="/me/settings/subscribe"
+        emoji="📬"
+        title={t('subscribe.title')}
+        hint={t('subscribe.hint')}
+      />
+      <SettingRow
+        to="/me/settings/feedback"
+        emoji="💬"
+        title={t('feedback.title')}
+        hint={t('feedback.hint')}
+      />
       <SettingRow
         emoji="🧹"
         title={t('settings.cache')}

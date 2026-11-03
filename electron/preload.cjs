@@ -39,6 +39,11 @@ contextBridge.exposeInMainWorld('desktop', {
       return () => ipcRenderer.removeListener('update:progress', handler)
     },
   },
+  // 官方频道（公告 / 邮箱订阅 / 反馈）：桌面壳的页面是 file://，
+  // 直连外部地址会被 CORS 挡掉，所以统一由主进程代取
+  channel: {
+    request: (request) => ipcRenderer.invoke('channel:request', request),
+  },
   /** 别的窗口写了数据时触发，返回退订函数 */
   onDbChanged: (listener) => {
     const handler = () => listener()

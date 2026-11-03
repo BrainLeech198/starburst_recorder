@@ -8,10 +8,12 @@ import SettingRow from '@/shared/ui/SettingRow'
 import { useI18n } from '@/shared/i18n/context'
 import { APP_VERSION } from '@/core/version'
 import { useUpdate } from '@/features/update/UpdateProvider'
+import { useUrgentNoticeCount } from '@/features/notices/useUrgentNoticeCount'
 
 export default function MePage() {
   const { t } = useI18n()
   const { info } = useUpdate()
+  const urgentCount = useUrgentNoticeCount()
 
   return (
     <div className="mx-auto w-full max-w-md p-4">
@@ -28,6 +30,21 @@ export default function MePage() {
       </div>
 
       <div className="mt-4 space-y-3">
+        <SettingRow
+          to="/me/notices"
+          emoji="📣"
+          title={t('notice.title')}
+          hint={t('notice.hint')}
+          value={
+            urgentCount > 0 ? (
+              <span
+                aria-hidden="true"
+                className="h-2 w-2 rounded-full bg-danger"
+                title={t('notice.urgentCount', { count: urgentCount })}
+              />
+            ) : undefined
+          }
+        />
         <SettingRow
           to="/me/settings"
           emoji="⚙️"

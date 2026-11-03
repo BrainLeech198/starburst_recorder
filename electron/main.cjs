@@ -733,6 +733,61 @@ ipcMain.handle('app:open-external', async (_event, url) => {
 })
 
 /**
+ * 官方频道的 HTTP 代理。
+ *
+ * 桌面壳的页面是 `file://`，从那里直接 fetch 外部地址会被 CORS 挡掉，
+ * 所以公告、订阅、反馈这几条线统一走主进程代取——跟检查更新一个道理。
+ *
+ * **只放行自家 Worker 的域名**：这个通道能让渲染层往外发请求，
+ * 若不限死域名，等于给了网页一条任意外发的口子。
+ * 路径也只放行公告频道那几个，避免被拿去当通用代理。
+ */
+const CHANNEL_HOSTS = new Set(['starburst-push.starburst-recorder.workers.dev'])
+const CHANNEL_PATHS = new Set([
+  '/notices',
+  '/subscribe-email',
+  '/unsubscribe-email',
+  '/subscription',
+  '/feedback',
+])
+
+ipcMain.handle('channel:request', async (_event, request) => {
+  const raw = String(request?.url ?? '')
+  let url
+  try {
+    url = new URL(raw)
+  } catch {
+    return { ok: false, status: 0, body: '', error: 'bad url' }
+  }
+  if (url.protocol !== 'https:' || !CHANNEL_HOSTS.has(url.hostname)) {
+    return { ok: false, status: 0, body: '', error: 'host not allowed' }
+  }
+  if (!CHANNEL_PATHS.has(url.pathname)) {
+    return { ok: false, status: 0, body: '', error: 'path not allowed' }
+  }
+  const method = request?.method === 'POST' ? 'POST' : 'GET'
+  try {
+    const response = await fetch(url.toString(), {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      ...(method === 'POST'
+        ? { body: JSON.stringify(request?.body ?? {}) }
+        : {}),
+      signal: AbortSignal.timeout(10_000),
+    })
+    const body = await response.text()
+    return { ok: response.ok, status: response.status, body }
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      body: '',
+      error: error && error.message ? error.message : String(error),
+    }
+  }
+})
+
+/**
  * 下载完成后直接拉起安装程序并退出当前应用。
  * 不退出的话，Inno Setup 会一直等旧进程释放文件，用户得自己再关一次。
  */

@@ -51,6 +51,9 @@ const PermissionPage = lazy(() => import('@/features/settings/PermissionPage'))
 const ReasoningPage = lazy(() => import('@/features/settings/ReasoningPage'))
 const DataPage = lazy(() => import('@/features/settings/DataPage'))
 const ReminderPage = lazy(() => import('@/features/settings/ReminderPage'))
+const NoticePage = lazy(() => import('@/features/notices/NoticePage'))
+const SubscribePage = lazy(() => import('@/features/notices/SubscribePage'))
+const FeedbackPage = lazy(() => import('@/features/notices/FeedbackPage'))
 const QuickCapturePage = lazy(() => import('@/features/diary/QuickCapturePage'))
 
 export const router = createHashRouter([
@@ -101,6 +104,9 @@ export const router = createHashRouter([
       { path: 'me/settings/theme', element: <AppearancePage /> },
       { path: 'me/settings/data', element: <DataPage /> },
       { path: 'me/settings/reminders', element: <ReminderPage /> },
+      { path: 'me/notices', element: <NoticePage /> },
+      { path: 'me/settings/subscribe', element: <SubscribePage /> },
+      { path: 'me/settings/feedback', element: <FeedbackPage /> },
       { path: 'me/agent', element: <AgentMenuPage /> },
       { path: 'me/agent/ball', element: <BallPage /> },
       { path: 'me/agent/ai', element: <AiPage /> },

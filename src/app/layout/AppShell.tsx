@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigationType } from 'react-router'
 import FloatingAssistant from '@/features/assistant/FloatingAssistant'
 import ScheduleReminderHost from '@/features/schedule/ScheduleReminderHost'
 import PushReminderHost from '@/features/notifications/PushReminderHost'
+import NoticeBanner from '@/features/notices/NoticeBanner'
 import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import { useAndroidBackButton } from '@/app/androidBack'
@@ -281,6 +282,12 @@ export default function AppShell() {
         ref={contentRef}
         className="sb-scroll relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain"
       >
+        {/* 公告横幅：放在内容最上面，跟着内容一起滚。
+            紧急公告是给「关掉应用就收不到推送」的那些用户准备的唯一入口，
+            所以它必须出现在每个页面上，而不是藏在某个入口里。 */}
+        <div className="px-4 pt-4 md:px-5">
+          <NoticeBanner />
+        </div>
         {/* 页面按路由懒加载，切换时先显示一句「加载中」，避免白屏 */}
         <Suspense fallback={<div className="p-4 text-sm text-muted">{t('common.loading')}</div>}>
           {/* key=pathname：换页时整层重挂一次，播一遍入场动画（同板块内进出也算换页）。

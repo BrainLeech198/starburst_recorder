@@ -125,6 +125,27 @@ export interface DesktopBridge {
     /** 下载进度（主进程按秒推），返回退订函数 */
     onProgress: (listener: (progress: DesktopUpdateProgress) => void) => () => void
   }
+  /**
+   * 官方频道（公告 / 邮箱订阅 / 反馈）：主进程代取。
+   *
+   * 桌面壳的页面是 `file://`，直连外部地址会被 CORS 挡掉，
+   * 所以这几条线统一走主进程——跟检查更新一个道理。
+   */
+  channel: {
+    request: (request: {
+      url: string
+      method: 'GET' | 'POST'
+      body?: unknown
+    }) => Promise<DesktopChannelResponse>
+  }
+}
+
+/** 主进程代取频道接口的结果 */
+export interface DesktopChannelResponse {
+  ok: boolean
+  status: number
+  body: string
+  error?: string
 }
 
 /** 主进程回的「有新版本」信息，形状与 features/update 里的 UpdateInfo 一致 */
