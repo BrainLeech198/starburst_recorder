@@ -104,6 +104,7 @@ function StampRow({
   onSaveEdit,
   onDelete,
   onExportJson,
+  onShare,
   selectable,
   selected,
   onToggle,
@@ -119,6 +120,7 @@ function StampRow({
   onDelete: (stamp: DiaryStamp) => void
   /** 单条导出 JSON：时间和天气由时间轴统一取 */
   onExportJson: () => void
+  onShare: () => void
   /** 批量多选：整笔变成可点选的，不再能编辑内容与时间 */
   selectable: boolean
   selected: boolean
@@ -394,6 +396,18 @@ function StampRow({
               type="button"
               onClick={(e) => {
                 e.stopPropagation()
+                onShare()
+              }}
+              title={t('share.action')}
+              aria-label={t('share.action')}
+              className="absolute top-0 right-[4.5rem] inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:text-brand"
+            >
+              <span aria-hidden="true">↗</span>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
                 onExportJson()
               }}
               title={t('records.export')}
@@ -489,6 +503,7 @@ export default function StampTimeline({
   selectMode,
   selected,
   onToggleSelect,
+  onShare,
 }: {
   dateKey: string
   focusId: string
@@ -497,6 +512,7 @@ export default function StampTimeline({
   selectMode: boolean
   selected: string[]
   onToggleSelect: (id: string) => void
+  onShare: (stamp: DiaryStamp) => void
 }) {
   const { showToast } = useToast()
   const { t } = useI18n()
@@ -592,6 +608,7 @@ export default function StampTimeline({
           onSaveEdit={() => void saveEdit(stamp)}
           onDelete={setPendingDelete}
           onExportJson={() => void handleExportJson(stamp)}
+          onShare={() => onShare(stamp)}
           selectable={selectMode}
           selected={selected.includes(stamp.id)}
           onToggle={() => onToggleSelect(stamp.id)}

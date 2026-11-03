@@ -68,6 +68,9 @@ import { stripImageTokens } from './imageTokens'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
 import TimeMeta from '@/shared/ui/TimeMeta'
 import TagEditor from '@/shared/ui/TagEditor'
+import ShareDialog from '@/features/share/ShareDialog'
+import type { ShareDiaryDoc, ShareStampDoc } from '@/features/share/shareCode'
+import { buildDiaryShare, buildStampShare } from '@/features/share/recordShare'
 
 /** 纸条上的正文部分，普通模式和批量模式共用 */
 function SlipBody({ entry }: { entry: DiaryEntry }) {
@@ -132,6 +135,7 @@ export default function DiaryPage() {
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
   const [moveOpen, setMoveOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
+  const [sharing, setSharing] = useState<ShareDiaryDoc | ShareStampDoc | null>(null)
   /** AI 整理成日记的弹窗 */
   const [composeOpen, setComposeOpen] = useState(false)
   /** 图片导入：先开空弹窗，选图、排页序、开始识别都在弹窗里进行 */
@@ -526,6 +530,7 @@ export default function DiaryPage() {
           selectMode={batch.active}
           selected={batch.selected}
           onToggleSelect={batch.toggle}
+          onShare={(stamp) => setSharing(buildStampShare(stamp))}
         />
       )}
 
@@ -586,6 +591,15 @@ export default function DiaryPage() {
                   </span>
                 ) : (
                   <>
+                    <button
+                      type="button"
+                      onClick={() => setSharing(buildDiaryShare(entry))}
+                      title={t('share.action')}
+                      aria-label={t('share.action')}
+                      className="absolute top-1.5 right-[5.5rem] inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted opacity-70 transition-colors hover:text-brand hover:opacity-100"
+                    >
+                      <Icon name="share" className="h-4 w-4" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => void handleExportEntry(entry)}
@@ -681,6 +695,8 @@ export default function DiaryPage() {
           onCancel={() => setExportOpen(false)}
         />
       )}
+
+      {sharing && <ShareDialog doc={sharing} onClose={() => setSharing(null)} />}
 
       {importOpen && importConfig && (
         <ImageImportDialog

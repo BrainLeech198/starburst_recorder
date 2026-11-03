@@ -44,6 +44,9 @@ import DatePickerDialog from '@/features/diary/DatePickerDialog'
 import RecordExportDialog from '@/features/records/RecordExportDialog'
 import { buildSingleRecordExport } from '@/features/records/recordExport'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
+import ShareDialog from '@/features/share/ShareDialog'
+import type { ShareIntakeDoc } from '@/features/share/shareCode'
+import { buildIntakeShare } from '@/features/share/recordShare'
 
 export default function IntakesPage() {
   const { t } = useI18n()
@@ -76,6 +79,7 @@ export default function IntakesPage() {
   const [pendingDelete, setPendingDelete] = useState<HealthIntake | null>(null)
   /** 点开某一笔看完整营养成分 */
   const [detailIntake, setDetailIntake] = useState<HealthIntake | null>(null)
+  const [sharing, setSharing] = useState<ShareIntakeDoc | null>(null)
   /** 编辑前先问：只改这条记录，还是连食物库一起改 */
   const [editChoice, setEditChoice] = useState<HealthIntake | null>(null)
   /** 正在编辑的那一笔；syncLibrary 表示保存时同时写回食物库 */
@@ -323,6 +327,15 @@ export default function IntakesPage() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => setSharing(buildIntakeShare(intake))}
+                      title={t('share.action')}
+                      aria-label={t('share.action')}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:text-brand"
+                    >
+                      <Icon name="share" className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => void handleExportIntake(intake)}
                       title={t('records.export')}
                       className="inline-flex h-8 items-center justify-center rounded-lg px-1.5 font-mono text-[10px] text-muted transition-colors hover:text-brand"
@@ -388,6 +401,8 @@ export default function IntakesPage() {
           onClose={() => setExportData(null)}
         />
       )}
+
+      {sharing && <ShareDialog doc={sharing} onClose={() => setSharing(null)} />}
 
       {detailIntake && (
         <IntakeDetailDialog

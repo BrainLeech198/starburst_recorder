@@ -77,6 +77,9 @@ import {
   recordsCount,
 } from '@/features/records/recordImport'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
+import ShareDialog from '@/features/share/ShareDialog'
+import type { ShareFinanceDoc } from '@/features/share/shareCode'
+import { buildFinanceShare } from '@/features/share/recordShare'
 
 /** 日头用星期几：JS 的 0=周日，正好对上 date.weekdayShortN */
 function weekdayKey(dateKey: string): MessageKey {
@@ -177,6 +180,7 @@ export default function FinancePage() {
   const [pendingDelete, setPendingDelete] = useState<FinanceEntry | null>(null)
   /** 挑选导出时取来的整库数据；非 null 就打开挑选弹窗 */
   const [exportData, setExportData] = useState<BackupData | null>(null)
+  const [sharing, setSharing] = useState<ShareFinanceDoc | null>(null)
   /** 打开挑选弹窗时预选这些流水 */
   const [exportInitial, setExportInitial] = useState<{ finance: string[] } | undefined>(undefined)
   const importInputRef = useRef<HTMLInputElement | null>(null)
@@ -761,6 +765,15 @@ export default function FinancePage() {
                         </button>
                         <button
                           type="button"
+                          onClick={() => setSharing(buildFinanceShare(entry))}
+                          title={t('share.action')}
+                          aria-label={t('share.action')}
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:text-brand"
+                        >
+                          <Icon name="share" className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => void handleExportEntry(entry)}
                           title={t('records.export')}
                           className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg px-1.5 font-mono text-[10px] text-muted transition-colors hover:text-brand"
@@ -879,6 +892,8 @@ export default function FinancePage() {
           onClose={() => setExportData(null)}
         />
       )}
+
+      {sharing && <ShareDialog doc={sharing} onClose={() => setSharing(null)} />}
 
       {pendingDelete && (
         <ConfirmDialog
