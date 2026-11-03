@@ -398,6 +398,8 @@ export const es: Record<MessageKey, string> = {
   'share.scan': 'Escanear',
   'share.chooseQrImage': 'Elegir imagen QR',
   'share.saveQrImage': 'Guardar imagen QR',
+  'share.saveRecordImage': 'Guardar imagen de la ficha',
+  'share.recordImageFailed': 'No se pudo crear la imagen del registro. Inténtalo de nuevo.',
   'share.recordPreview': '{date} · {detail}',
   'share.intakePreview': '{date} {time} · {name} {grams}g · {kcal} kcal',
   'share.financePreview': '{date} · {kind} · {name} · {amount}',

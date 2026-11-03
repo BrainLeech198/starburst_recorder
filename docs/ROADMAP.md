@@ -2,6 +2,7 @@
 
 > 用途：把"接下来能做什么"摊开摆在这里，避免只在对话里飘。**未定优先级**，随时增删。
 > 最近更新：2026-11-02 ｜ 配套资料：`.local/refs/`（同类开源项目，索引见 `.local/refs/INDEX.md`）｜ 框架债见 [TECH-DEBT.md](TECH-DEBT.md)
+> 当前用户交办事项的完成状态与验收记录见 [REQUEST-TRACKER.md](REQUEST-TRACKER.md)。
 
 ## 许可红线（抄作业前先看）
 

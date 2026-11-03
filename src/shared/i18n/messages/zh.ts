@@ -396,6 +396,8 @@ export const zh = {
   'share.scan': '扫码',
   'share.chooseQrImage': '从图片识别二维码',
   'share.saveQrImage': '保存二维码图片',
+  'share.saveRecordImage': '保存记录卡片图片',
+  'share.recordImageFailed': '记录图片生成失败，请稍后再试。',
   'share.recordPreview': '{date} · {detail}',
   'share.intakePreview': '{date} {time} · {name} {grams}g · {kcal} kcal',
   'share.financePreview': '{date} · {kind} · {name} · {amount}',

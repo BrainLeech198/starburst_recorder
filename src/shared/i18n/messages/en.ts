@@ -409,6 +409,8 @@ export const en: Record<MessageKey, string> = {
   'share.scan': 'Scan',
   'share.chooseQrImage': 'Choose QR image',
   'share.saveQrImage': 'Save QR image',
+  'share.saveRecordImage': 'Save record card image',
+  'share.recordImageFailed': 'Could not create the record image. Try again.',
   'share.recordPreview': '{date} · {detail}',
   'share.intakePreview': '{date} {time} · {name} {grams}g · {kcal} kcal',
   'share.financePreview': '{date} · {kind} · {name} · {amount}',

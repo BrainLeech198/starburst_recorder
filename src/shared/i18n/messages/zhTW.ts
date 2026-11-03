@@ -394,6 +394,8 @@ export const zhTW: Record<MessageKey, string> = {
   'share.scan': '掃碼',
   'share.chooseQrImage': '從圖片辨識二維碼',
   'share.saveQrImage': '儲存二維碼圖片',
+  'share.saveRecordImage': '儲存記錄卡片圖片',
+  'share.recordImageFailed': '記錄圖片產生失敗，請稍後再試。',
   'share.recordPreview': '{date} · {detail}',
   'share.intakePreview': '{date} {time} · {name} {grams}g · {kcal} kcal',
   'share.financePreview': '{date} · {kind} · {name} · {amount}',

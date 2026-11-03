@@ -396,6 +396,8 @@ export const ru: Record<MessageKey, string> = {
   'share.scan': 'Сканировать',
   'share.chooseQrImage': 'Выбрать изображение QR',
   'share.saveQrImage': 'Сохранить изображение QR',
+  'share.saveRecordImage': 'Сохранить карточку записи',
+  'share.recordImageFailed': 'Не удалось создать изображение записи. Попробуйте ещё раз.',
   'share.recordPreview': '{date} · {detail}',
   'share.intakePreview': '{date} {time} · {name} {grams}г · {kcal} ккал',
   'share.financePreview': '{date} · {kind} · {name} · {amount}',

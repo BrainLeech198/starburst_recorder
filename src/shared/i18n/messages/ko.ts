@@ -395,6 +395,8 @@ export const ko: Record<MessageKey, string> = {
   'share.scan': '스캔',
   'share.chooseQrImage': 'QR 이미지 선택',
   'share.saveQrImage': 'QR 이미지 저장',
+  'share.saveRecordImage': '기록 카드 이미지 저장',
+  'share.recordImageFailed': '기록 이미지를 만들지 못했어요. 다시 시도해 주세요.',
   'share.recordPreview': '{date} · {detail}',
   'share.intakePreview': '{date} {time} · {name} {grams}g · {kcal} kcal',
   'share.financePreview': '{date} · {kind} · {name} · {amount}',

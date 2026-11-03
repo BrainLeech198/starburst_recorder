@@ -397,6 +397,8 @@ export const de: Record<MessageKey, string> = {
   'share.scan': 'Scannen',
   'share.chooseQrImage': 'QR-Bild auswählen',
   'share.saveQrImage': 'QR-Bild speichern',
+  'share.saveRecordImage': 'Eintragskarte als Bild speichern',
+  'share.recordImageFailed': 'Das Eintragsbild konnte nicht erstellt werden. Bitte versuche es erneut.',
   'share.recordPreview': '{date} · {detail}',
   'share.intakePreview': '{date} {time} · {name} {grams}g · {kcal} kcal',
   'share.financePreview': '{date} · {kind} · {name} · {amount}',

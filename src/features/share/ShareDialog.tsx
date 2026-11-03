@@ -19,8 +19,12 @@ import {
   stripSharePhotos,
   type ShareDoc,
 } from './shareCode'
+import { renderRecordCardImage } from './recordCardImage'
 
 type QrState = { kind: 'ready'; svg: string } | { kind: 'tooLarge' } | null
+type RecordImageState =
+  | { doc: ShareDoc; kind: 'ready'; bytes: Uint8Array }
+  | { doc: ShareDoc; kind: 'error' }
 
 async function svgToPng(svg: string): Promise<Uint8Array> {
   const image = new Image()
@@ -74,7 +78,12 @@ export default function ShareDialog({ doc, onClose }: { doc: ShareDoc; onClose: 
   const { showToast } = useToast()
   const [code, setCode] = useState('')
   const [qr, setQr] = useState<QrState>(null)
+  const [recordImageState, setRecordImageState] = useState<RecordImageState | null>(null)
   const [busy, setBusy] = useState(false)
+  const recordImage = recordImageState?.doc === doc && recordImageState.kind === 'ready'
+    ? recordImageState.bytes
+    : null
+  const recordImageFailed = recordImageState?.doc === doc && recordImageState.kind === 'error'
 
   useEffect(() => {
     let cancelled = false
@@ -107,6 +116,21 @@ export default function ShareDialog({ doc, onClose }: { doc: ShareDoc; onClose: 
     }
   }, [doc])
 
+  // 先在弹窗打开时生成卡片；点击保存时可以立即调用系统分享面板，保留 iOS 用户手势。
+  useEffect(() => {
+    let cancelled = false
+    void renderRecordCardImage(doc, t)
+      .then((bytes) => {
+        if (!cancelled) setRecordImageState({ doc, kind: 'ready', bytes })
+      })
+      .catch(() => {
+        if (!cancelled) setRecordImageState({ doc, kind: 'error' })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [doc, t])
+
   async function handleCopy() {
     if (!code) return
     const ok = await copyText(code)
@@ -137,6 +161,22 @@ export default function ShareDialog({ doc, onClose }: { doc: ShareDoc; onClose: 
       const filename = `${safe}-qr.png`
       const outcome = await saveBinaryFile({ filename, mime: 'image/png', bytes })
       showToast({ message: describeSave(outcome, filename, t) })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleSaveRecordImage() {
+    if (!recordImage) return
+    const safe = doc.title.replace(/[\\/:*?"<>|]/g, '_').trim() || 'record'
+    const filename = `${safe}-record.png`
+    setBusy(true)
+    try {
+      const saving = saveBinaryFile({ filename, mime: 'image/png', bytes: recordImage })
+      const outcome = await saving
+      showToast({ message: describeSave(outcome, filename, t) })
+    } catch {
+      showToast({ message: t('share.recordImageFailed') })
     } finally {
       setBusy(false)
     }
@@ -182,6 +222,20 @@ export default function ShareDialog({ doc, onClose }: { doc: ShareDoc; onClose: 
           <Icon name="download" />
           {t('share.saveFile')}
         </button>
+        <button
+          type="button"
+          onClick={() => void handleSaveRecordImage()}
+          disabled={!recordImage || busy}
+          className={`${OUTLINE_BUTTON} disabled:opacity-40`}
+        >
+          <Icon name="download" />
+          {t('share.saveRecordImage')}
+        </button>
+        {recordImageFailed && (
+          <p role="alert" className="m-0 text-xs text-danger">
+            {t('share.recordImageFailed')}
+          </p>
+        )}
         <button type="button" onClick={() => void handleSaveQr()} disabled={qr?.kind !== 'ready' || busy} className={`${OUTLINE_BUTTON} disabled:opacity-40`}>
           <Icon name="download" />
           {t('share.saveQrImage')}
