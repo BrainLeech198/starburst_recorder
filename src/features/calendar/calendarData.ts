@@ -29,12 +29,41 @@ export interface CalendarCell {
   tint: string | null
 }
 
-/** 三块基色：暖橙、青绿、蓝 */
-const BASE: Record<'diary' | 'health' | 'finance', [number, number, number]> = {
-  diary: [234, 88, 12],
-  health: [16, 185, 129],
-  finance: [59, 130, 246],
+/** 三块基色：暖橙、青绿、蓝。图例色点、周视图药丸都取这一份，避免多处写死 */
+export const BLOCK_HEX = {
+  diary: '#ea580c',
+  health: '#10b981',
+  finance: '#3b82f6',
+} as const
+
+export type BlockKey = keyof typeof BLOCK_HEX
+
+function hexToRgb(hex: string): [number, number, number] {
+  const value = hex.replace('#', '')
+  return [
+    Number.parseInt(value.slice(0, 2), 16),
+    Number.parseInt(value.slice(2, 4), 16),
+    Number.parseInt(value.slice(4, 6), 16),
+  ]
 }
+
+const BASE: Record<BlockKey, [number, number, number]> = {
+  diary: hexToRgb(BLOCK_HEX.diary),
+  health: hexToRgb(BLOCK_HEX.health),
+  finance: hexToRgb(BLOCK_HEX.finance),
+}
+
+/** 透明度区间：同一套「越多越深」，月历格子与周视图卡片只换区间 */
+export interface AlphaRange {
+  min: number
+  max: number
+}
+
+/** 月历格子：小面积，深浅拉得开 */
+export const CELL_ALPHA: AlphaRange = { min: 0.16, max: 0.84 }
+
+/** 周视图整张卡片：面积大，同样的透明度会糊成一片，上限压到 0.16 才不像「被选中」 */
+export const CARD_ALPHA: AlphaRange = { min: 0.05, max: 0.16 }
 
 /** 把记录拆成三块权重：日记包含随记，健康包含饮食 / 睡眠 / 训练 / 称重 */
 export function dayWeights(day: DayActivity): DayWeights {
@@ -45,8 +74,57 @@ export function dayWeights(day: DayActivity): DayWeights {
   }
 }
 
-function totalOf(weights: DayWeights): number {
+export function totalOf(weights: DayWeights): number {
   return weights.diary + weights.health + weights.finance
+}
+
+/** 这一天的得分：看全部时是三块相加，筛一块时只数那一块 */
+export function scoreOf(weights: DayWeights, filter: CalendarFilter = 'all'): number {
+  return filter === 'all' ? totalOf(weights) : weights[filter]
+}
+
+/**
+ * 三色混色：按权重做加权 RGB 平均；只筛一块时直接用那一块的基色。
+ * 混色与透明度分开导出，周视图要用同一套混色、只换透明度区间。
+ */
+export function mixRgb(
+  weights: DayWeights,
+  filter: CalendarFilter = 'all',
+): [number, number, number] {
+  if (filter !== 'all') return BASE[filter]
+  const total = totalOf(weights)
+  return (['diary', 'health', 'finance'] as const).reduce<[number, number, number]>(
+    (sum, key) => {
+      const share = total > 0 ? weights[key] / total : 0
+      const base = BASE[key]
+      return [sum[0] + base[0] * share, sum[1] + base[1] * share, sum[2] + base[2] * share]
+    },
+    [0, 0, 0],
+  )
+}
+
+/**
+ * 一天的底色：颜色按三块比例混，透明度按「当天得分 / 区间内最高得分」线性映射。
+ * 没有记录返回 null，交给调用方保持透明。
+ */
+export function dayTint(
+  weights: DayWeights,
+  maxScore: number,
+  alpha: AlphaRange = CELL_ALPHA,
+  filter: CalendarFilter = 'all',
+): string | null {
+  const score = scoreOf(weights, filter)
+  if (score <= 0) return null
+  const ratio = maxScore > 0 ? Math.min(1, Math.max(0, score / maxScore)) : 0
+  const value = alpha.min + (alpha.max - alpha.min) * ratio
+  const rgb = mixRgb(weights, filter).map((channel) => Math.round(channel))
+  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${Number(value.toFixed(2))})`
+}
+
+/** 单块基色的半透明底色，给周视图的条数药丸用 */
+export function blockTint(kind: BlockKey, alpha: number): string {
+  const [r, g, b] = BASE[kind]
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
 /** 某个月前后翻页；跨年自动进位 */
@@ -67,38 +145,6 @@ export function monthRange(monthKey: string): { from: string; to: string } {
   const [year, month] = monthKey.split('-').map(Number)
   const last = new Date(year, month, 0).getDate()
   return { from: `${monthKey}-01`, to: `${monthKey}-${String(last).padStart(2, '0')}` }
-}
-
-/**
- * 三色混色：按权重做加权 RGB 平均；只筛一块时直接用那一块的基色。
- * 透明度按「当天得分 / 当月最高得分」线性映射，最低 0.16，最高 0.84，
- * 这样没有记录的日子一眼是空的，记录最多的那天最扎眼。
- */
-function tintOf(weights: DayWeights, score: number, maxScore: number, filter: CalendarFilter): string {
-  const ratio = maxScore > 0 ? score / maxScore : 0
-  const alpha = 0.16 + 0.68 * Math.min(1, Math.max(0, ratio))
-
-  let rgb: [number, number, number]
-  if (filter === 'all') {
-    const total = totalOf(weights)
-    rgb = (['diary', 'health', 'finance'] as const).reduce<[number, number, number]>(
-      (sum, key) => {
-        const share = total > 0 ? weights[key] / total : 0
-        const base = BASE[key]
-        return [
-          sum[0] + base[0] * share,
-          sum[1] + base[1] * share,
-          sum[2] + base[2] * share,
-        ]
-      },
-      [0, 0, 0],
-    )
-  } else {
-    rgb = BASE[filter]
-  }
-
-  const round = (value: number) => Math.round(value)
-  return `rgba(${round(rgb[0])}, ${round(rgb[1])}, ${round(rgb[2])}, ${Number(alpha.toFixed(2))})`
 }
 
 /**
@@ -123,7 +169,7 @@ export function buildMonthGrid(
     if (!item.dateKey.startsWith(`${monthKey}-`)) continue
     const weights = dayWeights(item)
     byDay.set(item.dateKey, weights)
-    const score = filter === 'all' ? totalOf(weights) : weights[filter]
+    const score = scoreOf(weights, filter)
     if (score > maxScore) maxScore = score
   }
 
@@ -132,13 +178,12 @@ export function buildMonthGrid(
     const dateKey = shiftDay(firstDay, index - offset)
     const inMonth = dateKey.slice(0, 7) === monthKey
     const weights = byDay.get(dateKey) ?? { diary: 0, health: 0, finance: 0 }
-    const score = filter === 'all' ? totalOf(weights) : weights[filter]
     cells.push({
       dateKey,
       day: Number(dateKey.slice(8, 10)),
       inMonth,
       weights,
-      tint: inMonth && score > 0 ? tintOf(weights, score, maxScore, filter) : null,
+      tint: inMonth ? dayTint(weights, maxScore, CELL_ALPHA, filter) : null,
     })
   }
   return cells

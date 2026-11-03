@@ -42,7 +42,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记；也可以直接问助手，让它查记录、记账、写随记或记睡眠。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.13.0',
+    'hero.cta': '下载 0.13.1',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -129,11 +129,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器与安卓走 IndexedDB。',
-    'open.version': '版本 0.13.0',
+    'open.version': '版本 0.13.1',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.13.0 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.13.1 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 96 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -144,11 +144,11 @@ window.SITE_I18N = {
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1':
-      '助手对话可以重新生成、编辑分叉、多选导出；Markdown、TXT、JSON 与长图都能带走',
+      '助手卡片确认前就能改：克数、热量、金额、体重、正文都能就地微调',
     'whatsnew.item2':
-      '生成中能停、能插话、能排队；计划模式先给步骤，确认后才动手',
+      '一次说一批，一轮记完：一顿饭的几样食物一起给卡片，上限从 3 张提到 8 张',
     'whatsnew.item3':
-      '输入框可 @ 引用记录、/ 唤出快捷指令；日期栏不再把日期截成省略号',
+      '周视图和月历用同一套颜色：日记暖橙、健康青绿、经济蓝，记录越多底色越深',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -156,7 +156,7 @@ window.SITE_I18N = {
     'changelog.back': '← 回到下载',
     'download.historyLink': '历史版本与更新日志，每版都附下载 →',
 
-    'footer.version': '版本 0.13.0',
+    'footer.version': '版本 0.13.1',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -199,7 +199,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry — or just ask the assistant to look things up, log spending, write a note or record your sleep. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.13.0',
+    'hero.cta': 'Download 0.13.1',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -287,12 +287,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser and on Android.',
-    'open.version': 'Version 0.13.0',
+    'open.version': 'Version 0.13.1',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.13.0 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.13.1 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 96 MB',
     'download.windowsDesc':
@@ -303,13 +303,13 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.13.0",
+    'whatsnew.title': "What's new in 0.13.1",
     'whatsnew.item1':
-      'Assistant answers can be regenerated, branched by editing or exported in bulk; Markdown, TXT, JSON and a long image all work',
+      'Edit assistant cards before confirming: grams, calories, amount, weight and body text adjust in place',
     'whatsnew.item2':
-      'Stop mid-reply, steer the current turn or queue the next one; plan mode outlines the steps before acting',
+      'One batch, one round: several foods from one meal produce cards together, and the cap went from 3 to 8',
     'whatsnew.item3':
-      'Type @ to reference a record and / for shortcuts; the date bar no longer shortens dates to an ellipsis',
+      'The week view shares the calendar palette: diary orange, health green, finance blue, deeper with more records',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -317,7 +317,7 @@ window.SITE_I18N = {
     'changelog.back': '← Back to downloads',
     'download.historyLink': 'Previous versions and changelog, each with downloads →',
 
-    'footer.version': 'Version 0.13.0',
+    'footer.version': 'Version 0.13.1',
     'footer.tagline': 'Data stays on your device',
   },
 };

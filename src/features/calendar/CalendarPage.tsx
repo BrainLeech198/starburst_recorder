@@ -17,6 +17,7 @@ import ViewTabs from './ViewTabs'
 import { countByDay, dateKeysOfMonth } from '@/features/schedule/scheduleMath'
 import { schedules } from '@/features/schedule/scheduleRepo'
 import {
+  BLOCK_HEX,
   buildMonthGrid,
   isMonthKey,
   monthRange,
@@ -39,11 +40,11 @@ const FILTERS: { id: CalendarFilter; label: MessageKey; swatch: string }[] = [
   {
     id: 'all',
     label: 'calendar.legendAll',
-    swatch: 'linear-gradient(90deg, #ea580c, #10b981, #3b82f6)',
+    swatch: `linear-gradient(90deg, ${BLOCK_HEX.diary}, ${BLOCK_HEX.health}, ${BLOCK_HEX.finance})`,
   },
-  { id: 'diary', label: 'calendar.legendDiary', swatch: '#ea580c' },
-  { id: 'health', label: 'calendar.legendHealth', swatch: '#10b981' },
-  { id: 'finance', label: 'calendar.legendFinance', swatch: '#3b82f6' },
+  { id: 'diary', label: 'calendar.legendDiary', swatch: BLOCK_HEX.diary },
+  { id: 'health', label: 'calendar.legendHealth', swatch: BLOCK_HEX.health },
+  { id: 'finance', label: 'calendar.legendFinance', swatch: BLOCK_HEX.finance },
 ]
 
 function filterOf(value: string | null): CalendarFilter {

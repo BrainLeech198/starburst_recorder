@@ -3,14 +3,21 @@
  *
  * 助手的写操作都先落在这里：写清楚「要记什么」，用户点确认才真的写库；
  * 写完之后还能撤销。卡片状态跟着对话一起存档，刷新后不会变成一团空白。
+ *
+ * 确认前可以直接改数字和内容：不然「米饭 150 克记成 250 克」得先写入再走一轮
+ * update，既多绕一次模型、也多一条容易记错的中间状态。
  */
+import { useState } from 'react'
 import { formatDate } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import type { AssistantMemoryKind } from './assistantMemory'
 import type { ChatActionState } from './assistantChatStore'
+import type { AssistantAction } from './assistantActionBuild'
+import { applyEdits, draftOf, draftValid, editFields } from './assistantActionEdit'
 import { isDeleteKind } from './assistantPermission'
 import { categoryKey } from '@/features/finance/financeCategories'
+import { INPUT } from '@/shared/ui/inputStyles'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
 
@@ -35,6 +42,8 @@ interface Props {
   onConfirm: () => void
   onCancel: () => void
   onUndo: () => void
+  /** 确认前改内容：只替换这张卡片里的动作，不写库 */
+  onEdit?: (next: AssistantAction) => void
 }
 
 /** 卡片只做预览：日记正文可能很长，别把整个对话撑成一张纸 */
@@ -42,9 +51,18 @@ function preview(text: string, max = 600) {
   return text.length > max ? `${text.slice(0, max)}…` : text
 }
 
-export default function AssistantActionCard({ state, busy, onConfirm, onCancel, onUndo }: Props) {
+export default function AssistantActionCard({
+  state,
+  busy,
+  onConfirm,
+  onCancel,
+  onUndo,
+  onEdit,
+}: Props) {
   const { t } = useI18n()
   const { action } = state
+  const fields = editFields(action)
+  const [draft, setDraft] = useState<Record<string, string> | null>(null)
   const date = 'dateKey' in action ? formatDate(action.dateKey, t) : ''
 
   const body = (() => {
@@ -223,6 +241,19 @@ export default function AssistantActionCard({ state, busy, onConfirm, onCancel, 
       ? 'border-line bg-surface-2'
       : 'border-line bg-surface opacity-70'
 
+  /** 只有还没写入的卡片能改；已经写进去的只能撤销，改要走 update 流程 */
+  const canEdit = Boolean(onEdit) && fields.length > 0 && pending
+  const editing = draft !== null && canEdit
+  const valid = draft !== null && draftValid(fields, draft)
+
+  function saveEdits() {
+    if (!draft || !onEdit) return
+    const next = applyEdits(action, draft)
+    if (!next) return
+    onEdit(next)
+    setDraft(null)
+  }
+
   return (
     <div className={`w-full rounded-xl border p-3 ${tone}`}>
       <div className="flex flex-wrap items-center gap-2">
@@ -250,17 +281,72 @@ export default function AssistantActionCard({ state, busy, onConfirm, onCancel, 
         </span>
       </div>
 
-      <p className="mt-1.5 whitespace-pre-wrap break-words text-sm text-fg">{body}</p>
+      {editing ? (
+        <div className="mt-2 flex flex-col gap-2">
+          {fields.map((field) => (
+            <label key={field.key} className="flex flex-col gap-1 text-[11px] text-muted">
+              <span>{t(field.label)}</span>
+              {field.kind === 'textarea' ? (
+                <textarea
+                  rows={4}
+                  value={draft?.[field.key] ?? ''}
+                  onChange={(event) =>
+                    setDraft((current) =>
+                      current ? { ...current, [field.key]: event.target.value } : current,
+                    )
+                  }
+                  className={`${INPUT} text-sm`}
+                />
+              ) : (
+                <input
+                  type={field.kind}
+                  step={field.step}
+                  value={draft?.[field.key] ?? ''}
+                  onChange={(event) =>
+                    setDraft((current) =>
+                      current ? { ...current, [field.key]: event.target.value } : current,
+                    )
+                  }
+                  className={`${INPUT} text-sm`}
+                />
+              )}
+            </label>
+          ))}
+          {!valid && <p className="m-0 text-[11px] text-danger">{t('assistant.edit.invalid')}</p>}
+        </div>
+      ) : (
+        <p className="mt-1.5 whitespace-pre-wrap break-words text-sm text-fg">{body}</p>
+      )}
 
       {action.kind === 'sleep' && action.overwrite && (
         <p className="mt-1 text-[11px] text-warning">{t('assistant.action.sleepOverwrite')}</p>
       )}
       {state.error && <p className="mt-1 text-[11px] text-danger">{state.error}</p>}
 
-      {state.status === 'pending' && (
+      {editing ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={saveEdits}
+            disabled={busy || !valid}
+            className={`${SOLID_BUTTON} disabled:opacity-50`}
+          >
+            {t('assistant.edit.save')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setDraft(null)}
+            className={OUTLINE_BUTTON}
+          >
+            {t('assistant.edit.cancel')}
+          </button>
+        </div>
+      ) : null}
+
+      {state.status === 'pending' && !editing && (
         <>
           <p className="mt-1.5 text-[11px] text-muted">{t('assistant.action.note')}</p>
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={onConfirm}
@@ -278,12 +364,22 @@ export default function AssistantActionCard({ state, busy, onConfirm, onCancel, 
             >
               {t('assistant.action.cancel')}
             </button>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => setDraft(draftOf(action))}
+                disabled={busy}
+                className="inline-flex min-h-11 items-center text-[11px] text-muted transition-colors hover:text-brand disabled:opacity-50 md:min-h-0"
+              >
+                {t('assistant.edit.open')}
+              </button>
+            )}
           </div>
         </>
       )}
 
-      {state.status === 'failed' && (
-        <div className="mt-2 flex items-center gap-2">
+      {state.status === 'failed' && !editing && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={onConfirm}
@@ -300,6 +396,16 @@ export default function AssistantActionCard({ state, busy, onConfirm, onCancel, 
           >
             {t('assistant.action.cancel')}
           </button>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setDraft(draftOf(action))}
+              disabled={busy}
+              className="inline-flex min-h-11 items-center text-[11px] text-muted transition-colors hover:text-brand disabled:opacity-50 md:min-h-0"
+            >
+              {t('assistant.edit.open')}
+            </button>
+          )}
         </div>
       )}
 

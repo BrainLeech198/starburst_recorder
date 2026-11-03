@@ -2,7 +2,9 @@
  * 周视图：把一周七天的安排与记录摊成一列，适合「这周还剩什么」。
  *
  * 月历看整体深浅，一天一页看细节，这一页夹在中间：
- * 每天一行，先列当天的日程（可勾完成），再给三块记录的条数；
+ * 每天一行，先列当天的日程（可勾完成），再给三块记录的条数。
+ * 颜色沿用月历那一套：日记暖橙、健康青绿、经济蓝，卡片底色按三块条数混色、
+ * 记录越多越深（透明度区间换成 `CARD_ALPHA`，整张卡片比小格子吃不住那么深）。
  * 点日期进一天一页，点日程进日程页，也可以直接在这一天加一条。
  */
 import { useState } from 'react'
@@ -17,6 +19,15 @@ import { useI18n } from '@/shared/i18n/context'
 import { Icon } from '@/shared/ui/icons'
 import ViewTabs from '@/features/calendar/ViewTabs'
 import { activityBetween } from '@/features/calendar/calendarRepo'
+import {
+  BLOCK_HEX,
+  CARD_ALPHA,
+  blockTint,
+  dayTint,
+  dayWeights,
+  totalOf,
+  type DayWeights,
+} from '@/features/calendar/calendarData'
 import { financeOfMonth } from '@/features/finance/financeRepo'
 import { donePatch, isDoneOn, occurrencesOn } from '@/features/schedule/scheduleMath'
 import { saveSchedule, schedules } from '@/features/schedule/scheduleRepo'
@@ -31,6 +42,15 @@ const WEEKDAY_KEYS: MessageKey[] = [
   'date.weekdayShort5',
   'date.weekdayShort6',
   'date.weekdayShort0',
+]
+
+const ZERO_WEIGHTS: DayWeights = { diary: 0, health: 0, finance: 0 }
+
+/** 条数药丸：三块各一个颜色，和月历图例、格子底色同一套基色 */
+const COUNT_CHIPS: { kind: keyof typeof BLOCK_HEX; label: MessageKey }[] = [
+  { kind: 'diary', label: 'week.diaryCount' },
+  { kind: 'health', label: 'week.healthCount' },
+  { kind: 'finance', label: 'week.financeCount' },
 ]
 
 export default function WeekPage() {
@@ -54,15 +74,17 @@ export default function WeekPage() {
 
   const [dialogDate, setDialogDate] = useState<string | null>(null)
 
-  const activityByDay = new Map(activities.map((item) => [item.dateKey, item]))
   const expenseByDay = new Map<string, number>()
   for (const item of money) {
     if (item.kind !== 'expense') continue
     expenseByDay.set(item.dateKey, (expenseByDay.get(item.dateKey) ?? 0) + item.amount)
   }
 
-  const totalRecords = activities.reduce(
-    (sum, item) => sum + item.entries + item.stamps + item.intakes + item.sleeps + item.trainings + item.finance,
+  // 三块权重与月历同一套口径（日记含随记、健康含称重），周内最高分用来定卡片底色深浅
+  const weightsByDay = new Map(activities.map((item) => [item.dateKey, dayWeights(item)]))
+  const maxScore = Math.max(0, ...[...weightsByDay.values()].map((weights) => totalOf(weights)))
+  const totalRecords = [...weightsByDay.values()].reduce(
+    (sum, weights) => sum + totalOf(weights),
     0,
   )
   const totalExpense = [...expenseByDay.values()].reduce((sum, value) => sum + value, 0)
@@ -150,16 +172,17 @@ export default function WeekPage() {
 
       <ol className="m-0 mt-3 flex list-none flex-col gap-2 p-0">
         {days.map((date, index) => {
-          const row = activityByDay.get(date)
+          const weights = weightsByDay.get(date) ?? ZERO_WEIGHTS
           const daySchedules = occurrencesOn(items, date)
           const expense = expenseByDay.get(date) ?? 0
-          const records = row
-            ? row.entries + row.stamps + row.intakes + row.sleeps + row.trainings + row.finance
-            : 0
+          const records = totalOf(weights)
+          // 卡片底色：三块按条数混色，记录越多越深；没有记录保持透明
+          const tint = dayTint(weights, maxScore, CARD_ALPHA)
           const isToday = date === today
           return (
             <li
               key={date}
+              style={tint ? { backgroundImage: `linear-gradient(${tint}, ${tint})` } : undefined}
               className={[
                 'rounded-2xl border bg-surface p-3',
                 isToday ? 'border-brand' : 'border-line',
@@ -226,24 +249,22 @@ export default function WeekPage() {
               )}
 
               {records > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-muted">
-                  {row && row.entries + row.stamps > 0 && (
-                    <span className="rounded-full bg-surface-2 px-2 py-0.5">
-                      {t('week.diaryCount', { n: row.entries + row.stamps })}
-                    </span>
-                  )}
-                  {row &&
-                    row.intakes + row.sleeps + row.trainings + row.weighIns > 0 && (
-                      <span className="rounded-full bg-surface-2 px-2 py-0.5">
-                        {t('week.healthCount', {
-                          n: row.intakes + row.sleeps + row.trainings + row.weighIns,
-                        })}
+                <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+                  {COUNT_CHIPS.map(({ kind, label }) =>
+                    weights[kind] > 0 ? (
+                      <span
+                        key={kind}
+                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-fg"
+                        style={{ backgroundColor: blockTint(kind, 0.16) }}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="h-1.5 w-1.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: BLOCK_HEX[kind] }}
+                        />
+                        {t(label, { n: weights[kind] })}
                       </span>
-                    )}
-                  {row && row.finance > 0 && (
-                    <span className="rounded-full bg-surface-2 px-2 py-0.5">
-                      {t('week.financeCount', { n: row.finance })}
-                    </span>
+                    ) : null,
                   )}
                 </div>
               )}

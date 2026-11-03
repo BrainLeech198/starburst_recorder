@@ -636,3 +636,110 @@ describe('runAssistant', () => {
     expect(lastToolResult).toContain('金额')
   })
 })
+
+describe('卡片数量与生成失败', () => {
+  const lunch = ['鸡腿', '米饭', '青菜', '西兰花'].map((name, index) => ({
+    id: `call_${index}`,
+    type: 'function' as const,
+    function: {
+      name: 'add_intake',
+      arguments: JSON.stringify({
+        name,
+        grams: 100,
+        kcal: 100,
+        protein: 5,
+        carbs: 10,
+        fat: 2,
+        time: '12:30',
+      }),
+    },
+  }))
+
+  it('一顿饭的四条食物在同一轮里都生成卡片', async () => {
+    let round = 0
+    const result = await runAssistant({
+      config: CONFIG,
+      history: [{ role: 'user', content: '午饭吃了鸡腿、米饭、青菜、西兰花' }],
+      data: emptyData(),
+      today: '2026-10-28',
+      request: async () => {
+        round += 1
+        if (round === 1) return transport(body({ tool_calls: lunch }))
+        return transport(body({ content: '四张卡片都准备好了。' }))
+      },
+    })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.pending).toHaveLength(4)
+  })
+
+  it('超过上限时，被推迟的那条要在界面上留下确定的话', async () => {
+    let round = 0
+    const many = Array.from({ length: 10 }, (_, index) => ({
+      id: `call_${index}`,
+      type: 'function' as const,
+      function: {
+        name: 'add_intake',
+        arguments: JSON.stringify({
+          name: `食物${index}`,
+          grams: 100,
+          kcal: 100,
+          protein: 5,
+          carbs: 10,
+          fat: 2,
+          time: '12:30',
+        }),
+      },
+    }))
+    const result = await runAssistant({
+      config: CONFIG,
+      history: [{ role: 'user', content: '这些全都记一下' }],
+      data: emptyData(),
+      today: '2026-10-28',
+      request: async () => {
+        round += 1
+        if (round === 1) return transport(body({ tool_calls: many }))
+        return transport(body({ content: '先出这几张。' }))
+      },
+    })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.pending).toHaveLength(8)
+      expect(result.actionErrors?.[0]).toContain('推迟')
+    }
+  })
+
+  it('卡片没生成时把原因带回界面，而不是只让模型自己圆', async () => {
+    let round = 0
+    const result = await runAssistant({
+      config: CONFIG,
+      history: [{ role: 'user', content: '记一下午饭' }],
+      data: emptyData(),
+      today: '2026-10-28',
+      request: async () => {
+        round += 1
+        if (round === 1) {
+          return transport(
+            body({
+              tool_calls: [
+                {
+                  id: 'call_1',
+                  type: 'function',
+                  function: { name: 'add_intake', arguments: '{"grams":100}' },
+                },
+              ],
+            }),
+          )
+        }
+        return transport(body({ content: '卡片来了，确认一下。' }))
+      },
+    })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.pending).toBeUndefined()
+      expect(result.actionErrors?.[0]).toContain('name')
+    }
+  })
+})

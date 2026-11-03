@@ -1,3 +1,21 @@
+## 0.13.1 · 2026-11-03
+
+助手卡片确认前就能改，一批记录一轮记完
+
+### 这一版有什么
+
+- **卡片确认前就能改**：名称、克数、热量、金额、体重、就寝与起床时间、正文都能在待确认卡片上直接改；数字必须大于 0，必填项不能空。说错一个数不必先写进库、再让模型改一轮
+- **一次说一批，一轮就记完**：一顿饭的几样食物、一次记账的几笔、一次训练的几个动作会在同一轮全部给出卡片，上限从 3 张提到 8 张，不再把剩下的留到下一轮
+- **没生成的卡片会说明原因**：参数不成立或超过上限被推迟时，回答正文直接写明是哪一张、为什么没生成；「下面有 N 张待确认卡片」由界面自己数，不再只靠模型那句「卡片来了」
+- **悬浮助手面板更紧凑**：消息操作换成图标，计划模式与深度思考并成一排芯片，「清空 / 导出」收进「⋯」，上下文用量收成一条细线，面板高度上限从 75% 提到 88%；打开时焦点锁在面板里，点面板里的链接换页会自动收起，暗区滑动不再带着背后页面滚
+- **周视图和月历用同一套颜色**：日记暖橙、健康青绿、经济蓝；卡片底色按三块条数混色、记录越多越深，条数标签换成带色点的胶囊，和月历图例对得上
+- **经济页的「当天记录」进一天一页**：日视图与列表里的入口都指向一天一页，日记、随记、摄入、睡眠、训练、收支与日程一次看齐
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.13.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.13.1/starburst-recorder-0.13.1-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.13.1/starburst-recorder-0.13.1-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.13.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.13.1/starburst-recorder-0.13.1.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.13.1/starburst-recorder-0.13.1.apk)
+
 ## 0.13.0 · 2026-11-03
 
 助手对话能改、能分叉、能带走，生成过程也由你控制

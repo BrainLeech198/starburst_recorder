@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import { MASCOT_SIZE_PX, useBall } from '@/app/providers/BallProvider'
 import { useTheme } from '@/app/providers/ThemeProvider'
 import { useI18n } from '@/shared/i18n/context'
@@ -18,6 +18,9 @@ const DRAG_THRESHOLD = 5
 const PEEK_VISIBLE_PX = 44
 /** 多久没有交互后，吉祥物自动贴到最近的边、只露半边 */
 const PEEK_DELAY_MS = 30_000
+/** 面板里能接键盘焦点的元素：Tab 只在面板里转，别跑到背后页面去 */
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 interface Point {
   x: number
@@ -220,16 +223,73 @@ export default function FloatingAssistant() {
 function AssistantSheet({ onClose }: { onClose: () => void }) {
   const { t } = useI18n()
   const backdrop = useBackdropClose(onClose)
+  const panelRef = useRef<HTMLDivElement>(null)
   useScrollLock()
   // 登记成一层覆盖层：安卓实体返回键先关它，而不是直接退到上一页
   useOverlayEntry(onClose)
 
+  const { pathname } = useLocation()
+  const openedAt = useRef(pathname)
+
+  /*
+   * 面板里点「记的事 / 技能 / 完整页面」会换页。不关掉的话，底下页面已经变了、
+   * 助手面板还盖在上面，看起来像「点了没反应」，也会让人以为背后还能继续操作。
+   * 路由一变就把面板收起来。
+   */
+  useEffect(() => {
+    if (pathname !== openedAt.current) onClose()
+  }, [pathname, onClose])
+
+  /*
+   * 打开时把焦点收进面板，Tab 只在面板里循环——
+   * 否则键盘用户会继续在背后的页面上走，等同于「背后还能被交互」。
+   */
+  useEffect(() => {
+    const panel = panelRef.current
+    if (!panel) return
+    if (!panel.contains(document.activeElement)) panel.focus()
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return
+      const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+        (item) => item.getClientRects().length > 0,
+      )
+      if (items.length === 0) {
+        event.preventDefault()
+        panel.focus()
+        return
+      }
+      const first = items[0]
+      const last = items[items.length - 1]
+      const current = document.activeElement
+      const inside = panel.contains(current)
+      if (event.shiftKey) {
+        if (!inside || current === first || current === panel) {
+          event.preventDefault()
+          last.focus()
+        }
+      } else if (!inside || current === last || current === panel) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+
   // portal 到 body，理由同 Modal：抽屉不能被内容区的堆叠上下文困住
   return createPortal(
     <>
-      <div className="fixed inset-0 z-40 bg-black/50" {...backdrop} />
-      <div className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[75dvh] w-full max-w-md flex-col rounded-t-2xl border-t border-line bg-surface">
-        <div className="flex items-center justify-between border-b border-line px-4 py-3">
+      {/* 遮罩同时挡触摸手势：在暗区滑动不该把背后的页面带着滚 */}
+      <div className="fixed inset-0 z-40 touch-none bg-black/50" {...backdrop} />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('assistant.sheetTitle')}
+        tabIndex={-1}
+        className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[88dvh] w-full max-w-md flex-col rounded-t-2xl border-t border-line bg-surface outline-none"
+      >
+        <div className="flex items-center justify-between border-b border-line px-4 py-2">
           <span className="text-sm font-medium">{t('assistant.sheetTitle')}</span>
           <div className="flex items-center gap-3">
             <Link

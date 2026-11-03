@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import type { DayActivity } from '@/core/db/store'
-import { buildMonthGrid, dayWeights, isMonthKey, monthRange, shiftMonthKey } from './calendarData'
+import {
+  BLOCK_HEX,
+  CARD_ALPHA,
+  CELL_ALPHA,
+  blockTint,
+  buildMonthGrid,
+  dayTint,
+  dayWeights,
+  isMonthKey,
+  mixRgb,
+  monthRange,
+  scoreOf,
+  shiftMonthKey,
+} from './calendarData'
 
 function activity(dateKey: string, patch: Partial<DayActivity> = {}): DayActivity {
   return {
@@ -111,5 +124,52 @@ describe('buildMonthGrid', () => {
     const dark = cells.find((item) => item.dateKey === '2026-11-06')?.tint ?? ''
     const alphaOf = (tint: string) => Number(tint.split(', ')[3].replace(')', ''))
     expect(alphaOf(dark)).toBeGreaterThan(alphaOf(light))
+  })
+})
+
+describe('dayTint', () => {
+  it('没有记录不着色', () => {
+    expect(dayTint({ diary: 0, health: 0, finance: 0 }, 10)).toBeNull()
+  })
+
+  it('透明度按传入区间线性映射，超出区间夹到端点', () => {
+    const weights = { diary: 5, health: 0, finance: 0 }
+    expect(dayTint(weights, 20, CARD_ALPHA)).toBe('rgba(234, 88, 12, 0.08)')
+    expect(dayTint(weights, 5, CARD_ALPHA)).toBe('rgba(234, 88, 12, 0.16)')
+    expect(dayTint(weights, 1, CARD_ALPHA)).toBe('rgba(234, 88, 12, 0.16)')
+  })
+
+  it('周视图的区间比月历浅，同一份记录不会糊成一片', () => {
+    const weights = { diary: 2, health: 2, finance: 2 }
+    const cell = dayTint(weights, 6, CELL_ALPHA) ?? ''
+    const card = dayTint(weights, 6, CARD_ALPHA) ?? ''
+    const alphaOf = (tint: string) => Number(tint.split(', ')[3].replace(')', ''))
+    expect(alphaOf(cell)).toBeCloseTo(0.84, 2)
+    expect(alphaOf(card)).toBeCloseTo(0.16, 2)
+  })
+
+  it('筛一块时只数那一块，没记录就返回 null', () => {
+    const weights = { diary: 3, health: 0, finance: 0 }
+    expect(dayTint(weights, 3, CARD_ALPHA, 'health')).toBeNull()
+    expect(dayTint(weights, 3, CARD_ALPHA, 'diary')).toBe('rgba(234, 88, 12, 0.16)')
+  })
+})
+
+describe('三块基色', () => {
+  it('混色用的 RGB 与图例 hex 是同一份', () => {
+    expect(mixRgb({ diary: 3, health: 0, finance: 0 })).toEqual([234, 88, 12])
+    expect(mixRgb({ diary: 0, health: 3, finance: 0 })).toEqual([16, 185, 129])
+    expect(mixRgb({ diary: 0, health: 0, finance: 3 })).toEqual([59, 130, 246])
+    expect(BLOCK_HEX).toEqual({ diary: '#ea580c', health: '#10b981', finance: '#3b82f6' })
+  })
+
+  it('单块底色给的是该块的半透明基色', () => {
+    expect(blockTint('diary', 0.16)).toBe('rgba(234, 88, 12, 0.16)')
+    expect(blockTint('finance', 0.16)).toBe('rgba(59, 130, 246, 0.16)')
+  })
+
+  it('得分看全部时三块相加', () => {
+    expect(scoreOf({ diary: 1, health: 2, finance: 3 })).toBe(6)
+    expect(scoreOf({ diary: 1, health: 2, finance: 3 }, 'health')).toBe(2)
   })
 })

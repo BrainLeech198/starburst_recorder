@@ -1,3 +1,21 @@
+## 0.13.1 · 2026-11-03
+
+Assistant cards are editable before you confirm, and one batch finishes in one round
+
+### What's new
+
+- **Edit a card before confirming it** — name, grams, calories, amount, weight, bedtime and wake time, and body text are all editable on the pending card; numbers must be above 0 and required fields cannot be blank. A mistyped figure no longer needs a write followed by a model-driven update round.
+- **One batch, one round** — several foods from one meal, several transactions from one ledger entry, or several exercises from one session now all produce cards in the same round. The cap went from 3 to 8, so nothing is left over for you to remember.
+- **Cards that fail now say why** — when a card cannot be built or is deferred past the cap, the reply states which one and why; the "N cards waiting for confirmation" line is counted by the interface itself instead of trusting the model's "your cards are ready".
+- **A tighter floating assistant panel** — message actions are icons, plan mode and deep thinking share one row of chips, clear / export moved into "⋯", context usage collapsed to a thin line, and the panel can grow to 88% of the screen instead of 75%. Focus is trapped inside the panel, a link that changes the page closes it, and dragging on the backdrop no longer scrolls the page behind.
+- **The week view shares the calendar palette** — diary orange, health green, finance blue; each day card is tinted by how many records it holds, and count chips now carry a colour dot that matches the legend.
+- **"That day's records" opens the day page** — the entries in the finance day view and the list both go to the one-day page, where diary, notes, intake, sleep, training, money and schedule line up in one timeline.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.13.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.13.1/starburst-recorder-0.13.1-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.13.1/starburst-recorder-0.13.1-setup.exe)
+- Android 10+: [`starburst-recorder-0.13.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.13.1/starburst-recorder-0.13.1.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.13.1/starburst-recorder-0.13.1.apk)
+
 ## 0.13.0 · 2026-11-03
 
 Assistant answers can be edited, branched and taken away — and you control the generation

@@ -491,10 +491,11 @@ export default function FinancePage() {
                 ? t('finance.balanceYear')
                 : t('finance.balance')}
           </p>
-          {/* 日视图的日期栏已经写着是哪一天，这里补「当天记录」入口，不再重复日期 */}
+          {/* 日视图的日期栏已经写着是哪一天，这里补「当天记录」入口，不再重复日期。
+              指向「一天一页」：那里把日记、随记、摄入、睡眠、训练、收支与日程排成一条时间轴 */}
           {view === 'day' ? (
             <Link
-              to={`/diary?date=${dayKey}`}
+              to={`/day/${dayKey}`}
               className="shrink-0 text-[11px] text-brand transition-opacity hover:opacity-80"
             >
               {t('finance.dayRecords')} ›
@@ -674,7 +675,7 @@ export default function FinancePage() {
                 </span>
                 <div className="flex shrink-0 items-center gap-2">
                   <Link
-                    to={`/diary?date=${day.dateKey}`}
+                    to={`/day/${day.dateKey}`}
                     className="text-[11px] text-brand transition-opacity hover:opacity-80"
                   >
                     {t('finance.dayRecords')}

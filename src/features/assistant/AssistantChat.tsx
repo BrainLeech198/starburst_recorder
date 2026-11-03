@@ -23,6 +23,7 @@ import { SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
 import { copyTextToClipboard } from '@/platform/clipboard'
 import Modal from '@/shared/ui/Modal'
+import Dropdown from '@/shared/ui/Dropdown'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { runAssistant } from './assistantAgent'
 import {
@@ -148,8 +149,18 @@ const CHAT_SEND = 'inline-flex h-11 shrink-0 items-center justify-center rounded
 const CHAT_STOP =
   'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-danger/40 text-sm text-danger transition-colors hover:bg-danger/10 disabled:opacity-40'
 const CHAT_ROW = 'flex min-h-12 min-w-0 flex-1 flex-col px-2.5 py-2 text-left transition-colors'
+/**
+ * 消息下的操作按钮：和市面上的 agent 一样用图标，不再排一行灰字。
+ * 40px 的点击区在手机上够用，桌面上收成 28px 的小方块，心里不占地方。
+ */
 const MESSAGE_ACTION =
-  'inline-flex min-h-11 items-center px-1.5 text-[11px] text-muted transition-colors hover:text-brand disabled:opacity-40 md:min-h-0 md:px-1'
+  'inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg disabled:opacity-40 md:h-7 md:w-7'
+const MESSAGE_ACTION_DANGER = `${MESSAGE_ACTION} hover:text-danger`
+/** 模式开关：计划 / 深度思考用同一套芯片，别一个文字键一个开关，看着乱 */
+const MODE_CHIP =
+  'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[11px] transition-colors disabled:opacity-50 md:h-7'
+const MODE_CHIP_ON = 'border-brand/40 bg-brand/10 text-brand'
+const MODE_CHIP_OFF = 'border-line text-muted hover:bg-surface-2 hover:text-fg'
 
 interface QueuedMessage {
   id: string
@@ -415,7 +426,15 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         return
       }
 
-      const content = result.reply || (result.question ? result.question.question : '')
+      const base = result.reply || (result.question ? result.question.question : '')
+      // 卡片没生成时把原因写进正文：模型可能照旧说「卡片来了」，
+      // 只有系统自己补这一句，用户才不会被一句空话吊着。
+      const content =
+        result.actionErrors && result.actionErrors.length > 0
+          ? `${base}${base === '' ? '' : '\n\n'}${t('assistant.cardBuildFailed', {
+              detail: result.actionErrors.join('；'),
+            })}`
+          : base
       const actions = result.pending?.map((action) => ({
         action,
         status: 'pending' as const,
@@ -787,8 +806,15 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
 
   function renderActions(item: ChatMessageRecord) {
     if (!item.actions || item.actions.length === 0) return null
+    const waiting = item.actions.filter(
+      (state) => state.status === 'pending' || state.status === 'failed',
+    ).length
     return (
       <div className="flex w-full flex-col gap-2">
+        {/* 待确认张数由系统数，不问模型：「卡片来了」这句必须和真实卡片同时成立 */}
+        {waiting > 0 && (
+          <p className="m-0 text-[11px] text-muted">{t('assistant.cardsReady', { n: waiting })}</p>
+        )}
         {item.actions.map((state, index) => (
           <AssistantActionCard
             key={`${item.id}-${index}`}
@@ -797,6 +823,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             onConfirm={() => void confirmAction(item.id, index, state)}
             onCancel={() => patchAction(item.id, index, { status: 'canceled' })}
             onUndo={() => void undoAction(item.id, index, state)}
+            onEdit={(next) => patchAction(item.id, index, { action: next })}
           />
         ))}
       </div>
@@ -882,12 +909,14 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     <div className={compact ? 'flex min-h-0 flex-1 flex-col' : 'flex flex-1 flex-col'}>
       {/* 会话工具条：标题两行（名字 + 条数），右侧是圆形新建与「历史 + 计数」 */}
       <div className="flex items-center gap-2 border-b border-line pb-2">
-        <span
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand/10 text-[11px] text-brand"
-          aria-hidden="true"
-        >
-          ✦
-        </span>
+        {!compact && (
+          <span
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand/10 text-[11px] text-brand"
+            aria-hidden="true"
+          >
+            ✦
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <p className="m-0 truncate text-xs font-medium text-fg">{sessionTitle}</p>
           <p className="m-0 flex items-center gap-1 text-[10px] text-muted">
@@ -937,6 +966,29 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           {t('assistant.sessions')}
           <span className={CHAT_COUNT}>{sessions.length}</span>
         </button>
+        {/* 悬浮面板里把「清空 / 导出」收进这里，底部就少一整行 */}
+        {compact && (
+          <Dropdown
+            caret={false}
+            menuLabel={t('common.more')}
+            label="⋯"
+            buttonClassName="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[15px] text-muted transition-colors hover:bg-surface-2 hover:text-fg md:h-7 md:w-7"
+            items={[
+              {
+                label: t('assistant.export'),
+                icon: 'export',
+                onSelect: () => setExportIds([]),
+              },
+              {
+                label: t('assistant.clear'),
+                icon: 'trash',
+                danger: true,
+                disabled: busy,
+                onSelect: () => setClearOpen(true),
+              },
+            ]}
+          />
+        )}
       </div>
 
       {/* 多选工具条：批量复制、导出、删除 */}
@@ -991,7 +1043,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
       <div
         className={
           compact
-            ? 'min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4'
+            ? 'min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3'
             : 'flex-1 space-y-4 py-4'
         }
       >
@@ -1136,31 +1188,37 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                         </div>
                       )}
                       {!selectMode && (
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <div className="flex items-center gap-0.5">
                           {item.content.trim() !== '' && (
                             <button
                               type="button"
                               onClick={() => void copy(item.content)}
+                              aria-label={t('assistant.copy')}
+                              title={t('assistant.copy')}
                               className={MESSAGE_ACTION}
                             >
-                              {t('assistant.copy')}
+                              <Icon name="copy" className="h-4 w-4" />
                             </button>
                           )}
                           <button
                             type="button"
                             disabled={busy || loading}
                             onClick={() => startEdit(item)}
+                            aria-label={t('assistant.edit')}
+                            title={t('assistant.edit')}
                             className={MESSAGE_ACTION}
                           >
-                            {t('assistant.edit')}
+                            <Icon name="edit" className="h-4 w-4" />
                           </button>
                           <button
                             type="button"
                             disabled={busy || loading}
                             onClick={() => askDeleteFrom(item)}
-                            className={MESSAGE_ACTION}
+                            aria-label={t('assistant.deleteFrom')}
+                            title={t('assistant.deleteFrom')}
+                            className={MESSAGE_ACTION_DANGER}
                           >
-                            {t('assistant.deleteFrom')}
+                            <Icon name="trash" className="h-4 w-4" />
                           </button>
                         </div>
                       )}
@@ -1274,19 +1332,19 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                         </button>
                       )}
                     {!selectMode && !loading && (
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <div className="flex items-center gap-0.5">
                         {item.variants && item.variants.length > 1 && (
-                          <span className="flex items-center gap-1 text-[10px] text-muted">
+                          <span className="mr-1 flex items-center gap-0.5 rounded-full border border-line px-1 text-[10px] text-muted">
                             <button
                               type="button"
                               disabled={busy}
                               onClick={() => switchChatVariant(item.id, -1)}
                               aria-label={t('assistant.previous')}
-                              className="inline-flex h-9 w-8 items-center justify-center text-[12px] text-muted transition-colors hover:text-brand disabled:opacity-40 md:h-6 md:w-5"
+                              className="inline-flex h-7 w-6 items-center justify-center text-[12px] transition-colors hover:text-brand disabled:opacity-40"
                             >
                               ‹
                             </button>
-                            <span>
+                            <span className="tabular-nums">
                               {t('assistant.version', {
                                 n: (item.variantIndex ?? 0) + 1,
                                 total: item.variants.length,
@@ -1297,7 +1355,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                               disabled={busy}
                               onClick={() => switchChatVariant(item.id, 1)}
                               aria-label={t('assistant.next')}
-                              className="inline-flex h-9 w-8 items-center justify-center text-[12px] text-muted transition-colors hover:text-brand disabled:opacity-40 md:h-6 md:w-5"
+                              className="inline-flex h-7 w-6 items-center justify-center text-[12px] transition-colors hover:text-brand disabled:opacity-40"
                             >
                               ›
                             </button>
@@ -1307,26 +1365,32 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                           <button
                             type="button"
                             onClick={() => void copy(item.content)}
+                            aria-label={t('assistant.copy')}
+                            title={t('assistant.copy')}
                             className={MESSAGE_ACTION}
                           >
-                            {t('assistant.copy')}
+                            <Icon name="copy" className="h-4 w-4" />
                           </button>
                         )}
                         <button
                           type="button"
                           disabled={busy}
                           onClick={() => regenerate(item)}
+                          aria-label={t('assistant.regenerate')}
+                          title={t('assistant.regenerate')}
                           className={MESSAGE_ACTION}
                         >
-                          {t('assistant.regenerate')}
+                          <Icon name="refresh" className="h-4 w-4" />
                         </button>
                         <button
                           type="button"
                           disabled={busy}
                           onClick={() => askDeleteFrom(item)}
-                          className={MESSAGE_ACTION}
+                          aria-label={t('assistant.deleteFrom')}
+                          title={t('assistant.deleteFrom')}
+                          className={MESSAGE_ACTION_DANGER}
                         >
-                          {t('assistant.deleteFrom')}
+                          <Icon name="trash" className="h-4 w-4" />
                         </button>
                       </div>
                     )}
@@ -1346,83 +1410,104 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             : 'sticky bottom-0 border-t border-line bg-bg pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3'
         }
       >
-        {/* 上下文用量：只显示服务商真的报了 token 的那种模型 */}
+        {/* 上下文用量：只显示服务商真的报了 token 的那种模型。
+            悬浮面板里只留一条细线，文字藏起来——那一行本来也读不出什么。 */}
         {contextUsed > 0 && (
           <div className="mb-2">
-            <div className="flex items-center justify-between gap-2 text-[10px] text-muted">
-              <span className="truncate">
-                {t('assistant.contextUsage', {
-                  used: formatTokens(contextUsed),
-                  total: formatTokens(contextTotal),
-                  pct: contextPct,
-                })}
-              </span>
-              {lastWithUsage?.usage && (
-                <span className="shrink-0 font-mono">
-                  {t('assistant.turnTokens', { n: formatTokens(lastWithUsage.usage.total) })}
+            {!compact && (
+              <div className="flex items-center justify-between gap-2 text-[10px] text-muted">
+                <span className="truncate">
+                  {t('assistant.contextUsage', {
+                    used: formatTokens(contextUsed),
+                    total: formatTokens(contextTotal),
+                    pct: contextPct,
+                  })}
                 </span>
-              )}
-            </div>
-            <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-surface-2">
+                {lastWithUsage?.usage && (
+                  <span className="shrink-0 font-mono">
+                    {t('assistant.turnTokens', { n: formatTokens(lastWithUsage.usage.total) })}
+                  </span>
+                )}
+              </div>
+            )}
+            <div
+              title={t('assistant.contextUsage', {
+                used: formatTokens(contextUsed),
+                total: formatTokens(contextTotal),
+                pct: contextPct,
+              })}
+              className={`w-full overflow-hidden rounded-full bg-surface-2 ${compact ? 'h-0.5' : 'mt-1 h-1'}`}
+            >
               <div
-                className="h-1 rounded-full bg-brand transition-[width] duration-300 motion-reduce:transition-none"
+                className={`rounded-full bg-brand transition-[width] duration-300 motion-reduce:transition-none ${compact ? 'h-0.5' : 'h-1'}`}
                 style={{ width: `${Math.max(contextPct, 2)}%` }}
               />
             </div>
           </div>
         )}
 
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <p className="m-0 min-w-0 text-[11px] text-muted">
-            <span className="mr-1" aria-hidden="true">
-              ⓘ
-            </span>
-            {t('assistant.healthNote')}
-          </p>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              aria-pressed={planMode}
-              disabled={busy}
-              onClick={() => {
-                const next = !planMode
-                setPlanMode(next)
-                savePlanMode(next)
-              }}
-              className={`inline-flex h-11 items-center rounded-full px-3 text-[11px] transition-colors disabled:opacity-50 md:h-6 md:px-2 ${
-                planMode
-                  ? 'bg-brand/15 text-brand'
-                  : 'text-muted hover:text-fg'
+        <div className="mb-2 flex items-center gap-1.5 overflow-x-auto">
+          <button
+            type="button"
+            aria-pressed={planMode}
+            disabled={busy}
+            onClick={() => {
+              const next = !planMode
+              setPlanMode(next)
+              savePlanMode(next)
+            }}
+            className={`${MODE_CHIP} ${planMode ? MODE_CHIP_ON : MODE_CHIP_OFF}`}
+          >
+            <Icon name="list" className="h-3.5 w-3.5" />
+            {t('assistant.planMode')}
+          </button>
+          <button
+            type="button"
+            aria-pressed={reasoning}
+            disabled={busy}
+            onClick={() => {
+              const next = !reasoning
+              setReasoning(next)
+              saveReasoning(next)
+            }}
+            className={`${MODE_CHIP} ${reasoning ? MODE_CHIP_ON : MODE_CHIP_OFF}`}
+          >
+            <Icon name="sparkles" className="h-3.5 w-3.5" />
+            {t('assistant.reasoning')}
+            <span
+              className={`relative ml-0.5 inline-block h-3.5 w-6 rounded-full transition-colors ${
+                reasoning ? 'bg-brand' : 'bg-surface-2 ring-1 ring-inset ring-line'
               }`}
-            >
-              {t('assistant.planMode')}
-            </button>
-            <button
-              type="button"
-              aria-pressed={reasoning}
-              disabled={busy}
-              onClick={() => {
-                const next = !reasoning
-                setReasoning(next)
-                saveReasoning(next)
-              }}
-              className="inline-flex h-11 shrink-0 items-center gap-1.5 px-1 text-[11px] text-muted transition-colors hover:text-fg disabled:opacity-50 md:h-6 md:px-0"
+              aria-hidden="true"
             >
               <span
-                className={`relative inline-block h-3.5 w-6 rounded-full transition-colors ${
-                  reasoning ? 'bg-brand' : 'bg-surface-2 ring-1 ring-inset ring-line'
+                className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white shadow-sm transition-[left] duration-150 motion-reduce:transition-none ${
+                  reasoning ? 'left-3' : 'left-0.5'
                 }`}
+              />
+            </span>
+          </button>
+          {/* 推荐问和模式开关挤成一行：悬浮面板里省下的是一整行高度 */}
+          {messages.length > 0 && !busy && lastReply && (
+            <button
+              type="button"
+              aria-expanded={suggestOpen}
+              onClick={() => {
+                if (suggestOpen) setSuggestOpen(false)
+                else void openSuggestions(lastReply)
+              }}
+              className={`${MODE_CHIP} border-dashed ${suggestOpen ? MODE_CHIP_ON : MODE_CHIP_OFF}`}
+            >
+              <span aria-hidden="true">✦</span>
+              {t('assistant.suggestTitle')}
+              <span
+                className={`text-[10px] transition-transform ${suggestOpen ? 'rotate-180' : ''}`}
                 aria-hidden="true"
               >
-                <span
-                  className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white shadow-sm transition-[left] duration-150 motion-reduce:transition-none ${
-                    reasoning ? 'left-3' : 'left-0.5'
-                  }`}
-                />
+                ▾
               </span>
-              <span className={reasoning ? 'text-brand' : ''}>{t('assistant.reasoning')}</span>
             </button>
-          </div>
+          )}
         </div>
         {planMode && (
           <p className="m-0 mb-2 text-[10px] text-brand">{t('assistant.planHint')}</p>
@@ -1469,57 +1554,34 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           </div>
         )}
 
-        {/* 推荐问：默认收起，展开时让模型按对话与记忆现想三条 */}
-        {messages.length > 0 && !busy && lastReply && (
+        {/* 推荐问展开后的内容：触发按钮已经并到上面那一行 */}
+        {messages.length > 0 && !busy && lastReply && suggestOpen && (
           <div className="mb-2">
-            <button
-              type="button"
-              aria-expanded={suggestOpen}
-              onClick={() => {
-                if (suggestOpen) setSuggestOpen(false)
-                else void openSuggestions(lastReply)
-              }}
-              className="flex w-full items-center gap-2 rounded-lg border border-dashed border-brand/30 bg-brand/[0.04] px-2.5 py-1.5 text-left text-[11px] text-brand transition-colors hover:bg-brand/10"
-            >
-              <span aria-hidden="true">✦</span>
-              <span className="min-w-0 flex-1">{t('assistant.suggestTitle')}</span>
-              <span
-                className={`text-[10px] transition-transform ${
-                  suggestOpen ? 'rotate-180' : ''
-                }`}
-                aria-hidden="true"
-              >
-                ▾
-              </span>
-            </button>
-            {suggestOpen &&
-              (suggestLoading ? (
-                <p className="m-0 mt-1.5 text-[11px] text-muted">
-                  {t('assistant.suggestLoading')}
-                </p>
-              ) : suggestions?.items.length ? (
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {suggestions.items.map((text) => (
-                    <button
-                      key={text}
-                      type="button"
-                      onClick={() => {
-                        setSuggestOpen(false)
-                        void run(text, true)
-                      }}
-                      className={CHAT_CHIP}
-                    >
-                      {text}
-                    </button>
-                  ))}
-                </div>
-              ) : null)}
+            {suggestLoading ? (
+              <p className="m-0 text-[11px] text-muted">{t('assistant.suggestLoading')}</p>
+            ) : suggestions?.items.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {suggestions.items.map((text) => (
+                  <button
+                    key={text}
+                    type="button"
+                    onClick={() => {
+                      setSuggestOpen(false)
+                      void run(text, true)
+                    }}
+                    className={CHAT_CHIP}
+                  >
+                    {text}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
         )}
 
         {/* 斜杠命令：选中后把整句放进输入框，还能继续改 */}
         {slashOpen && (
-          <div className="mb-2 overflow-hidden rounded-xl border border-line bg-surface">
+          <div className="mb-2 max-h-[40dvh] overflow-y-auto overscroll-contain rounded-xl border border-line bg-surface">
             <p className="m-0 border-b border-line px-2.5 py-1.5 text-[10px] text-muted">
               {t('assistant.slashTitle')}
             </p>
@@ -1533,7 +1595,12 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                   key={item.key}
                   type="button"
                   onClick={() => {
-                    setInput(item.text)
+                    setInput((current) => {
+                      const typed = current.trim()
+                      // 输入框里已经有话时接在后面，别把用户打了一半的内容冲掉
+                      if (typed === '' || typed.startsWith('/')) return item.text
+                      return `${typed} ${item.text}`
+                    })
                     setSlashOpen(false)
                   }}
                   className="flex min-h-11 w-full items-start gap-2 px-2.5 py-2 text-left text-[11px] text-fg transition-colors hover:bg-brand/10 hover:text-brand md:min-h-0 md:py-1.5"
@@ -1660,6 +1727,19 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             >
               @
             </button>
+            {/* 手机端打不出斜杠：点这里直接展开整份指令清单 */}
+            <button
+              type="button"
+              onClick={() => setSlashOpen((value) => !value)}
+              aria-pressed={slashOpen}
+              aria-label={t('assistant.slashTitle')}
+              title={t('assistant.slashTitle')}
+              className={`${CHAT_ICON} font-mono text-sm ${
+                slashOpen ? 'text-brand ring-1 ring-brand/40' : ''
+              }`}
+            >
+              /
+            </button>
             {busy && (
               <button
                 type="button"
@@ -1681,23 +1761,24 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             </button>
           </div>
         </div>
-        {messages.length > 0 && (
+        {!compact && messages.length > 0 && (
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setClearOpen(true)}
                 disabled={busy}
-                className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-danger/40 px-2.5 py-1 text-[11px] text-danger transition-colors hover:bg-danger/10 active:scale-[0.97] disabled:opacity-40 md:min-h-0"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-[11px] text-muted transition-colors hover:bg-surface-2 hover:text-danger disabled:opacity-40 md:min-h-8"
               >
-                <Icon name="trash" className="h-3 w-3 shrink-0" />
+                <Icon name="trash" className="h-3.5 w-3.5 shrink-0" />
                 {t('assistant.clear')}
               </button>
               <button
                 type="button"
                 onClick={() => setExportIds([])}
-                className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-[11px] text-muted transition-colors hover:text-brand md:min-h-0"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-[11px] text-muted transition-colors hover:bg-surface-2 hover:text-fg md:min-h-8"
               >
+                <Icon name="export" className="h-3.5 w-3.5 shrink-0" />
                 {t('assistant.export')}
               </button>
             </div>
@@ -1711,6 +1792,14 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
               </Link>
             </div>
           </div>
+        )}
+        {/* 提示单独占一行：和开关挤在同一行时长句会被压成三行，看着最乱。
+            悬浮面板里不显示——那点高度留给对话本身。 */}
+        {!compact && (
+          <p className="m-0 mt-2 flex items-start gap-1.5 text-[10px] leading-relaxed text-muted">
+            <Icon name="info" className="mt-px h-3 w-3 shrink-0" />
+            <span className="min-w-0">{t('assistant.healthNote')}</span>
+          </p>
         )}
       </div>
 

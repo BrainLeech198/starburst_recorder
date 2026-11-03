@@ -51,8 +51,13 @@ const MAX_ROUNDS = 6
 const MAX_HISTORY = 16
 /** 单条历史最多留多少字，避免一条长日记把上下文吃光 */
 const MAX_HISTORY_CHARS = 900
-/** 一轮里最多准备几张卡片：再多就不是在帮忙，是在替用户做主 */
-const MAX_PENDING = 3
+/**
+ * 一轮里最多准备几张卡片。
+ * 定成 8 而不是 3：用户一次说「午饭吃了鸡腿、米饭、青菜、西兰花」是同一批事实，
+ * 卡在上限里会让后面的记录掉到下一轮，用户得自己惦记「刚才那样还没记」。
+ * 8 张足够覆盖一顿饭或一次记账；再多就真的该分轮了。
+ */
+const MAX_PENDING = 8
 /** 一轮里最多真正执行几次查询；超过就让模型直接回答，别一直翻库 */
 const MAX_TOOL_CALLS = 10
 
@@ -132,6 +137,12 @@ export type AssistantRunResult =
       mode: 'tools' | 'json'
       /** 模型准备好的动作；用户确认后才会真的写库 */
       pending?: AssistantAction[]
+      /**
+       * 模型要求了写入、但卡片没能生成的原因。
+       * 界面必须把它显示出来：不显示的话模型可能照旧说「卡片来了」，
+       * 用户看到的就是一句空话——这正是「说了弹卡片却没弹」的根源之一。
+       */
+      actionErrors?: string[]
       /** 模型递给用户的选择题；有它时这轮先停在这里 */
       question?: AssistantQuestion
       /** 真实 token 用量；服务商不返回时没有这一项 */
@@ -195,7 +206,9 @@ export function buildSystemPrompt(
 - 记饮食先用 search_food 查食物库；食物库没有时，按食物名、克数和图片估算营养
 - 食物库只放「一种」食物；能拆成两样以上独立食物、平时当一份一起吃的固定搭配（例如鸡腿饭 = 鸡腿 + 卤蛋 + 米饭）才用 add_meal，缺的成分先 add_food 补进食物库
 - 加食物时 kcal / protein / carbs / fat 四项都必须填；只有确实不含该营养素时才写 0，不许只填热量
-- 一次最多提出 1–2 张卡片，不要一口气替用户补一堆记录
+- 用户一次说了同一批里的好几条（一顿饭的几样食物、一次记账的几笔、一次训练的几个动作）时，**全部生成卡片**，不要留到下一轮；一轮最多 8 张
+- 只有互不相关的事情才分轮做，别让用户替你记着「还有一样没记」
+- 只有真的调用写工具、并且收到「已生成待确认卡片」的工具结果以后，才可以提卡片；没调用写工具就不要描述卡片
 - 用户说「记住……」时用 remember，把一句话收短，保留关键信息
 - 改已有记录必须用 update_* 工具原地改，保留原来的 id 和创建时间；绝对不要用「删掉再记一条」来当修改
 - 删已有记录前，先用读工具拿到它的 [code]，并核对是不是用户说的那一条
@@ -450,6 +463,8 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
       : ASSISTANT_TOOLS
   const steps: AssistantStep[] = []
   const pending: AssistantAction[] = []
+  /** 写工具要求生成卡片、但参数不成立时记下原因，交给界面显示 */
+  const actionErrors: string[] = []
   /** 记忆改删只能按原文定位，所以工具和执行层都要拿到原始列表 */
   const memoryList = loadMemories()
   const ctx = { data, today, skills, memories: memoryList }
@@ -511,6 +526,7 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
     steps,
     mode,
     ...(pending.length > 0 ? { pending } : {}),
+    ...(actionErrors.length > 0 ? { actionErrors: [...actionErrors] } : {}),
     ...meta(),
   })
 
@@ -521,6 +537,7 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
     mode,
     question,
     ...(pending.length > 0 ? { pending } : {}),
+    ...(actionErrors.length > 0 ? { actionErrors: [...actionErrors] } : {}),
     ...meta(),
   })
 
@@ -532,16 +549,22 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
     if (!canWrite(permission)) {
       return '当前是只读权限，不能新增、修改或删除记录；请告诉用户去设置里调整编辑权限。'
     }
-    if (pending.length >= MAX_PENDING) {
-      return '这一轮已经准备好几张卡片了，先让用户确认，不要继续加。'
-    }
     const built = buildAssistantAction(name, args, actionCtx)
     if (!built.ok) {
-      return `没能生成卡片：${built.error}\n可以先把缺的信息问清楚，再试一次。`
+      // 参数不成立时卡片根本没生成。这里必须留痕给界面，
+      // 否则模型很可能照旧回一句「卡片来了」，用户面对的是空白。
+      actionErrors.push(built.error)
+      return `没能生成卡片：${built.error}\n可以先把缺的信息问清楚，再试一次；同时要如实告诉用户这张卡片没有生成。`
     }
     const text = describeAction(built.action)
     if (pending.some((item) => describeAction(item) === text)) {
       return '这张卡片已经准备好了，等用户确认，不要重复生成。'
+    }
+    if (pending.length >= MAX_PENDING) {
+      // 超上限时不只是回给模型：界面也要有一句确定的话，
+      // 否则用户只能靠自己记着「还有一样没记」。
+      actionErrors.push(`这一轮最多 ${MAX_PENDING} 张卡片，「${text}」被推迟到下一轮`)
+      return `这一轮已经有 ${MAX_PENDING} 张卡片了，「${text}」这一条没有生成。\n请如实告诉用户它还要下一轮才补，不要说已经弹出；用户回一句「继续」就把它补上。`
     }
     pending.push(built.action)
     if (runsWithoutConfirm(permission, built.action.kind)) {
