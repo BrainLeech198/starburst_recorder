@@ -7,6 +7,10 @@ A local-first personal recorder with built-in AI: jot down today and AI turns it
 - **Subscribe to the official channel by email** — enter an address under Settings and important notices land in your inbox. Unsubscribe any time; unsubscribing deletes the address from the server rather than just flagging it.
 - **Send feedback to the author** — write a paragraph under Settings. Problems, ideas, anything that feels awkward to use. No sign-up, no ticket number.
 - **All three platforms get it** — web, web installed to the home screen, Android, and the Windows build all use the same interface. **Web push only exists in the browser, so announcements travel a different route** — they do not depend on push, and Android and Windows users receive them too.
+- **Share diary entries, notes, intakes and individual finance entries by QR** — save a code as an image, or scan one from an image on the home page; imports show a preview first.
+- **Clear all data from Settings → Data** — includes records, assistant chats and preferences such as model/API keys, memories and skills; the confirmation lists the scope.
+- **The assistant slash menu now selects skills** — type `/` to search enabled skills, choose one, then add the task.
+- **Web exports are more reliable** — downloads start directly in the browser; unsupported image input gets a clear explanation.
 
 ## Download
 

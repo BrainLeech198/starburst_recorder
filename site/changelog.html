@@ -181,6 +181,51 @@
         <a class="changelog__back" href="index.html#download" data-i18n="changelog.back">← 回到下载</a>
       </header>
 
+      <article class="ver" id="v0.14.0">
+        <div class="ver__head">
+          <span class="ver__tag">0.14.0</span>
+          <span class="ver__date">2026-11-03</span>
+        </div>
+        <div class="lang-zh">
+          <p class="ver__sum">记录可以扫码分享，数据管理与助手入口更完整</p>
+          <h3>这一版有什么</h3>
+          <ul>
+            <li><strong>日记、随记、摄入和收支可扫码分享</strong>：二维码可保存成图片，也能从主页选择二维码图片识别；导入前先预览确认</li>
+            <li><strong>官方公告覆盖所有平台</strong>：应用内可查看公告、订阅邮件与提交反馈；紧急公告会重复提醒，Windows 和 Android 也能收到</li>
+            <li><strong>数据页新增清空所有数据</strong>：会永久删除记录、助手对话和模型/API Key、记忆、技能等偏好；确认前会列出完整范围</li>
+            <li><strong>助手斜杠菜单改为选择技能</strong>：输入 / 搜索已启用的 Skills，选中后再补充任务内容</li>
+            <li><strong>网页下载与图片输入提示修复</strong>：浏览器导出会在点击时直接开始下载；不支持图片的模型或无法读取的图片会显示明确提示</li>
+          </ul>
+          <p><strong>紧急提醒：</strong>0.13.1 之前导出的备份中，模型名称和 API Key 是明文。如果曾把旧备份存到云端、邮件或发给别人，请到模型服务后台撤销此前用过的所有 API Key，再重新生成并填写。</p>
+          <h3>下载</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0-setup.exe"><code>starburst-recorder-0.14.0-setup.exe</code></a>（约 96 MB） · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0-setup.exe">Gitee</a></dd>
+            <dt>Android 10 以上</dt>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0.apk"><code>starburst-recorder-0.14.0.apk</code></a>（约 62 MB，正式签名） · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0.apk">Gitee</a></dd>
+          </dl>
+        </div>
+        <div class="lang-en">
+          <p class="ver__sum">Share records by QR, with fuller data controls and assistant shortcuts</p>
+          <h3>What's new</h3>
+          <ul>
+            <li><strong>Share diary entries, notes, intakes and finance entries by QR</strong> — save the code as an image or scan one selected from the home page; review the preview before importing.</li>
+            <li><strong>Official announcements reach every platform</strong> — read notices, subscribe by email or send feedback in the app. Urgent notices repeat, and Windows and Android receive them too.</li>
+            <li><strong>Clear all data from Settings</strong> — permanently remove records, assistant chats and preferences such as model/API keys, memories and skills; the confirmation lists the full scope.</li>
+            <li><strong>The assistant slash menu now selects skills</strong> — type / to search enabled Skills, choose one, then add the task.</li>
+            <li><strong>Web downloads and image input guidance are fixed</strong> — browser exports start directly from the click, and unsupported models or unreadable images show a clear explanation.</li>
+          </ul>
+          <p><strong>Urgent security notice:</strong> Backups exported before 0.13.1 contain model names and API keys in plain text. If you stored an old backup in cloud storage or email, or sent it to someone, revoke every API key you previously used in your model provider's dashboard, then generate and enter fresh keys.</p>
+          <h3>Downloads</h3>
+          <dl>
+            <dt>Windows 10/11</dt>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0-setup.exe"><code>starburst-recorder-0.14.0-setup.exe</code></a> (~96 MB) · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0-setup.exe">Gitee</a></dd>
+            <dt>Android 10+</dt>
+            <dd><a class="ver__dl" href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0.apk"><code>starburst-recorder-0.14.0.apk</code></a> (~62 MB, release-signed) · <a class="ver__dl" href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0.apk">Gitee</a></dd>
+          </dl>
+        </div>
+      </article>
+
       <article class="ver" id="v0.13.1">
         <div class="ver__head">
           <span class="ver__tag">0.13.1</span>
@@ -196,6 +241,8 @@
             <li><strong>悬浮助手面板更紧凑</strong>：消息操作换成图标，计划模式与深度思考并成一排芯片，「清空 / 导出」收进「⋯」，上下文用量收成一条细线，面板高度上限从 75% 提到 88%；打开时焦点锁在面板里，点面板里的链接换页会自动收起，暗区滑动不再带着背后页面滚</li>
             <li><strong>周视图和月历用同一套颜色</strong>：日记暖橙、健康青绿、经济蓝；卡片底色按三块条数混色、记录越多越深，条数标签换成带色点的胶囊，和月历图例对得上</li>
             <li><strong>经济页的「当天记录」进一天一页</strong>：日视图与列表里的入口都指向一天一页，日记、随记、摄入、睡眠、训练、收支与日程一次看齐</li>
+            <li><strong>网页版可以装到主屏幕</strong>：支持 PWA 安装、离线打开与后台提醒；服务端只同步提醒时间和类别</li>
+            <li><strong>备份可以带上偏好设置</strong>：导出前提醒文件可能含 API Key，也可只加密密钥字段并设置口令；旧备份不会自动加密</li>
           </ul>
           <h3>下载</h3>
           <dl>
@@ -215,6 +262,8 @@
             <li><strong>A tighter floating assistant panel</strong> — message actions are icons, plan mode and deep thinking share one row of chips, clear / export moved into "⋯", context usage collapsed to a thin line, and the panel can grow to 88% of the screen instead of 75%. Focus is trapped inside the panel, a link that changes the page closes it, and dragging on the backdrop no longer scrolls the page behind.</li>
             <li><strong>The week view shares the calendar palette</strong> — diary orange, health green, finance blue; each day card is tinted by how many records it holds, and count chips now carry a colour dot that matches the legend.</li>
             <li><strong>"That day's records" opens the day page</strong> — the entries in the finance day view and the list both go to the one-day page, where diary, notes, intake, sleep, training, money and schedule line up in one timeline.</li>
+            <li><strong>Install the web app on your home screen</strong> — PWA installation, offline opening and background reminders are supported; the server syncs only reminder times and categories.</li>
+            <li><strong>Backups can carry preferences</strong> — export warns when a file may contain API keys, and you can encrypt just the key fields with a passphrase. Older backups are not encrypted retroactively.</li>
           </ul>
           <h3>Downloads</h3>
           <dl>

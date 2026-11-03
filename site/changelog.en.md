@@ -1,3 +1,21 @@
+## 0.14.0 · 2026-11-03
+
+Official announcements, email subscriptions and feedback for every platform — plus shareable records and clearer assistant tools
+
+### What's new
+
+- **Official announcements in the app** — a top banner and a full list under Me → Announcements. Urgent notices stay marked and keep reminding you until handled.
+- **Email subscriptions and feedback** — subscribe to the official channel or send feedback without creating an account; unsubscribe removes the address.
+- **More records can be shared by QR** — share a diary, note, intake or single finance entry. Save a QR as an image or scan one from a photo; the home page has one scan entry, and imports show a preview first.
+- **Clear all data** — permanently remove records, assistant chats and backed-up preferences, including model/API key settings, memories and skills. The confirmation lists the scope; local key files and cache are left alone.
+- **Slash opens enabled skills** — search and choose a skill, then add the task in the same input instead of picking a shortcut question.
+- **Web exports are more reliable** — regular browsers start downloads directly from the click; unreadable images and models known not to support vision get a clear explanation.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.14.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0-setup.exe)
+- Android 10+: [`starburst-recorder-0.14.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0.apk)
+
 ## 0.13.1 · 2026-11-03
 
 Assistant cards are editable before you confirm, and one batch finishes in one round
@@ -10,6 +28,8 @@ Assistant cards are editable before you confirm, and one batch finishes in one r
 - **A tighter floating assistant panel** — message actions are icons, plan mode and deep thinking share one row of chips, clear / export moved into "⋯", context usage collapsed to a thin line, and the panel can grow to 88% of the screen instead of 75%. Focus is trapped inside the panel, a link that changes the page closes it, and dragging on the backdrop no longer scrolls the page behind.
 - **The week view shares the calendar palette** — diary orange, health green, finance blue; each day card is tinted by how many records it holds, and count chips now carry a colour dot that matches the legend.
 - **"That day's records" opens the day page** — the entries in the finance day view and the list both go to the one-day page, where diary, notes, intake, sleep, training, money and schedule line up in one timeline.
+- **Install the web app on your home screen** — PWA installation, offline opening and background reminders are supported. Reminders sync only their time and category, never diary or schedule content.
+- **Backups can carry preferences** — export warns when a file may contain API keys, and you can encrypt just the key fields with a passphrase. Older backups are not encrypted retroactively.
 
 ### Downloads
 

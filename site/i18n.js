@@ -42,7 +42,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记；也可以直接问助手，让它查记录、记账、写随记或记睡眠。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.13.1',
+    'hero.cta': '下载 0.14.0',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -129,11 +129,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器与安卓走 IndexedDB。',
-    'open.version': '版本 0.13.1',
+    'open.version': '版本 0.14.0',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.13.1 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.desc': '0.14.0 仍是早期版本，升级前请先导出备份。旧备份中的 API Key 仍是明文；若曾将旧备份发给别人、存在云端或邮件，请先撤销之前使用过的 API Key 并重新生成。',
     'download.web': '网页版',
     'download.webMeta': '浏览器直接使用 · 支持安装为 PWA',
     'download.webDesc': '无需下载安装，打开即可使用；也可以添加到主屏幕，像应用一样启动。',
@@ -147,12 +147,9 @@ window.SITE_I18N = {
     'download.note': '两个仓库放的是同一份安装包，哪个快就用哪个。',
 
     'whatsnew.title': '这一版有什么',
-    'whatsnew.item1':
-      '助手卡片确认前就能改：克数、热量、金额、体重、正文都能就地微调',
-    'whatsnew.item2':
-      '一次说一批，一轮记完：一顿饭的几样食物一起给卡片，上限从 3 张提到 8 张',
-    'whatsnew.item3':
-      '周视图和月历用同一套颜色：日记暖橙、健康青绿、经济蓝，记录越多底色越深',
+    'whatsnew.item1': '官方公告、紧急提醒、邮箱订阅与反馈，Android 和 Windows 用户也能收到',
+    'whatsnew.item2': '日记、随记、摄入与收支可扫码分享；支持保存二维码图片和从图片识别',
+    'whatsnew.item3': '设置里可清空所有数据；助手斜杠菜单改为选择已启用的 Skills',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -160,7 +157,7 @@ window.SITE_I18N = {
     'changelog.back': '← 回到下载',
     'download.historyLink': '历史版本与更新日志，每版都附下载 →',
 
-    'footer.version': '版本 0.13.1',
+    'footer.version': '版本 0.14.0',
     'footer.tagline': '数据只存在你的设备上',
   },
 
@@ -203,7 +200,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry — or just ask the assistant to look things up, log spending, write a note or record your sleep. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.13.1',
+    'hero.cta': 'Download 0.14.0',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -291,12 +288,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser and on Android.',
-    'open.version': 'Version 0.13.1',
+    'open.version': 'Version 0.14.0',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.13.1 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+      '0.14.0 is still an early build. Export a backup before upgrading. API keys in older backups remain plain text; if you shared an old backup or stored it in cloud or email, revoke every API key you previously used and generate fresh keys.',
     'download.web': 'Web app',
     'download.webMeta': 'Use in your browser · Installable as a PWA',
     'download.webDesc': 'No download needed. Open it in your browser, or add it to your home screen like an app.',
@@ -311,13 +308,10 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.13.1",
-    'whatsnew.item1':
-      'Edit assistant cards before confirming: grams, calories, amount, weight and body text adjust in place',
-    'whatsnew.item2':
-      'One batch, one round: several foods from one meal produce cards together, and the cap went from 3 to 8',
-    'whatsnew.item3':
-      'The week view shares the calendar palette: diary orange, health green, finance blue, deeper with more records',
+    'whatsnew.title': "What's new in 0.14.0",
+    'whatsnew.item1': 'Official announcements, urgent notices, email subscriptions and feedback reach Android and Windows too',
+    'whatsnew.item2': 'Share diary entries, notes, intakes and finance entries by QR; save codes as images or scan from images',
+    'whatsnew.item3': 'Clear all data from Settings; the assistant slash menu now selects enabled skills',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -325,7 +319,7 @@ window.SITE_I18N = {
     'changelog.back': '← Back to downloads',
     'download.historyLink': 'Previous versions and changelog, each with downloads →',
 
-    'footer.version': 'Version 0.13.1',
+    'footer.version': 'Version 0.14.0',
     'footer.tagline': 'Data stays on your device',
   },
 };
