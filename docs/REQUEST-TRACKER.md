@@ -12,7 +12,7 @@
 | 3 | 清空所有数据 | ✅ 完成 | 设置页入口、确认范围和隔离浏览器中的清理结果均已核对；签名密钥文件保留。 |
 | 4 | `/` 菜单调用 Skills | ✅ 完成 | 菜单从已启用 Skills 生成，可搜索、选择并继续补充任务。 |
 | 5 | 单条记录 PNG 卡片 | ✅ 完成 | 六类记录卡片已部署到新版 PWA；桌面 Chromium 已实际下载并核对 PNG。 |
-| 6 | 助手图片附件失败定位 | 🟡 部分完成 | 已修复并通过本地验证：小型 PNG/WebP 等不再原格式直发；真实服务商失败仍待复现。 |
+| 6 | 助手图片附件失败定位 | 🟡 部分完成 | 小型 PNG/WebP 等已统一为 JPEG，并部署到 PWA；真实服务商失败仍待复现。 |
 | 7 | AI 对话气泡时间 | ✅ 完成 | 用户与助手气泡显示本地年月日及时分秒，并已随新版 PWA 上线。 |
 
 ## 1. 0.13.1 / 0.14.0 发版收尾
@@ -26,7 +26,7 @@
 
 - [x] 临时测试对话在桌面 Chromium 成功下载 PNG 和 JSON；PNG 文件签名有效，JSON 可解析且包含测试内容。
 - [x] 设置页整库备份成功下载 JSON，文件可解析并包含测试对话。
-- [x] 2026-11-03 将当前 PWA 构建部署到 Cloudflare Pages；线上构建号与本地一致，线上验收 10/10。
+- [x] 2026-11-04 提交 `5ec61a3` 的 PWA 构建部署到 Cloudflare Pages；构建号 `mw0wq4hi`，线上验收 10/10。预览地址：`https://7b81e493.starburst-recorder.pages.dev`。
 - [ ] 用真实 iPhone/iPad Safari 验证助手 PNG/JSON、记录卡片 PNG 与整库备份 JSON。支持文件分享时应弹系统面板；分享能力不可用或一般失败时应回退浏览器下载；用户在分享面板主动取消时应报告取消且不另行下载（与 [saveFile.ts](../src/platform/saveFile.ts) 实现一致）。Windows Chromium 无法代表 iOS Safari。
 - [ ] 如真机仍失败，记录系统版本、浏览器/PWA 模式、导出格式和界面错误；不要收集或粘贴 API Key。
 
@@ -58,6 +58,7 @@
 - [x] 代码调用链已核对：文件选择 → `readAttachment()` 读取/压缩并存成消息附件 → `imageParts()` 生成 `image_url` → `aiClient.chat()` 把消息 JSON 发给桌面主进程、开发转发或网页版直连/代理 → `explainFailure()` 按 HTTP 状态显示原因。
 - [x] 2026-11-04 修正来源格式不统一：小 JPEG 且尺寸合规时保留原图；其他可解码图片经白底画布统一转为 JPEG，长边不超过 1280、质量 0.75。画布不可用时仍按原逻辑回退原图，体积上限不变。
 - [x] 新增附件格式回归用例：小 PNG 转 JPEG、小 JPEG 保持原样；`npm test` 75 个文件 / 796 用例通过，`npm run typecheck`、`npm run lint` 通过。
+- [x] 修复随提交 `5ec61a3` 部署到生产 PWA：本地构建号 `mw0wq4hi` 与线上一致；线上探针 10/10、首装 PWA 探针 20/20。
 - [ ] 用用户实际使用的模型类型和服务商复现一次发送失败，只记录模型/服务商名称、错误文字和 HTTP 状态，不记录 API Key。
 - [ ] 根据复现结果归类为本地读取/压缩、体积限制、模型视觉能力，或服务商协议/响应错误；确认原因后再修，不把未知错误改成笼统“上传失败”。
 
@@ -78,7 +79,7 @@
 - 本轮改动验证：`npm test`（74 个测试文件、794 个测试通过）、`npm run typecheck`、`npm run lint`、`git diff --check` 均通过。
 - AI 气泡时间在隔离 Playwright 会话中验收；用户消息与“未配置模型”的助手提示均显示时间，未调用外部模型。
 - 生产 PWA 通过 `.local/probe-pwa.mjs` 本地验收 20/20、`.local/verify-online.mjs` 线上验收 10/10；新部署构建号 `mw0vecnn`。
-- 2026-11-04 图片附件预处理调整后重新构建，构建号 `mw0wnvi1`；`.local/probe-pwa.mjs` 本地验收 20/20。此构建尚未部署，须与后续发布记录核对。
+- 2026-11-04 图片附件预处理修复随提交 `5ec61a3` 部署到生产 PWA，构建号 `mw0wq4hi`；`.local/probe-pwa.mjs` 本地验收 20/20、`.local/verify-online.mjs` 线上验收 10/10。
 - 2026-11-04 验证：`npm test` 75 个文件 / 796 用例通过，`npm run typecheck`、`npm run lint` 均通过。
 
 ## 继续清单

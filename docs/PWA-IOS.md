@@ -433,7 +433,7 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
 
 ---
 
-## 10. 当前部署状态（2026-11-03）
+## 10. 当前部署状态（2026-11-04）
 
 | 项目 | 值 |
 | --- | --- |
@@ -464,5 +464,9 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
 - **2026-11-03 网页版更新**：提交 `abd7ce7`（含单条记录 PNG 卡片与 AI 气泡秒级时间）已部署到生产 Pages；
   线上构建号 `mw0vecnn`，部署地址 `https://0acdbb16.starburst-recorder.pages.dev`，
   正式域名 `https://starburst-recorder.pages.dev` 的 `.local/verify-online.mjs` 验收 10/10。
+- **2026-11-04 网页版更新**：提交 `5ec61a3`（小型非 JPEG 助手图片附件统一转成 JPEG）已部署到生产 Pages；
+  线上构建号 `mw0wq4hi`，部署地址 `https://7b81e493.starburst-recorder.pages.dev`，
+  正式域名 `https://starburst-recorder.pages.dev` 的 `.local/verify-online.mjs` 验收 10/10，
+  本地 `.local/probe-pwa.mjs` 验收 20/20。
 - **KV 里现在只剩一条记录**，是早先在 workerd 里手测留下的 FCM 端点、`slots` 为 0
   （永远不会命中，不产生推送）。真正的用户订阅会在开启提醒时自己写进来。
