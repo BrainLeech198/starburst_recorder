@@ -1855,6 +1855,7 @@ export const fr: Record<MessageKey, string> = {
   'records.previewEmpty': '(sans contenu)',
   'records.selectAllVisible': 'Tout sélectionner',
   'records.clearKind': 'Vider',
+  'records.loadMore': 'Charger plus ({count} restants)',
   'records.format': 'Format',
   'records.markdownHint': "Groupé par date et par type, lisible directement par l'IA",
   'records.textHint': 'Propre et lisible, sans balisage',

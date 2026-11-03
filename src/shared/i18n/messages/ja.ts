@@ -1862,6 +1862,7 @@ export const ja: Record<MessageKey, string> = {
   'records.previewEmpty': '（内容なし）',
   'records.selectAllVisible': 'すべて選択',
   'records.clearKind': 'クリア',
+  'records.loadMore': 'さらに読み込む（残り {count} 件）',
   'records.format': '形式',
   'records.markdownHint': '日付ごと・種類ごとに整理。AI にそのまま読ませるのに向いています',
   'records.textHint': 'すっきり読みやすく、記号なし',

@@ -1853,6 +1853,7 @@ export const ru: Record<MessageKey, string> = {
   'records.previewEmpty': '(без содержимого)',
   'records.selectAllVisible': 'Выбрать все',
   'records.clearKind': 'Снять',
+  'records.loadMore': 'Загрузить ещё (осталось {count})',
   'records.format': 'Формат',
   'records.markdownHint': 'По датам и разделам — удобно читать ИИ',
   'records.textHint': 'Аккуратно и читаемо, без разметки',

@@ -1869,6 +1869,7 @@ export const zh = {
   'records.previewEmpty': '（没有写内容）',
   'records.selectAllVisible': '全选',
   'records.clearKind': '清空',
+  'records.loadMore': '继续加载（还有 {count} 条）',
   'records.format': '格式',
   'records.markdownHint': '按日期整理、按种类分节，适合直接给 AI 读',
   'records.textHint': '干净好读，不带任何标记',

@@ -136,3 +136,26 @@ SemVer 比较在 `main.cjs:459-507` 与 [core/utils/versionCompare.ts](../src/co
 0 档为什么算「正确性」而不是优化：`everyEntry()` 是 `SELECT *`，桌面上还要跨 IPC 序列化整库 base64，
 库到 50 MB 时「全部记录」页会明显卡；它和备份能不能用是两件独立的事，不该一起等。
 
+### 8.1 「挑选记录导出」弹窗（2026-11-03 已做一半）
+
+这个弹窗最容易先炸：它拿的是 `exportAllData()` 的**整库**，八类记录全在内存里，
+一打开就要把每一类都摊成行、排一次序。
+
+**已经改掉的（前端侧，不需要数据层配合）**
+
+- 每类记录只在 `data` 变化时摊一次（`useMemo`），点复选框不再重算八类；
+- 勾选状态换成 `Set`，行查重从 O(n²) 降到 O(1)；
+- 列表按 40 行一批渲染，滚到底自动续（`IntersectionObserver` + 手动按钮兜底），
+  行组件 `memo`，只有被点的那一行重画；
+- 面板改成 flex 列：头部与底部固定、只有列表滚，底部操作栏不再是 `sticky`
+  （安卓 WebView 上 sticky 会让列表文字从操作栏底下透出来）。
+
+**还欠数据层这一步**
+
+| 档 | 事项 | 触发条件 | 改动面 |
+|---|---|---|---|
+| 1（提前做） | 弹窗不再接收整库：`store.ts` 加 `countOf(kind)` 与 `pageOf(kind, from, limit, offset)`，弹窗按类分页取 | 单类 > 2000 条，或打开弹窗 > 500ms | `core/db/store.ts` 契约 + `dexieStore` / `sqliteStore` / `electron/database.cjs` 三处实现、`RecordExportDialog` 与 5 个入口（`DataPage`、`IntakesPage`、`SleepsPage`、`WeightsPage`、`FinancePage`） |
+
+做完之后弹窗只认「当前这一类、当前这一页」，与 0 档的 `briefEntries()` 一起落地最省事：
+两者都是「列表只要摘要、不要整库」的同一类需求。
+

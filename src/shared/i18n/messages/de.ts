@@ -1853,6 +1853,7 @@ export const de: Record<MessageKey, string> = {
   'records.previewEmpty': '(kein Inhalt)',
   'records.selectAllVisible': 'Alle',
   'records.clearKind': 'Leeren',
+  'records.loadMore': 'Mehr laden (noch {count})',
   'records.format': 'Format',
   'records.markdownHint': 'Nach Datum geordnet und nach Art gegliedert, direkt für KI lesbar',
   'records.textHint': 'Sauber und lesbar, ohne Auszeichnung',

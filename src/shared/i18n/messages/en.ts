@@ -1921,6 +1921,7 @@ export const en: Record<MessageKey, string> = {
   'records.previewEmpty': '(no content)',
   'records.selectAllVisible': 'Select all',
   'records.clearKind': 'Clear',
+  'records.loadMore': 'Load more ({count} left)',
   'records.format': 'Format',
   'records.markdownHint': 'Grouped by date and type — ready for AI to read',
   'records.textHint': 'Clean and readable, no markup',

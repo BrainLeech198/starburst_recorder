@@ -291,6 +291,41 @@ export function filterByDate(items: RecordItem[], from: string, to: string): Rec
   )
 }
 
+/**
+ * 勾选面板里要铺出来的行：落在时间窗内的 + 已勾但被筛掉的（让用户看得见自己选了什么），
+ * 从新到旧。
+ *
+ * 单独抽出来是为了只算「当前这一类」：原来每次点一下复选框，都要把八类记录全部
+ * 过滤一遍再各排一次序，几千条时一次点击就是几十毫秒。
+ *
+ * 时间类记录的 base 本来就按时间正序（见 recordsOf），倒着取即可，不用再排一遍；
+ * 食物库按名称排，倒着取会变成名称倒序，所以它仍然按 createdAt 从新到旧排。
+ */
+export function visibleItems(
+  base: RecordItem[],
+  from: string,
+  picked: Set<string>,
+): RecordItem[] {
+  const keep = (item: RecordItem) =>
+    item.dateKey === '' || item.dateKey >= from || picked.has(item.id)
+
+  if (base.length === 0) return []
+  if (base[0].kind === 'food') return base.filter(keep).sort(newestFirst)
+
+  const shown: RecordItem[] = []
+  for (let index = base.length - 1; index >= 0; index -= 1) {
+    if (keep(base[index])) shown.push(base[index])
+  }
+  return shown
+}
+
+/** 列表从新到旧排：想找的通常是最近几条；真正导出的文件仍然按时间正序 */
+export function newestFirst(a: RecordItem, b: RecordItem): number {
+  if (a.dateKey !== b.dateKey) return a.dateKey < b.dateKey ? 1 : -1
+  if (a.time !== b.time) return a.time < b.time ? 1 : -1
+  return b.createdAt - a.createdAt
+}
+
 const KIND_TITLE_KEY: Record<RecordKind, MessageKey> = {
   diary: 'records.kindDiary',
   stamp: 'records.kindStamp',

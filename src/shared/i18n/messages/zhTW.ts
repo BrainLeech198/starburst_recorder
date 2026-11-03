@@ -1863,6 +1863,7 @@ export const zhTW: Record<MessageKey, string> = {
   'records.previewEmpty': '（沒有寫內容）',
   'records.selectAllVisible': '全選',
   'records.clearKind': '清空',
+  'records.loadMore': '繼續載入（還有 {count} 條）',
   'records.format': '格式',
   'records.markdownHint': '依日期整理、依種類分節，適合直接給 AI 讀',
   'records.textHint': '乾淨好讀，不帶任何標記',

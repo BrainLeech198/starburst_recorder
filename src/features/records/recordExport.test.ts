@@ -18,6 +18,7 @@ import {
   selectedRecords,
   selectionSize,
   toggleSelection,
+  visibleItems,
 } from './recordExport'
 
 function base(overrides: Partial<BackupPayload> = {}): BackupPayload {
@@ -265,6 +266,71 @@ describe('勾选', () => {
   it('食物库没有日期，不受时间筛选影响', () => {
     const items = recordsOf(base({ foods: [food()] }), 'food')
     expect(filterByDate(items, '2026-10-01', '2026-10-31')).toHaveLength(1)
+  })
+})
+
+describe('勾选面板要铺哪些行', () => {
+  it('时间窗内的照时间倒序，窗口外的不出现', () => {
+    const items = recordsOf(
+      base({
+        stamps: [
+          stamp({ id: 'old', dateKey: '2026-09-01' }),
+          stamp({ id: 'mid', dateKey: '2026-10-20' }),
+          stamp({ id: 'new', dateKey: '2026-10-26' }),
+        ],
+      }),
+      'stamp',
+    )
+    expect(visibleItems(items, '2026-10-01', new Set()).map((item) => item.id)).toEqual([
+      'new',
+      'mid',
+    ])
+  })
+
+  it('已经勾上的即便落在窗口外也继续显示，免得看不到自己选了什么', () => {
+    const items = recordsOf(
+      base({
+        stamps: [
+          stamp({ id: 'old', dateKey: '2026-09-01' }),
+          stamp({ id: 'new', dateKey: '2026-10-26' }),
+        ],
+      }),
+      'stamp',
+    )
+    expect(visibleItems(items, '2026-10-01', new Set(['old'])).map((item) => item.id)).toEqual([
+      'new',
+      'old',
+    ])
+  })
+
+  it('倒序不依赖重新排序：同一时刻按创建时间从新到旧', () => {
+    const items = recordsOf(
+      base({
+        stamps: [
+          stamp({ id: 'a', dateKey: '2026-10-26', time: '08:00', createdAt: 1 }),
+          stamp({ id: 'b', dateKey: '2026-10-26', time: '08:00', createdAt: 2 }),
+        ],
+      }),
+      'stamp',
+    )
+    expect(visibleItems(items, '0000-00-00', new Set()).map((item) => item.id)).toEqual(['b', 'a'])
+  })
+
+  it('食物库没有日期，永远全部显示，并按创建时间从新到旧', () => {
+    const items = recordsOf(
+      base({
+        foods: [
+          food({ id: 'f1', name: '苹果', createdAt: 10 }),
+          food({ id: 'f2', name: '香蕉', createdAt: 20 }),
+        ],
+      }),
+      'food',
+    )
+    expect(visibleItems(items, '2026-10-01', new Set()).map((item) => item.id)).toEqual(['f2', 'f1'])
+  })
+
+  it('空列表不会炸', () => {
+    expect(visibleItems([], '2026-10-01', new Set())).toEqual([])
   })
 })
 

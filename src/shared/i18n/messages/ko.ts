@@ -1866,6 +1866,7 @@ export const ko: Record<MessageKey, string> = {
   'records.previewEmpty': '(내용 없음)',
   'records.selectAllVisible': '전체 선택',
   'records.clearKind': '선택 해제',
+  'records.loadMore': '더 불러오기 ({count}개 남음)',
   'records.format': '형식',
   'records.markdownHint': '날짜별로 묶고 종류별로 나눠 AI가 바로 읽기 좋아요',
   'records.textHint': '군더더기 없이 읽기 좋아요, 표시 없음',
