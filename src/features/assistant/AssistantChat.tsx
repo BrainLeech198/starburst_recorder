@@ -121,19 +121,6 @@ const EXAMPLE_KEYS = [
   'assistant.example5',
 ] as const
 
-/** 斜杠命令直接复用推荐问的句子，省得同一句话翻两遍 */
-const SLASH_KEYS = [
-  'assistant.suggest.summary',
-  'assistant.suggest.weight',
-  'assistant.suggest.food',
-  'assistant.suggest.sleep',
-  'assistant.suggest.finance',
-  'assistant.suggest.mood',
-  'assistant.suggest.log',
-  'assistant.suggest.plan',
-  'assistant.suggest.more',
-] as const
-
 /**
  * 控件按「形状 + 重量」分档，避免一屏全是同一种圆角胶囊：
  * 圆形主按钮（新对话）、文字 + 计数徽标（历史）、虚线折叠头（推荐问）、
@@ -896,12 +883,12 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     exportedAt: t('assistant.exportedAt'),
   }
 
-  /** 斜杠命令：输入 / 后按文字过滤推荐问里的句子 */
-  const slashItems = SLASH_KEYS.map((key) => ({ key, text: t(key) }))
+  /** 斜杠菜单直接从已启用 Skills 生成，点击后在用户消息里明确点名调用 */
+  const slashItems = loadSkills().filter((skill) => skill.enabled)
   const slashQuery = input.startsWith('/') ? input.slice(1).trim().toLowerCase() : ''
   const slashShown = slashOpen
     ? slashItems.filter(
-        (item) => slashQuery === '' || item.text.toLowerCase().includes(slashQuery),
+        (item) => slashQuery === '' || `${item.name} ${item.description}`.toLowerCase().includes(slashQuery),
       )
     : []
 
@@ -1579,7 +1566,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           </div>
         )}
 
-        {/* 斜杠命令：选中后把整句放进输入框，还能继续改 */}
+        {/* Skills：选中后点名技能并留在输入框继续补充任务 */}
         {slashOpen && (
           <div className="mb-2 max-h-[40dvh] overflow-y-auto overscroll-contain rounded-xl border border-line bg-surface">
             <p className="m-0 border-b border-line px-2.5 py-1.5 text-[10px] text-muted">
@@ -1592,21 +1579,25 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             ) : (
               slashShown.map((item) => (
                 <button
-                  key={item.key}
+                  key={item.id}
                   type="button"
                   onClick={() => {
                     setInput((current) => {
                       const typed = current.trim()
                       // 输入框里已经有话时接在后面，别把用户打了一半的内容冲掉
-                      if (typed === '' || typed.startsWith('/')) return item.text
-                      return `${typed} ${item.text}`
+                      const invocation = t('assistant.useSkill', { name: item.name })
+                      if (typed === '' || typed.startsWith('/')) return `${invocation} `
+                      return `${typed}\n${invocation} `
                     })
                     setSlashOpen(false)
                   }}
                   className="flex min-h-11 w-full items-start gap-2 px-2.5 py-2 text-left text-[11px] text-fg transition-colors hover:bg-brand/10 hover:text-brand md:min-h-0 md:py-1.5"
                 >
                   <span className="shrink-0 font-mono text-[10px] text-brand">/</span>
-                  <span className="min-w-0 flex-1">{item.text}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-xs font-medium">{item.name}</span>
+                    <span className="mt-0.5 block text-[10px] text-muted">{item.description}</span>
+                  </span>
                 </button>
               ))
             )}
@@ -1664,7 +1655,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                   !event.nativeEvent.isComposing
                 ) {
                   event.preventDefault()
-                  setInput(slashShown[0].text)
+                  setInput(`${t('assistant.useSkill', { name: slashShown[0].name })} `)
                   setSlashOpen(false)
                   return
                 }
