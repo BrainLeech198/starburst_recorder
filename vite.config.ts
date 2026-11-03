@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import type { Plugin } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
@@ -77,12 +77,36 @@ function aiDevProxy(): Plugin {
   }
 }
 
+/**
+ * 把 `public/sw.js` 里的 `__BUILD_ID__` 换成这次构建的唯一值。
+ *
+ * 为什么必须有这一步：Service Worker 用这个 id 给缓存起名，activate 时清掉所有
+ * 名字对不上的旧缓存。id 固定的话，改完代码部署上去，老用户的旧缓存永远留在磁盘上
+ * （体积只增不减），而且排查问题时没法判断他到底跑的是哪一版。
+ *
+ * 用 `closeBundle` 是因为 Vite 要先把 `public/` 原样拷进产物目录，这里再覆盖一次。
+ */
+function serviceWorkerBuildId(): Plugin {
+  return {
+    name: 'starburst-sw-build-id',
+    apply: 'build',
+    closeBundle() {
+      const target = fileURLToPath(new URL('./.local/dist/sw.js', import.meta.url))
+      if (!existsSync(target)) return
+      const source = readFileSync(target, 'utf8')
+      if (!source.includes('__BUILD_ID__')) return
+      // 时间戳比内容哈希便宜：SW 文件几乎每次都跟着改，不必为它多算一遍全量哈希
+      writeFileSync(target, source.replace(/__BUILD_ID__/g, Date.now().toString(36)), 'utf8')
+    },
+  }
+}
+
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
   version: string
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), aiDevProxy()],
+  plugins: [react(), tailwindcss(), aiDevProxy(), serviceWorkerBuildId()],
   // 版本号只认 package.json，页面与检查更新都用 __APP_VERSION__
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),

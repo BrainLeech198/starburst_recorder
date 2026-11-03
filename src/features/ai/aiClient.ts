@@ -4,7 +4,8 @@
  * 三条路，但出口只有这一个函数，所以以后接手机端只需要在这里加一支：
  *   1. 桌面程序   → 走 Electron 主进程（没有 CORS 这回事，key 也不进渲染进程的网络栈）
  *   2. 浏览器开发 → 走 vite 的 /__ai 转发（目标地址放在请求头里，改地址不用重启 dev server）
- *   3. 其它环境   → 浏览器直连兜底
+ *   3. 网页版     → 走配置的薄代理（VITE_AI_PROXY），协议与 dev server 那层一致
+ *   4. 其它环境   → 浏览器直连兜底
  *
  * 三条路都带期限：服务商的连接挂住时，界面不能一直转圈。
  * 调用方还能传一个 AbortSignal（组件卸载、用户点停），桌面端靠流水号转成一次 ai:cancel。
@@ -12,6 +13,7 @@
  * 另外这里负责把服务商的原始错误翻译成人话——401、404、429 对新用户来说全是天书。
  */
 import { desktopBridge } from '@/platform/desktop'
+import { isWebApp } from '@/platform/pwa'
 import type { ChatContentPart, ChatRequest, ChatTransportResult, DesktopBridge } from '@/platform/desktop'
 import { translate } from '@/shared/i18n/context'
 import { logInfo, logWarn } from '@/shared/log/log'
@@ -26,6 +28,27 @@ export function chatUrl(baseUrl: string) {
 /** 模型列表：OpenAI 兼容接口是 {baseUrl}/models */
 export function modelsUrl(baseUrl: string) {
   return `${baseUrl.trim().replace(/\/+$/, '')}/models`
+}
+
+/**
+ * 网页版的 AI 转发地址。
+ *
+ * 浏览器直连第三方 API，能不能通取决于对方愿不愿意给 CORS 头——这在 iOS Safari 上
+ * 尤其碰运气。网页版部署到公网后，把 `VITE_AI_PROXY` 指向一个薄代理（代码与部署见
+ * `docs/PWA-IOS.md`），请求就改走 `{代理}/__ai`：信封、请求头、错误结构都和 dev server
+ * 那层一模一样，所以这里不需要第二套解析逻辑。
+ *
+ * 不配这个变量时保持原来的直连行为；桌面壳与安卓壳都走不到这段代码。
+ */
+const AI_PROXY = ((import.meta.env.VITE_AI_PROXY as string | undefined) ?? '').replace(/\/+$/, '')
+
+/** 该走转发吗：开发时走 vite 中间件，配了代理就走代理 */
+function shouldProxy(): boolean {
+  return Boolean(AI_PROXY) || import.meta.env.DEV
+}
+
+function proxyUrl(path: string): string {
+  return AI_PROXY ? `${AI_PROXY}${path}` : path
 }
 
 /** 从 OpenAI 形状的响应里抠出正文，抠不到就返回空串 */
@@ -109,8 +132,8 @@ export async function chat(request: ChatRequest, signal?: AbortSignal): Promise<
 
   let result: ChatTransportResult
   try {
-    if (import.meta.env.DEV) {
-      const response = await fetch('/__ai', {
+    if (shouldProxy()) {
+      const response = await fetch(proxyUrl('/__ai'), {
         method: 'POST',
         headers: { ...headers, 'x-ai-target': chatUrl(request.baseUrl) },
         body,
@@ -240,13 +263,13 @@ export async function listModels(
     const deadline = startAiDeadline(signal, AI_MODELS_TIMEOUT_MS)
     try {
       const headers = authHeaders(apiKey)
-      const response = import.meta.env.DEV
-        ? await fetch('/__ai/models', {
+      const response = shouldProxy()
+        ? await fetch(proxyUrl('/__ai/models'), {
             headers: { ...headers, 'x-ai-target': url },
             signal: deadline.signal,
           })
         : await fetch(url, { headers, signal: deadline.signal })
-      result = import.meta.env.DEV
+      result = shouldProxy()
         ? ((await response.json()) as ChatTransportResult)
         : {
             ok: response.ok,
@@ -317,7 +340,10 @@ function networkHint(baseUrl: string, error?: string) {
   if (/api\.openai\.com/i.test(baseUrl)) {
     return translate('ai.err.openaiConnect', { why })
   }
-  return translate('ai.err.genericConnect', { baseUrl, why })
+  // 网页版直连时，跨域被拦在浏览器里报的错和「网络不通」长得一模一样，
+  // 不点明的话用户会一直去查自己的网。桌面与安卓壳走不到这条分支。
+  const cors = isWebApp() ? translate('ai.err.corsHint') : ''
+  return translate('ai.err.genericConnect', { baseUrl, why }) + cors
 }
 
 /** 服务商返回了 4xx/5xx，但页面读不出正文时，把原始返回带上 */

@@ -13,6 +13,7 @@
  * 拿不到就安静地放弃，不打扰用户。
  */
 import { Capacitor, registerPlugin } from '@capacitor/core'
+import { isWebApp } from '@/platform/pwa'
 import { APP_VERSION } from '@/core/version'
 import {
   compareVersions,
@@ -275,6 +276,10 @@ export async function checkForUpdate(
     logInfo('Update', 'update.check.done', { channel, result: fresh ? fresh.version : '无新版本' })
     return fresh
   }
+
+  // 网页版没有「安装包」这回事：刷新即最新，去请求 Release 只会撞 CORS。
+  // 只在真正的浏览器里短路——Node 里跑单测没有跨域限制，照常走真实的取版本逻辑。
+  if (typeof document !== 'undefined' && isWebApp()) return null
 
   let info: UpdateInfo | null
   if (channel === 'beta') {

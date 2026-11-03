@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
+import InstallHint from './InstallHint'
 
 const ENTRIES: { to: string; icon: string; labelKey: MessageKey; descKey: MessageKey }[] = [
   { to: '/diary', icon: '📖', labelKey: 'nav.diary', descKey: 'home.diaryDesc' },
@@ -46,6 +47,8 @@ export default function HomePage() {
           </Link>
         ))}
       </div>
+
+      <InstallHint />
     </div>
   )
 }

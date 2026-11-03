@@ -19,6 +19,7 @@ import { SettingBadge } from '@/shared/ui/SettingCard'
 import { countRecords } from '@/core/db/store'
 import { totals } from '@/features/diary/diaryRepo'
 import { clearAppCache, formatCacheSize } from './cacheService'
+import { pushSupported } from '@/platform/push'
 
 /** 菜单右侧那个小圆点：一眼看出当前主题色 */
 function AccentDot({ color }: { color: string }) {
@@ -106,6 +107,15 @@ export default function SettingsPage() {
           </SettingBadge>
         }
       />
+      {/* 桌面壳与安卓壳有自己的系统通知，这一行只在网页版出现 */}
+      {pushSupported() && (
+        <SettingRow
+          to="/me/settings/reminders"
+          emoji="🔔"
+          title={t('push.title')}
+          hint={t('push.description')}
+        />
+      )}
       <SettingRow
         emoji="🧹"
         title={t('settings.cache')}

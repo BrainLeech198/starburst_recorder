@@ -2,7 +2,7 @@
  * 日程提醒：到点的条目弹一条系统通知。
  *
  * 分两层，和称重提醒一致：
- *   - 桌面 / 浏览器：应用打开时检查一次，之后每分钟查一次，到点弹 Web Notification
+ *   - 桌面 / 网页版：应用打开时检查一次，之后每分钟查一次，到点弹一条通知（见 @/platform/notify）
  *   - 安卓：走 @capacitor/local-notifications 预排通知，应用没开着也会弹
  *
  * 每天每条只提醒一次（localStorage 里按「日期 + id」记），免得开一次弹一次。
@@ -10,6 +10,7 @@
 import type { ScheduleItem } from '@/core/db/schema'
 import { todayKey } from '@/core/utils/dateKey'
 import { translate } from '@/shared/i18n/context'
+import { notifyNow } from '@/platform/notify'
 import { dueOn, isRemindableLater } from './scheduleMath'
 
 const NOTIFIED_KEY = 'starburst.scheduleNotified'
@@ -71,16 +72,7 @@ export function maybeNotifySchedules(items: ScheduleItem[]): void {
   if (fresh.length === 0) return
 
   try {
-    if (typeof Notification === 'undefined') return
-    const fire = () =>
-      new Notification(translate('schedule.notifyTitle'), { body: bodyOf(fresh) })
-    if (Notification.permission === 'granted') {
-      fire()
-    } else if (Notification.permission !== 'denied') {
-      void Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') fire()
-      })
-    }
+    void notifyNow(translate('schedule.notifyTitle'), bodyOf(fresh))
     writeNotified({ date: today, ids: [...state.ids, ...fresh.map((item) => item.id)] })
   } catch {
     // 通知不可用就静默：页面里的列表还在

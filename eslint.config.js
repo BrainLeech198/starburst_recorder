@@ -8,8 +8,9 @@ import prettier from 'eslint-config-prettier'
 export default [
   // .local 是本机产物与资料（构建结果、安装包、参考仓库、密钥），不进仓库也不参与检查；
   // site/ 是独立静态官网（普通浏览器脚本，不走 App 构建），同样不在 lint 范围里
+  // worker/push/.wrangler 是 wrangler dev / deploy 的临时打包产物，同样不参与检查
   {
-    ignores: ['node_modules', 'android', 'src-tauri', '.local', 'site'],
+    ignores: ['node_modules', 'android', 'src-tauri', '.local', 'site', 'worker/**/.wrangler'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -83,6 +84,34 @@ export default [
           ],
         },
       ],
+    },
+  },
+  {
+    // Service Worker 原样拷进产物、不参与打包，跑在 SW 全局里（self / caches / fetch 都不是窗口全局）
+    files: ['public/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: globals.serviceworker,
+    },
+  },
+  {
+    // 推送中继跑在 Cloudflare Worker 里：ESM，全局是 worker 那套（crypto / atob / Response…），
+    // 没有 window 也没有 Node 的 Buffer
+    files: ['worker/**/src/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: globals.worker,
+    },
+  },
+  {
+    // worker 里的本地工具脚本（生成 VAPID 密钥之类）跑在本机 Node 上，不是 Worker 运行时
+    files: ['worker/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: globals.node,
     },
   },
   prettier,

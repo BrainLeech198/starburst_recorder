@@ -8,6 +8,8 @@
 | --- | --- |
 | **`docs/PACKAGING-AND-RELEASE.md`** | **任何打包、签名、发版、凭证、推送相关操作之前必读** |
 | `docs/PROJECT-NOTES.md` | 改架构、数据层、存储选型、UI 约定之前 |
+| `docs/PWA-IOS.md` | 部署网页版、改 Service Worker、配 AI 代理、处理 iOS 兼容之前 |
+| `worker/push/README.md` | 部署 / 排查 Web Push 中继（Cloudflare Worker + KV + Cron）之前 |
 | `docs/ROADMAP.md` | 判断功能优先级与当前阶段 |
 | `docs/TECH-DEBT.md` | 动手改架构 / 存储 / AI 子系统之前，先看已登记的框架债与四条待建闸门（含"已查过、没问题"的清单，免得重复劳动） |
 

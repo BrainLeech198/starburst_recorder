@@ -13,6 +13,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    // worker/ 是跑在 Cloudflare 上的推送中继，用 JS 写（Worker 不做 TS 构建），
+    // 但里面的加密与时间换算同样需要单测——尤其是对 RFC 8291 官方样例的逐字节比对
+    include: ['src/**/*.test.ts', 'worker/**/*.test.js'],
   },
 })

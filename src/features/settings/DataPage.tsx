@@ -39,6 +39,13 @@ import {
 } from '@/features/diary/diaryBackup'
 import type { BackupPayload, BackupSection } from '@/features/diary/diaryBackup'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
+import {
+  BACKUP_REMIND_DAYS,
+  daysSince,
+  formatBackupDate,
+  lastBackupAt,
+  markBackupDone,
+} from './backupReminder'
 import { loadImageQuality, saveImageQuality } from '@/features/diary/imageAssets'
 import type { ImageQuality } from '@/features/diary/imageAssets'
 import {
@@ -76,6 +83,12 @@ import {
 import { RECORD_KINDS } from '@/features/records/recordExport'
 import { exportChatSessions, importChatSessions } from '@/features/assistant/assistantChatStore'
 import { applyPrefs, exportPrefs, prefsContainSecrets, prefsCount } from './userPrefs'
+import {
+  decryptPrefSecrets,
+  encryptPrefSecrets,
+  hasEncryptedSecrets,
+} from './secretBox'
+import SecretDialog from './SecretDialog'
 
 /** 导入方式：融合只补/更新，替换则先把选中的块清空再恢复 */
 type ImportMode = 'merge' | 'replace'
@@ -518,6 +531,27 @@ export default function DataPage() {
   const [busy, setBusy] = useState(false)
   /** 正在确认清空哪一块；safe 为 true 表示只放进回收站 */
   const [clearing, setClearing] = useState<{ section: ClearSection; safe: boolean } | null>(null)
+  /** 上次成功导出的时间戳；用来在导出按钮下面提示「多久没备份了」 */
+  const [backupAt, setBackupAt] = useState<number | null>(lastBackupAt)
+  /** 口令弹窗：导出时问「要不要加密密钥」，导入时问「口令是多少」 */
+  const [secretMode, setSecretMode] = useState<'encrypt' | 'decrypt' | null>(null)
+  /** 等口令才能继续的那次导入；弹窗关掉就作废 */
+  const pendingImportRef = useRef<{
+    name: string
+    payload: BackupPayload
+    skipped: number
+    present: BackupSection[]
+  } | null>(null)
+
+  const backupDays = backupAt === null ? null : daysSince(backupAt)
+  /** 从没导出过，或者已经到 / 超过提醒天数：用警示色，别让它混在灰字里 */
+  const backupOverdue = backupDays === null || backupDays >= BACKUP_REMIND_DAYS
+  const backupNote =
+    backupAt === null
+      ? t('data.backupNever')
+      : backupOverdue
+        ? t('data.backupOverdue', { days: backupDays ?? 0 })
+        : t('data.lastBackup', { date: formatBackupDate(backupAt) })
 
   const CLEAR_LABEL: Record<ClearSection, string> = {
     diary: t('data.clearDiary'),
@@ -568,14 +602,42 @@ export default function DataPage() {
     }
   }
 
-  async function handleExportConfirm() {
+  /**
+   * 点「导出」：勾了偏好且里面真有明文密钥，就先问口令；否则直接走。
+   * 问口令这一步是可选的——留空就是明文导出，按钮文案会跟着变。
+   */
+  function handleExportConfirm() {
     if (!exportData || exportSelected.size === 0) return
+    if (exportSelected.has('prefs') && prefsContainSecrets(exportData.prefs)) {
+      setSecretMode('encrypt')
+      return
+    }
+    void runExport('')
+  }
+
+  async function runExport(passphrase: string) {
+    if (!exportData || exportSelected.size === 0) return
+    setSecretMode(null)
     const sections = ALL_SECTIONS.filter((section) => exportSelected.has(section))
-    const file = buildBackup(exportData, t('data.backupFileBase'), sections)
+    let payload = exportData
+    if (passphrase) {
+      try {
+        payload = { ...exportData, prefs: await encryptPrefSecrets(exportData.prefs ?? {}, passphrase) }
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : String(caught))
+        return
+      }
+    }
+    const file = buildBackup(payload, t('data.backupFileBase'), sections)
     setExportData(null)
     // 安卓上这一步会把文件交给系统分享面板，用户不点保存就什么都没留下，
     // 所以提示条要按实际结果说话（见 describeSave）
     const outcome = await saveTextFile(file)
+    // 只有真的落盘才算备份过：在保存对话框 / 分享面板里取消，文件并没有留下
+    if (outcome.kind !== 'canceled') {
+      markBackupDone()
+      setBackupAt(Date.now())
+    }
     showToast({
       message: describeSave(
         outcome,
@@ -681,19 +743,66 @@ export default function DataPage() {
       return
     }
 
+    // 备份里的 AI 密钥可能是加密的：先要口令，再往下走
+    if (hasEncryptedSecrets(result.payload.prefs)) {
+      pendingImportRef.current = {
+        name: file.name,
+        payload: result.payload,
+        skipped: result.skipped,
+        present: result.sections,
+      }
+      setSecretMode('decrypt')
+      return
+    }
+    stageImport(file.name, result.payload, result.skipped, result.sections)
+  }
+
+  /** 把一份解析好的备份摆到「挑块」弹窗上；解密与不解密都汇到这儿 */
+  function stageImport(
+    name: string,
+    payload: BackupPayload,
+    skipped: number,
+    present: BackupSection[],
+  ) {
     setPending({
-      name: file.name,
-      payload: result.payload,
-      skipped: result.skipped,
+      name,
+      payload,
+      skipped,
       mode: pickModeRef.current,
-      present: result.sections,
-      selected: new Set(result.sections),
+      present,
+      selected: new Set(present),
       conflicts: [],
       keepLocal: new Set(),
       health: null,
       duplicates: [],
       stage: 'range',
     })
+  }
+
+  /** 口令弹窗提交：加密导出，或解密导入 */
+  async function handleSecretSubmit(passphrase: string) {
+    if (secretMode === 'encrypt') {
+      await runExport(passphrase)
+      return
+    }
+    if (secretMode !== 'decrypt') return
+    const waiting = pendingImportRef.current
+    pendingImportRef.current = null
+    setSecretMode(null)
+    if (!waiting) return
+
+    // 口令留空（点了「跳过」）也走这里：解不开的密钥会被清空，
+    // 绝不能把 `enc:v1:…` 原样写进 localStorage——那会让 AI 配置直接坏掉
+    setBusy(true)
+    try {
+      const { prefs, failed } = await decryptPrefSecrets(waiting.payload.prefs ?? {}, passphrase)
+      stageImport(waiting.name, { ...waiting.payload, prefs }, waiting.skipped, waiting.present)
+      if (failed > 0) showToast({ message: t('data.secretFailed', { count: failed }) })
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught))
+    } finally {
+      setBusy(false)
+    }
   }
 
   /** 勾选完要先把勾选的块和本地比一遍，冲突在这一步逐条列出来；替换模式直接进确认 */
@@ -1024,6 +1133,9 @@ export default function DataPage() {
             {busy ? t('data.reading') : t('data.export')}
           </button>
           <p className="mt-2 text-xs text-muted">{t('data.exportHint')}</p>
+          <p className={`mt-1 text-xs ${backupOverdue ? 'text-danger' : 'text-muted'}`}>
+            {backupNote}
+          </p>
         </SettingGroup>
 
         <SettingGroup label={t('data.pickExportGroup')}>
@@ -1195,6 +1307,18 @@ export default function DataPage() {
               ? t('data.exportHasKeys')
               : undefined
           }
+        />
+      )}
+
+      {secretMode && (
+        <SecretDialog
+          mode={secretMode}
+          busy={busy}
+          onCancel={() => {
+            pendingImportRef.current = null
+            setSecretMode(null)
+          }}
+          onSubmit={(passphrase) => void handleSecretSubmit(passphrase)}
         />
       )}
 

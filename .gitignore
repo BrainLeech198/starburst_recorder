@@ -8,12 +8,27 @@ node_modules/
 # 签名密钥（.local/keys）、临时文件（.local/tmp）
 .local/
 
+# ─────────── Web Push 中继 ───────────
+# wrangler dev 读的本地密钥文件（VAPID 私钥），绝不进仓库
+worker/push/.dev.vars
+worker/push/.wrangler/
+
+# ─────────── 本地环境变量 ───────────
+# 网页版的 VITE_PUSH_API / VITE_VAPID_PUBLIC_KEY / VITE_AI_PROXY 都放这里
+.env.local
+.env.*.local
+
 # ─────────── Android ───────────
 android/app/build/
 android/build/
 android/.gradle/
 android/local.properties
 android/capacitor-cordova-android-plugins/build/
+
+# ─────────── 其它 AI 工具的本机产物 ───────────
+# .workbuddy-ai/memory 是别的工具自己写的记忆，.trae-html-share-packages 是分享用的打包副本
+.workbuddy-ai/
+.trae-html-share-packages/
 
 # ─────────── 编辑器与系统 ───────────
 .vscode/*

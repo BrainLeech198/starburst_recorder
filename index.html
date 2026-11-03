@@ -7,6 +7,26 @@
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
     />
     <title>星芒记录者</title>
+    <!--
+      网页版（含「添加到主屏幕」的 PWA）用。桌面壳与安卓壳都不看这几行，
+      apple-* 那组只有 iOS Safari 认，是让它以全屏独立窗口打开的关键。
+      status-bar-style 用 black-translucent：内容铺到状态栏下面，
+      再由页面里的 env(safe-area-inset-*) 让开——和安卓那边是同一套做法。
+    -->
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="theme-color" content="#0a0d12" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="星芒" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!--
+      图标三件套，缺一个就会掉回默认图：
+      - icon：浏览器标签页；192 的 PNG 让 Chrome/Edge 直接拿它当 tab 图标
+      - apple-touch-icon：iOS「添加到主屏幕」，180 是 iPhone 的标准尺寸。
+        必须是不透明底——iOS 会把透明像素渲染成纯黑，深空主题配纯黑会露馅
+      - manifest 里的 maskable：安卓/Chrome 安装后会按自己的形状裁剪
+    -->
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./icons/icon-180.png" />
     <script>
       try {
         // 首屏之前就把主题定下来，避免闪一下默认色；认不出的名字退回深空

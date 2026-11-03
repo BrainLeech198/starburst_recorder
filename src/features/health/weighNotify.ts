@@ -1,13 +1,15 @@
 /**
  * 称重日的「系统通知」：和应用内横幅（WeighInCard 的提示条）互补。
  *
- * - 桌面 / 浏览器：走 Web Notification（Electron 渲染进程原生支持），打开应用后到点弹一次
+ * - 桌面 / 网页版：走 notifyNow（桌面用 Notification 构造器，网页版与 PWA 走 Service Worker
+ *   的 showNotification——iOS 上 `new Notification()` 会抛错），打开应用后到点弹一次
  * - 安卓：走 @capacitor/local-notifications，按「每周 + 时刻」排一条系统通知，
  *   应用没开着也会弹；改设置就重排，删设置就取消
  *
  * 每天最多提醒一次（localStorage 记到今天的日期），免得开一次弹一次。
  */
 import { translate } from '@/shared/i18n/context'
+import { notifyNow } from '@/platform/notify'
 import { isWeighDay } from './healthMath'
 import { todayKey } from '@/core/utils/dateKey'
 import type { HealthProfile } from '@/core/db/schema'
@@ -52,15 +54,7 @@ export function maybeNotifyWeighDay(profile: HealthProfile | undefined): void {
     const now = new Date()
     const { hour, minute } = hourMinute(profile.weighTime)
     if (now.getHours() * 60 + now.getMinutes() < hour * 60 + minute) return
-    if (typeof Notification === 'undefined') return
-    const fire = () => new Notification(weighTitle(), { body: weighBody() })
-    if (Notification.permission === 'granted') {
-      fire()
-    } else if (Notification.permission !== 'denied') {
-      void Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') fire()
-      })
-    }
+    void notifyNow(weighTitle(), weighBody())
     localStorage.setItem(NOTIFIED_KEY, today)
   } catch {
     // 隐私模式存不了提醒标记：大不了明天再提醒一次

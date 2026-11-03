@@ -2,6 +2,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigationType } from 'react-router'
 import FloatingAssistant from '@/features/assistant/FloatingAssistant'
 import ScheduleReminderHost from '@/features/schedule/ScheduleReminderHost'
+import PushReminderHost from '@/features/notifications/PushReminderHost'
 import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import { useAndroidBackButton } from '@/app/androidBack'
@@ -293,6 +294,7 @@ export default function AppShell() {
       {/* 悬浮球平时不显示（它还是个占位，点开只会说 AI 没接），调试开关见 debugFlags.ts */}
       {ballVisible() && <FloatingAssistant />}
       <ScheduleReminderHost />
+      <PushReminderHost />
     </div>
   )
 }

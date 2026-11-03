@@ -13,6 +13,7 @@ import { notifyChange } from './core/db/changes'
 import { APP_VERSION } from './core/version'
 import { isAndroid } from './features/update/updateService'
 import { logInfo } from './shared/log/log'
+import { isWebApp, registerServiceWorker, requestPersistentStorage } from './platform/pwa'
 import './index.css'
 
 // 桌面版可能开着「快速记一笔」小窗，那边写库本窗口看不见，靠主进程转发过来
@@ -23,6 +24,13 @@ logInfo('App', 'app.boot', {
   version: APP_VERSION,
   platform: desktopBridge()?.isDesktop ? 'desktop' : isAndroid() ? 'android' : 'web',
 })
+
+// 网页版（含「添加到主屏幕」的 PWA）：要离线壳，也要尽量把 IndexedDB 标成持久存储。
+// 桌面与安卓壳都不走这里——它们的数据本来就在自己机器上的文件里，不存在被回收一说。
+if (isWebApp()) {
+  registerServiceWorker()
+  void requestPersistentStorage()
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

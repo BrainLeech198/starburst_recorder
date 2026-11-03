@@ -1,13 +1,14 @@
 /**
  * 训练提醒的系统通知：计划提醒（周几 + 时刻）与断档提醒（连续 N 天没练）。
  *
- * - 桌面 / 浏览器：打开应用后前台检查，到点弹一次 Web Notification
+ * - 桌面 / 网页版：打开应用后前台检查，到点弹一次通知（见 @/platform/notify）
  * - 安卓：计划提醒排成本地通知，关掉应用也会弹；断档提醒仍靠前台检查
  *
  * 两个提醒互相独立，都只在「今天还没提醒过」时发一次。
  */
 import type { TrainingPlan } from '@/core/db/schema'
 import { translate } from '@/shared/i18n/context'
+import { notifyNow } from '@/platform/notify'
 import { todayKey } from '@/core/utils/dateKey'
 import { isPlanDay, isTimeReached, normalizePlan, notificationWeekday, shouldNudge } from './trainingPlan'
 
@@ -40,15 +41,7 @@ function clockNow() {
 }
 
 function show(title: string, body: string) {
-  if (typeof Notification === 'undefined') return
-  const fire = () => new Notification(title, { body })
-  if (Notification.permission === 'granted') {
-    fire()
-  } else if (Notification.permission !== 'denied') {
-    void Notification.requestPermission().then((permission) => {
-      if (permission === 'granted') fire()
-    })
-  }
+  void notifyNow(title, body)
 }
 
 /**

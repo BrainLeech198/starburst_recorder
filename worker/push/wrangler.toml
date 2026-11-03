@@ -1,0 +1,29 @@
+# 星芒记录者的 Web Push 中继（Cloudflare Worker + KV + Cron）
+#
+# 部署步骤见同目录 README.md。这里只有一处需要你替换：KV 命名空间的 id。
+name = "starburst-push"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# 每分钟醒一次：提醒只有「几点几分」的精度，靠这一分钟的精确命中来推。
+# 免费额度是每天 10 万次请求，1440 次/天完全够用。
+[triggers]
+crons = ["* * * * *"]
+
+[[kv_namespaces]]
+binding = "PUSH_KV"
+id = "be50f38dcf4d4b4f8dfd7adc01e62908"
+
+[vars]
+# 网页版的源，多个用逗号分隔；本地调试可临时写 "*"。
+# 注意这里只写源（scheme + host），不带路径、不带结尾斜杠，否则浏览器发的 Origin 对不上。
+#
+# 三个源都要在：
+#   - starburst-recorder.pages.dev  网页版 / PWA
+#   - https://localhost              安卓壳（Capacitor 的 androidScheme 是 https）
+#   - http://localhost               本地调试与部分安卓 WebView
+#
+# 桌面壳不走这里：它的页面是 file://，由 Electron 主进程代取（见 electron/main.cjs）。
+ALLOWED_ORIGINS = "https://starburst-recorder.pages.dev,https://localhost,http://localhost"
+# 点通知时打开哪个页面。留空则由 Service Worker 用自身 scope 兜底
+APP_URL = "https://starburst-recorder.pages.dev/"
