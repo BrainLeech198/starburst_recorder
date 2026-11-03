@@ -133,7 +133,7 @@ window.SITE_I18N = {
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.14.0 仍是早期版本，升级前请先导出备份。旧备份中的 API Key 仍是明文；若曾将旧备份发给别人、存在云端或邮件，请先撤销之前使用过的 API Key 并重新生成。',
+    'download.desc': '0.14.0 仍是早期版本，升级前请先导出备份。0.13.1 之前的备份会明文保存模型名称和 API Key；若曾把旧备份发给别人或存到云端、邮件，请撤销并重新生成之前用过的 API Key。',
     'download.web': '网页版',
     'download.webMeta': '浏览器直接使用 · 支持安装为 PWA',
     'download.webDesc': '无需下载安装，打开即可使用；也可以添加到主屏幕，像应用一样启动。',
@@ -293,7 +293,7 @@ window.SITE_I18N = {
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.14.0 is still an early build. Export a backup before upgrading. API keys in older backups remain plain text; if you shared an old backup or stored it in cloud or email, revoke every API key you previously used and generate fresh keys.',
+      '0.14.0 is still an early build. Export a backup before upgrading. Backups exported before 0.13.1 contain model names and API keys in plain text; if you shared one or stored it in cloud storage or email, revoke every API key you previously used and generate fresh keys.',
     'download.web': 'Web app',
     'download.webMeta': 'Use in your browser · Installable as a PWA',
     'download.webDesc': 'No download needed. Open it in your browser, or add it to your home screen like an app.',
