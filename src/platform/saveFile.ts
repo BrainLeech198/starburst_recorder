@@ -98,12 +98,18 @@ function downloadBlob(filename: string, blob: Blob) {
   anchor.href = url
   anchor.download = filename
   anchor.click()
-  URL.revokeObjectURL(url)
+  // 部分移动浏览器在 click 后还要异步读取 Blob；立即撤销会下载到空文件或直接失败。
+  window.setTimeout(() => URL.revokeObjectURL(url), 1_000)
 }
 
 export async function saveTextFile(file: TextFile): Promise<SaveOutcome> {
   if (!inAndroidShell()) {
     const blob = new Blob([file.content], { type: file.mime })
+    // 普通网页直接在用户点击的调用栈里启动下载，避免无意义的 await 丢失用户激活。
+    if (!isIosWebApp()) {
+      downloadBlob(file.filename, blob)
+      return { kind: 'downloaded' }
+    }
     const shared = await tryShare(new File([blob], file.filename, { type: file.mime }))
     if (shared) return shared
     downloadBlob(file.filename, blob)
@@ -128,6 +134,10 @@ export async function saveBinaryFile(file: BinaryFile): Promise<SaveOutcome> {
     // 复制一份，避免 Uint8Array 的底层缓冲带偏移，Blob 读到多余字节
     const copy = new Uint8Array(file.bytes)
     const blob = new Blob([copy.buffer], { type: file.mime })
+    if (!isIosWebApp()) {
+      downloadBlob(file.filename, blob)
+      return { kind: 'downloaded' }
+    }
     const shared = await tryShare(new File([blob], file.filename, { type: file.mime }))
     if (shared) return shared
     downloadBlob(file.filename, blob)
