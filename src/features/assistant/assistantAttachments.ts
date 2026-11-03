@@ -45,14 +45,21 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   })
 }
 
-/** 把一张图片缩到最长边 1280 并转成 JPEG；画布拿不到就退回原图 */
+/** 把图片统一成 JPEG、最长边限制为 1280；画布拿不到就退回原图 */
 async function compressImage(file: File) {
   const original = await readAsDataUrl(file)
   const image = await loadImage(original).catch(() => null)
   if (!image) throw new Error(translate('assistant.attachFailed'))
   try {
     const side = Math.max(image.width, image.height)
-    if (side <= MAX_IMAGE_SIDE && original.length <= MAX_DATA_URL_CHARS) return original
+    // 小 JPEG 已满足请求格式与尺寸要求，可以原样保留，避免无谓的二次压缩。
+    if (
+      original.toLowerCase().startsWith('data:image/jpeg;') &&
+      side <= MAX_IMAGE_SIDE &&
+      original.length <= MAX_DATA_URL_CHARS
+    ) {
+      return original
+    }
     const scale = Math.min(1, MAX_IMAGE_SIDE / side)
     const canvas = document.createElement('canvas')
     canvas.width = Math.max(1, Math.round(image.width * scale))
