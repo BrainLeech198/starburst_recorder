@@ -134,6 +134,10 @@ window.SITE_I18N = {
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
     'download.desc': '0.13.1 是早期版本，功能还在长，数据格式也可能变——重要内容记得先导出备份。',
+    'download.web': '网页版',
+    'download.webMeta': '浏览器直接使用 · 支持安装为 PWA',
+    'download.webDesc': '无需下载安装，打开即可使用；也可以添加到主屏幕，像应用一样启动。',
+    'download.webCta': '打开网页版',
     'download.windows': 'Windows 安装包',
     'download.windowsMeta': 'Windows 10/11 · 约 96 MB',
     'download.windowsDesc': '双击安装，开始菜单里就是它。桌面端数据存成 SQLite，可以直接复制走。',
@@ -293,6 +297,10 @@ window.SITE_I18N = {
     'download.title': 'Take a copy home',
     'download.desc':
       '0.13.1 is an early build: features are still growing and the data format may change. Export a backup of anything you care about.',
+    'download.web': 'Web app',
+    'download.webMeta': 'Use in your browser · Installable as a PWA',
+    'download.webDesc': 'No download needed. Open it in your browser, or add it to your home screen like an app.',
+    'download.webCta': 'Open the web app',
     'download.windows': 'Windows installer',
     'download.windowsMeta': 'Windows 10/11 · about 96 MB',
     'download.windowsDesc':
