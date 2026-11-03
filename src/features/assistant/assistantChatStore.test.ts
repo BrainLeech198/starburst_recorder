@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ChatMessageRecord } from './assistantChatStore'
 import {
+  clearAllChatSessions,
   getChatSessions,
   importChatSessions,
   normalizeChatSessions,
@@ -56,6 +57,16 @@ describe('助手卡片的处理结果', () => {
       message({ id: 'b' }),
     ])
     expect(notes).toEqual([])
+  })
+})
+
+describe('全部清空助手对话', () => {
+  it('清空旧会话并保留一段空白会话供界面使用', () => {
+    updateChat(() => [{ id: 'before-clear', role: 'user', content: 'private', at: 1 }])
+    clearAllChatSessions()
+    const sessions = getChatSessions()
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0].messages).toEqual([])
   })
 })
 

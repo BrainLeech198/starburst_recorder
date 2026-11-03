@@ -605,6 +605,19 @@ export function clearChat() {
   notify()
 }
 
+/** 清空所有助手会话，并保留一段新的空会话供界面继续使用。 */
+export function clearAllChatSessions() {
+  sessions = [newSession()]
+  currentId = sessions[0].id
+  try {
+    storage()?.removeItem(LEGACY_KEY)
+  } catch {
+    // 存储被禁用时，仍然清空内存里的会话并通知界面。
+  }
+  persist()
+  notify()
+}
+
 /** 开一段新对话；当前这段本来就是空的就直接复用，免得堆一串空会话 */
 export function newChatSession() {
   ensureCurrent()

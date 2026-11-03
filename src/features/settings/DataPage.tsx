@@ -81,7 +81,7 @@ import {
   recordsCount,
 } from '@/features/records/recordImport'
 import { RECORD_KINDS } from '@/features/records/recordExport'
-import { exportChatSessions, importChatSessions } from '@/features/assistant/assistantChatStore'
+import { clearAllChatSessions, exportChatSessions, importChatSessions } from '@/features/assistant/assistantChatStore'
 import { applyPrefs, exportPrefs, prefsContainSecrets, prefsCount } from './userPrefs'
 import {
   decryptPrefSecrets,
@@ -530,7 +530,7 @@ export default function DataPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   /** 正在确认清空哪一块；safe 为 true 表示只放进回收站 */
-  const [clearing, setClearing] = useState<{ section: ClearSection; safe: boolean } | null>(null)
+const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: boolean } | null>(null)
   /** 上次成功导出的时间戳；用来在导出按钮下面提示「多久没备份了」 */
   const [backupAt, setBackupAt] = useState<number | null>(lastBackupAt)
   /** 口令弹窗：导出时问「要不要加密密钥」，导入时问「口令是多少」 */
@@ -670,6 +670,13 @@ export default function DataPage() {
     setError('')
     setReport(null)
     try {
+      if (section === 'all') {
+        await Promise.all([clearDiaryData(), clearHealthData(), clearFinanceData()])
+        clearAllChatSessions()
+        applyPrefs({}, 'replace')
+        showToast({ message: t('data.clearAllDone') })
+        return
+      }
       if (safe) {
         if (section === 'diary') await trashDiaryData()
         else if (section === 'health') await trashHealthData()
@@ -1262,6 +1269,14 @@ export default function DataPage() {
             ))}
           </div>
           <p className="mt-2 text-xs text-muted">{t('data.clearHint')}</p>
+          <button
+            type="button"
+            onClick={() => setClearing({ section: 'all', safe: false })}
+            className={`${SOLID_DANGER} mt-3 w-full sm:w-auto`}
+          >
+            <Icon name="trash" />
+            {t('data.clearAll')}
+          </button>
         </SettingGroup>
       </SettingCard>
 
@@ -1272,12 +1287,12 @@ export default function DataPage() {
         <ConfirmDialog
           tone={clearing.safe ? 'warn' : 'danger'}
           title={t(clearing.safe ? 'data.safeClearConfirmTitle' : 'data.clearConfirmTitle', {
-            module: MODULE_LABEL[clearing.section],
+            module: clearing.section === 'all' ? t('data.clearAll') : MODULE_LABEL[clearing.section],
           })}
           description={
             clearing.safe
               ? t('data.safeClearConfirmBody')
-              : t('data.clearConfirmBody', { detail: MODULE_DETAIL[clearing.section] })
+              : t('data.clearConfirmBody', { detail: clearing.section === 'all' ? t('data.clearAllDetail') : MODULE_DETAIL[clearing.section] })
           }
           confirmLabel={t(clearing.safe ? 'data.safeClearConfirm' : 'data.clearConfirm')}
           onConfirm={() => void handleClearConfirm()}
