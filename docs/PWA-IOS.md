@@ -461,5 +461,8 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
   PBKDF2-SHA256 15 万次 + AES-GCM，只加密 `apiKey`，其余字段保持明文以便出错时还能导入）；
   中继加共享令牌。两件都跑过 `.local/verify-online.mjs` 的线上验收（10/10），
   构建号 `mw0e1d3j`。
+- **2026-11-03 网页版更新**：提交 `abd7ce7`（含单条记录 PNG 卡片与 AI 气泡秒级时间）已部署到生产 Pages；
+  线上构建号 `mw0vecnn`，部署地址 `https://0acdbb16.starburst-recorder.pages.dev`，
+  正式域名 `https://starburst-recorder.pages.dev` 的 `.local/verify-online.mjs` 验收 10/10。
 - **KV 里现在只剩一条记录**，是早先在 workerd 里手测留下的 FCM 端点、`slots` 为 0
   （永远不会命中，不产生推送）。真正的用户订阅会在开启提醒时自己写进来。
