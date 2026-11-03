@@ -394,6 +394,8 @@ export const ja: Record<MessageKey, string> = {
   'share.receiveTitle': '共有を読み込む',
   'share.receiveDesc': '相手のQRコードを読み取るか、下に共有コードを貼り付けてください。',
   'share.scan': 'スキャン',
+  'share.chooseQrImage': 'QR画像を選択',
+  'share.saveQrImage': 'QR画像を保存',
   'share.pasteLabel': '共有コード',
   'share.pastePlaceholder': 'SB1. で始まる共有コードを貼り付け',
   'share.parse': '読み取る',

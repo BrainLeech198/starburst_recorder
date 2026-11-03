@@ -395,6 +395,8 @@ export const de: Record<MessageKey, string> = {
   'share.receiveTitle': 'Freigabe importieren',
   'share.receiveDesc': 'Scanne den QR-Code der anderen Person oder füge den Teilen-Code unten ein.',
   'share.scan': 'Scannen',
+  'share.chooseQrImage': 'QR-Bild auswählen',
+  'share.saveQrImage': 'QR-Bild speichern',
   'share.pasteLabel': 'Teilen-Code',
   'share.pastePlaceholder': 'Teilen-Code einfügen (beginnt mit SB1.)',
   'share.parse': 'Erkennen',

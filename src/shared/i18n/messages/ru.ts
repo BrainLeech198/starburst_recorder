@@ -394,6 +394,8 @@ export const ru: Record<MessageKey, string> = {
   'share.receiveTitle': 'Импорт общего доступа',
   'share.receiveDesc': 'Сканируйте QR-код друга или вставьте код ниже.',
   'share.scan': 'Сканировать',
+  'share.chooseQrImage': 'Выбрать изображение QR',
+  'share.saveQrImage': 'Сохранить изображение QR',
   'share.pasteLabel': 'Код',
   'share.pastePlaceholder': 'Вставьте код, начинающийся с SB1.',
   'share.parse': 'Распознать',

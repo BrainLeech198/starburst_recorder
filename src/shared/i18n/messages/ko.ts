@@ -393,6 +393,8 @@ export const ko: Record<MessageKey, string> = {
   'share.receiveTitle': '공유 가져오기',
   'share.receiveDesc': '친구의 QR 코드를 스캔하거나 아래에 공유 코드를 붙여넣으세요.',
   'share.scan': '스캔',
+  'share.chooseQrImage': 'QR 이미지 선택',
+  'share.saveQrImage': 'QR 이미지 저장',
   'share.pasteLabel': '공유 코드',
   'share.pastePlaceholder': 'SB1.로 시작하는 공유 코드 붙여넣기',
   'share.parse': '인식',

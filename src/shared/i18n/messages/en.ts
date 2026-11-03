@@ -407,6 +407,8 @@ export const en: Record<MessageKey, string> = {
   'share.receiveTitle': 'Import a share',
   'share.receiveDesc': "Scan a friend's QR code, or paste the share code below.",
   'share.scan': 'Scan',
+  'share.chooseQrImage': 'Choose QR image',
+  'share.saveQrImage': 'Save QR image',
   'share.pasteLabel': 'Share code',
   'share.pastePlaceholder': 'Paste a share code starting with SB1.',
   'share.parse': 'Read',

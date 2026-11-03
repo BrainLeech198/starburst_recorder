@@ -392,6 +392,8 @@ export const zhTW: Record<MessageKey, string> = {
   'share.receiveTitle': '匯入分享',
   'share.receiveDesc': '掃朋友的二維碼，或把分享碼貼到下面。',
   'share.scan': '掃碼',
+  'share.chooseQrImage': '從圖片辨識二維碼',
+  'share.saveQrImage': '儲存二維碼圖片',
   'share.pasteLabel': '分享碼',
   'share.pastePlaceholder': '貼上 SB1. 開頭的分享碼',
   'share.parse': '辨識',

@@ -394,6 +394,8 @@ export const zh = {
   'share.receiveTitle': '导入分享',
   'share.receiveDesc': '扫朋友的二维码，或把分享码粘贴到下面。',
   'share.scan': '扫码',
+  'share.chooseQrImage': '从图片识别二维码',
+  'share.saveQrImage': '保存二维码图片',
   'share.pasteLabel': '分享码',
   'share.pastePlaceholder': '粘贴 SB1. 开头的分享码',
   'share.parse': '识别',

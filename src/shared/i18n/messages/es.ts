@@ -396,6 +396,8 @@ export const es: Record<MessageKey, string> = {
   'share.receiveTitle': 'Importar un compartido',
   'share.receiveDesc': 'Escanea el código QR de un amigo o pega el código abajo.',
   'share.scan': 'Escanear',
+  'share.chooseQrImage': 'Elegir imagen QR',
+  'share.saveQrImage': 'Guardar imagen QR',
   'share.pasteLabel': 'Código',
   'share.pastePlaceholder': 'Pega un código que empiece por SB1.',
   'share.parse': 'Leer',

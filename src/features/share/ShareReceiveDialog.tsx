@@ -5,6 +5,7 @@
  * 同名食物优先复用，避免把朋友的食物库覆盖成自己的。
  */
 import { useState } from 'react'
+import QrScanner from 'qr-scanner'
 import Modal from '@/shared/ui/Modal'
 import { GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
@@ -29,6 +30,23 @@ export default function ShareReceiveDialog({
   const [error, setError] = useState('')
   const [parsing, setParsing] = useState(false)
   const [importing, setImporting] = useState(false)
+
+  async function handleImage(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setParsing(true)
+    setError('')
+    try {
+      const value = await QrScanner.scanImage(file)
+      setText(value)
+      await parse(value)
+    } catch {
+      setError(t('share.invalid'))
+    } finally {
+      setParsing(false)
+    }
+  }
 
   async function parse(value: string) {
     const raw = value.trim()
@@ -85,6 +103,11 @@ export default function ShareReceiveDialog({
         <Icon name="scan" />
         {t('share.scan')}
       </button>
+
+      <label className={`${OUTLINE_BUTTON} mt-2 w-full cursor-pointer`}>
+        {t('share.chooseQrImage')}
+        <input type="file" accept="image/*" onChange={(event) => void handleImage(event)} className="sr-only" disabled={parsing} />
+      </label>
 
       <label className="mt-3 block text-xs text-muted" htmlFor="share-code-input">
         {t('share.pasteLabel')}

@@ -10,7 +10,7 @@ import { GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonSt
 import { Icon } from '@/shared/ui/icons'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
-import { describeSave, saveTextFile } from '@/platform/saveFile'
+import { describeSave, saveBinaryFile, saveTextFile } from '@/platform/saveFile'
 import { renderSVG } from 'uqr'
 import {
   encodeShare,
@@ -21,6 +21,27 @@ import {
 } from './shareCode'
 
 type QrState = { kind: 'ready'; svg: string } | { kind: 'tooLarge' } | null
+
+async function svgToPng(svg: string): Promise<Uint8Array> {
+  const image = new Image()
+  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }))
+  try {
+    image.src = url
+    await image.decode()
+    const canvas = document.createElement('canvas')
+    canvas.width = image.naturalWidth
+    canvas.height = image.naturalHeight
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('canvas unavailable')
+    context.fillStyle = '#fff'
+    context.fillRect(0, 0, canvas.width, canvas.height)
+    context.drawImage(image, 0, 0)
+    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error('png encode failed')), 'image/png'))
+    return new Uint8Array(await blob.arrayBuffer())
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
 
 function fileNameFor(title: string): string {
   const safe = title.replace(/[\\/:*?"<>|]/g, '_').trim() || 'share'
@@ -107,6 +128,20 @@ export default function ShareDialog({ doc, onClose }: { doc: ShareDoc; onClose: 
     }
   }
 
+  async function handleSaveQr() {
+    if (qr?.kind !== 'ready') return
+    setBusy(true)
+    try {
+      const safe = doc.title.replace(/[\\/:*?"<>|]/g, '_').trim() || 'share'
+      const bytes = await svgToPng(qr.svg)
+      const filename = `${safe}-qr.png`
+      const outcome = await saveBinaryFile({ filename, mime: 'image/png', bytes })
+      showToast({ message: describeSave(outcome, filename, t) })
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <Modal size="sm" label={t('share.title', { name: doc.title })} onClose={onClose}>
       <h2 className="m-0 text-base font-medium text-fg">{t('share.title', { name: doc.title })}</h2>
@@ -146,6 +181,10 @@ export default function ShareDialog({ doc, onClose }: { doc: ShareDoc; onClose: 
         >
           <Icon name="download" />
           {t('share.saveFile')}
+        </button>
+        <button type="button" onClick={() => void handleSaveQr()} disabled={qr?.kind !== 'ready' || busy} className={`${OUTLINE_BUTTON} disabled:opacity-40`}>
+          <Icon name="download" />
+          {t('share.saveQrImage')}
         </button>
       </div>
 
