@@ -878,6 +878,7 @@ export const zh = {
   'assistant.attachLimit': '一条消息最多带 3 个附件。',
   'assistant.attachTooBig': '这张图太大了，换一张小一点的。',
   'assistant.attachFailed': '这个文件读不出来，换一个试试。',
+  'assistant.attachVisionUnsupported': '当前模型不支持看图，请切换到支持视觉的模型后再发送。',
   'assistant.working': '正在处理 · {s} 秒',
   'assistant.workingStep': '正在查 {name}',
   'assistant.contextUsage': '上下文 {used} / {total}（{pct}%）',

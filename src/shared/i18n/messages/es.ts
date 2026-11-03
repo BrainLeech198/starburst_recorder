@@ -880,6 +880,7 @@ export const es: Record<MessageKey, string> = {
   'assistant.attachLimit': 'Máximo 3 adjuntos por mensaje.',
   'assistant.attachTooBig': 'Esta imagen es demasiado grande. Prueba con una más pequeña.',
   'assistant.attachFailed': 'No se pudo leer este archivo. Prueba con otro.',
+  'assistant.attachVisionUnsupported': 'Este modelo no puede leer imágenes. Cambia a uno con visión antes de enviar.',
   'assistant.working': 'Trabajando · {s} s',
   'assistant.workingStep': 'Buscando {name}',
   'assistant.contextUsage': 'Contexto {used} / {total} ({pct}%)',

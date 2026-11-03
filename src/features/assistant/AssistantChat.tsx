@@ -287,6 +287,10 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     targetId?: string,
   ) {
     const config = loadAiConfig()
+    if (files.some((file) => typeof file.dataUrl === 'string') && config.vision === 'no') {
+      showToast({ message: t('assistant.attachVisionUnsupported') })
+      return
+    }
     const ready = isConfigured(config)
     setConfigured(ready)
 
@@ -701,6 +705,10 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
       return
     }
     for (const file of picked.slice(0, room)) {
+      if (file.type.startsWith('image/') && loadAiConfig().vision === 'no') {
+        showToast({ message: t('assistant.attachVisionUnsupported') })
+        continue
+      }
       try {
         const item = await readAttachment(file)
         setDrafts((current) =>

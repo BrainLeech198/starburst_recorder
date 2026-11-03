@@ -877,6 +877,7 @@ export const ko: Record<MessageKey, string> = {
   'assistant.attachLimit': '한 메시지에 첨부는 3개까지입니다.',
   'assistant.attachTooBig': '이미지가 너무 큽니다. 더 작은 것을 선택하세요.',
   'assistant.attachFailed': '이 파일을 읽을 수 없습니다. 다른 파일을 선택하세요.',
+  'assistant.attachVisionUnsupported': '이 모델은 이미지를 읽을 수 없어요. 이미지 지원 모델로 바꾼 뒤 보내 주세요.',
   'assistant.working': '처리 중 · {s}초',
   'assistant.workingStep': '{name} 조회 중',
   'assistant.contextUsage': '컨텍스트 {used} / {total} ({pct}%)',

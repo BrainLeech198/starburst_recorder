@@ -878,6 +878,7 @@ export const de: Record<MessageKey, string> = {
   'assistant.attachLimit': 'Höchstens 3 Anhänge pro Nachricht.',
   'assistant.attachTooBig': 'Dieses Bild ist zu groß. Nimm ein kleineres.',
   'assistant.attachFailed': 'Diese Datei lässt sich nicht lesen. Versuche eine andere.',
+  'assistant.attachVisionUnsupported': 'Dieses Modell kann keine Bilder lesen. Wechsle vor dem Senden zu einem Modell mit Bildverarbeitung.',
   'assistant.working': 'Läuft · {s} s',
   'assistant.workingStep': '{name} wird durchsucht',
   'assistant.contextUsage': 'Kontext {used} / {total} ({pct}%)',

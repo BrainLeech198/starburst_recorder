@@ -878,6 +878,7 @@ export const fr: Record<MessageKey, string> = {
   'assistant.attachLimit': '3 pièces jointes au maximum par message.',
   'assistant.attachTooBig': 'Cette image est trop lourde. Essayez-en une plus petite.',
   'assistant.attachFailed': 'Impossible de lire ce fichier. Essayez-en un autre.',
+  'assistant.attachVisionUnsupported': 'Ce modèle ne peut pas lire les images. Choisissez un modèle avec vision avant l’envoi.',
   'assistant.working': 'En cours · {s} s',
   'assistant.workingStep': 'Recherche de {name}',
   'assistant.contextUsage': 'Contexte {used} / {total} ({pct} %)',

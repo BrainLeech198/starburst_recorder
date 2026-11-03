@@ -876,6 +876,7 @@ export const zhTW: Record<MessageKey, string> = {
   'assistant.attachLimit': '一則訊息最多帶 3 個附件。',
   'assistant.attachTooBig': '這張圖太大了，換一張小一點的。',
   'assistant.attachFailed': '這個檔案讀不出來，換一個試試。',
+  'assistant.attachVisionUnsupported': '目前模型不支援看圖，請切換至支援視覺的模型後再傳送。',
   'assistant.working': '正在處理 · {s} 秒',
   'assistant.workingStep': '正在查 {name}',
   'assistant.contextUsage': '上下文 {used} / {total}（{pct}%）',

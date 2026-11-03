@@ -878,6 +878,7 @@ export const ja: Record<MessageKey, string> = {
   'assistant.attachLimit': '1 通に添付は 3 つまでです。',
   'assistant.attachTooBig': '画像が大きすぎます。小さいものを選んでください。',
   'assistant.attachFailed': 'このファイルを読めませんでした。別のものを試してください。',
+  'assistant.attachVisionUnsupported': 'このモデルは画像を読み取れません。画像対応モデルに切り替えてから送信してください。',
   'assistant.working': '処理中 · {s} 秒',
   'assistant.workingStep': '{name} を検索中',
   'assistant.contextUsage': 'コンテキスト {used} / {total}（{pct}%）',

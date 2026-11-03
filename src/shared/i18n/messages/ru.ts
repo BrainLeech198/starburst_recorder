@@ -877,6 +877,7 @@ export const ru: Record<MessageKey, string> = {
   'assistant.attachLimit': 'Не больше 3 вложений на сообщение.',
   'assistant.attachTooBig': 'Изображение слишком большое. Выберите поменьше.',
   'assistant.attachFailed': 'Не удалось прочитать этот файл. Попробуйте другой.',
+  'assistant.attachVisionUnsupported': 'Эта модель не умеет читать изображения. Перед отправкой выберите модель с поддержкой зрения.',
   'assistant.working': 'Работаю · {s} с',
   'assistant.workingStep': 'Ищу {name}',
   'assistant.contextUsage': 'Контекст {used} / {total} ({pct}%)',
