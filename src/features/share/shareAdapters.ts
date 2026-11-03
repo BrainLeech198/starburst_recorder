@@ -7,6 +7,7 @@
  */
 import type { Translate } from '@/shared/i18n/context'
 import { importSharedDoc } from '@/features/health/foodShare'
+import { importSharedDiary, importSharedFinance, importSharedIntake, importSharedStamp } from './recordShare'
 import type { ShareDoc, ShareKind } from './shareCode'
 
 export interface ShareAdapter {
@@ -48,9 +49,46 @@ const mealAdapter: ShareAdapter = {
   import: importSharedDoc,
 }
 
+const diaryAdapter: ShareAdapter = {
+  preview: (doc, t) => doc.kind === 'diary' ? [t('share.recordPreview', { date: doc.data.dateKey, detail: doc.data.content.slice(0, 100) })] : [],
+  import: async (doc, t) => {
+    if (doc.kind !== 'diary') throw new Error('invalid diary share')
+    await importSharedDiary(doc)
+    return t('share.recordImported', { title: doc.title })
+  },
+}
+const stampAdapter: ShareAdapter = {
+  preview: (doc, t) => doc.kind === 'stamp' ? [t('share.recordPreview', { date: `${doc.data.dateKey} ${doc.data.time}`, detail: doc.data.content.slice(0, 100) })] : [],
+  import: async (doc, t) => {
+    if (doc.kind !== 'stamp') throw new Error('invalid stamp share')
+    await importSharedStamp(doc)
+    return t('share.recordImported', { title: doc.title })
+  },
+}
+const intakeAdapter: ShareAdapter = {
+  preview: (doc, t) => doc.kind === 'intake' ? [t('share.intakePreview', { date: doc.data.dateKey, time: doc.data.time, name: doc.data.name, grams: doc.data.grams, kcal: doc.data.kcal })] : [],
+  import: async (doc, t) => {
+    if (doc.kind !== 'intake') throw new Error('invalid intake share')
+    await importSharedIntake(doc)
+    return t('share.recordImported', { title: doc.title })
+  },
+}
+const financeAdapter: ShareAdapter = {
+  preview: (doc, t) => doc.kind === 'finance' ? [t('share.financePreview', { date: doc.data.dateKey, kind: doc.data.kind, amount: doc.data.amount, name: doc.data.name })] : [],
+  import: async (doc, t) => {
+    if (doc.kind !== 'finance') throw new Error('invalid finance share')
+    await importSharedFinance(doc)
+    return t('share.recordImported', { title: doc.title })
+  },
+}
+
 const ADAPTERS: Partial<Record<ShareKind, ShareAdapter>> = {
   food: foodAdapter,
   meal: mealAdapter,
+  diary: diaryAdapter,
+  stamp: stampAdapter,
+  intake: intakeAdapter,
+  finance: financeAdapter,
 }
 
 export function getShareAdapter(doc: ShareDoc): ShareAdapter {
