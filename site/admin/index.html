@@ -113,8 +113,27 @@
               </div>
               <button id="load-notices" class="button button--small" type="button">刷新历史</button>
             </div>
-            <p id="notices-count" class="count-line">尚未加载</p>
-            <ul id="notices-list" class="record-list notice-history" aria-live="polite"></ul>
+            <div class="notice-tools" role="search" aria-label="筛选公告历史">
+              <label class="notice-tools__query" for="notices-search">
+                <span>搜索公告</span>
+                <input
+                  id="notices-search"
+                  type="search"
+                  placeholder="按标题或正文搜索"
+                  aria-controls="notices-list"
+                />
+              </label>
+              <label class="notice-tools__level" for="notices-level">
+                <span>级别</span>
+                <select id="notices-level" aria-controls="notices-list">
+                  <option value="all">全部</option>
+                  <option value="info">普通</option>
+                  <option value="urgent">紧急</option>
+                </select>
+              </label>
+            </div>
+            <p id="notices-count" class="count-line" aria-live="polite">尚未加载</p>
+            <ul id="notices-list" class="record-list notice-history"></ul>
           </section>
 
           <section class="panel" aria-labelledby="subscribers-title">

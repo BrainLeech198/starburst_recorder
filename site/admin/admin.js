@@ -2,6 +2,7 @@ const API = 'https://starburst-push.starburst-recorder.workers.dev'
 
 let sessionToken = null
 let editingNoticeId = null
+let noticeEditBaseline = null
 
 const loginView = document.querySelector('#login-view')
 const workspaceView = document.querySelector('#workspace-view')
@@ -126,7 +127,12 @@ loginForm.addEventListener('submit', async (event) => {
   }
 })
 
-document.querySelector('#logout-button').addEventListener('click', () => showLogin())
+document.querySelector('#logout-button').addEventListener('click', async () => {
+  if (!(await confirmDiscardNoticeChanges())) return
+  resetNoticeEditor()
+  showLogin()
+  loginForm.elements.username.focus({ preventScroll: true })
+})
 
 const noticeForm = document.querySelector('#notice-form')
 const deliverySelect = noticeForm.elements.delivery
@@ -155,12 +161,50 @@ function updateDeliveryFields() {
   cancelEditButton.hidden = !isEditing
 }
 
-deliverySelect.addEventListener('change', updateDeliveryFields)
-cancelEditButton.addEventListener('click', () => {
+function hasUnsavedNoticeChanges() {
+  const title = noticeForm.elements.title.value
+  const body = noticeForm.elements.body.value
+  const urgent = urgentCheckbox.checked
+  if (editingNoticeId && noticeEditBaseline) {
+    return title !== noticeEditBaseline.title
+      || body !== noticeEditBaseline.body
+      || urgent !== noticeEditBaseline.urgent
+  }
+  return Boolean(
+    title.trim()
+      || body.trim()
+      || emailSubject.value.trim()
+      || deliverySelect.value !== 'notice'
+      || urgent,
+  )
+}
+
+async function confirmDiscardNoticeChanges() {
+  if (!hasUnsavedNoticeChanges()) return true
+  return requestActionConfirmation({
+    title: '放弃未保存的更改？',
+    description: editingNoticeId
+      ? '当前公告的标题、正文或紧急级别有未保存改动。放弃后退出编辑，已发布公告不会改变。'
+      : '当前公告草稿尚未提交。放弃后，标题、正文和投递设置都会清空。',
+    confirmLabel: '放弃更改',
+    preview: { title: noticeForm.elements.title.value, body: noticeForm.elements.body.value },
+    destructive: true,
+  })
+}
+
+function resetNoticeEditor() {
   editingNoticeId = null
+  noticeEditBaseline = null
   noticeForm.reset()
   workspaceMessage.hidden = true
   updateDeliveryFields()
+}
+
+deliverySelect.addEventListener('change', updateDeliveryFields)
+cancelEditButton.addEventListener('click', async () => {
+  if (!(await confirmDiscardNoticeChanges())) return
+  resetNoticeEditor()
+  document.querySelector('#load-notices').focus({ preventScroll: true })
 })
 
 noticeForm.addEventListener('submit', async (event) => {
@@ -225,6 +269,7 @@ noticeForm.addEventListener('submit', async (event) => {
       )
       showWorkspaceMessage(`公告已更新：${result.notice.title}。已发出的邮件不会重新发送。`)
       editingNoticeId = null
+      noticeEditBaseline = null
       form.reset()
       updateDeliveryFields()
       await loadAdminNotices()
@@ -258,7 +303,11 @@ noticeForm.addEventListener('submit', async (event) => {
     }
     form.reset()
     updateDeliveryFields()
-    if (result.notice) await loadAdminNotices()
+    if (result.notice) {
+      noticesSearch.value = ''
+      noticesLevel.value = 'all'
+      await loadAdminNotices()
+    }
   } catch (error) {
     if (workspaceView.hidden) return
     showWorkspaceMessage(error.message || '发布失败，请重试。', 'error')
@@ -280,12 +329,41 @@ function showEmpty(list, message) {
   list.replaceChildren(item)
 }
 
-function beginNoticeEdit(notice) {
+function showListFailure(error, { list, count, label, loaded, previousCount, render }) {
+  const detail = error.message || '暂时无法连接服务'
+  if (loaded) {
+    if (render) render()
+    else count.textContent = previousCount
+    showWorkspaceMessage(`${label}刷新失败：${detail}。已保留上次成功加载的数据，可再次点击加载按钮重试。`, 'error')
+    return
+  }
+
+  count.textContent = '加载失败'
+  showEmpty(list, `${label}加载失败：${detail}`)
+  showWorkspaceMessage(`${label}加载失败：${detail}。可再次点击加载按钮重试。`, 'error')
+}
+
+async function beginNoticeEdit(notice) {
+  if (editingNoticeId === notice.id) {
+    noticeForm.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'center',
+    })
+    noticeForm.elements.title.focus({ preventScroll: true })
+    return
+  }
+  if (!(await confirmDiscardNoticeChanges())) return
+
   editingNoticeId = notice.id
   noticeForm.elements.title.value = notice.title
   noticeForm.elements.body.value = notice.body
   noticeForm.elements.delivery.value = 'notice'
   urgentCheckbox.checked = notice.level === 'urgent'
+  noticeEditBaseline = {
+    title: notice.title,
+    body: notice.body,
+    urgent: notice.level === 'urgent',
+  }
   workspaceMessage.hidden = true
   updateDeliveryFields()
   noticeForm.scrollIntoView({
@@ -295,99 +373,139 @@ function beginNoticeEdit(notice) {
   noticeForm.elements.title.focus({ preventScroll: true })
 }
 
+let adminNotices = []
+let adminNoticesLoaded = false
+let subscribersLoaded = false
+let feedbackLoaded = false
+const noticesSearch = document.querySelector('#notices-search')
+const noticesLevel = document.querySelector('#notices-level')
+
+function renderAdminNotices() {
+  const list = document.querySelector('#notices-list')
+  const count = document.querySelector('#notices-count')
+  const query = noticesSearch.value.trim().toLocaleLowerCase('zh-CN')
+  const level = noticesLevel.value
+  const filtered = adminNotices.filter((notice) => {
+    const matchesQuery = !query || `${notice.title}\n${notice.body}`.toLocaleLowerCase('zh-CN').includes(query)
+    return matchesQuery && (level === 'all' || notice.level === level)
+  })
+
+  if (query || level !== 'all') {
+    count.textContent = `显示 ${filtered.length} / ${adminNotices.length} 条公告`
+  } else {
+    count.textContent = `共 ${adminNotices.length} 条公告`
+  }
+  if (!adminNotices.length) return showEmpty(list, '目前没有已发布的公告。')
+  if (!filtered.length) return showEmpty(list, '没有匹配的公告，请调整搜索词或级别筛选。')
+
+  const items = filtered.map((notice) => {
+    const item = document.createElement('li')
+    item.className = 'notice-record'
+
+    const heading = document.createElement('div')
+    heading.className = 'notice-record__heading'
+    const title = document.createElement('strong')
+    title.className = 'notice-record__title'
+    title.textContent = notice.title
+    const level = document.createElement('span')
+    level.className = 'notice-record__level'
+    level.dataset.level = notice.level
+    level.textContent = notice.level === 'urgent' ? '紧急' : '普通'
+    heading.append(title, level)
+
+    const body = document.createElement('p')
+    body.className = 'notice-record__body'
+    body.textContent = notice.body
+
+    const meta = document.createElement('small')
+    meta.textContent = notice.updatedAt && notice.updatedAt > notice.createdAt
+      ? `发布于 ${formatTime(notice.createdAt)} · 编辑于 ${formatTime(notice.updatedAt)}`
+      : `发布于 ${formatTime(notice.createdAt)}`
+
+    const actions = document.createElement('div')
+    actions.className = 'notice-record__actions'
+    const editButton = document.createElement('button')
+    editButton.className = 'button button--small'
+    editButton.type = 'button'
+    editButton.textContent = '编辑'
+    editButton.addEventListener('click', () => beginNoticeEdit(notice))
+    const deleteButton = document.createElement('button')
+    deleteButton.className = 'button button--small button--danger'
+    deleteButton.type = 'button'
+    deleteButton.textContent = '删除'
+    deleteButton.addEventListener('click', async () => {
+      const confirmed = await requestActionConfirmation({
+        title: '确认删除这条公告？',
+        description: '删除后会从应用内公告列表移除，且无法恢复；已发出的邮件无法撤回。',
+        confirmLabel: '确认删除',
+        preview: { title: notice.title, body: notice.body },
+        destructive: true,
+      })
+      if (!confirmed) return
+      deleteButton.disabled = true
+      try {
+        await adminRequest(`/admin/api/notices/${encodeURIComponent(notice.id)}`, { method: 'DELETE' })
+        if (editingNoticeId === notice.id) {
+          resetNoticeEditor()
+        }
+        showWorkspaceMessage(`公告已删除：${notice.title}`)
+        await loadAdminNotices()
+        document.querySelector('#load-notices').focus({ preventScroll: true })
+      } catch (error) {
+        showWorkspaceMessage(error.message || '删除公告失败。', 'error')
+        deleteButton.disabled = false
+      }
+    })
+    actions.append(editButton, deleteButton)
+    item.append(heading, body, meta, actions)
+    return item
+  })
+  list.replaceChildren(...items)
+}
+
 async function loadAdminNotices() {
   const button = document.querySelector('#load-notices')
   const list = document.querySelector('#notices-list')
   const count = document.querySelector('#notices-count')
+  const loaded = adminNoticesLoaded
+  const previousCount = count.textContent
   button.disabled = true
-  count.textContent = '正在加载…'
+  count.textContent = loaded ? '正在刷新…' : '正在加载…'
   try {
     const result = await adminRequest('/admin/api/notices')
-    count.textContent = `共 ${result.notices.length} 条公告`
-    if (!result.notices.length) return showEmpty(list, '目前没有已发布的公告。')
-    const items = result.notices.map((notice) => {
-      const item = document.createElement('li')
-      item.className = 'notice-record'
-
-      const heading = document.createElement('div')
-      heading.className = 'notice-record__heading'
-      const title = document.createElement('strong')
-      title.className = 'notice-record__title'
-      title.textContent = notice.title
-      const level = document.createElement('span')
-      level.className = 'notice-record__level'
-      level.dataset.level = notice.level
-      level.textContent = notice.level === 'urgent' ? '紧急' : '普通'
-      heading.append(title, level)
-
-      const body = document.createElement('p')
-      body.className = 'notice-record__body'
-      body.textContent = notice.body
-
-      const meta = document.createElement('small')
-      meta.textContent = notice.updatedAt && notice.updatedAt > notice.createdAt
-        ? `发布于 ${formatTime(notice.createdAt)} · 编辑于 ${formatTime(notice.updatedAt)}`
-        : `发布于 ${formatTime(notice.createdAt)}`
-
-      const actions = document.createElement('div')
-      actions.className = 'notice-record__actions'
-      const editButton = document.createElement('button')
-      editButton.className = 'button button--small'
-      editButton.type = 'button'
-      editButton.textContent = '编辑'
-      editButton.addEventListener('click', () => beginNoticeEdit(notice))
-      const deleteButton = document.createElement('button')
-      deleteButton.className = 'button button--small button--danger'
-      deleteButton.type = 'button'
-      deleteButton.textContent = '删除'
-      deleteButton.addEventListener('click', async () => {
-        const confirmed = await requestActionConfirmation({
-          title: '确认删除这条公告？',
-          description: '删除后会从应用内公告列表移除，且无法恢复；已发出的邮件无法撤回。',
-          confirmLabel: '确认删除',
-          preview: { title: notice.title, body: notice.body },
-          destructive: true,
-        })
-        if (!confirmed) return
-        deleteButton.disabled = true
-        try {
-          await adminRequest(`/admin/api/notices/${encodeURIComponent(notice.id)}`, { method: 'DELETE' })
-          if (editingNoticeId === notice.id) {
-            editingNoticeId = null
-            noticeForm.reset()
-            updateDeliveryFields()
-          }
-          showWorkspaceMessage(`公告已删除：${notice.title}`)
-          await loadAdminNotices()
-          document.querySelector('#load-notices').focus({ preventScroll: true })
-        } catch (error) {
-          showWorkspaceMessage(error.message || '删除公告失败。', 'error')
-          deleteButton.disabled = false
-        }
-      })
-      actions.append(editButton, deleteButton)
-      item.append(heading, body, meta, actions)
-      return item
-    })
-    list.replaceChildren(...items)
+    adminNotices = result.notices
+    adminNoticesLoaded = true
+    renderAdminNotices()
   } catch (error) {
-    count.textContent = '加载失败'
-    showEmpty(list, error.message || '无法读取公告历史。')
+    if (workspaceView.hidden) return
+    showListFailure(error, {
+      list,
+      count,
+      label: '公告历史',
+      loaded,
+      previousCount,
+      render: renderAdminNotices,
+    })
   } finally {
     button.disabled = false
   }
 }
 
 document.querySelector('#load-notices').addEventListener('click', () => void loadAdminNotices())
+noticesSearch.addEventListener('input', renderAdminNotices)
+noticesLevel.addEventListener('change', renderAdminNotices)
 
 document.querySelector('#load-subscribers').addEventListener('click', async (event) => {
   const button = event.currentTarget
   const list = document.querySelector('#subscribers-list')
   const count = document.querySelector('#subscribers-count')
+  const loaded = subscribersLoaded
+  const previousCount = count.textContent
   button.disabled = true
-  count.textContent = '正在加载…'
+  count.textContent = loaded ? '正在刷新…' : '正在加载…'
   try {
     const result = await adminRequest('/admin/api/subscribers')
+    subscribersLoaded = true
     count.textContent = `共 ${result.count} 位订阅者`
     if (!result.subscribers.length) return showEmpty(list, '还没有邮箱订阅者。')
     const items = result.subscribers.map((person) => {
@@ -400,8 +518,8 @@ document.querySelector('#load-subscribers').addEventListener('click', async (eve
     })
     list.replaceChildren(...items)
   } catch (error) {
-    count.textContent = '加载失败'
-    showEmpty(list, error.message || '无法读取订阅者名单。')
+    if (workspaceView.hidden) return
+    showListFailure(error, { list, count, label: '订阅者名单', loaded, previousCount })
   } finally {
     button.disabled = false
   }
@@ -411,10 +529,13 @@ document.querySelector('#load-feedback').addEventListener('click', async (event)
   const button = event.currentTarget
   const list = document.querySelector('#feedback-list')
   const count = document.querySelector('#feedback-count')
+  const loaded = feedbackLoaded
+  const previousCount = count.textContent
   button.disabled = true
-  count.textContent = '正在加载…'
+  count.textContent = loaded ? '正在刷新…' : '正在加载…'
   try {
     const result = await adminRequest('/admin/api/feedback')
+    feedbackLoaded = true
     count.textContent = `共 ${result.count} 条反馈`
     if (!result.feedback.length) return showEmpty(list, '还没有用户反馈。')
     const items = result.feedback.map((feedback) => {
@@ -427,8 +548,8 @@ document.querySelector('#load-feedback').addEventListener('click', async (event)
     })
     list.replaceChildren(...items)
   } catch (error) {
-    count.textContent = '加载失败'
-    showEmpty(list, error.message || '无法读取用户反馈。')
+    if (workspaceView.hidden) return
+    showListFailure(error, { list, count, label: '用户反馈', loaded, previousCount })
   } finally {
     button.disabled = false
   }
