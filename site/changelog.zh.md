@@ -1,3 +1,19 @@
+## 0.15.0 · 2026-11-04
+
+助手回复实时显示，公告提醒与跨平台官方频道请求修复
+
+### 这一版有什么
+
+- **助手回复逐步显示**：模型生成时即可看到回复内容；需要时可以停止当前回复。
+- **公告在启动时提醒**：应用会弹出尚未查看的公告；公告列表能区分加载失败和确实没有公告，并提供重试。
+- **公告、订阅登记与反馈通道修复**：网页、Windows 和 Android 统一经官方频道入口请求，减少跨域与移动网络导致的失败。订阅邮件投递尚未启用，当前不会发送订阅邮件。
+- **紧急安全提醒**：0.13.1 之前导出的备份可能含明文模型名称和 API Key。若旧备份曾外传或存到云端、邮件，请撤销旧 Key 并重新生成；升级应用不会改变已导出的旧文件。
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.15.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.0/starburst-recorder-0.15.0-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.15.0/starburst-recorder-0.15.0-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.15.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.0/starburst-recorder-0.15.0.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.15.0/starburst-recorder-0.15.0.apk)
+
 ## 0.14.1 · 2026-11-04
 
 健康趋势估算与常用操作体验改进

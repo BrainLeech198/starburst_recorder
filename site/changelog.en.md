@@ -1,3 +1,19 @@
+## 0.15.0 · 2026-11-04
+
+Assistant replies stream in real time, with announcement and cross-platform channel fixes
+
+### What's new
+
+- **Assistant replies appear as they are generated** — see the response build in real time and stop it when needed.
+- **Announcements appear on launch** — the app surfaces unread notices; the notice list distinguishes a load failure from an empty list and offers retry.
+- **Announcement, subscription registration and feedback requests are repaired** — web, Windows and Android use the same official channel endpoint, reducing cross-origin and mobile network failures. Subscription email delivery is not enabled yet, so no subscription emails are sent.
+- **Urgent security notice** — backups exported before 0.13.1 may contain model names and API keys in plain text. If an old backup was shared or stored in cloud storage or email, revoke old keys and generate fresh ones. Updating the app does not change files already exported.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.15.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.0/starburst-recorder-0.15.0-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.15.0/starburst-recorder-0.15.0-setup.exe)
+- Android 10+: [`starburst-recorder-0.15.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.0/starburst-recorder-0.15.0.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.15.0/starburst-recorder-0.15.0.apk)
+
 ## 0.14.1 · 2026-11-04
 
 Health trend estimates and everyday controls improved
