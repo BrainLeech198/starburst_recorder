@@ -28,6 +28,7 @@ import {
 } from './email.js'
 import {
   confirmEmailSubscription,
+  deleteNotice,
   emailKey,
   isSubscribed,
   listFeedback,
@@ -40,6 +41,7 @@ import {
   subscribeEmail,
   subscribeEmailWithoutConfirmation,
   unsubscribeEmail,
+  updateNotice,
 } from './channel.js'
 
 /** 与客户端 `MAX_SCHEDULE_SLOTS` 对齐：超出直接拒，免得一份请求把 KV 撑爆 */
@@ -82,7 +84,7 @@ function corsHeaders(request, env) {
   if (!allowed.includes(origin)) return null
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+    'Access-Control-Allow-Methods': 'POST, GET, PUT, DELETE, OPTIONS',
     // 自定义头必须在预检时放行，否则浏览器不会发送真正的请求。
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, Idempotency-Key, x-push-token, x-admin-token',
     'Access-Control-Max-Age': '86400',
@@ -535,6 +537,31 @@ async function postAdminNotice(request, env, cors) {
   return json({ ok: true, notice: record }, 200, cors)
 }
 
+/** GET /admin/api/notices: full announcement history for the management page. */
+async function getAdminNotices(env, cors) {
+  const notices = await listNotices(env.PUSH_KV, Number.MAX_SAFE_INTEGER)
+  return json({ ok: true, notices }, 200, cors)
+}
+
+/** PUT /admin/api/notices/:id: update a notice without changing its publication time. */
+async function putAdminNoticeById(request, id, env, cors) {
+  if (!/^[A-Za-z0-9._-]{1,180}$/.test(id)) return json({ error: 'invalid notice id' }, 400, cors)
+  const parsed = await readJson(request)
+  if (parsed.error) return json({ error: parsed.error }, parsed.status, cors)
+  if (!sanitizeNotice(parsed.body)) return json({ error: 'invalid notice' }, 400, cors)
+  const notice = await updateNotice(env.PUSH_KV, id, parsed.body)
+  if (!notice) return json({ error: 'notice not found' }, 404, cors)
+  return json({ ok: true, notice }, 200, cors)
+}
+
+/** DELETE /admin/api/notices/:id: remove a notice from the public channel. */
+async function deleteAdminNoticeById(id, env, cors) {
+  if (!/^[A-Za-z0-9._-]{1,180}$/.test(id)) return json({ error: 'invalid notice id' }, 400, cors)
+  const deleted = await deleteNotice(env.PUSH_KV, id)
+  if (!deleted) return json({ error: 'notice not found' }, 404, cors)
+  return json({ ok: true, deleted: true, id }, 200, cors)
+}
+
 function emailSendingReady(env) {
   return Boolean(
     env.RESEND_API_KEY &&
@@ -943,8 +970,22 @@ export default {
       if (url.pathname === '/admin/api/status' && request.method === 'GET') {
         return getAdminStatus(env, cors)
       }
+      if (url.pathname === '/admin/api/notices' && request.method === 'GET') {
+        return getAdminNotices(env, cors)
+      }
       if (url.pathname === '/admin/api/notices' && request.method === 'POST') {
         return postAdminNotice(request, env, cors)
+      }
+      const noticeMatch = /^\/admin\/api\/notices\/([^/]+)$/.exec(url.pathname)
+      if (noticeMatch && (request.method === 'PUT' || request.method === 'DELETE')) {
+        let id
+        try {
+          id = decodeURIComponent(noticeMatch[1])
+        } catch {
+          return json({ error: 'invalid notice id' }, 400, cors)
+        }
+        if (request.method === 'PUT') return putAdminNoticeById(request, id, env, cors)
+        return deleteAdminNoticeById(id, env, cors)
       }
       if (url.pathname === '/admin/api/messages' && request.method === 'POST') {
         return postAdminMessage(request, env, cors)

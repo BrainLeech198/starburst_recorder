@@ -30,7 +30,10 @@
 | `GET /subscription?email=` | 公开 | 这个地址是不是已订阅 |
 | `POST /feedback` | 公开 | 用户给官方的反馈 |
 | `POST /admin/session` | 管理员名称 / 密码 + 登录限流 | 管理网页登录，换取 30 分钟会话 |
+| `GET /admin/api/notices` | 管理网页会话 | 从官网管理员网页查看完整公告历史 |
 | `POST /admin/api/notices` | 管理网页会话 | 从官网管理员网页发布公告 |
+| `PUT /admin/api/notices/:id` | 管理网页会话 | 原位编辑公告，保留发布时间 |
+| `DELETE /admin/api/notices/:id` | 管理网页会话 | 删除公告，之后不再出现在公开列表 |
 | `POST /admin/api/messages` | 管理网页会话 | 只发公告、只发邮件或同时发送 |
 | `GET /admin/api/subscribers` | 管理网页会话 | 从官网管理员网页查看订阅者 |
 | `GET /admin/api/feedback` | 管理网页会话 | 从官网管理员网页查看反馈 |
@@ -60,6 +63,7 @@ npx wrangler secret put ADMIN_SESSION_SECRET --config worker/push/wrangler.toml
 ```
 
 管理员页面可发布应用内公告、查看订阅邮箱与反馈；配置邮件服务后也可只发邮件或同时发公告和邮件。只有配置好 Resend、已验证发件地址、退订签名密钥和队列后，页面才会启用邮件选项。
+公告历史支持原位编辑与删除。编辑保留原 ID 和发布时间，不会重新发送邮件；删除后公开公告接口不再返回该条记录，已经送达的邮件无法撤回。
 
 首次部署前创建邮件队列和死信队列：
 

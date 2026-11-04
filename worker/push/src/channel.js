@@ -110,6 +110,9 @@ export async function listNotices(kv, limit = MAX_NOTICES) {
         body: record.body,
         level: NOTICE_LEVELS.includes(record.level) ? record.level : 'info',
         createdAt: Number(record.createdAt) || 0,
+        ...(Number.isFinite(Number(record.updatedAt)) && Number(record.updatedAt) > 0
+          ? { updatedAt: Number(record.updatedAt) }
+          : {}),
       })
     }
     cursor = page.list_complete ? undefined : page.cursor
@@ -126,6 +129,30 @@ export async function putNotice(kv, id, notice, now = Date.now()) {
   const key = `notice:${id}`
   await kv.put(key, JSON.stringify({ ...clean, createdAt: now }))
   return { id, ...clean, createdAt: now }
+}
+
+/** Update an existing notice in place while preserving its original publication time. */
+export async function updateNotice(kv, id, notice, now = Date.now()) {
+  if (typeof id !== 'string' || !/^[A-Za-z0-9._-]{1,180}$/.test(id)) return null
+  const clean = sanitizeNotice(notice)
+  if (!clean) return null
+  const key = `notice:${id}`
+  const existing = await kv.get(key, 'json')
+  if (!existing?.title || !existing?.body) return null
+  const createdAt = Number(existing.createdAt) || now
+  const updatedAt = now
+  const record = { ...clean, createdAt, updatedAt }
+  await kv.put(key, JSON.stringify(record))
+  return { id, ...record }
+}
+
+/** Delete an existing notice by its ID. */
+export async function deleteNotice(kv, id) {
+  if (typeof id !== 'string' || !/^[A-Za-z0-9._-]{1,180}$/.test(id)) return false
+  const key = `notice:${id}`
+  if (!(await kv.get(key))) return false
+  await kv.delete(key)
+  return true
 }
 
 /** 新订阅先进入待确认状态；已确认地址重复提交时不重置订阅。 */

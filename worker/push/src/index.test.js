@@ -175,7 +175,7 @@ describe('POST /subscribe', () => {
     expect(health.status).toBe(200)
   })
 
-  it('OPTIONS 预检直接 204，并允许 POST', async () => {
+  it('OPTIONS 预检允许公告管理所需的 POST、PUT、DELETE', async () => {
     const env = await makeEnv()
     const response = await worker.fetch(
       new Request('https://push.example.workers.dev/subscribe', {
@@ -186,6 +186,8 @@ describe('POST /subscribe', () => {
     )
     expect(response.status).toBe(204)
     expect(response.headers.get('Access-Control-Allow-Methods')).toContain('POST')
+    expect(response.headers.get('Access-Control-Allow-Methods')).toContain('PUT')
+    expect(response.headers.get('Access-Control-Allow-Methods')).toContain('DELETE')
     expect(response.headers.get('Access-Control-Allow-Headers')).toContain('Authorization')
     expect(response.headers.get('Access-Control-Allow-Headers')).toContain('Idempotency-Key')
   })
@@ -625,6 +627,80 @@ describe('官方频道的管理面', () => {
 
     const notices = await worker.fetch(channelRequest('/notices'), env)
     expect((await notices.json()).notices[0].title).toBe('维护通知')
+  })
+
+  it('管理网页可以查看完整历史、原位编辑和删除公告', async () => {
+    const env = await makeEnv()
+    const { sessionToken } = await makeAdminSession(env)
+
+    const unauthorized = await worker.fetch(channelRequest('/admin/api/notices'), env)
+    expect(unauthorized.status).toBe(401)
+
+    const created = await worker.fetch(
+      channelRequest('/admin/api/notices', {
+        method: 'POST',
+        sessionToken,
+        body: { title: '旧公告', body: '旧内容', level: 'info' },
+      }),
+      env,
+    )
+    expect(created.status).toBe(200)
+    const original = (await created.json()).notice
+
+    const history = await worker.fetch(
+      channelRequest('/admin/api/notices', { sessionToken }),
+      env,
+    )
+    expect((await history.json()).notices).toHaveLength(1)
+
+    const edited = await worker.fetch(
+      channelRequest(`/admin/api/notices/${encodeURIComponent(original.id)}`, {
+        method: 'PUT',
+        sessionToken,
+        body: { title: '新公告', body: '修订后的内容', level: 'urgent' },
+      }),
+      env,
+    )
+    const editedNotice = (await edited.json()).notice
+    expect(edited.status).toBe(200)
+    expect(editedNotice).toMatchObject({
+      id: original.id,
+      title: '新公告',
+      body: '修订后的内容',
+      level: 'urgent',
+      createdAt: original.createdAt,
+    })
+    expect(editedNotice.updatedAt).toBeGreaterThanOrEqual(original.createdAt)
+
+    const publicAfterEdit = await worker.fetch(channelRequest('/notices'), env)
+    expect((await publicAfterEdit.json()).notices[0].title).toBe('新公告')
+
+    const removed = await worker.fetch(
+      new Request(`https://push.example.workers.dev/admin/api/notices/${encodeURIComponent(original.id)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${sessionToken}`, Origin: 'https://app.example.com' },
+      }),
+      env,
+    )
+    expect(removed.status).toBe(200)
+    expect(await removed.json()).toMatchObject({ ok: true, deleted: true, id: original.id })
+
+    const historyAfterDelete = await worker.fetch(
+      channelRequest('/admin/api/notices', { sessionToken }),
+      env,
+    )
+    expect((await historyAfterDelete.json()).notices).toEqual([])
+    const publicAfterDelete = await worker.fetch(channelRequest('/notices'), env)
+    expect((await publicAfterDelete.json()).notices).toEqual([])
+
+    const missing = await worker.fetch(
+      new Request(`https://push.example.workers.dev/admin/api/notices/${original.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${sessionToken}`, Origin: 'https://app.example.com' },
+      }),
+      env,
+    )
+    expect(missing.status).toBe(404)
   })
 
   it('登录限流器拒绝时返回 429；原 CLI 令牌仍独立可用', async () => {

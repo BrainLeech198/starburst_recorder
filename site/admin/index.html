@@ -98,14 +98,29 @@
                 <input name="urgent" type="checkbox" />
                 <span><strong>紧急公告</strong><small>会在应用内以紧急级别提醒用户</small></span>
               </label>
-              <button class="button button--primary" type="submit">发布应用内公告</button>
+              <div class="form-actions">
+                <button class="button button--primary" type="submit">发布应用内公告</button>
+                <button id="cancel-edit" class="button button--quiet" type="button" hidden>取消编辑</button>
+              </div>
             </form>
+          </section>
+
+          <section class="panel" aria-labelledby="notices-history-title">
+            <div class="panel-heading">
+              <div>
+                <span class="step">02</span>
+                <h2 id="notices-history-title">公告历史</h2>
+              </div>
+              <button id="load-notices" class="button button--small" type="button">刷新历史</button>
+            </div>
+            <p id="notices-count" class="count-line">尚未加载</p>
+            <ul id="notices-list" class="record-list notice-history" aria-live="polite"></ul>
           </section>
 
           <section class="panel" aria-labelledby="subscribers-title">
             <div class="panel-heading">
               <div>
-                <span class="step">02</span>
+                <span class="step">03</span>
                 <h2 id="subscribers-title">邮箱订阅者</h2>
               </div>
               <button id="load-subscribers" class="button button--small" type="button">加载名单</button>
@@ -118,7 +133,7 @@
           <section class="panel" aria-labelledby="feedback-title">
             <div class="panel-heading">
               <div>
-                <span class="step">03</span>
+                <span class="step">04</span>
                 <h2 id="feedback-title">用户反馈</h2>
               </div>
               <button id="load-feedback" class="button button--small" type="button">加载反馈</button>

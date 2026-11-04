@@ -1,6 +1,7 @@
 const API = 'https://starburst-push.starburst-recorder.workers.dev'
 
 let sessionToken = null
+let editingNoticeId = null
 
 const loginView = document.querySelector('#login-view')
 const workspaceView = document.querySelector('#workspace-view')
@@ -76,6 +77,7 @@ loginForm.addEventListener('submit', async (event) => {
     document.querySelector('#mail-note').textContent = status.emailSendingEnabled
       ? '邮件会发送给当前所有已订阅地址；每封邮件均附退订链接。'
       : `${status.emailReason}。邮件发送选项暂不可用。`
+    await loadAdminNotices()
   } catch (error) {
     if (sessionToken) {
       showWorkspaceMessage(error.message || '已登录，但无法读取工作台配置。', 'error')
@@ -96,30 +98,40 @@ const emailSubject = noticeForm.elements.subject
 const noticeSubmit = noticeForm.querySelector('button[type="submit"]')
 const urgentRow = document.querySelector('#urgent-row')
 const urgentCheckbox = noticeForm.elements.urgent
+const cancelEditButton = document.querySelector('#cancel-edit')
 
 function updateDeliveryFields() {
   const delivery = deliverySelect.value
   const usesEmail = delivery === 'email' || delivery === 'both'
   const includesNotice = delivery === 'notice' || delivery === 'both'
+  const isEditing = editingNoticeId !== null
+  deliverySelect.disabled = isEditing
   emailSubjectRow.hidden = !usesEmail
   emailSubject.disabled = !usesEmail
   urgentRow.hidden = !includesNotice
   urgentCheckbox.disabled = !includesNotice
-  noticeSubmit.textContent = {
+  noticeSubmit.textContent = isEditing ? '保存公告修改' : {
     notice: '发布应用内公告',
     email: '发送邮件',
     both: '发布公告并发送邮件',
   }[delivery]
+  cancelEditButton.hidden = !isEditing
 }
 
 deliverySelect.addEventListener('change', updateDeliveryFields)
+cancelEditButton.addEventListener('click', () => {
+  editingNoticeId = null
+  noticeForm.reset()
+  workspaceMessage.hidden = true
+  updateDeliveryFields()
+})
 
 noticeForm.addEventListener('submit', async (event) => {
   event.preventDefault()
   const form = event.currentTarget
   const button = form.querySelector('button[type="submit"]')
   const values = new FormData(form)
-  const delivery = values.get('delivery')
+  const delivery = editingNoticeId ? 'notice' : values.get('delivery')
   const level = values.get('urgent') === 'on' ? 'urgent' : 'info'
   if (delivery !== 'notice') {
     const includesNotice = delivery === 'both'
@@ -133,6 +145,26 @@ noticeForm.addEventListener('submit', async (event) => {
   button.textContent = '正在发布…'
   workspaceMessage.hidden = true
   try {
+    if (editingNoticeId) {
+      const result = await adminRequest(
+        `/admin/api/notices/${encodeURIComponent(editingNoticeId)}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            title: values.get('title'),
+            body: values.get('body'),
+            level,
+          }),
+        },
+      )
+      showWorkspaceMessage(`公告已更新：${result.notice.title}。已发出的邮件不会重新发送。`)
+      editingNoticeId = null
+      form.reset()
+      updateDeliveryFields()
+      await loadAdminNotices()
+      return
+    }
+
     const result = await adminRequest('/admin/api/messages', {
       method: 'POST',
       headers: delivery === 'notice' ? {} : { 'Idempotency-Key': crypto.randomUUID() },
@@ -160,6 +192,7 @@ noticeForm.addEventListener('submit', async (event) => {
     }
     form.reset()
     updateDeliveryFields()
+    if (result.notice) await loadAdminNotices()
   } catch (error) {
     if (workspaceView.hidden) return
     showWorkspaceMessage(error.message || '发布失败，请重试。', 'error')
@@ -180,6 +213,98 @@ function showEmpty(list, message) {
   item.textContent = message
   list.replaceChildren(item)
 }
+
+function beginNoticeEdit(notice) {
+  editingNoticeId = notice.id
+  noticeForm.elements.title.value = notice.title
+  noticeForm.elements.body.value = notice.body
+  noticeForm.elements.delivery.value = 'notice'
+  urgentCheckbox.checked = notice.level === 'urgent'
+  workspaceMessage.hidden = true
+  updateDeliveryFields()
+  noticeForm.scrollIntoView({
+    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    block: 'center',
+  })
+  noticeForm.elements.title.focus({ preventScroll: true })
+}
+
+async function loadAdminNotices() {
+  const button = document.querySelector('#load-notices')
+  const list = document.querySelector('#notices-list')
+  const count = document.querySelector('#notices-count')
+  button.disabled = true
+  count.textContent = '正在加载…'
+  try {
+    const result = await adminRequest('/admin/api/notices')
+    count.textContent = `共 ${result.notices.length} 条公告`
+    if (!result.notices.length) return showEmpty(list, '目前没有已发布的公告。')
+    const items = result.notices.map((notice) => {
+      const item = document.createElement('li')
+      item.className = 'notice-record'
+
+      const heading = document.createElement('div')
+      heading.className = 'notice-record__heading'
+      const title = document.createElement('strong')
+      title.className = 'notice-record__title'
+      title.textContent = notice.title
+      const level = document.createElement('span')
+      level.className = 'notice-record__level'
+      level.dataset.level = notice.level
+      level.textContent = notice.level === 'urgent' ? '紧急' : '普通'
+      heading.append(title, level)
+
+      const body = document.createElement('p')
+      body.className = 'notice-record__body'
+      body.textContent = notice.body
+
+      const meta = document.createElement('small')
+      meta.textContent = notice.updatedAt && notice.updatedAt > notice.createdAt
+        ? `发布于 ${formatTime(notice.createdAt)} · 编辑于 ${formatTime(notice.updatedAt)}`
+        : `发布于 ${formatTime(notice.createdAt)}`
+
+      const actions = document.createElement('div')
+      actions.className = 'notice-record__actions'
+      const editButton = document.createElement('button')
+      editButton.className = 'button button--small'
+      editButton.type = 'button'
+      editButton.textContent = '编辑'
+      editButton.addEventListener('click', () => beginNoticeEdit(notice))
+      const deleteButton = document.createElement('button')
+      deleteButton.className = 'button button--small button--danger'
+      deleteButton.type = 'button'
+      deleteButton.textContent = '删除'
+      deleteButton.addEventListener('click', async () => {
+        if (!window.confirm(`确定删除公告“${notice.title}”吗？删除后会从所有用户的应用内公告列表移除；已发出的邮件无法撤回。`)) return
+        deleteButton.disabled = true
+        try {
+          await adminRequest(`/admin/api/notices/${encodeURIComponent(notice.id)}`, { method: 'DELETE' })
+          if (editingNoticeId === notice.id) {
+            editingNoticeId = null
+            noticeForm.reset()
+            updateDeliveryFields()
+          }
+          showWorkspaceMessage(`公告已删除：${notice.title}`)
+          await loadAdminNotices()
+        } catch (error) {
+          showWorkspaceMessage(error.message || '删除公告失败。', 'error')
+          deleteButton.disabled = false
+        }
+      })
+      actions.append(editButton, deleteButton)
+      item.append(heading, body, meta, actions)
+      return item
+    })
+    list.replaceChildren(...items)
+  } catch (error) {
+    count.textContent = '加载失败'
+    showEmpty(list, error.message || '无法读取公告历史。')
+  } finally {
+    button.disabled = false
+  }
+}
+
+document.querySelector('#load-notices').addEventListener('click', () => void loadAdminNotices())
 
 document.querySelector('#load-subscribers').addEventListener('click', async (event) => {
   const button = event.currentTarget

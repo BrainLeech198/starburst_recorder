@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  deleteNotice,
   emailKey,
   confirmEmailSubscription,
   isSubscribed,
@@ -14,6 +15,7 @@ import {
   subscribeEmail,
   subscribeEmailWithoutConfirmation,
   unsubscribeEmail,
+  updateNotice,
 } from './channel.js'
 
 /**
@@ -221,6 +223,39 @@ describe('公告', () => {
     await putNotice(kv, '1', { title: '紧急', body: 'x', level: 'urgent' })
     const [notice] = await listNotices(kv)
     expect(notice.level).toBe('urgent')
+  })
+
+  it('编辑保留公告 ID 和发布时间，记录更新时间；删除后从列表消失', async () => {
+    const kv = createKv()
+    await putNotice(kv, 'notice-1', { title: '旧标题', body: '旧正文' }, 100)
+
+    const updated = await updateNotice(
+      kv,
+      'notice-1',
+      { title: '新标题', body: '新正文', level: 'urgent' },
+      500,
+    )
+    expect(updated).toMatchObject({
+      id: 'notice-1',
+      title: '新标题',
+      body: '新正文',
+      level: 'urgent',
+      createdAt: 100,
+      updatedAt: 500,
+    })
+    expect((await listNotices(kv))[0]).toMatchObject(updated)
+
+    expect(await deleteNotice(kv, 'notice-1')).toBe(true)
+    expect(await listNotices(kv)).toEqual([])
+    expect(await deleteNotice(kv, 'notice-1')).toBe(false)
+  })
+
+  it('不存在或不安全 ID 的公告不能被编辑或删除', async () => {
+    const kv = createKv()
+    expect(await updateNotice(kv, '../sub:x', { title: '标题', body: '正文' }, 500)).toBeNull()
+    expect(await updateNotice(kv, 'missing', { title: '标题', body: '正文' }, 500)).toBeNull()
+    expect(await deleteNotice(kv, '../sub:x')).toBe(false)
+    expect(kv.store.size).toBe(0)
   })
 })
 
