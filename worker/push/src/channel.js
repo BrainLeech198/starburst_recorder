@@ -165,6 +165,22 @@ export async function subscribeEmail(kv, email, now = Date.now()) {
   return { email: clean, createdAt: now, subscriptionId, alreadySubscribed: false }
 }
 
+/** Keep the existing App flow working while the mail sender is unavailable. */
+export async function subscribeEmailWithoutConfirmation(kv, email, now = Date.now()) {
+  const clean = normalizeEmail(email)
+  if (!clean) return null
+  const key = await emailKey(clean)
+  const existing = await kv.get(key, 'json')
+  if (existing?.email && (typeof existing.confirmedAt !== 'number' || existing.confirmedAt > 0)) {
+    return { email: clean, createdAt: Number(existing.createdAt) || now, alreadySubscribed: true }
+  }
+
+  const createdAt = now
+  // Records without confirmedAt retain the legacy explicit-subscription state.
+  await kv.put(key, JSON.stringify({ email: clean, createdAt }))
+  return { email: clean, createdAt, alreadySubscribed: false }
+}
+
 /** Confirm only the current pending subscription; old links cannot confirm a later re-subscription. */
 export async function confirmEmailSubscription(kv, key, subscriptionId, now = Date.now()) {
   if (!/^sub:[a-f0-9]{40}$/.test(key) || typeof subscriptionId !== 'string') return false

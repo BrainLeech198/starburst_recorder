@@ -78,7 +78,7 @@ npx wrangler secret put UNSUBSCRIBE_TOKEN_SECRET --config worker/push/wrangler.t
 
 `EMAIL_FROM` 必须是 Resend 已验证域名下的发件地址。`UNSUBSCRIBE_TOKEN_SECRET` 用本机
 `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"` 生成。
-用户提交邮箱后会收到确认邮件；七天未确认的地址作废。已有旧版记录（没有 `confirmedAt` 字段）视为用户此前已主动订阅，保留有效状态。
+Resend、发件地址、签名密钥和队列都配置好后，新地址会收到确认邮件；七天未确认的地址作废。邮件服务未配置时，订阅接口暂时兼容旧版即时登记，管理员网页的邮件发送选项仍禁用。已有旧版记录（没有 `confirmedAt` 字段）视为用户此前已主动订阅，保留有效状态。
 
 管理员网页入口：`https://brainleech198.github.io/starburst_recorder/admin/`。
 `wrangler.toml` 中 Rate Limiting namespace `631942` 与 `631943` 必须在 Cloudflare 账户内唯一；限流绑定或账号 Secrets 缺失时登录/订阅确认均失败关闭。

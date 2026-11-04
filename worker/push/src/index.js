@@ -38,6 +38,7 @@ import {
   putNotice,
   sanitizeNotice,
   subscribeEmail,
+  subscribeEmailWithoutConfirmation,
   unsubscribeEmail,
 } from './channel.js'
 
@@ -334,8 +335,8 @@ async function postSubscribeEmail(request, env, cors) {
   if (parsed.error) return json({ error: parsed.error }, parsed.status, cors)
   const email = normalizeEmail(parsed.body?.email)
   if (!email) return json({ error: 'invalid email' }, 400, cors)
-  if (!emailSendingReady(env) || !env.EMAIL_SUBSCRIBE_LIMITER) {
-    return json({ error: 'email subscription confirmation is not configured' }, 503, cors)
+  if (!env.EMAIL_SUBSCRIBE_LIMITER) {
+    return json({ error: 'email subscription is not configured' }, 503, cors)
   }
 
   let allowed
@@ -346,6 +347,12 @@ async function postSubscribeEmail(request, env, cors) {
     return json({ error: 'email subscription temporarily unavailable' }, 503, cors)
   }
   if (!allowed?.success) return json({ error: 'too many subscription requests' }, 429, cors)
+
+  if (!emailSendingReady(env)) {
+    const record = await subscribeEmailWithoutConfirmation(env.PUSH_KV, email)
+    if (!record) return json({ error: 'invalid email' }, 400, cors)
+    return json({ ok: true, email: record.email, subscribed: true }, 200, cors)
+  }
 
   const record = await subscribeEmail(env.PUSH_KV, email)
   if (!record) return json({ error: 'invalid email' }, 400, cors)

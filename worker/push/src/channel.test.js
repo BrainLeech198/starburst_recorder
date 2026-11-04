@@ -12,6 +12,7 @@ import {
   sanitizeFeedback,
   sanitizeNotice,
   subscribeEmail,
+  subscribeEmailWithoutConfirmation,
   unsubscribeEmail,
 } from './channel.js'
 
@@ -173,6 +174,17 @@ describe('订阅', () => {
     await kv.put(key, JSON.stringify({ email: 'legacy@example.com', createdAt: 100 }))
     expect(await isSubscribed(kv, 'legacy@example.com')).toBe(true)
     expect((await listSubscribers(kv)).map((person) => person.email)).toEqual(['legacy@example.com'])
+  })
+
+  it('邮件发送未配置时保留旧式显式订阅，不创建待确认状态', async () => {
+    const kv = createKv()
+    const record = await subscribeEmailWithoutConfirmation(kv, 'a@example.com', 100)
+    expect(record).toMatchObject({ email: 'a@example.com', createdAt: 100, alreadySubscribed: false })
+    expect(await isSubscribed(kv, 'a@example.com')).toBe(true)
+    expect(await kv.get(await emailKey('a@example.com'), 'json')).toEqual({
+      email: 'a@example.com',
+      createdAt: 100,
+    })
   })
 
   it('非法邮箱不落库', async () => {

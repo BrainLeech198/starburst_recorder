@@ -378,6 +378,25 @@ async function makeAdminSession(env = {}) {
 }
 
 describe('官方频道的公开接口', () => {
+  it('邮件服务未配置时保持旧订阅接口可用', async () => {
+    const env = await makeEnv()
+    const response = await worker.fetch(
+      channelRequest('/subscribe-email', {
+        method: 'POST',
+        body: { email: 'legacy-flow@example.com' },
+      }),
+      env,
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ ok: true, subscribed: true })
+    const status = await worker.fetch(
+      channelRequest('/subscription?email=legacy-flow@example.com'),
+      env,
+    )
+    expect((await status.json()).subscribed).toBe(true)
+  })
+
   it('新邮箱先收确认邮件；点击确认页后才进入有效订阅名单', async () => {
     const env = await makeEnv()
     configureEmail(env)
