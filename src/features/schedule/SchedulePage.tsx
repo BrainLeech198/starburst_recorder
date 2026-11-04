@@ -42,7 +42,9 @@ export default function SchedulePage() {
   const dateParam = params.get('date')
   const dayKey = isDateKey(dateParam) ? dateParam : todayKey()
 
-  const items = useLiveQuery(() => schedules(), []) ?? []
+  const scheduleResult = useLiveQuery(() => schedules(), [])
+  const loading = scheduleResult === undefined
+  const items = scheduleResult ?? []
 
   const [dialog, setDialog] = useState<{ value: ScheduleItem | null } | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -141,7 +143,12 @@ export default function SchedulePage() {
         </span>
       </h2>
 
-      {today.length === 0 ? (
+      {loading ? (
+        <div aria-hidden="true" className="rounded-2xl border border-line bg-surface px-3 py-4">
+          <div className="h-4 w-2/3 rounded bg-surface-2" />
+          <div className="mt-2 h-3 w-1/3 rounded bg-surface-2" />
+        </div>
+      ) : today.length === 0 ? (
         <EmptyState icon="🗓️" text={t('schedule.dayEmpty')} />
       ) : (
         <ul className={LIST}>
@@ -199,7 +206,12 @@ export default function SchedulePage() {
         </span>
       </h2>
 
-      {recurring.length === 0 ? (
+      {loading ? (
+        <div aria-hidden="true" className="rounded-2xl border border-line bg-surface px-3 py-4">
+          <div className="h-4 w-1/2 rounded bg-surface-2" />
+          <div className="mt-2 h-3 w-1/3 rounded bg-surface-2" />
+        </div>
+      ) : recurring.length === 0 ? (
         <EmptyState icon="🔁" text={t('schedule.recurringEmpty')} />
       ) : (
         <ul className={LIST}>

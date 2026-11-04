@@ -127,12 +127,12 @@ const EXAMPLE_KEYS = [
  * 主色芯片（推荐内容）、方形图标钮（附件）、实心胶囊（发送）。
  */
 const CHAT_ICON_BRAND =
-  'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-sm text-on-brand transition hover:opacity-90 active:scale-[0.94] disabled:opacity-40 md:h-7 md:w-7'
+  'sb-pressable inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-sm text-on-brand transition hover:opacity-90 active:scale-[0.94] disabled:opacity-40 md:h-7 md:w-7'
 const CHAT_TOOL = 'inline-flex h-11 shrink-0 items-center gap-1 px-1.5 text-[11px] text-muted transition-colors hover:text-brand disabled:opacity-50 md:h-7 md:px-1'
 const CHAT_COUNT = 'rounded-full bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-muted'
 const CHAT_CHIP = 'inline-flex min-h-11 items-center rounded-full bg-brand/10 px-3 py-1.5 text-[11px] text-brand transition-colors hover:bg-brand/20 disabled:opacity-50 md:min-h-0 md:px-2.5 md:py-1'
 const CHAT_ICON = 'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2 text-base text-muted transition-colors hover:bg-brand/10 hover:text-brand disabled:opacity-40'
-const CHAT_SEND = 'inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-brand px-4 text-sm font-medium text-on-brand transition hover:opacity-90 active:scale-[0.97] disabled:opacity-40'
+const CHAT_SEND = 'sb-pressable inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-brand px-4 text-sm font-medium text-on-brand transition hover:opacity-90 active:scale-[0.97] disabled:opacity-40'
 const CHAT_STOP =
   'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-danger/40 text-sm text-danger transition-colors hover:bg-danger/10 disabled:opacity-40'
 const CHAT_ROW = 'flex min-h-12 min-w-0 flex-1 flex-col px-2.5 py-2 text-left transition-colors'
@@ -1535,7 +1535,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
               setReasoning(next)
               saveReasoning(next)
             }}
-            className={`${MODE_CHIP} ${reasoning ? MODE_CHIP_ON : MODE_CHIP_OFF}`}
+            className={`group ${MODE_CHIP} ${reasoning ? MODE_CHIP_ON : MODE_CHIP_OFF}`}
           >
             <Icon name="sparkles" className="h-3.5 w-3.5" />
             {t('assistant.reasoning')}
@@ -1546,7 +1546,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
               aria-hidden="true"
             >
               <span
-                className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white shadow-sm transition-[left] duration-150 motion-reduce:transition-none ${
+                className={`sb-switch-thumb absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white shadow-sm transition-[left,transform] duration-200 group-active:scale-x-125 group-active:scale-y-90 motion-reduce:transition-none ${
                   reasoning ? 'left-3' : 'left-0.5'
                 }`}
               />

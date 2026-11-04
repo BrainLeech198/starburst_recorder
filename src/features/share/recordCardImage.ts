@@ -7,7 +7,7 @@ const HEIGHT = 1350
 const CARD_INSET = 56
 const TEXT_LEFT = 112
 const TEXT_WIDTH = WIDTH - TEXT_LEFT * 2
-const BODY_MAX_LINES = 14
+const BODY_MAX_LINES = 10
 
 function roundedRect(
   context: CanvasRenderingContext2D,
@@ -110,11 +110,23 @@ export async function renderRecordCardImage(doc: ShareDoc, t: Translate): Promis
   context.textBaseline = 'top'
   context.fillText(t('app.name'), TEXT_LEFT + 32, 116)
 
+  const date = doc.kind === 'diary' || doc.kind === 'stamp' || doc.kind === 'intake' || doc.kind === 'finance'
+    ? doc.data.dateKey
+    : ''
+  if (date) {
+    roundedRect(context, TEXT_LEFT, 166, 220, 42, 21)
+    context.fillStyle = '#f0edff'
+    context.fill()
+    context.fillStyle = '#6657d8'
+    context.font = '600 22px system-ui, sans-serif'
+    context.fillText(date, TEXT_LEFT + 18, 176, 184)
+  }
+
   const title = doc.title.trim() || t('app.name')
   context.fillStyle = '#202334'
   context.font = '700 58px system-ui, sans-serif'
   const titleLines = clampLines(wrapText(context, title, TEXT_WIDTH), 2, context, TEXT_WIDTH)
-  let y = 206
+  let y = date ? 236 : 206
   for (const line of titleLines) {
     context.fillText(line, TEXT_LEFT, y, TEXT_WIDTH)
     y += 76
@@ -132,12 +144,24 @@ export async function renderRecordCardImage(doc: ShareDoc, t: Translate): Promis
   const previewLines = getShareAdapter(doc).preview(doc, t)
     .map((line) => line.replace(/\[\[share-image:\d+\]\]/g, '').trim())
     .filter(Boolean)
-  context.fillStyle = '#414354'
   context.font = '400 34px system-ui, sans-serif'
   const bodyLines = previewLines.flatMap((line) => wrapText(context, line, TEXT_WIDTH))
-  const bodyAvailableHeight = HEIGHT - 250 - y
+  const panelTop = y
+  const panelBottom = HEIGHT - 222
+  const panelHeight = panelBottom - panelTop
+  roundedRect(context, TEXT_LEFT - 18, panelTop, TEXT_WIDTH + 36, panelHeight, 28)
+  context.fillStyle = '#f7f6ff'
+  context.fill()
+  roundedRect(context, TEXT_LEFT - 18, panelTop + 22, 8, panelHeight - 44, 4)
+  context.fillStyle = '#8a7de6'
+  context.fill()
+
+  context.fillStyle = '#414354'
+  context.font = '400 34px system-ui, sans-serif'
+  const bodyAvailableHeight = panelHeight - 64
   const availableLines = Math.max(1, Math.min(BODY_MAX_LINES, Math.floor(bodyAvailableHeight / 52)))
   const visibleLines = clampLines(bodyLines, availableLines, context, TEXT_WIDTH)
+  y = panelTop + 32
   if (visibleLines.length <= 5) y += Math.max(0, (bodyAvailableHeight - visibleLines.length * 52) / 2)
   for (const line of visibleLines) {
     context.fillText(line, TEXT_LEFT, y, TEXT_WIDTH)

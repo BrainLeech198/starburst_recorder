@@ -1,3 +1,20 @@
+## 0.16.0 · 2026-11-04
+
+A simpler care-mode home, with smoother record navigation and sharing
+
+### What's new
+
+- **A simpler home for care mode** — Diary, Health, Finance and Calendar become four large entry points; font scaling can be enabled independently from the other care options.
+- **Cycle through record areas** — tap “Records” to move through Diary, Health, Finance and Calendar; the Finance view first collapses its open submenu.
+- **Clearer sharing cards and QR scans** — QR codes have a wider quiet zone, image scans retry at original resolution, and record cards show the date with a clearer body layout.
+- **Accurate loading states** — Review and Schedule show placeholders until data loads instead of briefly reporting empty results.
+- **Refined control feedback** — buttons, switches and checkmarks respond subtly while respecting system and app reduced-motion settings.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.16.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.0/starburst-recorder-0.16.0-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.0/starburst-recorder-0.16.0-setup.exe)
+- Android 10+: [`starburst-recorder-0.16.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.0/starburst-recorder-0.16.0.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.0/starburst-recorder-0.16.0.apk)
+
 ## 0.15.1 · 2026-11-04
 
 Announcements now have an explicit receipt confirmation
@@ -11,8 +28,8 @@ Announcements now have an explicit receipt confirmation
 
 ### Downloads
 
-- Windows 10/11: [`starburst-recorder-0.15.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.1/starburst-recorder-0.15.1-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.15.1/starburst-recorder-0.15.1-setup.exe)
-- Android 10+: [`starburst-recorder-0.15.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.1/starburst-recorder-0.15.1.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.15.1/starburst-recorder-0.15.1.apk)
+- Windows 10/11: [`starburst-recorder-0.15.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.1/starburst-recorder-0.15.1-setup.exe) (~96 MB)
+- Android 10+: [`starburst-recorder-0.15.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.1/starburst-recorder-0.15.1.apk) (~62 MB, release-signed)
 
 ## 0.15.0 · 2026-11-04
 
@@ -27,8 +44,8 @@ Assistant replies stream in real time, with announcement and cross-platform chan
 
 ### Downloads
 
-- Windows 10/11: [`starburst-recorder-0.15.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.0/starburst-recorder-0.15.0-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.15.0/starburst-recorder-0.15.0-setup.exe)
-- Android 10+: [`starburst-recorder-0.15.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.0/starburst-recorder-0.15.0.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.15.0/starburst-recorder-0.15.0.apk)
+- Windows 10/11: [`starburst-recorder-0.15.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.0/starburst-recorder-0.15.0-setup.exe) (~96 MB)
+- Android 10+: [`starburst-recorder-0.15.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.0/starburst-recorder-0.15.0.apk) (~62 MB, release-signed)
 
 ## 0.14.1 · 2026-11-04
 
@@ -43,8 +60,8 @@ Health trend estimates and everyday controls improved
 
 ### Downloads
 
-- Windows 10/11: [`starburst-recorder-0.14.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.1/starburst-recorder-0.14.1-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.14.1/starburst-recorder-0.14.1-setup.exe)
-- Android 10+: [`starburst-recorder-0.14.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.1/starburst-recorder-0.14.1.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.14.1/starburst-recorder-0.14.1.apk)
+- Windows 10/11: [`starburst-recorder-0.14.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.1/starburst-recorder-0.14.1-setup.exe) (~96 MB)
+- Android 10+: [`starburst-recorder-0.14.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.1/starburst-recorder-0.14.1.apk) (~62 MB, release-signed)
 
 ## 0.14.0 · 2026-11-03
 
@@ -61,8 +78,8 @@ Official announcements, email subscriptions and feedback for every platform — 
 
 ### Downloads
 
-- Windows 10/11: [`starburst-recorder-0.14.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0-setup.exe)
-- Android 10+: [`starburst-recorder-0.14.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0.apk)
+- Windows 10/11: [`starburst-recorder-0.14.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0-setup.exe) (~96 MB)
+- Android 10+: [`starburst-recorder-0.14.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.0/starburst-recorder-0.14.0.apk) (~62 MB, release-signed)
 
 ## 0.13.1 · 2026-11-03
 

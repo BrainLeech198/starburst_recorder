@@ -756,6 +756,32 @@ html.sb-scroll-locked .sb-scroll {
   animation: toast-in 0.2s ease-out both;
 }
 
+/* 主操作松手时轻微越过终点再回稳；按下阶段保持短促，减少动效规则会将缩放关掉。 */
+.sb-pressable {
+  transition-timing-function: cubic-bezier(0.34, 1.35, 0.64, 1);
+}
+
+.sb-pressable:active,
+.group:active .nav-icon.sb-pressable,
+.group:active .sb-switch-thumb {
+  transition-timing-function: ease-out;
+}
+
+/* 开关圆点在按住/切换时略拉长，松开后随弹性位移回到圆形。 */
+.sb-switch-thumb {
+  transition-timing-function: cubic-bezier(0.34, 1.35, 0.64, 1);
+}
+
+@keyframes checkmark-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.sb-checkmark-draw {
+  animation: checkmark-draw 0.18s ease-out both;
+}
+
 /* 导航图标：悬停轻轻抬起，当前页再亮一点，给底栏一个不看文字也能认出的信号 */
 .nav-icon {
   transition:
@@ -794,12 +820,42 @@ html.sb-scroll-locked .sb-scroll {
   .sb-theme-fading * {
     transition: none !important;
   }
+
+  .sb-checkmark-draw {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+
+  /* 按钮不缩放，导航图标不抬起/放大，拨钮状态即时到位。 */
+  :where(button, a, [role='button'], [role='menuitem'], [role='tab']):active {
+    transform: none !important;
+    translate: none !important;
+    scale: none !important;
+    rotate: none !important;
+  }
+
+  :where([role='switch'], [role='switch'] *) {
+    transition: none !important;
+  }
+
+  .sb-switch-thumb {
+    scale: none !important;
+  }
+
+  .nav-icon,
+  [aria-current='page'] .nav-icon {
+    transition: none !important;
+    transform: none !important;
+    translate: none !important;
+    scale: none !important;
+    rotate: none !important;
+    filter: none !important;
+  }
 }
 
 /* ─────────── 长辈关怀（me/older） ───────────
    状态由 CareModeProvider 挂在 <html> 的 data-* 上（见 src/shared/care/careMode.ts）。
-   Tailwind 的尺寸全是 rem，所以放大根字号 = 整套界面等比放大，
-   页面代码一行都不用改；浏览器自身的字体偏好（百分比基准）也仍然算数。 */
+   Tailwind 的 rem 布局随字号档位放大；首页另有长辈模式下的常用入口布局。 */
 
 html[data-font-scale='large'] {
   font-size: 115%;
@@ -811,8 +867,8 @@ html[data-font-scale='xxlarge'] {
   font-size: 150%;
 }
 
-/* 加大点按区：按钮 / 链接 / 行一律 48px 起（WCAG AAA 是 44px，长辈场景再放宽一档）。
-   桌面端那些 md:min-h-0 的紧凑按钮也一起放大。开关（role=switch）是拖动条样式，不跟着长。 */
+/* 加大点按区：按钮 / 链接 / 行一律 48px 起，桌面端紧凑按钮也一起放大。
+   设置页开关本身使用 48px 方形点按区，轨道仍保持较小的视觉尺寸。 */
 html[data-care-tap='on'] :is(button, a, [role='button'], [role='menuitem'], [role='tab']):not(
     [role='switch']
   ) {
@@ -828,14 +884,32 @@ html[data-care-tap='on'] :is(button, a, [role='button'], [role='menuitem'], [rol
   --color-line: color-mix(in srgb, var(--color-fg) 30%, var(--color-bg));
 }
 
-/* 减少动效：口径跟 prefers-reduced-motion 那段一致，只是改成手动强制。
-   滑动换天也从这里彻底关掉，不再依赖「缩短到 0.01ms」的兜底。 */
+/* 手动减少动效：关闭 CSS 动画和过渡，并取消交互时的缩放、位移和滤镜变化。 */
 html[data-care-motion='on'] *,
 html[data-care-motion='on'] *::before,
 html[data-care-motion='on'] *::after {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+html[data-care-motion='on'] :where(button, a, [role='button'], [role='menuitem'], [role='tab']):is(
+    :hover,
+    :focus-visible,
+    :active
+  ) {
+  transform: none !important;
+  translate: none !important;
+  rotate: none !important;
+  scale: none !important;
+}
+
+html[data-care-motion='on'] .nav-icon,
+html[data-care-motion='on'] [aria-current='page'] .nav-icon {
+  transform: none !important;
+  translate: none !important;
+  rotate: none !important;
+  scale: none !important;
+  filter: none !important;
 }
 
 html[data-care-motion='on'] .sb-day-slide-next,

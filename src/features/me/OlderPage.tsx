@@ -1,10 +1,10 @@
 /**
  * 「长辈关怀」设置页（/me/older）。
  *
- * 字号档位跟总开关一起生效，关掉总开关就回到标准大小；总开关还带四个关怀功能：
- * 加大点按区 / 高对比 / 减少动效 / 防误触（危险操作二次确认，见 ConfirmDialog）。
+ * 字号档位独立生效；总开关控制四个关怀功能：加大点按区 / 高对比 / 减少动效 / 防误触。
  * 状态存在 localStorage，样式挂在 <html> 的 data-* 上（见 src/shared/care/careMode.ts）。
  */
+import { useId } from 'react'
 import { useCareMode } from '@/shared/care/careContext'
 import { FONT_SCALES } from '@/shared/care/careMode'
 import type { CareState } from '@/shared/care/careMode'
@@ -14,7 +14,7 @@ import PageShell from '@/shared/ui/PageShell'
 import SettingCard, { SettingBadge, SettingGroup } from '@/shared/ui/SettingCard'
 import { choiceTile } from '@/shared/ui/buttonStyles'
 
-/** 一行「说明 + 开关」。开关是 role=switch 的拨钮，被 care-tap 的放大规则排除在外 */
+/** 一行「说明 + 开关」。拨钮有 48px 方形点按区，视觉轨道保持紧凑 */
 function SwitchRow({
   title,
   hint,
@@ -28,31 +28,41 @@ function SwitchRow({
   disabled?: boolean
   onToggle: (next: boolean) => void
 }) {
+  const id = useId()
+
   return (
-    <div className={disabled ? 'flex items-center gap-3 opacity-50' : 'flex items-center gap-3'}>
+    <div className="flex items-center gap-3">
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium text-fg">{title}</span>
-        <span className="mt-0.5 block text-xs text-muted">{hint}</span>
+        <span id={`${id}-title`} className="block text-sm font-medium text-fg">{title}</span>
+        <span id={`${id}-hint`} className="mt-0.5 block text-xs text-muted">{hint}</span>
       </span>
       <button
         type="button"
         role="switch"
         aria-checked={checked}
-        aria-label={title}
+        aria-labelledby={`${id}-title`}
+        aria-describedby={`${id}-hint`}
         disabled={disabled}
         onClick={() => onToggle(!checked)}
         className={[
-          'relative h-6 w-11 shrink-0 rounded-full border transition-colors',
-          checked ? 'border-brand bg-brand' : 'border-line bg-surface-2',
+          'group relative h-12 w-12 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:cursor-not-allowed',
+          disabled ? 'opacity-60' : '',
         ].join(' ')}
       >
         <span
           aria-hidden="true"
           className={[
-            'absolute left-0.5 top-0.5 h-5 w-5 rounded-full transition-transform',
-            checked ? 'translate-x-5 bg-on-brand' : 'translate-x-0 bg-muted',
+            'absolute left-0.5 top-3 h-6 w-11 rounded-full border transition-colors',
+            checked ? 'border-brand bg-brand' : 'border-line bg-surface-2',
           ].join(' ')}
-        />
+        >
+          <span
+            className={[
+              'sb-switch-thumb absolute left-0.5 top-0.5 h-5 w-5 rounded-full transition-transform duration-200 group-active:scale-x-125 group-active:scale-y-90',
+              checked ? 'translate-x-5 bg-on-brand' : 'translate-x-0 bg-muted',
+            ].join(' ')}
+          />
+        </span>
       </button>
     </div>
   )
@@ -89,11 +99,10 @@ export default function OlderPage() {
             checked={state.care}
             onToggle={(care) => patch({ care })}
           />
-          {!state.care && <p className="mt-2 text-xs text-muted">{t('care.fontOff')}</p>}
         </SettingGroup>
 
         <SettingGroup label={t('care.fontScale')}>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
             {FONT_SCALES.map((item) => {
               const active = state.fontScale === item.id
               return (
@@ -101,7 +110,6 @@ export default function OlderPage() {
                   key={item.id}
                   type="button"
                   aria-pressed={active}
-                  disabled={!state.care}
                   onClick={() => setFontScale(item.id)}
                   className={choiceTile(
                     active,
@@ -117,6 +125,7 @@ export default function OlderPage() {
             })}
           </div>
           <p className="mt-2 text-xs text-muted">{t('care.fontScaleHint')}</p>
+          {!state.care && <p className="mt-2 text-xs text-muted">{t('care.fontOff')}</p>}
         </SettingGroup>
       </SettingCard>
 
@@ -138,8 +147,6 @@ export default function OlderPage() {
         </SettingGroup>
       </SettingCard>
 
-      {/* 首页入口简化还在计划里，先留一句话，免得有人专门来问 */}
-      <p className="text-xs text-muted">{t('care.homeTodo')}</p>
     </PageShell>
   )
 }

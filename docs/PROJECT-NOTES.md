@@ -296,12 +296,12 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 
 参考 aging-assist（MIT，Web 端适老化插件）、adaptive_ui_senior 与 WCAG 2.2 后定下的方案：
 
-- **技术底座是「只改根字号」**：全站 Tailwind 都是 rem，在 `<html>` 上按档位设字号（`data-font-scale`，100/115/130/150%）= 整套 UI 等比放大，不动任何页面代码；`prefers-reduced-motion` 之外再给一个手动「减少动效」开关（`html.care-reduce-motion`）。
-- **点按区**用 `html.care-tap` 抬到 48px 最小触控高度；**高对比**用 `html.care-contrast` 提亮正文、压暗次要文字。
+- **字号与首页分别适配**：全站 Tailwind 主要用 rem，在 `<html>` 上按档位设字号（`data-font-scale`，100/115/130/150%）；长辈关怀开启时首页突出日记、健康、经济、日历四个大入口，接收分享保留为次级入口。
+- **点按区**在启用时用 `html[data-care-tap='on']` 抬到 48px 最小触控高度；关怀设置里的拨钮有独立 48px 方形点按区；**高对比**用 `html[data-care-contrast='on']` 提亮正文、加深分隔线。
 - **字号档位独立于总开关生效**（长辈直接调字号也管用，总开关只管其余关怀项），状态存 `localStorage`，刷新即恢复。
+- **减少动效**：`html[data-care-motion='on']` 关闭 CSS 动画、过渡和交互按压位移；按日期滑动也停用。
 - **防误触**：`ConfirmDialog` 在「总开关 + 防误触」都开时，危险操作要点两次（按钮变成「再点一次确认」）才执行。
 - 共享逻辑在 `src/shared/care/`（`careMode.ts` 纯函数 + `careContext.ts` / `CareModeProvider.tsx`，按 i18n 的 context/Provider 拆法，避免 Fast Refresh 警告，也避开 shared 反向依赖 app 的 lint 红线）；页面在 `src/features/me/OlderPage.tsx`。
-- **首页简化仍是 TODO 占位**：信息密度收缩没做，等用户明确要简化到什么程度再动。
 
 ### 推算 TDEE 与「问 ai 一下」（2026-10-29 加）
 

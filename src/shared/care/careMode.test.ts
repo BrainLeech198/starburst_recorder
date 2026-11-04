@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_CARE, parseCareState } from './careMode'
+import { careRootAttributes, DEFAULT_CARE, parseCareState } from './careMode'
 
 describe('parseCareState', () => {
   it('没存过就用默认值', () => {
@@ -39,5 +39,39 @@ describe('parseCareState', () => {
     const parsed = parseCareState(JSON.stringify({ tapTargets: false, contrast: 'yes' }))
     expect(parsed.tapTargets).toBe(false)
     expect(parsed.contrast).toBe(true)
+  })
+})
+
+describe('careRootAttributes', () => {
+  it('字号独立于总开关生效，辅助功能跟随总开关关闭', () => {
+    expect(
+      careRootAttributes({
+        ...DEFAULT_CARE,
+        care: false,
+        fontScale: 'xxlarge',
+      }),
+    ).toEqual({
+      fontScale: 'xxlarge',
+      careTap: 'off',
+      careContrast: 'off',
+      careMotion: 'off',
+    })
+  })
+
+  it('总开关与子开关共同决定辅助功能', () => {
+    expect(
+      careRootAttributes({
+        ...DEFAULT_CARE,
+        care: true,
+        fontScale: 'large',
+        tapTargets: false,
+        reduceMotion: false,
+      }),
+    ).toEqual({
+      fontScale: 'large',
+      careTap: 'off',
+      careContrast: 'on',
+      careMotion: 'off',
+    })
   })
 })

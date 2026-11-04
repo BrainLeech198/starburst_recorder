@@ -38,11 +38,21 @@ export default function ShareReceiveDialog({
     setParsing(true)
     setError('')
     try {
-      const value = await QrScanner.scanImage(file)
+      let value: string
+      try {
+        value = (await QrScanner.scanImage(file, { returnDetailedScanResult: true })).data
+      } catch {
+        // Messaging apps may resize the whole image until the QR modules are tiny.
+        // Retry at the original resolution before reporting that no QR was found.
+        value = (await QrScanner.scanImage(file, {
+          disallowCanvasResizing: true,
+          returnDetailedScanResult: true,
+        })).data
+      }
       setText(value)
       await parse(value)
     } catch {
-      setError(t('share.invalid'))
+      setError(t('share.qrImageUnreadable'))
     } finally {
       setParsing(false)
     }

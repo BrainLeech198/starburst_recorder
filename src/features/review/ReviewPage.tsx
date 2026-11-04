@@ -43,11 +43,18 @@ export default function ReviewPage() {
   const { from, to } = monthRange(monthKey)
   const today = todayKey()
 
-  const activities = useLiveQuery(() => activityBetween(from, to), [from, to]) ?? []
-  const finance = useLiveQuery(() => financeOfMonth(monthKey), [monthKey]) ?? []
-  const sleeps = useLiveQuery(() => sleepsBetween(from, to), [from, to]) ?? []
-  const trainings = useLiveQuery(() => trainingsBetween(from, to), [from, to]) ?? []
-  const items = useLiveQuery(() => schedules(), []) ?? []
+  const activityResult = useLiveQuery(() => activityBetween(from, to), [from, to])
+  const financeResult = useLiveQuery(() => financeOfMonth(monthKey), [monthKey])
+  const sleepResult = useLiveQuery(() => sleepsBetween(from, to), [from, to])
+  const trainingResult = useLiveQuery(() => trainingsBetween(from, to), [from, to])
+  const scheduleResult = useLiveQuery(() => schedules(), [])
+  const loading = [activityResult, financeResult, sleepResult, trainingResult, scheduleResult]
+    .some((result) => result === undefined)
+  const activities = activityResult ?? []
+  const finance = financeResult ?? []
+  const sleeps = sleepResult ?? []
+  const trainings = trainingResult ?? []
+  const items = scheduleResult ?? []
 
   const summary = summarizeMonth({ activities, finance, sleeps, trainings })
   const avgSleep = averageSleepMinutes(summary)
@@ -169,7 +176,42 @@ export default function ReviewPage() {
         </div>
       </section>
 
-      {empty ? (
+      {loading ? (
+        <div aria-hidden="true" className="mt-3 space-y-4">
+          <section className="grid grid-cols-2 gap-2">
+            {Array.from({ length: 6 }, (_, index) => (
+              <div key={index} className="min-h-[76px] rounded-xl border border-line bg-surface p-3">
+                <div className="h-3 w-2/5 rounded bg-surface-2" />
+                <div className="mt-2 h-5 w-3/5 rounded bg-surface-2" />
+                {index === 2 || index === 3 || index === 5 ? (
+                  <div className="mt-1.5 h-3 w-4/5 rounded bg-surface-2" />
+                ) : null}
+              </div>
+            ))}
+          </section>
+          <section className="rounded-xl border border-line bg-surface p-3">
+            <div className="h-3 w-1/5 rounded bg-surface-2" />
+            <div className="mt-2 grid grid-cols-7 gap-1">
+              {Array.from({ length: offset + days.length }, (_, index) => (
+                <span
+                  key={index}
+                  className={index < offset ? 'aspect-square' : 'aspect-square rounded-md bg-surface-2'}
+                />
+              ))}
+            </div>
+            <div className="mt-2 h-3 w-3/4 rounded bg-surface-2" />
+          </section>
+          <section>
+            <div className="mb-2 h-3 w-1/4 rounded bg-surface-2" />
+            <div className="space-y-2 rounded-2xl border border-line bg-surface p-3">
+              <div className="h-4 w-3/5 rounded bg-surface-2" />
+              <div className="h-1.5 w-full rounded bg-surface-2" />
+              <div className="h-4 w-2/5 rounded bg-surface-2" />
+              <div className="h-1.5 w-full rounded bg-surface-2" />
+            </div>
+          </section>
+        </div>
+      ) : empty ? (
         <div className="mt-6">
           <EmptyState icon="📊" text={t('review.empty')} />
         </div>

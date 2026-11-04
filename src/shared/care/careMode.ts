@@ -17,9 +17,9 @@ export const FONT_SCALES: { id: FontScaleId; labelKey: MessageKey; percent: numb
 ]
 
 export interface CareState {
-  /** 字号档位；只在总开关开着时生效，关掉后界面回到标准大小 */
+  /** 字号档位：独立于总开关生效 */
   fontScale: FontScaleId
-  /** 总开关：开着才启用字号放大和下面四个关怀功能 */
+  /** 总开关：开着才启用下面四个关怀功能 */
   care: boolean
   tapTargets: boolean
   contrast: boolean
@@ -60,20 +60,30 @@ export function parseCareState(raw: string | null): CareState {
   }
 }
 
-/** 关怀功能的生效口径：总开关开着 + 各自的子开关开着；字号永远生效 */
+/** 关怀功能的生效口径：总开关开着 + 各自的子开关开着 */
 export function careFeatureOn(state: CareState, feature: 'tapTargets' | 'contrast' | 'reduceMotion' | 'guard') {
   return state.care && state[feature]
 }
 
+/** 把已保存的关怀设置转成根节点可读的状态属性，便于纯逻辑验证。 */
+export function careRootAttributes(state: CareState) {
+  return {
+    fontScale: state.fontScale,
+    careTap: careFeatureOn(state, 'tapTargets') ? 'on' : 'off',
+    careContrast: careFeatureOn(state, 'contrast') ? 'on' : 'off',
+    careMotion: careFeatureOn(state, 'reduceMotion') ? 'on' : 'off',
+  } as const
+}
+
 /**
  * 把状态挂到 <html> 的 data-* 上，具体样式由 index.css 认这些属性。
- * 字号也跟着总开关走：关掉长辈关怀就回到标准大小，不会留下一个「关不掉的大字」。
- * 存下来的档位不丢，重新打开总开关时恢复。
+ * 字号档位独立生效；总开关只控制四个辅助功能。
  */
 export function applyCareState(state: CareState): void {
   const root = document.documentElement
-  root.dataset.fontScale = state.care ? state.fontScale : 'standard'
-  root.dataset.careTap = careFeatureOn(state, 'tapTargets') ? 'on' : 'off'
-  root.dataset.careContrast = careFeatureOn(state, 'contrast') ? 'on' : 'off'
-  root.dataset.careMotion = careFeatureOn(state, 'reduceMotion') ? 'on' : 'off'
+  const attrs = careRootAttributes(state)
+  root.dataset.fontScale = attrs.fontScale
+  root.dataset.careTap = attrs.careTap
+  root.dataset.careContrast = attrs.careContrast
+  root.dataset.careMotion = attrs.careMotion
 }

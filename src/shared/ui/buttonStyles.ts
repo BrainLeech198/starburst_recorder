@@ -1,18 +1,18 @@
 /** 实心主按钮：全站统一，新增 / 记一笔 / 保存 / 恢复入口都用它（返回不用它，见 BACK_BUTTON） */
 export const SOLID_BUTTON =
-  'inline-flex min-h-11 items-center justify-center rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-on-brand transition hover:opacity-90 active:scale-[0.97] md:min-h-0'
+  'sb-pressable inline-flex min-h-11 items-center justify-center rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-on-brand transition hover:opacity-90 active:scale-[0.97] md:min-h-0'
 
 /** 卡片标题旁的小号实心按钮：样式跟 SOLID_BUTTON 一致，尺寸缩一档 */
 export const SOLID_SMALL_BUTTON =
-  'inline-flex min-h-8 items-center justify-center rounded-lg bg-brand px-2.5 py-1 text-xs font-medium text-on-brand transition hover:opacity-90 active:scale-[0.97]'
+  'sb-pressable inline-flex min-h-8 items-center justify-center rounded-lg bg-brand px-2.5 py-1 text-xs font-medium text-on-brand transition hover:opacity-90 active:scale-[0.97]'
 
 /** 危险操作按钮：形状尺寸同上，只换成统一的危险色（删除 / 清空 / 彻底删除） */
 export const SOLID_DANGER =
-  'inline-flex min-h-11 items-center justify-center rounded-lg bg-danger px-3 py-1.5 text-sm font-medium text-on-danger transition hover:opacity-90 active:scale-[0.97] md:min-h-0'
+  'sb-pressable inline-flex min-h-11 items-center justify-center rounded-lg bg-danger px-3 py-1.5 text-sm font-medium text-on-danger transition hover:opacity-90 active:scale-[0.97] md:min-h-0'
 
 /** 可恢复的危险操作（例如整块放进回收站）：黄色实心，和红色「永久删除」区分开 */
 export const SOLID_WARN =
-  'inline-flex min-h-11 items-center justify-center rounded-lg bg-warning px-3 py-1.5 text-sm font-medium text-ink transition hover:opacity-90 active:scale-[0.97] md:min-h-0'
+  'sb-pressable inline-flex min-h-11 items-center justify-center rounded-lg bg-warning px-3 py-1.5 text-sm font-medium text-ink transition hover:opacity-90 active:scale-[0.97] md:min-h-0'
 
 /**
  * 「返回上一级」按钮：实心危险色红 + 反色文字。
@@ -26,7 +26,7 @@ export const BACK_BUTTON = SOLID_DANGER
 
 /** 日期栏里的「返回上一级」：红色实心 + 箭头，高度跟日期栏一致（比 BACK_BUTTON 矮一档） */
 export const NAV_BACK_BUTTON =
-  'inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-danger px-2.5 text-xs font-medium text-on-danger transition hover:opacity-90 active:scale-[0.97]'
+  'sb-pressable inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-danger px-2.5 text-xs font-medium text-on-danger transition hover:opacity-90 active:scale-[0.97]'
 
 /** 底部批量工具条上的小按钮：手机上同样按 44px 触控高度，桌面保持紧凑 */
 export const BAR_BUTTON =
@@ -38,14 +38,14 @@ export const BAR_DANGER =
 
 /** 描边主色按钮：次要但重要的动作（测试连接 / 应用 / 写入日记） */
 export const OUTLINE_BUTTON =
-  'inline-flex min-h-11 items-center justify-center rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition hover:bg-surface-2 active:scale-[0.97] disabled:opacity-40 md:min-h-0'
+  'sb-pressable inline-flex min-h-11 items-center justify-center rounded-lg border border-brand px-3 py-1.5 text-sm text-brand transition hover:bg-surface-2 active:scale-[0.97] disabled:opacity-40 md:min-h-0'
 
 /**
  * 弹窗里的「取消 / 关闭」这类退一步的按钮：描边浅、字色淡，跟主动作拉开层次。
  * 全站弹窗都用它，别再各自写一遍同样的类名——那样改一次要动十几处。
  */
 export const GHOST_BUTTON =
-  'inline-flex min-h-11 items-center justify-center rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition hover:text-fg active:scale-[0.97] disabled:opacity-40 md:min-h-0'
+  'sb-pressable inline-flex min-h-11 items-center justify-center rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition hover:text-fg active:scale-[0.97] disabled:opacity-40 md:min-h-0'
 
 /**
  * 列表行尾的操作（恢复 / 彻底删除 / 编辑 / 删除）：小、淡、只在需要时亮。

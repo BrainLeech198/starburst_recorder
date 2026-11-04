@@ -101,8 +101,9 @@ export default function ShareDialog({ doc, onClose }: { doc: ShareDoc; onClose: 
           kind: 'ready',
           svg: renderSVG(thin, {
             ecc: 'M',
-            border: 2,
-            pixelSize: 8,
+            // Keep the full four-module quiet zone; chat apps often crop or resize images.
+            border: 4,
+            pixelSize: 10,
             whiteColor: '#ffffff',
             blackColor: '#111111',
           }),

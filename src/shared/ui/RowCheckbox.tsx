@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 /**
  * 列表行的多选勾选框：全站一个样子。
  *
@@ -14,17 +16,37 @@ export default function RowCheckbox({
   label: string
   onToggle: () => void
 }) {
+  const [drawCheckmark, setDrawCheckmark] = useState(false)
+
   return (
     <button
       type="button"
-      onClick={onToggle}
+      onClick={() => {
+        setDrawCheckmark(!checked)
+        onToggle()
+      }}
       aria-pressed={checked}
       aria-label={label}
-      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
+      className={`sb-pressable mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border active:scale-90 ${
         checked ? 'border-brand bg-brand text-on-brand' : 'border-line text-transparent'
       }`}
     >
-      <span aria-hidden="true">✓</span>
+      {checked && (
+        <svg aria-hidden="true" viewBox="0 0 14 12" className="h-3.5 w-3.5 overflow-visible">
+          <path
+            d="M1 6.5 5 10 13 1"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray="20"
+            strokeDashoffset={drawCheckmark ? 20 : 0}
+            className={drawCheckmark ? 'sb-checkmark-draw' : undefined}
+            onAnimationEnd={() => setDrawCheckmark(false)}
+          />
+        </svg>
+      )}
     </button>
   )
 }
