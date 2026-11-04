@@ -1,6 +1,6 @@
 # 官方频道：公告、订阅与反馈
 
-> 状态：管理员网站、公告发布、Resend 邮件队列和双重确认订阅的 Worker 代码已实现；尚未配置线上账号资源、部署 Worker 或发送真实邮件。现有 App 订阅页仍按即时订阅提示，需要在启用双重确认前完成页面反馈与隐私文案更新。更新时间：2026-11-04。
+> 状态：管理员网站已发布；Worker 登录与应用内公告接口已部署并通过线上登录烟测。Resend 尚未配置，邮件发送未启用，也没有发出真实邮件。现有 App 订阅页仍按即时订阅提示，需要在启用双重确认前完成页面反馈与隐私文案更新。更新时间：2026-11-04。
 > 这是跨 Web / PWA、Windows 和 Android 的通用频道，不属于 iOS 专项。
 
 ## 目标与边界
@@ -66,10 +66,12 @@
 
 ## 线上启用前的配置
 
-目前尚未配置生产账号或执行部署。以下操作需要维护者在 Cloudflare、Resend 账户中完成；设置 Worker Secret 会立即部署新 Worker 版本，所以应先完成代码检查，再按 `worker/push/README.md` 的发版流程操作。
+管理员网站现已发布：`https://brainleech198.github.io/starburst_recorder/admin/`。Pages workflow `41775382671` 成功；Worker `starburst-push` 版本 `17613267-08dd-4503-813a-ba055f7b49c2` 已部署。管理员登录和状态接口均返回 HTTP 200，当前 `emailSendingEnabled=false`。登录凭据保存在本机忽略文件 `.local/keys/admin-credentials.txt`，不要复制到仓库或公开位置。
+
+管理员登录 Secrets、登录限流器、订阅限流器和邮件队列已配置。邮件仍需 Resend 发件域名和 API Key；启用前还要完成 App 订阅页的待确认提示与隐私文案。设置 Worker Secret 会立即部署新 Worker 版本，应先完成代码检查，再按 `worker/push/README.md` 的发版流程操作。
 
 1. 确认 `worker/push/wrangler.toml` 中 `PUSH_KV` 的命名空间 ID 正确，两个 Rate Limiting `namespace_id` 在 Cloudflare 账户内唯一。
-2. 创建邮件队列和死信队列：
+2. 当前账号已创建邮件队列和死信队列。新环境部署时再创建：
 
    ```bash
    npx wrangler queues create starburst-email --config worker/push/wrangler.toml
@@ -77,13 +79,13 @@
    ```
 
 3. 在 Resend 验证发件域名，准备一个已验证的 `EMAIL_FROM` 地址和 API Key。
-4. 在本机交互输入管理员密码，生成 PBKDF2 哈希：
+4. 当前管理员账号已配置。新环境可在本机交互输入管理员密码，生成 PBKDF2 哈希：
 
    ```bash
    node worker/push/hash-admin-password.mjs
    ```
 
-5. 交互式配置 Worker Secrets。明文密码、哈希、会话密钥、Resend API Key 和退订密钥都不要写入仓库、网页或命令行参数：
+5. 新环境需配置管理员 Worker Secrets；本环境已完成。明文密码、哈希、会话密钥、Resend API Key 和退订密钥都不要写入仓库、网页或命令行参数：
 
    ```bash
    npx wrangler secret put ADMIN_USERNAME --config worker/push/wrangler.toml
@@ -98,7 +100,7 @@
 
 6. 部署仅公告模式时，Resend 未配置，Worker 会继续使用旧式即时订阅登记，管理页面的邮件选项保持禁用。启用 Resend 前先更新 App 订阅页：展示待确认状态和确认邮件结果，并说明 Cloudflare / Resend 会处理邮箱；同步九份语言表。随后用维护者自己的邮箱验证订阅确认、公告投递、退订、一键退订、队列重试和 DLQ；核对网站 Origin 和邮件链接域名后，再向普通用户开放邮件订阅。
 
-**本次代码改动没有运行 `secret put`、创建线上队列、部署 Worker 或发送真实邮件。** 登录凭据、有效发件域名和 Cloudflare 资源配置仍需在部署前由维护者提供与设置。
+**本次已创建队列、配置管理员 Secrets、部署 Worker 和官网管理员页；没有配置 Resend、发送真实邮件或发布测试公告。** 启用邮件发送仍需有效发件域名、Resend API Key，并先更新 App 的双重确认提示与隐私说明。
 
 ## 当前限制与后续工作
 
