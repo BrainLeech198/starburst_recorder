@@ -306,7 +306,7 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 ### 推算 TDEE 与「问 ai 一下」（2026-10-29 加）
 
 - **参考 TDEE**：Mifflin-St Jeor 公式按档案估出来的那个数，只管叫「参考」。公式对高龄、肌肉量流失、甲功/药物影响的误差常在 ±200 千卡以上，不能当真实消耗。
-- **推算 TDEE**（`derivedTdee`，`features/health/healthMath.ts` 纯函数 + 单测）：能量收支法 `近 14 天日均摄入 − 体重变化 × 7700 ÷ 天数`；有效摄入数据不足 7 天或体重记录不足两条就返回 null（界面直接不显示这条线）。每天用自己的真实数据反推，越用越贴合本人。
+- **推算 TDEE**（`derivedTdeeEstimate` / `derivedTdee`，`features/health/healthMath.ts` 纯函数 + 单测）：能量收支法 `窗口内有记录日的日均摄入 − 体重线性回归斜率 × 7700`；摄入与称重分别在同一日期窗口取样，不要求同日配对。摄入少于 7 天、称重少于 4 次或称重跨度不足 7 天时，`derivedTdeeEstimate` 返回样本数和 `value: null`，兼容入口 `derivedTdee` 返回 `null`；结果按 50 千卡取整并在区间概览显示样本数与「仅供参考」。称重趋势页必须把当前 30 / 90 天窗口传入，结束日期不含今天；称重卡使用近 14 个完整日。每天用自己的真实数据反推，越用越贴合本人。
 - **称重**：档案行 `HealthProfile` 加 `weighDay`（1=周一…7=周日，null=不提醒）、`weighTime`（HH:MM，默认 07:00）、`weighIns`（`{dateKey, weightKg, createdAt}` 数组，最多 120 条，同一天只留最后一次）。**没有建新表**：这是单行档案的附属数据，建表会把并行改动面放大，也没必要。
 - **称重卡**（`WeighInCard`）直接落库、不走档案表单草稿；记一次体重同时把档案里的 `weightKg` / `weightAt` 更新成最新值。
 - **系统通知**：桌面/浏览器走 Web Notification（`weighNotify.maybeNotifyWeighDay`，每次打开应用后每分钟查一次，当天只提醒一次）；安卓走 `@capacitor/local-notifications` 按「每周 + 时刻」排一条（`syncWeighReminder`，改设置就重排）。Manifest 已声明 `POST_NOTIFICATIONS`。应用内横幅由称重卡自己显示。

@@ -42,7 +42,7 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记；也可以直接问助手，让它查记录、记账、写随记或记睡眠。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.14.0',
+    'hero.cta': '下载 0.14.1',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -129,11 +129,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器与安卓走 IndexedDB。',
-    'open.version': '版本 0.14.0',
+    'open.version': '版本 0.14.1',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.14.0 仍是早期版本，升级前请先导出备份。0.13.1 之前的备份会明文保存模型名称和 API Key；若曾把旧备份发给别人或存到云端、邮件，请撤销并重新生成之前用过的 API Key。',
+    'download.desc': '0.14.1 仍是早期版本，升级前请先导出备份。0.13.1 之前的备份会明文保存模型名称和 API Key；若曾把旧备份发给别人或存到云端、邮件，请撤销并重新生成之前用过的 API Key。',
     'download.web': '网页版',
     'download.webMeta': '浏览器直接使用 · 支持安装为 PWA',
     'download.webDesc': '无需下载安装，打开即可使用；也可以添加到主屏幕，像应用一样启动。',
@@ -147,9 +147,9 @@ window.SITE_I18N = {
     'download.note': '两个仓库放的是同一份安装包，哪个快就用哪个。',
 
     'whatsnew.title': '这一版有什么',
-    'whatsnew.item1': '官方公告、紧急提醒、邮箱订阅与反馈，Android 和 Windows 用户也能收到',
-    'whatsnew.item2': '日记、随记、摄入与收支可扫码分享；支持保存二维码图片和从图片识别',
-    'whatsnew.item3': '设置里可清空所有数据；助手斜杠菜单改为选择已启用的 Skills',
+    'whatsnew.item1': '体重趋势估算更稳，显示摄入记录天数与称重次数',
+    'whatsnew.item2': '图片日记识别入口更清楚；下拉菜单支持键盘操作',
+    'whatsnew.item3': 'AI 语气选项与训练筛选的选择状态更明确',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -157,7 +157,7 @@ window.SITE_I18N = {
     'changelog.back': '← 回到下载',
     'download.historyLink': '历史版本与更新日志，每版都附下载 →',
 
-    'footer.version': '版本 0.14.0',
+    'footer.version': '版本 0.14.1',
     'footer.tagline': '数据只存在你的设备上',
     'footer.admin': '管理员入口',
   },
@@ -201,7 +201,7 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry — or just ask the assistant to look things up, log spending, write a note or record your sleep. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.14.0',
+    'hero.cta': 'Download 0.14.1',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',
@@ -289,12 +289,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser and on Android.',
-    'open.version': 'Version 0.14.0',
+    'open.version': 'Version 0.14.1',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.14.0 is still an early build. Export a backup before upgrading. Backups exported before 0.13.1 contain model names and API keys in plain text; if you shared one or stored it in cloud storage or email, revoke every API key you previously used and generate fresh keys.',
+      '0.14.1 is still an early build. Export a backup before upgrading. Backups exported before 0.13.1 contain model names and API keys in plain text; if you shared one or stored it in cloud storage or email, revoke every API key you previously used and generate fresh keys.',
     'download.web': 'Web app',
     'download.webMeta': 'Use in your browser · Installable as a PWA',
     'download.webDesc': 'No download needed. Open it in your browser, or add it to your home screen like an app.',
@@ -309,10 +309,10 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'Both hosts carry the same builds. Use whichever is faster for you.',
 
-    'whatsnew.title': "What's new in 0.14.0",
-    'whatsnew.item1': 'Official announcements, urgent notices, email subscriptions and feedback reach Android and Windows too',
-    'whatsnew.item2': 'Share diary entries, notes, intakes and finance entries by QR; save codes as images or scan from images',
-    'whatsnew.item3': 'Clear all data from Settings; the assistant slash menu now selects enabled skills',
+    'whatsnew.title': "What's new in 0.14.1",
+    'whatsnew.item1': 'Weight trend estimates show logged intake days and weigh-ins for more context',
+    'whatsnew.item2': 'Image diary recognition is easier to find; dropdown menus support keyboard navigation',
+    'whatsnew.item3': 'AI tone choices and training filters expose clearer selection states',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -320,7 +320,7 @@ window.SITE_I18N = {
     'changelog.back': '← Back to downloads',
     'download.historyLink': 'Previous versions and changelog, each with downloads →',
 
-    'footer.version': 'Version 0.14.0',
+    'footer.version': 'Version 0.14.1',
     'footer.tagline': 'Data stays on your device',
     'footer.admin': 'Admin',
   },

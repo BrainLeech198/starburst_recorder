@@ -6,6 +6,7 @@ import {
   bmr,
   dayTargets,
   derivedTdee,
+  derivedTdeeEstimate,
   estimateTdee,
   foodMacros,
   isWeighDay,
@@ -256,23 +257,31 @@ describe('推算 TDEE（能量收支法）', () => {
   }
   const intakeFull = (start: string, count: number, kcal: number) =>
     Object.fromEntries(days(start, count).map((d) => [d, kcal]))
+  const interval = { startDateKey: '2026-10-01', endDateKeyExclusive: '2026-10-16' }
+  const stableWeights = [
+    { dateKey: '2026-10-01', weightKg: 62 },
+    { dateKey: '2026-10-05', weightKg: 62 },
+    { dateKey: '2026-10-10', weightKg: 62 },
+    { dateKey: '2026-10-15', weightKg: 62 },
+  ]
 
   it('体重稳定时约等于日均摄入', () => {
     const result = derivedTdee({
-      weighIns: [
-        { dateKey: '2026-10-01', weightKg: 62 },
-        { dateKey: '2026-10-15', weightKg: 62 },
-      ],
+      ...interval,
+      weighIns: stableWeights,
       intakeKcalByDay: intakeFull('2026-10-01', 15, 2000),
     })
     expect(result).toBe(2000)
   })
 
   it('掉秤就把消耗算高', () => {
-    // 14 天掉 1kg ≈ 每天多耗 550，TDEE ≈ 2000 + 550
+    // 14 天约掉 1kg，回归斜率为负，推算消耗高于摄入。
     const result = derivedTdee({
+      ...interval,
       weighIns: [
         { dateKey: '2026-10-01', weightKg: 63 },
+        { dateKey: '2026-10-05', weightKg: 62.7 },
+        { dateKey: '2026-10-10', weightKg: 62.3 },
         { dateKey: '2026-10-15', weightKg: 62 },
       ],
       intakeKcalByDay: intakeFull('2026-10-01', 15, 2000),
@@ -282,8 +291,11 @@ describe('推算 TDEE（能量收支法）', () => {
 
   it('长秤就把消耗算低', () => {
     const result = derivedTdee({
+      ...interval,
       weighIns: [
         { dateKey: '2026-10-01', weightKg: 61 },
+        { dateKey: '2026-10-05', weightKg: 61.3 },
+        { dateKey: '2026-10-10', weightKg: 61.7 },
         { dateKey: '2026-10-15', weightKg: 62 },
       ],
       intakeKcalByDay: intakeFull('2026-10-01', 15, 2000),
@@ -291,53 +303,127 @@ describe('推算 TDEE（能量收支法）', () => {
     expect(result).toBe(1450)
   })
 
-  it('称重少于两次、跨度太短、摄入太少都不算', () => {
+  it('摄入少于七天、称重少于四次或称重跨度太短都不算', () => {
     const intake = intakeFull('2026-10-01', 15, 2000)
-    expect(derivedTdee({ weighIns: [{ dateKey: '2026-10-01', weightKg: 62 }], intakeKcalByDay: intake })).toBeNull()
+    const insufficient = derivedTdeeEstimate({
+      ...interval,
+      weighIns: stableWeights,
+      intakeKcalByDay: intakeFull('2026-10-01', 6, 2000),
+    })
+    expect(insufficient).toEqual({ value: null, intakeDays: 6, weighInCount: 4 })
     expect(
       derivedTdee({
+        ...interval,
+        weighIns: stableWeights.slice(0, 3),
+        intakeKcalByDay: intake,
+      }),
+    ).toBeNull()
+    expect(
+      derivedTdee({
+        ...interval,
         weighIns: [
           { dateKey: '2026-10-01', weightKg: 62 },
+          { dateKey: '2026-10-02', weightKg: 62 },
           { dateKey: '2026-10-03', weightKg: 62 },
+          { dateKey: '2026-10-04', weightKg: 62 },
         ],
         intakeKcalByDay: intake,
       }),
     ).toBeNull()
     expect(
       derivedTdee({
-        weighIns: [
-          { dateKey: '2026-10-01', weightKg: 62 },
-          { dateKey: '2026-10-15', weightKg: 62 },
-        ],
-        intakeKcalByDay: intakeFull('2026-10-01', 3, 2000),
+        ...interval,
+        weighIns: stableWeights,
+        intakeKcalByDay: intakeFull('2026-10-01', 6, 2000),
       }),
     ).toBeNull()
   })
 
-  it('窗口外的旧称重不算', () => {
+  it('按显式区间分别取摄入与体重样本，不要求同日配对', () => {
     const result = derivedTdee({
+      startDateKey: '2026-10-01',
+      endDateKeyExclusive: '2026-10-16',
       weighIns: [
         { dateKey: '2026-09-01', weightKg: 70 },
-        { dateKey: '2026-10-01', weightKg: 62 },
-        { dateKey: '2026-10-15', weightKg: 62 },
+        ...stableWeights,
+        { dateKey: '2026-10-16', weightKg: 20 },
       ],
-      intakeKcalByDay: intakeFull('2026-10-01', 15, 2000),
+      // 摄入记录日和称重日不同，且区间外的极端值不应影响结果。
+      intakeKcalByDay: { ...intakeFull('2026-10-01', 7, 2000), '2026-09-30': 1, '2026-10-16': 1 },
     })
     expect(result).toBe(2000)
   })
 
-  it('排除今天尚未完整的摄入和称重数据', () => {
+  it('30 天示例用回归趋势并按 50 千卡取整到合理范围', () => {
+    const weights = [
+      ['2026-10-06', 63.0], ['2026-10-07', 62.85], ['2026-10-12', 62.1],
+      ['2026-10-13', 62.4], ['2026-10-16', 62.75], ['2026-10-17', 62.75],
+      ['2026-10-19', 62.25], ['2026-10-20', 62.15], ['2026-10-21', 62.3],
+      ['2026-10-25', 61.8], ['2026-10-26', 62.45], ['2026-10-27', 63.25],
+      ['2026-10-28', 62.2], ['2026-10-29', 62.8], ['2026-10-30', 62.4],
+      ['2026-10-31', 62.25], ['2026-11-01', 61.85], ['2026-11-02', 62.35],
+      ['2026-11-03', 63.05], ['2026-11-04', 62.25],
+    ].map(([dateKey, weightKg]) => ({ dateKey: String(dateKey), weightKg: Number(weightKg) }))
+    const result = derivedTdeeEstimate({
+      startDateKey: '2026-10-06',
+      endDateKeyExclusive: '2026-11-04',
+      weighIns: weights,
+      intakeKcalByDay: intakeFull('2026-10-06', 29, 2323),
+    })
+    expect(result).toEqual({ value: 2400, intakeDays: 29, weighInCount: 19 })
+    expect(result?.value).toBeGreaterThanOrEqual(2400)
+    expect(result?.value).toBeLessThanOrEqual(2520)
+  })
+
+  it('切换 30 / 90 天区间后按新区间重新计算', () => {
+    const weighIns = [
+      { dateKey: '2026-08-07', weightKg: 64.4 },
+      { dateKey: '2026-08-20', weightKg: 64.4 },
+      { dateKey: '2026-09-05', weightKg: 64.4 },
+      { dateKey: '2026-09-20', weightKg: 64.4 },
+      { dateKey: '2026-10-06', weightKg: 64.4 },
+      { dateKey: '2026-10-16', weightKg: 64.1 },
+      { dateKey: '2026-10-26', weightKg: 63.9 },
+      { dateKey: '2026-11-03', weightKg: 63.7 },
+    ]
+    const intakeKcalByDay = {
+      ...Object.fromEntries(days('2026-08-07', 60).filter((_, index) => index % 4 === 0).slice(0, 14).map((day) => [day, 2172])),
+      ...intakeFull('2026-10-06', 29, 2323),
+    }
+    const recent = derivedTdeeEstimate({
+      startDateKey: '2026-10-06',
+      endDateKeyExclusive: '2026-11-04',
+      weighIns,
+      intakeKcalByDay,
+    })
+    const longer = derivedTdeeEstimate({
+      startDateKey: '2026-08-07',
+      endDateKeyExclusive: '2026-11-04',
+      weighIns,
+      intakeKcalByDay,
+    })
+    expect(recent).not.toBeNull()
+    expect(longer).not.toBeNull()
+    expect(recent?.value).not.toBe(longer?.value)
+    expect(recent?.intakeDays).toBe(29)
+    expect(longer?.intakeDays).toBe(43)
+  })
+
+  it('排除区间结束日尚未完整的摄入和称重数据', () => {
     const result = derivedTdee({
-      todayDateKey: '2026-10-15',
+      startDateKey: '2026-10-01',
+      endDateKeyExclusive: '2026-10-15',
       weighIns: [
         { dateKey: '2026-10-01', weightKg: 63 },
+        { dateKey: '2026-10-05', weightKg: 62.7 },
+        { dateKey: '2026-10-10', weightKg: 62.3 },
         { dateKey: '2026-10-14', weightKg: 62 },
         { dateKey: '2026-10-15', weightKg: 60 },
       ],
       intakeKcalByDay: intakeFull('2026-10-01', 15, 2000),
     })
-    // 用 10/1 到 10/14 的完整 13 天数据推算；10/15 的低体重与摄入不计入。
-    expect(result).toBe(2592.31)
+    // 区间结束日 10/15 的低体重与摄入都不计入。
+    expect(result).toBe(2600)
   })
 })
 

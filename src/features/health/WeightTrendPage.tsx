@@ -21,7 +21,7 @@ import { formatDate, formatMonthDay, isDateKey, shiftDay, todayKey } from '@/cor
 import { useI18n } from '@/shared/i18n/context'
 import { NAV_BACK_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
-import { dayTargets, derivedTdee, formatNum, round2, sumMacros } from './healthMath'
+import { dayTargets, derivedTdeeEstimate, formatNum, round2, sumMacros } from './healthMath'
 import {
   DETAIL_TREND_RANGES,
   bmiValue,
@@ -155,7 +155,15 @@ export default function WeightTrendPage() {
   for (const intake of rangeData?.intakes ?? []) {
     intakeKcalByDay[intake.dateKey] = (intakeKcalByDay[intake.dateKey] ?? 0) + intake.kcal
   }
-  const derived = profile ? derivedTdee({ weighIns: profile.weighIns, intakeKcalByDay }) : null
+  const derived =
+    profile === undefined
+      ? null
+      : derivedTdeeEstimate({
+          weighIns: profile.weighIns,
+          intakeKcalByDay,
+          startDateKey: rangeStart,
+          endDateKeyExclusive: today,
+        })
   const avgSleepHours =
     summary.avgSleepMinutes === null
       ? null
@@ -308,8 +316,22 @@ export default function WeightTrendPage() {
               />
               <StatCell
                 label={t('health.trendDerivedTdee')}
-                value={derived === null ? '—' : formatNum(derived)}
-                unit={derived === null ? '' : t('health.kcalUnit')}
+                value={
+                  derived?.value === null || derived === null
+                    ? t('health.derivedInsufficient')
+                    : formatNum(derived.value)
+                }
+                unit={
+                  derived?.value === null || derived === null ? '' : t('health.kcalUnit')
+                }
+                hint={
+                  derived === null
+                    ? null
+                    : t('health.trendDerivedHint', {
+                        intakeDays: derived.intakeDays,
+                        weighInCount: derived.weighInCount,
+                      })
+                }
               />
             </div>
           </section>

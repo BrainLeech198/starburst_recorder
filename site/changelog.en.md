@@ -1,3 +1,19 @@
+## 0.14.1 · 2026-11-04
+
+Health trend estimates and everyday controls improved
+
+### What's new
+
+- **More reliable weight trend estimates** — use the current 30/90-day range, a regression over multiple weigh-ins and the average of logged intake days. Insufficient samples are explained, with intake days and weigh-ins shown.
+- **Clearer image recognition entry** — “Recognize diary from image” is in the Tools menu, while “Add image” stays under Insert.
+- **Keyboard accessible dropdowns** — use the arrow keys, Home/End and Esc to navigate and close menus.
+- **Clearer AI tone and training filters** — tone choices expose the selected state, and exercise type and target area filters have descriptive accessible names.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.14.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.1/starburst-recorder-0.14.1-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.14.1/starburst-recorder-0.14.1-setup.exe)
+- Android 10+: [`starburst-recorder-0.14.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.1/starburst-recorder-0.14.1.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.14.1/starburst-recorder-0.14.1.apk)
+
 ## 0.14.0 · 2026-11-03
 
 Official announcements, email subscriptions and feedback for every platform — plus shareable records and clearer assistant tools

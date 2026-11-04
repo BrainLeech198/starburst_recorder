@@ -1,3 +1,19 @@
+## 0.14.1 · 2026-11-04
+
+健康趋势估算与常用操作体验改进
+
+### 这一版有什么
+
+- **体重趋势估算更稳**：按当前 30/90 天窗口，用多次称重的回归趋势结合有记录日的摄入均值；样本不足时明确提示，并显示摄入天数和称重次数。
+- **图片识别入口更清楚**：日记编辑器把“图片日记识别”放到工具菜单，“添加图片”保留在插入菜单。
+- **下拉菜单支持键盘操作**：可用方向键、Home/End 和 Esc 浏览及关闭菜单。
+- **AI 语气与训练筛选更易识别**：语气选项显示当前选择状态，训练动作的类型和部位筛选有明确的无障碍名称。
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.14.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.1/starburst-recorder-0.14.1-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.14.1/starburst-recorder-0.14.1-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.14.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.14.1/starburst-recorder-0.14.1.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.14.1/starburst-recorder-0.14.1.apk)
+
 ## 0.14.0 · 2026-11-03
 
 官方公告、邮箱订阅与反馈通道，安卓与 Windows 用户也能收到要紧消息

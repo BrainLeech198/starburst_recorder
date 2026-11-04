@@ -602,7 +602,7 @@ export default function TrainingForm({
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     <select
                       value={item.kind}
-                      aria-label={t('training.kind.strength')}
+                      aria-label={t('training.exerciseType')}
                       onChange={(event) =>
                         updateExercise(index, { kind: event.target.value as TrainingKind })
                       }
@@ -616,7 +616,7 @@ export default function TrainingForm({
                     </select>
                     <select
                       value={item.muscle}
-                      aria-label={t('training.muscle.chest')}
+                      aria-label={t('training.targetArea')}
                       onChange={(event) => updateExercise(index, { muscle: event.target.value })}
                       className={`${FIELD} px-1.5 py-1 text-xs`}
                     >

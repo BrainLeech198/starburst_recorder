@@ -301,16 +301,24 @@ export interface WeighPoint {
   weightKg: number
 }
 
-/** 首末称重至少隔一周左右，太密的点算出来只是水分波动 */
+/** 称重点至少覆盖一周，太密的点算出来只是水分波动 */
 export const DERIVED_TDEE_MIN_SPAN_DAYS = 6
-/** 窗口里至少要有几天真实摄入记录，不然均值没意义 */
-export const DERIVED_TDEE_MIN_INTAKE_DAYS = 5
+/** 窗口里至少七天有真实摄入记录，不然均值没意义 */
+export const DERIVED_TDEE_MIN_INTAKE_DAYS = 7
+/** 回归至少需要四个称重点，避免首末值和水分波动左右结果 */
+export const DERIVED_TDEE_MIN_WEIGH_INS = 4
+/** 体重趋势本身有噪声，结果按 50 千卡取整，避免小数精度造成误导 */
+export const DERIVED_TDEE_ROUNDING_KCAL = 50
 
 /** 'YYYY-MM-DD' → 天序号（UTC，避免时区把日期推偏一天） */
 function dayNumber(dateKey: string): number {
   const matched = dateKey.match(/^(\d{4})-(\d{2})-(\d{2})$/)
   if (!matched) return NaN
   return Date.UTC(Number(matched[1]), Number(matched[2]) - 1, Number(matched[3])) / 86400000
+}
+
+function dateKeyFromDayNumber(day: number): string {
+  return new Date(day * 86400000).toISOString().slice(0, 10)
 }
 
 /** 这天是星期几：1=周一 … 7=周日；认不出返回 null */
@@ -327,52 +335,86 @@ export function isWeighDay(dateKey: string, weighDay: number | null): boolean {
 }
 
 /**
- * 「推算 TDEE」：不用公式，用真实数据反推。
- * 口径是能量收支：TDEE ≈ 窗口内日均摄入 − 体重日变化 × 7700（每公斤脂肪约 7700 千卡）。
- * 少了 1kg 就是每天多消耗了 7700/跨度；涨了则反过来。
+ * 「推算 TDEE」：不用档案里的公式估值，用选定日期窗口内的记录反推。
+ * 摄入按有记录的天数单独求均值；体重用所有称重点的线性回归斜率，二者不要求同日配对。
+ * TDEE ≈ 日均摄入 − 体重日变化 × 7700；减重斜率为负，所以推算 TDEE 高于摄入均值。
  *
- * 数据不够（称重少于两次、跨度太短、摄入记录太少）一律返回 null——
- * 宁可不画这条线，也不拿三两天的水分波动当代谢。
+ * 数据不够（摄入少于七天、称重少于四次或跨度太短）一律返回 null——
+ * 宁可不显示，也不拿几天的水分波动当代谢。结果按 50 千卡取整。
  */
-export function derivedTdee(params: {
+export interface DerivedTdeeEstimate {
+  value: number | null
+  intakeDays: number
+  weighInCount: number
+}
+
+export function derivedTdeeEstimate(params: {
   weighIns: WeighPoint[]
   /** 每天摄入热量，'YYYY-MM-DD' → kcal；没记的那天不存在这个键 */
   intakeKcalByDay: Record<string, number>
-  /** 回看窗口（天），默认两周——每周称重一次刚好两三个点 */
+  /** 回看窗口（天），默认两周；显式 startDateKey 时忽略 */
   windowDays?: number
-  /** 排除尚未结束的当天；测试可显式传入固定日期。 */
+  /** 区间开始日期（含），不传时按 windowDays 回看 */
+  startDateKey?: string
+  /** 区间结束日期（不含）；默认今天，排除尚未结束的当天 */
+  endDateKeyExclusive?: string
+  /** 兼容旧调用和测试：未传 endDateKeyExclusive 时作为区间结束日期 */
   todayDateKey?: string
-}): number | null {
-  const windowDays = params.windowDays ?? 14
-  const todayDateKey = params.todayDateKey ?? todayKey()
-  const points = params.weighIns
-    .filter((point) => point.dateKey < todayDateKey)
-    .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
-  if (points.length < 2) return null
-  const endN = dayNumber(points[points.length - 1].dateKey)
-  if (!Number.isFinite(endN)) return null
-  const inWindow = points.filter((p) => endN - dayNumber(p.dateKey) <= windowDays)
-  if (inWindow.length < 2) return null
+}): DerivedTdeeEstimate | null {
+  const endDateKey = params.endDateKeyExclusive ?? params.todayDateKey ?? todayKey()
+  const endN = dayNumber(endDateKey)
+  const startDateKey =
+    params.startDateKey ?? dateKeyFromDayNumber(endN - (params.windowDays ?? 14))
+  const startN = dayNumber(startDateKey)
+  if (!Number.isFinite(startN) || !Number.isFinite(endN) || startN >= endN) return null
 
-  const first = inWindow[0]
-  const last = inWindow[inWindow.length - 1]
-  const firstN = dayNumber(first.dateKey)
-  const spanDays = endN - firstN
-  if (spanDays < DERIVED_TDEE_MIN_SPAN_DAYS) return null
-
-  let sum = 0
-  let recorded = 0
-  for (let n = firstN; n <= endN; n += 1) {
-    const day = new Date(n * 86400000).toISOString().slice(0, 10)
-    const kcal = params.intakeKcalByDay[day]
-    if (typeof kcal === 'number' && kcal > 0) {
-      sum += kcal
-      recorded += 1
+  const weighInsByDate = new Map<string, number>()
+  for (const point of params.weighIns) {
+    const pointN = dayNumber(point.dateKey)
+    if (
+      Number.isFinite(pointN) &&
+      pointN >= startN &&
+      pointN < endN &&
+      Number.isFinite(point.weightKg) &&
+      point.weightKg > 0
+    ) {
+      weighInsByDate.set(point.dateKey, point.weightKg)
     }
   }
-  if (recorded < DERIVED_TDEE_MIN_INTAKE_DAYS) return null
+  const points = [...weighInsByDate]
+    .map(([dateKey, weightKg]) => ({ dateKey, day: dayNumber(dateKey), weightKg }))
+    .sort((a, b) => a.day - b.day)
 
-  const avgIntake = sum / recorded
-  const deltaPerDay = (last.weightKg - first.weightKg) / spanDays
-  return round2(avgIntake - deltaPerDay * 7700)
+  const intake = Object.entries(params.intakeKcalByDay).filter(([dateKey, kcal]) => {
+    const n = dayNumber(dateKey)
+    return Number.isFinite(n) && n >= startN && n < endN && Number.isFinite(kcal) && kcal > 0
+  })
+  const spanDays =
+    points.length < 2 ? 0 : points[points.length - 1].day - points[0].day
+  const enoughData =
+    intake.length >= DERIVED_TDEE_MIN_INTAKE_DAYS &&
+    points.length >= DERIVED_TDEE_MIN_WEIGH_INS &&
+    spanDays >= DERIVED_TDEE_MIN_SPAN_DAYS
+  if (!enoughData) {
+    return { value: null, intakeDays: intake.length, weighInCount: points.length }
+  }
+
+  const avgIntake = intake.reduce((sum, [, kcal]) => sum + kcal, 0) / intake.length
+  const meanDay = points.reduce((sum, point) => sum + point.day, 0) / points.length
+  const meanWeight = points.reduce((sum, point) => sum + point.weightKg, 0) / points.length
+  const variance = points.reduce((sum, point) => sum + (point.day - meanDay) ** 2, 0)
+  if (variance === 0) return { value: null, intakeDays: intake.length, weighInCount: points.length }
+  const weightSlopePerDay =
+    points.reduce(
+      (sum, point) => sum + (point.day - meanDay) * (point.weightKg - meanWeight),
+      0,
+    ) / variance
+  const estimate = avgIntake - weightSlopePerDay * 7700
+  const value = Math.round(estimate / DERIVED_TDEE_ROUNDING_KCAL) * DERIVED_TDEE_ROUNDING_KCAL
+  return { value, intakeDays: intake.length, weighInCount: points.length }
+}
+
+/** 数值简写：需要样本数提示的区间概览用 derivedTdeeEstimate。 */
+export function derivedTdee(params: Parameters<typeof derivedTdeeEstimate>[0]): number | null {
+  return derivedTdeeEstimate(params)?.value ?? null
 }

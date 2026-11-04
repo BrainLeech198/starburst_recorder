@@ -29,6 +29,8 @@ android/capacitor-cordova-android-plugins/build/
 # .workbuddy-ai/memory 是别的工具自己写的记忆，.trae-html-share-packages 是分享用的打包副本
 .workbuddy-ai/
 .trae-html-share-packages/
+# CODEBUDDY.md 是另一个工具留的本机备忘，内容已过期（记的还是 0.3.0 时期的发版占用）
+CODEBUDDY.md
 
 # ─────────── 编辑器与系统 ───────────
 .vscode/*

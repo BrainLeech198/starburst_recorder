@@ -2,7 +2,7 @@
  * 顶栏按钮的下拉菜单：点按钮在下方浮出小菜单，点别处或 Esc 关闭。
  * 全站第一个下拉组件，目前给日记编辑页的「文件」「插入」「工具」用。
  */
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Icon, type IconName } from './icons'
 
 export interface DropdownItem {
@@ -34,8 +34,47 @@ export default function Dropdown({
   menuLabel?: string
 }) {
   const [open, setOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const activeIndexRef = useRef(-1)
+  const openingFocus = useRef<'first' | 'last'>('first')
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  const focusMenuItem = useCallback(
+    (position: 'first' | 'last' | 'next' | 'previous') => {
+      const allItems = Array.from(
+        menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [],
+      )
+      const enabledItems = allItems.filter((item) => !item.disabled)
+      if (enabledItems.length === 0) return
+
+      const current = enabledItems.indexOf(document.activeElement as HTMLButtonElement)
+      let next: HTMLButtonElement
+      if (position === 'first') next = enabledItems[0]
+      else if (position === 'last') next = enabledItems[enabledItems.length - 1]
+      else {
+        const fallback = enabledItems.findIndex(
+          (item) => allItems[activeIndexRef.current] === item,
+        )
+        const from = current >= 0 ? current : fallback
+        const delta = position === 'next' ? 1 : -1
+        const index =
+          from < 0
+            ? position === 'next'
+              ? 0
+              : enabledItems.length - 1
+            : (from + delta + enabledItems.length) % enabledItems.length
+        next = enabledItems[index]
+      }
+
+      const index = allItems.indexOf(next)
+      activeIndexRef.current = index
+      setActiveIndex(index)
+      next.focus()
+    },
+    [],
+  )
 
   /*
    * 菜单夹在视口里再显示。
@@ -71,6 +110,13 @@ export default function Dropdown({
     return () => window.removeEventListener('resize', place)
   }, [open])
 
+  // 打开后将焦点放到菜单项；方向键从触发按钮打开时可选择首项或末项。
+  useLayoutEffect(() => {
+    if (!open) return
+    focusMenuItem(openingFocus.current)
+    openingFocus.current = 'first'
+  }, [focusMenuItem, open])
+
   // 点菜单外任意处关闭
   useEffect(() => {
     if (!open) return
@@ -78,7 +124,11 @@ export default function Dropdown({
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
     }
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setOpen(false)
+        triggerRef.current?.focus()
+      }
     }
     document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
@@ -91,11 +141,24 @@ export default function Dropdown({
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={menuLabel}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          if (open) setOpen(false)
+          else {
+            openingFocus.current = 'first'
+            setOpen(true)
+          }
+        }}
+        onKeyDown={(event) => {
+          if (open || (event.key !== 'ArrowDown' && event.key !== 'ArrowUp')) return
+          event.preventDefault()
+          openingFocus.current = event.key === 'ArrowDown' ? 'first' : 'last'
+          setOpen(true)
+        }}
         className={buttonClassName}
       >
         {label}
@@ -105,17 +168,35 @@ export default function Dropdown({
         <div
           ref={menuRef}
           role="menu"
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+              event.preventDefault()
+              focusMenuItem(event.key === 'ArrowDown' ? 'next' : 'previous')
+            } else if (event.key === 'Home' || event.key === 'End') {
+              event.preventDefault()
+              focusMenuItem(event.key === 'Home' ? 'first' : 'last')
+            }
+          }}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false)
+          }}
           className="absolute top-0 left-0 z-40 min-w-32 max-w-[calc(100vw-1rem)] rounded-xl border border-line bg-surface p-1 shadow-lg"
         >
-          {items.map((item) => (
+          {items.map((item, index) => (
             <button
               key={item.label}
               type="button"
               role="menuitem"
               disabled={item.disabled}
+              tabIndex={activeIndex === index ? 0 : -1}
               title={item.title}
+              onFocus={() => {
+                activeIndexRef.current = index
+                setActiveIndex(index)
+              }}
               onClick={() => {
                 setOpen(false)
+                triggerRef.current?.focus()
                 item.onSelect()
               }}
               className={`${MENU_ITEM} ${

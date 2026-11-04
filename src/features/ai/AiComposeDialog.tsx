@@ -27,7 +27,6 @@ import type { RevisionSeed, RevisionTurn } from './aiRevision'
 import RevisionChat from './RevisionChat'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
-import Dropdown from '@/shared/ui/Dropdown'
 import { Icon } from '@/shared/ui/icons'
 import { FIELD, INPUT_NARROW } from '@/shared/ui/inputStyles'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
@@ -284,26 +283,34 @@ export default function AiComposeDialog({
       {customInvalid && <p className="mt-1 text-xs text-danger">{t('ai.historyInvalid')}</p>}
       <p className="mt-1 text-xs text-muted">{t('ai.historyHint')}</p>
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <span className="text-xs text-muted">{t('ai.tone')}</span>
-        <Dropdown
-          label={t(COMPOSE_STYLES.find((item) => item.id === style)!.labelKey)}
-          buttonClassName="rounded-lg border border-line px-3 py-1 text-xs text-fg hover:text-brand transition-colors"
-          items={COMPOSE_STYLES.map((item) => ({
-            label: t(item.labelKey),
-            onSelect: () => {
-              if (item.id === style) return
-              setStyle(item.id)
-              // 草稿没被改过、也还没开始对话，就顺手按新口气重写一遍；
-              // 已经聊过几轮时保留当前版本，只让后面的改稿换一套口气规矩
-              if (requested && !edited && turns.length === 0) {
-                void generate(item.id)
-              } else if (seed) {
-                setSeed({ ...seed, systemPrompt: buildComposeSystemPrompt(item.id) })
-              }
-            },
-          }))}
-        />
+        <div role="group" aria-label={t('ai.tone')} className="flex flex-wrap gap-2">
+          {COMPOSE_STYLES.map((item) => {
+            const active = style === item.id
+            return (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => {
+                  if (active) return
+                  setStyle(item.id)
+                  // 草稿没被手改过、也还没开始对话，就顺手按新口气重写一遍；
+                  // 已经聊过几轮时保留当前版本，只让后面的改稿换一套口气规矩
+                  if (requested && !edited && turns.length === 0) {
+                    void generate(item.id)
+                  } else if (seed) {
+                    setSeed({ ...seed, systemPrompt: buildComposeSystemPrompt(item.id) })
+                  }
+                }}
+                className={choiceTile(active, CHIP)}
+              >
+                {t(item.labelKey)}
+              </button>
+            )
+          })}
+        </div>
         {edited && <span className="text-xs text-muted">{t('ai.draftEdited')}</span>}
       </div>
 

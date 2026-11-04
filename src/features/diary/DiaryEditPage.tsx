@@ -681,8 +681,7 @@ export default function DiaryEditPage() {
             label={t('diaryEdit.menuInsert')}
             buttonClassName={OUTLINE_BUTTON}
             items={[
-              { label: t('diaryEdit.insertImage'), onSelect: () => setImageSourceOpen(true) },
-              { label: t('diaryEdit.appendImage'), onSelect: handleAppendPick },
+              { label: t('diaryEdit.addImage'), onSelect: () => setImageSourceOpen(true) },
               { label: t('diaryEdit.menuCommon'), onSelect: () => setCommonOpen(true) },
             ]}
           />
@@ -707,7 +706,10 @@ export default function DiaryEditPage() {
           <Dropdown
             label={t('diaryEdit.menuTools')}
             buttonClassName={OUTLINE_BUTTON}
-            items={[{ label: t('diaryEdit.polish'), onSelect: () => void openPolish() }]}
+            items={[
+              { label: t('diaryEdit.imageDiaryRecognition'), onSelect: handleAppendPick },
+              { label: t('diaryEdit.polish'), onSelect: () => void openPolish() },
+            ]}
           />
           <button
             type="button"
