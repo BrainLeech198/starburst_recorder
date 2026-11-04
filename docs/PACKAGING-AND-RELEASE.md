@@ -217,6 +217,8 @@ POST   https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files 
 
 `0.14.1` 正式版：标签 `v0.14.1` 指向 `58473e61b234b735a388e7e549c6c894ea19552f`；APK 为 61,744,261 字节、`versionCode=1401999`、SHA-256 `8C5CFECE15BEAF7353DD18C3362C1CCC45B9C44BC449EB198AEB1AD0E30EC0C0`，签名证书与 §2.2 一致；Windows 安装包为 100,334,068 字节、ProductVersion `0.14.1`、SHA-256 `FCE965C7BF38B6E47E0687AE384B87EA38747B7F89A18D965E0433D7C126AE32`。GitHub 与 Gitee 两个附件大小一致，四个下载地址均返回 200；Gitee `/latest` 与 GitHub `/releases/latest` 均指向 `v0.14.1`。打包自检结果：`app://starburst`、字体与 IndexedDB 正常，SQLite 返回 `ok:10/52`，页面已渲染。Pages 工作流 `41784365382` 成功；浏览器确认首页与更新日志显示 `0.14.1`，四个下载入口均指向本版。GitHub 镜像与 Gitee 同一提交。
 
+`0.15.0` 正式版：标签 `v0.15.0` 指向 `7a615d403cbb3c8b99c335c6c90ae389ebf23788`；APK 为 61,746,325 字节、`versionCode=1500999`、SHA-256 `2F69E3B89A0D92417626F25212427AF54D01D53237B10AD3004158703651DCD1`，签名证书与 §2.2 一致；Windows 安装包为 100,334,595 字节、ProductVersion `0.15.0`、SHA-256 `FEF0A7DB43D294F00BE2ABDEC8B6A4A7469AD9AF14C668479B80123BF37383E1`。GitHub 与 Gitee 上传大小一致；从 Gitee 回下载的 APK 大小与 SHA-256 均与本地归档一致，签名指纹仍与 §2.2 一致。四个 GitHub / Gitee 下载地址均返回成功；GitHub `/releases/latest` 与 Gitee `/releases/latest` API 均指向 `v0.15.0`。Gitee 旧版 `v0.14.1` 两个二进制附件已删除、Release 条目保留；`v0.15.0` 仅有本版 APK 与 Windows 安装包。GitHub Pages 工作流 `41806278514` 成功；线上首页、更新日志、中英文说明和管理员入口均返回 HTTP 200，首页与更新说明显示 `0.15.0`。GitHub 镜像与 Gitee 主分支同为 `7a615d4`。
+
 ## 4.2 测试版发版（GitHub Pre-release）
 
 测试版少几步，但边界更硬：
