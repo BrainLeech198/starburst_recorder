@@ -2,7 +2,7 @@
  * 经济首页 = 月账本，交互向摄入页看齐。
  *
  * 一屏之内按「时段 → 记一笔 → 概览 → 流水」排：
- *   - 时段进 URL，翻页和刷新都停在同一页；日 / 月 / 年随视角换单位
+ *   - 时段进 URL，翻页和刷新都停在同一页；日 / 周 / 月 / 年随视角换单位
  *   - 日视图的日期栏直接点开日历，记过的天标亮
  *   - 记一笔 / 批量 / 导入 / 回收站排成一条按钮行（窄屏 2×2），和日记、健康首页一个结构
  *   - 整页左右滑就翻到上一个 / 下一个时段
@@ -47,11 +47,13 @@ import { Icon } from '@/shared/ui/icons'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import {
   expenseByCategory,
+  financeWeeksOfMonth,
   groupFinanceByDay,
   isMonthKey,
   monthKeyOf,
   shiftMonth,
   summarizeFinance,
+  weekBounds,
 } from './financeMath'
 import { categoryKey } from './financeCategories'
 import {
@@ -87,8 +89,68 @@ function weekdayKey(dateKey: string): MessageKey {
   return ('date.weekdayShort' + day) as MessageKey
 }
 
-/** 日 / 月 / 年三种观察视角 */
-type FinanceView = 'day' | 'month' | 'year'
+/** 日 / 周 / 月 / 年四种观察视角 */
+type FinanceView = 'day' | 'week' | 'month' | 'year'
+
+interface FinanceChartBar {
+  key: string
+  label: string
+  ariaLabel: string
+  income: number
+  expense: number
+  onSelect?: () => void
+}
+
+function FinanceBars({ bars, max }: { bars: FinanceChartBar[]; max: number }) {
+  return (
+    <div className="mt-3 flex items-end gap-1 overflow-x-auto pb-1">
+      {bars.map((bar) => {
+        const content = (
+          <>
+            <span className="flex h-24 w-full items-end justify-center gap-0.5">
+              <span
+                className="w-2 rounded-t bg-success"
+                style={{ height: `${(bar.income / max) * 100}%`, minHeight: bar.income > 0 ? 2 : 0 }}
+              />
+              <span
+                className="w-2 rounded-t bg-danger/60"
+                style={{
+                  height: `${(bar.expense / max) * 100}%`,
+                  minHeight: bar.expense > 0 ? 2 : 0,
+                }}
+              />
+            </span>
+            <span className="max-w-full truncate text-[10px] tabular-nums text-muted">
+              {bar.label}
+            </span>
+          </>
+        )
+        return bar.onSelect ? (
+          <button
+            key={bar.key}
+            type="button"
+            title={bar.ariaLabel}
+            aria-label={bar.ariaLabel}
+            onClick={bar.onSelect}
+            className="flex min-w-[24px] flex-1 flex-col items-center gap-1 rounded-md px-0.5 hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+          >
+            {content}
+          </button>
+        ) : (
+          <div
+            key={bar.key}
+            role="img"
+            title={bar.ariaLabel}
+            aria-label={bar.ariaLabel}
+            className="flex min-w-[24px] flex-1 flex-col items-center gap-1 px-0.5"
+          >
+            {content}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 export default function FinancePage() {
   const { t, locale } = useI18n()
@@ -98,10 +160,16 @@ export default function FinancePage() {
   const currentMonth = monthKeyOf(todayKey())
   const currentYear = Number(currentMonth.slice(0, 4))
 
-  /** 观察视角：日 / 月 / 年，跟着 URL 走，刷新与返回都停在同一视角 */
+  /** 观察视角：日 / 周 / 月 / 年，跟着 URL 走，刷新与返回都停在同一视角 */
   const viewParam = searchParams.get('view')
   const view: FinanceView =
-    viewParam === 'day' ? 'day' : viewParam === 'year' ? 'year' : 'month'
+    viewParam === 'day'
+      ? 'day'
+      : viewParam === 'week'
+        ? 'week'
+        : viewParam === 'year'
+          ? 'year'
+          : 'month'
 
   const dateParam = searchParams.get('date')
   const dayKey = isDateKey(dateParam) ? dateParam : todayKey()
@@ -115,6 +183,9 @@ export default function FinancePage() {
   const monthNumber = Number(monthKey.slice(5, 7))
   const yearParam = searchParams.get('year')
   const viewYear = /^\d{4}$/.test(yearParam ?? '') ? Number(yearParam) : currentYear
+  const selectedWeek = weekBounds(dayKey)
+  const selectedWeekMonths = [...new Set([monthKeyOf(selectedWeek.start), monthKeyOf(selectedWeek.end)])]
+  const currentWeek = weekBounds(todayKey())
 
   // 「本月 / 上月」只在月视图成立；站在年视图上看它会是错的，所以按视角分别给
   const previousMonth = shiftMonth(currentMonth, -1)
@@ -127,7 +198,7 @@ export default function FinancePage() {
           ? 'finance.lastMonth'
           : null
 
-  // 年视图按月各查一次，跨库都是同一套读法；月视图只查一个月，日视图在那一个月里筛出当天
+  // 年视图按月各查一次；周视图最多跨两个月，拼起来再按周首尾筛选。
   const yearMonths = Array.from(
     { length: 12 },
     (_, index) => `${viewYear}-${String(index + 1).padStart(2, '0')}`,
@@ -141,30 +212,46 @@ export default function FinancePage() {
           months: lists.map((list) => ({ ...summarizeFinance(list), count: list.length })),
         }
       }
+      if (view === 'week') {
+        const lists = await Promise.all(selectedWeekMonths.map((key) => financeOfMonth(key)))
+        return {
+          entries: lists
+            .flat()
+            .filter(
+              (entry) =>
+                entry.dateKey >= selectedWeek.start && entry.dateKey <= selectedWeek.end,
+            ),
+          months: null,
+        }
+      }
       const list = await financeOfMonth(view === 'day' ? monthKeyOf(dayKey) : monthKey)
       return { entries: list, months: null }
     },
-    [view, viewYear, monthKey, dayKey],
+    [view, viewYear, monthKey, dayKey, selectedWeek.start, selectedWeek.end],
   )
   const allRows = period?.entries ?? []
   const rows =
-    view === 'day' ? allRows.filter((entry) => entry.dateKey === dayKey) : allRows
+    view === 'day'
+      ? allRows.filter((entry) => entry.dateKey === dayKey)
+      : view === 'week'
+        ? allRows.filter(
+            (entry) => entry.dateKey >= selectedWeek.start && entry.dateKey <= selectedWeek.end,
+          )
+        : allRows
   const summary = summarizeFinance(rows)
   const days = groupFinanceByDay(rows)
   const slices = expenseByCategory(rows)
-  const isCurrentYear = viewYear === currentYear
-
-  // 近半年趋势：每月各查一次汇总，跨年也按真实月份排
-  const trendMonths = Array.from({ length: 6 }, (_, index) => shiftMonth(currentMonth, index - 5))
-  const trend = useLiveQuery(
-    async () => {
-      if (view !== 'month') return []
-      const lists = await Promise.all(trendMonths.map((key) => financeOfMonth(key)))
-      return trendMonths.map((key, index) => ({ monthKey: key, ...summarizeFinance(lists[index]) }))
-    },
-    [currentMonth, view],
+  const monthWeeks = view === 'month' ? financeWeeksOfMonth(rows, monthKey) : []
+  const monthWeeksMax = Math.max(
+    1,
+    ...monthWeeks.map((item) => Math.max(item.income, item.expense)),
   )
-  const trendMax = Math.max(1, ...(trend ?? []).map((item) => Math.max(item.income, item.expense)))
+  const yearSummaries = period?.months ?? []
+  const yearMonthsMax = Math.max(
+    1,
+    ...yearSummaries.map((item) => Math.max(item.income, item.expense)),
+  )
+  const isCurrentYear = viewYear === currentYear
 
   /** 新增 / 编辑；date 是新增时预填的日期 */
   const [dialog, setDialog] = useState<{ entry: FinanceEntry | null; date: string } | null>(null)
@@ -249,26 +336,44 @@ export default function FinancePage() {
     setSearchParams({ view: 'day', date: next }, { replace: true })
   }
 
+  function setWeekAnchor(next: string) {
+    batch.exit()
+    setSearchParams({ view: 'week', date: next }, { replace: true })
+  }
+
   function setYear(next: number) {
     batch.exit()
     setSearchParams({ view: 'year', year: String(next) }, { replace: true })
   }
 
-  /** 切视角时把当前停留的日期带过去，不让人重新找位置 */
+  /** 切视角时尽量沿用当前查看的日期区间。 */
   function setView(next: FinanceView) {
-    if (next === 'day') setDayKey(view === 'day' ? dayKey : todayKey())
+    if (next === 'day') setDayKey(view === 'day' || view === 'week' ? dayKey : todayKey())
     else if (next === 'year') setYear(view === 'year' ? viewYear : currentYear)
-    else setMonth(monthKey)
+    else if (next === 'week') {
+      const anchor =
+        view === 'day' || view === 'week'
+          ? dayKey
+          : view === 'month'
+            ? monthKey === currentMonth
+              ? todayKey()
+              : `${monthKey}-01`
+            : isCurrentYear
+              ? todayKey()
+              : `${viewYear}-01-01`
+      setWeekAnchor(anchor)
+    } else setMonth(monthKey)
   }
 
-  /** 当前视角下往前 / 往后翻一格：一天、一个月或一年 */
+  /** 当前视角下往前 / 往后翻一格：一天、一周、一个月或一年 */
   function step(delta: number) {
     if (view === 'day') setDayKey(shiftDay(dayKey, delta))
     else if (view === 'year') setYear(viewYear + delta)
+    else if (view === 'week') setWeekAnchor(shiftDay(dayKey, delta * 7))
     else setMonth(shiftMonth(monthKey, delta))
   }
 
-  // 左右滑动翻时段：日视图换天，月 / 年视图换月换年，和翻页箭头同一套步进
+  // 左右滑动翻时段与箭头共用步进：日 / 周 / 月 / 年
   const swipe = useDaySwipe(
     () => step(-1),
     () => step(1),
@@ -282,6 +387,7 @@ export default function FinancePage() {
   /** 看的是哪段就往哪段记；不在当前时段时落在它的第一天 */
   function defaultDate() {
     if (view === 'day') return dayKey
+    if (view === 'week') return dayKey
     if (view === 'year') return isCurrentYear ? todayKey() : `${viewYear}-01-01`
     return monthKey === currentMonth ? todayKey() : `${monthKey}-01`
   }
@@ -314,11 +420,17 @@ export default function FinancePage() {
     })
   }
 
-  /** 时段条的标题：日视图交给 DayNav，月 / 年在这里拼 */
+  /** 时段条的标题：日视图交给 DayNav，周 / 月 / 年在这里拼 */
   const periodTitle =
     view === 'year'
       ? t('finance.yearTitle', { year: viewYear })
-      : t('finance.monthTitle', { year: monthYear, month: monthNumber })
+      : view === 'week'
+        ? t('finance.weekTitle', {
+            year: selectedWeek.start.slice(0, 4),
+            from: formatMonthDay(selectedWeek.start, t),
+            to: formatMonthDay(selectedWeek.end, t),
+          })
+        : t('finance.monthTitle', { year: monthYear, month: monthNumber })
 
   return (
     <div
@@ -327,11 +439,14 @@ export default function FinancePage() {
       onTouchEnd={swipe.onTouchEnd}
       onAnimationEnd={swipe.onAnimationEnd}
     >
-      {/* 视角切换放最上面：先定粒度（日 / 月 / 年），再看具体是哪一段。
+      {/* 视角切换放最上面：先定粒度（日 / 周 / 月 / 年），再看具体是哪一段。
           和日记页一样不再挂页面大标题——底部导航已经标着「经济」 */}
       <nav role="tablist" className="flex items-center gap-1">
         <Tab active={view === 'day'} onClick={() => setView('day')}>
           {t('finance.viewDay')}
+        </Tab>
+        <Tab active={view === 'week'} onClick={() => setView('week')}>
+          {t('finance.viewWeek')}
         </Tab>
         <Tab active={view === 'month'} onClick={() => setView('month')}>
           {t('finance.viewMonth')}
@@ -341,7 +456,7 @@ export default function FinancePage() {
         </Tab>
       </nav>
 
-      {/* 时段条：日 / 月 / 年共用一条外壳（吸顶、铺到容器边缘），切换视角时位置不变。
+      {/* 时段条：日 / 周 / 月 / 年共用一条外壳（吸顶、铺到容器边缘），切换视角时位置不变。
           日视图用公共 DayNav，日期本身能点开日历（记过的天标亮） */}
       {view === 'day' ? (
         <DayNav
@@ -362,7 +477,13 @@ export default function FinancePage() {
           <div className="flex min-w-0 items-center gap-1 rounded-xl border border-line bg-surface px-1 py-0.5">
             <button
               type="button"
-              aria-label={view === 'year' ? t('finance.prevYear') : t('finance.prevMonth')}
+              aria-label={
+                view === 'year'
+                  ? t('finance.prevYear')
+                  : view === 'week'
+                    ? t('finance.prevWeek')
+                    : t('finance.prevMonth')
+              }
               onClick={() => step(-1)}
               className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
             >
@@ -409,11 +530,26 @@ export default function FinancePage() {
                   {t('finance.thisYear')}
                 </button>
               )}
+              {view === 'week' && selectedWeek.start !== currentWeek.start && (
+                <button
+                  type="button"
+                  onClick={() => setWeekAnchor(todayKey())}
+                  className="ml-1 shrink-0 whitespace-nowrap rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted transition-colors hover:text-brand"
+                >
+                  {t('finance.currentWeek')}
+                </button>
+              )}
             </span>
 
             <button
               type="button"
-              aria-label={view === 'year' ? t('finance.nextYear') : t('finance.nextMonth')}
+              aria-label={
+                view === 'year'
+                  ? t('finance.nextYear')
+                  : view === 'week'
+                    ? t('finance.nextWeek')
+                    : t('finance.nextMonth')
+              }
               onClick={() => step(1)}
               className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-fg"
             >
@@ -493,7 +629,9 @@ export default function FinancePage() {
               ? t('finance.balanceDay')
               : view === 'year'
                 ? t('finance.balanceYear')
-                : t('finance.balance')}
+                : view === 'week'
+                  ? t('finance.balanceWeek')
+                  : t('finance.balance')}
           </p>
           {/* 日视图的日期栏已经写着是哪一天，这里补「当天记录」入口，不再重复日期。
               指向「一天一页」：那里把日记、随记、摄入、睡眠、训练、收支与日程排成一条时间轴 */}
@@ -561,10 +699,9 @@ export default function FinancePage() {
         )}
       </section>
 
-      {/* 近半年收支：只在月视图出现，每月两根柱，同一标尺比较 */}
+      {/* 月视图按自然周拆分当前月，收入与支出使用同一标尺。 */}
       {view === 'month' &&
-        trend &&
-        trend.some((item) => item.income > 0 || item.expense > 0) && (
+        monthWeeks.some((item) => item.income > 0 || item.expense > 0) && (
           <section className="mt-3 rounded-2xl border border-line bg-surface p-4">
             <div className="flex items-center justify-between gap-2">
               <h2 className="m-0 text-xs font-medium text-fg">{t('finance.trend')}</h2>
@@ -579,38 +716,24 @@ export default function FinancePage() {
                 </span>
               </div>
             </div>
-            <div className="mt-3 flex items-end gap-2">
-              {trend.map((item) => (
-                <div
-                  key={item.monthKey}
-                  className="flex min-w-0 flex-1 flex-col items-center gap-1"
-                >
-                  <div className="flex h-20 w-full items-end justify-center gap-1">
-                    <div
-                      className="w-2 rounded-t bg-success"
-                      style={{
-                        height: `${(item.income / trendMax) * 100}%`,
-                        minHeight: item.income > 0 ? 2 : 0,
-                      }}
-                    />
-                    <div
-                      className="w-2 rounded-t bg-danger/60"
-                      style={{
-                        height: `${(item.expense / trendMax) * 100}%`,
-                        minHeight: item.expense > 0 ? 2 : 0,
-                      }}
-                    />
-                  </div>
-                  <span
-                    className={`text-[10px] tabular-nums ${
-                      item.monthKey === monthKey ? 'text-brand' : 'text-muted'
-                    }`}
-                  >
-                    {item.monthKey.slice(2)}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <FinanceBars
+              max={monthWeeksMax}
+              bars={monthWeeks.map((item) => {
+                const label = formatMonthDay(item.rangeStart, t)
+                const rangeLabel = `${formatMonthDay(item.rangeStart, t)} – ${formatMonthDay(item.rangeEnd, t)}`
+                return {
+                  key: item.weekStart,
+                  label,
+                  income: item.income,
+                  expense: item.expense,
+                  ariaLabel: t('finance.chartBucketLabel', {
+                    label: rangeLabel,
+                    income: money(item.income),
+                    expense: money(item.expense),
+                  }),
+                }
+              })}
+            />
           </section>
         )}
 
@@ -621,52 +744,51 @@ export default function FinancePage() {
             text={t(
               view === 'day'
                 ? 'finance.emptyDay'
-                : view === 'year'
-                  ? 'finance.emptyYear'
-                  : 'finance.empty',
+                : view === 'week'
+                  ? 'finance.emptyWeek'
+                  : view === 'year'
+                    ? 'finance.emptyYear'
+                    : 'finance.empty',
             )}
           />
         </div>
       ) : view === 'year' ? (
         <section className="mt-3 overflow-hidden rounded-2xl border border-line bg-surface">
-          <header className="flex items-center justify-between gap-2 bg-surface-2 px-3 py-2">
+          <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 bg-surface-2 px-3 py-2">
             <h2 className="m-0 text-xs font-medium text-fg">{t('finance.yearMonths')}</h2>
-            <span className="text-[11px] tabular-nums text-muted">
-              {t('finance.entryCount', { n: rows.length })}
-            </span>
+            <div className="flex items-center gap-2 text-[10px] text-muted">
+              <span className="inline-flex items-center gap-1">
+                <span className="h-2 w-2 rounded-sm bg-success" />
+                {t('finance.income')}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-2 w-2 rounded-sm bg-danger/60" />
+                {t('finance.expense')}
+              </span>
+              <span className="text-[11px] tabular-nums">{t('finance.entryCount', { n: rows.length })}</span>
+            </div>
           </header>
-          <ul className="m-0 list-none p-0">
-            {(period.months ?? [])
-              .map((item, index) => ({ ...item, monthValue: index + 1 }))
-              .filter((item) => item.count > 0)
-              .map((item) => (
-                <li key={item.monthValue}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setMonth(`${viewYear}-${String(item.monthValue).padStart(2, '0')}`)
-                    }
-                    className="flex w-full items-center gap-3 border-t border-line px-3 py-2.5 text-left transition-colors hover:bg-surface-2"
-                  >
-                    <span className="w-14 shrink-0 text-sm text-fg">
-                      {monthFormatter.format(new Date(viewYear, item.monthValue - 1, 1))}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[11px] tabular-nums text-muted">
-                      <span className="text-success">+{money(item.income)}</span>
-                      {' · '}
-                      <span className="text-danger">-{money(item.expense)}</span>
-                    </span>
-                    <span
-                      className={`shrink-0 text-sm tabular-nums ${
-                        item.balance < 0 ? 'text-danger' : 'text-fg'
-                      }`}
-                    >
-                      {money(item.balance)}
-                    </span>
-                  </button>
-                </li>
-              ))}
-          </ul>
+          <div className="px-3 pb-3">
+            <FinanceBars
+              max={yearMonthsMax}
+              bars={yearSummaries.map((item, index) => {
+                const monthValue = index + 1
+                const monthLabel = monthFormatter.format(new Date(viewYear, index, 1))
+                return {
+                  key: `${viewYear}-${String(monthValue).padStart(2, '0')}`,
+                  label: monthLabel,
+                  income: item.income,
+                  expense: item.expense,
+                  ariaLabel: t('finance.chartBucketLabel', {
+                    label: monthLabel,
+                    income: money(item.income),
+                    expense: money(item.expense),
+                  }),
+                  onSelect: () => setMonth(`${viewYear}-${String(monthValue).padStart(2, '0')}`),
+                }
+              })}
+            />
+          </div>
         </section>
       ) : (
         days.map((day) => (

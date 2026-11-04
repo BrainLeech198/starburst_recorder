@@ -5,6 +5,7 @@
  * 这里不碰存储和 i18n，方便单测和以后复用到月报。
  */
 import type { FinanceEntry } from '@/core/db/schema'
+import { shiftDay } from '@/core/utils/dateKey'
 
 /** '2026-10-31' → '2026-10' */
 export function monthKeyOf(dateKey: string): string {
@@ -37,6 +38,14 @@ export function monthBounds(monthKey: string): { start: string; end: string } {
   }
 }
 
+/** 返回 dateKey 所在的周一到周日（含），统一以周一为周首。 */
+export function weekBounds(dateKey: string): { start: string; end: string } {
+  const weekday = new Date(`${dateKey}T00:00:00Z`).getUTCDay()
+  const mondayOffset = (weekday + 6) % 7
+  const start = shiftDay(dateKey, -mondayOffset)
+  return { start, end: shiftDay(start, 6) }
+}
+
 export interface FinanceSummary {
   /** 收入合计 */
   income: number
@@ -44,6 +53,37 @@ export interface FinanceSummary {
   expense: number
   /** 结余 = 收入 - 支出 */
   balance: number
+}
+
+export interface FinanceWeekSummary extends FinanceSummary {
+  /** 自然周周一，用作稳定 key */
+  weekStart: string
+  /** 自然周与所选月份相交后的首日 */
+  rangeStart: string
+  /** 自然周与所选月份相交后的末日 */
+  rangeEnd: string
+}
+
+/** 按自然周拆出所选月份的收支；首尾周只统计月份内的记录。 */
+export function financeWeeksOfMonth(entries: FinanceEntry[], monthKey: string): FinanceWeekSummary[] {
+  const month = monthBounds(monthKey)
+  const firstWeek = weekBounds(month.start).start
+  const weeks: FinanceWeekSummary[] = []
+  for (let weekStart = firstWeek; weekStart <= month.end; weekStart = shiftDay(weekStart, 7)) {
+    const week = weekBounds(weekStart)
+    const rangeStart = week.start < month.start ? month.start : week.start
+    const rangeEnd = week.end > month.end ? month.end : week.end
+    const weekEntries = entries.filter(
+      (entry) => entry.dateKey >= rangeStart && entry.dateKey <= rangeEnd,
+    )
+    weeks.push({
+      weekStart,
+      rangeStart,
+      rangeEnd,
+      ...summarizeFinance(weekEntries),
+    })
+  }
+  return weeks
 }
 
 export interface FinanceDay {

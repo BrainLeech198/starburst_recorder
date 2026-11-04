@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import type { FinanceEntry } from '@/core/db/schema'
 import {
   expenseByCategory,
+  financeWeeksOfMonth,
   groupFinanceByDay,
   isMonthKey,
   monthBounds,
@@ -9,6 +10,7 @@ import {
   roundMoney,
   shiftMonth,
   summarizeFinance,
+  weekBounds,
 } from './financeMath'
 
 function entry(overrides: Partial<FinanceEntry> = {}): FinanceEntry {
@@ -55,6 +57,44 @@ describe('monthBounds', () => {
   test('给出当月首尾日期，闰年二月也正确', () => {
     expect(monthBounds('2026-10')).toEqual({ start: '2026-10-01', end: '2026-10-31' })
     expect(monthBounds('2024-02')).toEqual({ start: '2024-02-01', end: '2024-02-29' })
+  })
+})
+
+describe('weekBounds / financeWeeksOfMonth', () => {
+  test('周一到周日为自然周，跨月与跨年也正确', () => {
+    expect(weekBounds('2026-11-04')).toEqual({ start: '2026-11-02', end: '2026-11-08' })
+    expect(weekBounds('2027-01-01')).toEqual({ start: '2026-12-28', end: '2027-01-03' })
+  })
+
+  test('月份图按自然周分桶，首尾周只纳入当前月份', () => {
+    const weeks = financeWeeksOfMonth(
+      [
+        entry({ id: 'oct', dateKey: '2026-10-31', amount: 500 }),
+        entry({ id: 'nov1', dateKey: '2026-11-01', kind: 'income', amount: 1000 }),
+        entry({ id: 'nov2', dateKey: '2026-11-02', amount: 120 }),
+        entry({ id: 'nov3', dateKey: '2026-11-03', amount: 80 }),
+        entry({ id: 'deleted', dateKey: '2026-11-03', amount: 900, deletedAt: 1 }),
+        entry({ id: 'dec', dateKey: '2026-12-01', amount: 700 }),
+      ],
+      '2026-11',
+    )
+
+    expect(weeks).toHaveLength(6)
+    expect(weeks[0]).toMatchObject({
+      weekStart: '2026-10-26',
+      rangeStart: '2026-11-01',
+      rangeEnd: '2026-11-01',
+      income: 1000,
+      expense: 0,
+    })
+    expect(weeks[1]).toMatchObject({
+      weekStart: '2026-11-02',
+      rangeStart: '2026-11-02',
+      rangeEnd: '2026-11-08',
+      income: 0,
+      expense: 200,
+    })
+    expect(weeks.at(-1)).toMatchObject({ rangeStart: '2026-11-30', rangeEnd: '2026-11-30' })
   })
 })
 
