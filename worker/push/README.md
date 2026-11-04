@@ -47,7 +47,7 @@
 而不是放行——忘了配等于没开管理后台。
 
 官网同时提供账号密码管理员网站：`https://brainleech198.github.io/starburst_recorder/admin/`。
-网页登录由 Worker 校验 `ADMIN_USERNAME` 与 PBKDF2 格式的 `ADMIN_PASSWORD_HASH`，成功后返回 30 分钟 HMAC 会话；会话只保存在网页内存。它使用单独的 `ADMIN_SESSION_SECRET` 和 `ADMIN_LOGIN_LIMITER`，不会把 `ADMIN_TOKEN` 暴露给浏览器，也不影响下方的 CLI。
+网页登录由 Worker 校验 `ADMIN_USERNAME` 与 PBKDF2 格式的 `ADMIN_PASSWORD_HASH`，成功后返回 30 分钟 HMAC 会话；会话只保存在网页内存。当前哈希使用 100,000 次迭代，因为 Worker WebCrypto 拒绝更高次数；生成器与校验器共用同一常量。它使用单独的 `ADMIN_SESSION_SECRET` 和 `ADMIN_LOGIN_LIMITER`，不会把 `ADMIN_TOKEN` 暴露给浏览器，也不影响下方的 CLI。
 
 ```bash
 # 在本机安全地输入密码并生成 PBKDF2 哈希（输入不会显示）

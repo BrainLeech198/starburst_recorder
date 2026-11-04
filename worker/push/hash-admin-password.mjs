@@ -2,8 +2,9 @@
 /** Securely prompt for an administrator password and print its PBKDF2 hash. */
 import { pbkdf2Sync, randomBytes } from 'node:crypto'
 import { StringDecoder } from 'node:string_decoder'
+import { PASSWORD_ITERATIONS } from './src/admin-auth.js'
 
-const iterations = 310_000
+const iterations = PASSWORD_ITERATIONS
 
 if (!process.stdin.isTTY || typeof process.stdin.setRawMode !== 'function') {
   console.error('请在交互式终端中运行此脚本；密码不会显示，也不要通过命令行参数传入。')

@@ -1,8 +1,9 @@
 const TEXT = new TextEncoder()
 const PASSWORD_SCHEME = 'pbkdf2-sha256'
-export const PASSWORD_ITERATIONS = 310_000
+// Cloudflare Workers WebCrypto currently rejects PBKDF2 counts above 100,000.
+export const PASSWORD_ITERATIONS = 100_000
 const MIN_PASSWORD_ITERATIONS = 100_000
-const MAX_PASSWORD_ITERATIONS = 600_000
+const MAX_PASSWORD_ITERATIONS = 100_000
 export const ADMIN_SESSION_TTL_SECONDS = 30 * 60
 
 function encodeBase64Url(bytes) {
