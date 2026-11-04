@@ -1,4 +1,4 @@
-const API = 'https://starburst-push.starburst-recorder.workers.dev'
+const API = 'https://starburst-recorder.pages.dev/channel'
 
 let sessionToken = null
 let editingNoticeId = null
@@ -74,7 +74,7 @@ async function readResponse(response) {
 
 async function adminRequest(path, options = {}) {
   if (!sessionToken) throw new Error('请先登录')
-  const response = await fetch(`${API}${path}`, {
+  const response = await fetchAdminApi(`${API}${path}`, {
     ...options,
     cache: 'no-store',
     headers: {
@@ -86,6 +86,17 @@ async function adminRequest(path, options = {}) {
   return readResponse(response)
 }
 
+async function fetchAdminApi(url, options) {
+  try {
+    return await fetch(url, options)
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error('无法连接管理员服务，请检查网络后重试。')
+    }
+    throw error
+  }
+}
+
 loginForm.addEventListener('submit', async (event) => {
   event.preventDefault()
   const button = loginForm.querySelector('button[type="submit"]')
@@ -93,7 +104,7 @@ loginForm.addEventListener('submit', async (event) => {
   button.disabled = true
   loginMessage.textContent = '正在验证…'
   try {
-    const response = await fetch(`${API}/admin/session`, {
+    const response = await fetchAdminApi(`${API}/admin/session`, {
       method: 'POST',
       cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },

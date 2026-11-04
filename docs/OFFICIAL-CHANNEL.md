@@ -18,7 +18,7 @@
 - 管理员工作台显示完整公告历史。可按原 ID 编辑标题、正文和级别，保留原发布时间；删除后公告从公开列表移除。编辑不会再次发送邮件，删除也无法撤回已送达的邮件。
 - App 启动时读取公开公告，并弹出一条尚未确认的公告；紧急公告优先。关闭弹窗只暂缓，下次启动继续提醒；点“确认收到”后将该公告记入本机状态，不再弹出。全部公告仍可在“我的 → 公告”查看。
 - 公告读取成功但列表为空时，公告页显示明确空态；接口或网络失败时显示错误与重试入口，不把失败当作空列表。网页 GET 不附带 JSON `Content-Type`，避免触发无必要的跨域预检。
-- App 公告、订阅与反馈通过 `https://starburst-recorder.pages.dev/channel/` 进入 Pages Function，再用 Cloudflare Service Binding 调用 `starburst-push` Worker；仅开放五个公开频道路由，不接受任意代理目标。`VITE_CHANNEL_API` 可供自托管覆盖；Web Push 仍单独使用 `VITE_PUSH_API`。
+- App 公告、订阅与反馈以及管理员页 API，通过 `https://starburst-recorder.pages.dev/channel/` 进入 Pages Function，再用 Cloudflare Service Binding 调用 `starburst-push` Worker；只开放固定的公开频道和管理员路由，不接受任意代理目标。`VITE_CHANNEL_API` 可供自托管覆盖；Web Push 仍单独使用 `VITE_PUSH_API`。
 - 新订阅进入待确认状态，队列发送确认邮件。确认链接的 GET 只显示确认页，用户提交确认表单后才生效；七天未确认的记录会失效。退订邮件链接也采用 GET 展示、POST 执行，避免邮件扫描器仅打开链接就误退订。一个订阅周期专用一个随机 ID，旧链接不会作用于后来重新订阅的地址。
 - Resend 未配置时，为兼容现有 App，订阅接口保留旧的即时登记流程；管理员页面会禁用邮件发送。邮件服务配置齐全后，新订阅才改为双重确认。
 - 启用 Resend 前，需更新 App 订阅页以区分“已登记”和“确认邮件已发送，请打开邮件完成订阅”，并同步九份语言表。否则 App 会把待确认状态显示为已订阅。
@@ -31,12 +31,12 @@
 | 层 | 当前技术 | 职责 |
 | --- | --- | --- |
 | 管理网站 | `site/admin/` 静态 HTML / CSS / JavaScript，随官网 GitHub Pages 发布 | 登录、编辑公告、选择投递方式、查看订阅者和反馈 |
-| 公开频道入口 | 根目录 `functions/channel/[[path]].js` Cloudflare Pages Function | 只转发公告、订阅、退订、订阅查询和反馈五个公开路由 |
+| API 入口 | 根目录 `functions/channel/[[path]].js` Cloudflare Pages Function | 转发公开频道路由和管理员网页固定端点；其他路径拒绝 |
 | HTTP API | `worker/push/src/index.js` Cloudflare Worker | 登录、会话鉴权、公告、订阅确认、退订和反馈接口 |
 | 数据 | Worker 绑定的 `PUSH_KV` | 保存公告、订阅邮箱和反馈 |
 | 异步队列 | Cloudflare Queues：`starburst-email` 与 `starburst-email-dlq` | 缓冲群发任务、失败重试、隔离重试耗尽的任务 |
 | 邮件服务 | Resend Email API | Worker 服务端单人发送；API Key 只保存在 Worker Secret |
-| 登录限流 | Cloudflare Rate Limiting | 对管理员登录和订阅提交做近似限流；不是严格的全局配额 |
+| 登录限流 | Cloudflare Rate Limiting | 按 `X-Forwarded-For` 最后一跳地址，对管理员登录和订阅提交分别做近似限流；不是严格的全局配额 |
 
 网页只调用项目自己的 JSON API，不接触邮件服务商密钥。频道入口经 Pages 同域转发，减少客户端直接连接 `workers.dev` 的网络与跨域故障。以后替换邮件供应商，主要改 Worker 的邮件适配层；若迁移到其他平台，可保留管理员网站和 API 契约，替换 KV、队列与邮件服务实现。
 

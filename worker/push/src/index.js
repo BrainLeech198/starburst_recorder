@@ -70,6 +70,22 @@ function json(body, status, headers) {
 }
 
 /**
+ * Use the last address Cloudflare appended to X-Forwarded-For for rate limiting.
+ * Cross-zone Pages Service Binding requests can replace CF-Connecting-IP with a
+ * shared Worker subrequest address. This key is only for rate limiting, never auth.
+ */
+function rateLimitClientKey(request) {
+  const forwardedFor = request.headers.get('X-Forwarded-For') || ''
+  const lastHop = forwardedFor.slice(forwardedFor.lastIndexOf(',') + 1).trim()
+  if (lastHop.length <= 64 && /[.:]/.test(lastHop) && /^[0-9a-f:.]+$/i.test(lastHop)) {
+    return `ip:${lastHop.toLowerCase()}`
+  }
+
+  const connectingIp = request.headers.get('CF-Connecting-IP') || ''
+  return connectingIp ? `ip:${connectingIp.toLowerCase()}` : 'unknown'
+}
+
+/**
  * 跨域：网页版在 `*.pages.dev`，Worker 在 `*.workers.dev`，是两个源。
  * `ALLOWED_ORIGINS` 用逗号分隔，写 `*` 表示全放行（只建议本地调试时用）。
  */
@@ -168,8 +184,7 @@ async function postAdminSession(request, env, cors) {
 
   let allowed
   try {
-    const client = request.headers.get('CF-Connecting-IP') || 'unknown'
-    allowed = await env.ADMIN_LOGIN_LIMITER.limit({ key: client })
+    allowed = await env.ADMIN_LOGIN_LIMITER.limit({ key: rateLimitClientKey(request) })
   } catch {
     // 限流器不可用时拒绝登录，避免服务故障退化成无限次密码尝试。
     return json({ error: 'admin login temporarily unavailable' }, 503, cors)
@@ -343,8 +358,7 @@ async function postSubscribeEmail(request, env, cors) {
 
   let allowed
   try {
-    const client = request.headers.get('CF-Connecting-IP') || 'unknown'
-    allowed = await env.EMAIL_SUBSCRIBE_LIMITER.limit({ key: client })
+    allowed = await env.EMAIL_SUBSCRIBE_LIMITER.limit({ key: rateLimitClientKey(request) })
   } catch {
     return json({ error: 'email subscription temporarily unavailable' }, 503, cors)
   }

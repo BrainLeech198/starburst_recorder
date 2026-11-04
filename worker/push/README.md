@@ -42,7 +42,7 @@
 | `GET /admin/feedback` | `ADMIN_TOKEN` | 翻用户反馈 |
 
 **公开接口不需要客户端令牌**：公告是公开信息，订阅与反馈是用户主动发起的。
-订阅确认使用独立的限流 binding；Cloudflare Rate Limiting 是近似限流，不能当作全局严格配额。
+管理员登录和邮箱订阅使用各自独立的限流 binding，并按 `X-Forwarded-For` 最后一跳地址限流。Pages Service Binding 跨 zone 调用时 `CF-Connecting-IP` 可能变成所有请求共用的 Worker 子请求地址。Cloudflare Rate Limiting 是近似限流，不能当作全局严格配额。
 
 **命令行管理接口需要独立的 `ADMIN_TOKEN`**，与客户端的 `PUSH_TOKEN` 分开：
 客户端令牌会打进网页产物，谁都能扒出来；而「发公告、导出订阅邮箱、翻用户反馈」
@@ -50,6 +50,7 @@
 而不是放行——忘了配等于没开管理后台。
 
 官网同时提供账号密码管理员网站：`https://brainleech198.github.io/starburst_recorder/admin/`。
+管理员页通过 Pages Function 的固定路由连接 Worker，避免浏览器直接连接 `workers.dev`；会话仍由 Worker 校验，未列入路由表的地址会被拒绝。
 网页登录由 Worker 校验 `ADMIN_USERNAME` 与 PBKDF2 格式的 `ADMIN_PASSWORD_HASH`，成功后返回 30 分钟 HMAC 会话；会话只保存在网页内存。当前哈希使用 100,000 次迭代，因为 Worker WebCrypto 拒绝更高次数；生成器与校验器共用同一常量。它使用单独的 `ADMIN_SESSION_SECRET` 和 `ADMIN_LOGIN_LIMITER`，不会把 `ADMIN_TOKEN` 暴露给浏览器，也不影响下方的 CLI。
 
 ```bash

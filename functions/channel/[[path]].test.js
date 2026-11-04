@@ -69,4 +69,51 @@ describe('Pages channel facade', () => {
     expect(response.status).toBe(204)
     expect(new URL(fetch.mock.calls[0][0].url).pathname).toBe('/feedback')
   })
+
+  it('forwards only the explicit administrator routes and methods', async () => {
+    const routes = [
+      ['admin/session', 'POST'],
+      ['admin/api/status', 'GET'],
+      ['admin/api/notices', 'GET'],
+      ['admin/api/notices', 'POST'],
+      ['admin/api/notices/notice-1', 'PUT'],
+      ['admin/api/notices/notice-1', 'DELETE'],
+      ['admin/api/messages', 'POST'],
+      ['admin/api/subscribers', 'GET'],
+      ['admin/api/feedback', 'GET'],
+    ]
+    const fetch = vi.fn(async () => Response.json({ ok: true }))
+
+    for (const [route, method] of routes) {
+      const response = await onRequest({
+        request: new Request(`https://starburst-recorder.pages.dev/channel/${route}`, {
+          method,
+          headers: {
+            Origin: 'https://brainleech198.github.io',
+            ...(method === 'POST' || method === 'PUT' ? { 'Content-Type': 'application/json' } : {}),
+            ...(route !== 'admin/session' ? { Authorization: 'Bearer session-token' } : {}),
+          },
+          ...(['POST', 'PUT'].includes(method) ? { body: JSON.stringify({ ok: true }) } : {}),
+        }),
+        params: { path: route.split('/') },
+        env: { CHANNEL_SERVICE: { fetch } },
+      })
+      expect(response.status).toBe(200)
+      expect(new URL(fetch.mock.calls.at(-1)[0].url).pathname).toBe(`/${route}`)
+    }
+
+    expect(fetch).toHaveBeenCalledTimes(routes.length)
+  })
+
+  it('rejects unlisted administrator routes before invoking the Worker', async () => {
+    const fetch = vi.fn()
+    const response = await onRequest({
+      request: new Request('https://starburst-recorder.pages.dev/channel/admin/api/secrets'),
+      params: { path: ['admin', 'api', 'secrets'] },
+      env: { CHANNEL_SERVICE: { fetch } },
+    })
+
+    expect(response.status).toBe(404)
+    expect(fetch).not.toHaveBeenCalled()
+  })
 })

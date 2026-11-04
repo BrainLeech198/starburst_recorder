@@ -1,6 +1,6 @@
 /* global Request, Response, URL */
 /**
- * Same-origin facade for the public channel API.
+ * Fixed-route facade for the public channel and administrator APIs.
  *
  * Keep this route list explicit: the Pages Function is not a general-purpose proxy.
  * CHANNEL_SERVICE is a Cloudflare Pages service binding to the existing starburst-push Worker.
@@ -11,12 +11,25 @@ const ROUTES = new Map([
   ['unsubscribe-email', new Set(['POST'])],
   ['subscription', new Set(['GET'])],
   ['feedback', new Set(['POST'])],
+  ['admin/session', new Set(['POST'])],
+  ['admin/api/status', new Set(['GET'])],
+  ['admin/api/notices', new Set(['GET', 'POST'])],
+  ['admin/api/messages', new Set(['POST'])],
+  ['admin/api/subscribers', new Set(['GET'])],
+  ['admin/api/feedback', new Set(['GET'])],
 ])
+
+function allowedMethods(route) {
+  const exact = ROUTES.get(route)
+  if (exact) return exact
+  if (/^admin\/api\/notices\/[^/]+$/.test(route)) return new Set(['PUT', 'DELETE'])
+  return undefined
+}
 
 export async function onRequest({ request, params, env }) {
   const segments = Array.isArray(params.path) ? params.path : [params.path]
   const route = segments.filter(Boolean).join('/')
-  const methods = ROUTES.get(route)
+  const methods = allowedMethods(route)
 
   if (!methods) return Response.json({ error: 'not found' }, { status: 404 })
   if (request.method !== 'OPTIONS' && !methods.has(request.method)) {

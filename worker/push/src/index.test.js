@@ -380,6 +380,61 @@ async function makeAdminSession(env = {}) {
 }
 
 describe('官方频道的公开接口', () => {
+  it('经 Pages 代理时按 X-Forwarded-For 最后一跳对登录和订阅分别限流', async () => {
+    const env = await makeEnv()
+    const loginLimit = vi.fn(async () => ({ success: true }))
+    const subscribeLimit = vi.fn(async () => ({ success: true }))
+    env.ADMIN_LOGIN_LIMITER = { limit: loginLimit }
+    env.EMAIL_SUBSCRIBE_LIMITER = { limit: subscribeLimit }
+    env.ADMIN_USERNAME = 'owner'
+    env.ADMIN_PASSWORD_HASH = await makePasswordHash('correct horse battery staple')
+    env.ADMIN_SESSION_SECRET = '0123456789abcdef0123456789abcdef'
+
+    const headers = {
+      'Content-Type': 'application/json',
+      Origin: 'https://app.example.com',
+      'CF-Connecting-IP': '2a06:98c0:3600::103',
+      'X-Forwarded-For': '198.51.100.12, 203.0.113.44',
+    }
+    const login = await worker.fetch(new Request('https://push.example.workers.dev/admin/session', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ username: 'owner', password: 'incorrect' }),
+    }), env)
+    expect(login.status).toBe(401)
+    expect(loginLimit).toHaveBeenCalledWith({ key: 'ip:203.0.113.44' })
+
+    const subscription = await worker.fetch(new Request('https://push.example.workers.dev/subscribe-email', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ email: 'proxy-limit@example.com' }),
+    }), env)
+    expect(subscription.status).toBe(200)
+    expect(subscribeLimit).toHaveBeenCalledWith({ key: 'ip:203.0.113.44' })
+  })
+
+  it('没有有效转发地址时退回 CF-Connecting-IP 作为限流键', async () => {
+    const env = await makeEnv()
+    const loginLimit = vi.fn(async () => ({ success: true }))
+    env.ADMIN_LOGIN_LIMITER = { limit: loginLimit }
+    env.ADMIN_USERNAME = 'owner'
+    env.ADMIN_PASSWORD_HASH = await makePasswordHash('correct horse battery staple')
+    env.ADMIN_SESSION_SECRET = '0123456789abcdef0123456789abcdef'
+
+    await worker.fetch(new Request('https://push.example.workers.dev/admin/session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: 'https://app.example.com',
+        'CF-Connecting-IP': '203.0.113.90',
+        'X-Forwarded-For': 'invalid',
+      },
+      body: JSON.stringify({ username: 'owner', password: 'incorrect' }),
+    }), env)
+
+    expect(loginLimit).toHaveBeenCalledWith({ key: 'ip:203.0.113.90' })
+  })
+
   it('邮件服务未配置时保持旧订阅接口可用', async () => {
     const env = await makeEnv()
     const response = await worker.fetch(
