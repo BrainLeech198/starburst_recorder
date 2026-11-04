@@ -219,6 +219,8 @@ POST   https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files 
 
 `0.15.0` 正式版：标签 `v0.15.0` 指向 `7a615d403cbb3c8b99c335c6c90ae389ebf23788`；APK 为 61,746,325 字节、`versionCode=1500999`、SHA-256 `2F69E3B89A0D92417626F25212427AF54D01D53237B10AD3004158703651DCD1`，签名证书与 §2.2 一致；Windows 安装包为 100,334,595 字节、ProductVersion `0.15.0`、SHA-256 `FEF0A7DB43D294F00BE2ABDEC8B6A4A7469AD9AF14C668479B80123BF37383E1`。GitHub 与 Gitee 上传大小一致；从 Gitee 回下载的 APK 大小与 SHA-256 均与本地归档一致，签名指纹仍与 §2.2 一致。四个 GitHub / Gitee 下载地址均返回成功；GitHub `/releases/latest` 与 Gitee `/releases/latest` API 均指向 `v0.15.0`。Gitee 旧版 `v0.14.1` 两个二进制附件已删除、Release 条目保留；`v0.15.0` 仅有本版 APK 与 Windows 安装包。GitHub Pages 工作流 `41806278514` 成功；线上首页、更新日志、中英文说明和管理员入口均返回 HTTP 200，首页与更新说明显示 `0.15.0`。GitHub 镜像与 Gitee 主分支同为 `7a615d4`。
 
+`0.15.1` 正式版：标签 `v0.15.1` 指向 `ef10c44835f64502c44edebfaeef6dbd76f0f85f`；APK 为 61,746,801 字节、`versionCode=1501999`、SHA-256 `CACC1FF0967085EFF2A5B5342E5BAA090CB6965FEE62C6E2A9C9B5CA4AE6461E`，签名证书与 §2.2 一致；Windows 安装包为 100,336,108 字节、ProductVersion `0.15.1`、SHA-256 `45967BC4D73E1979587D7DE9A34053866F412AC09F9FEAAE4A0764C8FD45AF26`。GitHub 与 Gitee 的两份附件大小一致；从 Gitee 回下载 APK 后，大小、SHA-256 与签名均与本地一致。四个下载地址均返回 HTTP 200，GitHub 与 Gitee `/latest` 均指向 `v0.15.1`；Gitee `v0.15.0` 的两个旧二进制附件已移除，Release 条目与源码归档保留。GitHub CI `41810992366` 与 Pages 工作流 `41811642663` 成功，线上首页、更新日志、中英文说明均返回 HTTP 200 并显示 `0.15.1`。PWA 部署到 `https://028fcd74.starburst-recorder.pages.dev`，生产构建号 `mw1xmho8`；线上验收 10/10、本地 PWA 探针 20/20。公告点“确认收到”后仅在本机记录，不再弹出；关闭只暂缓并在下次启动提醒。`npm test`（79 个文件、830 项）、`npm run typecheck`、`npm run lint` 与 `npm run build` 均通过。发布标签与自动镜像在 `ef10c44` 对齐；随后 `main` 因独立的收支周视图提交推进到 `3f031ff`，未改动本版标签。
+
 ## 4.2 测试版发版（GitHub Pre-release）
 
 测试版少几步，但边界更硬：

@@ -454,5 +454,8 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
   部署地址 `https://ba6aab6d.starburst-recorder.pages.dev`，构建号 `mw1tgq6q`。
   正式域名公告接口返回 JSON 200；网页与 Android WebView Origin 预检返回 204；空反馈和无效邮箱返回 400，
   未向生产写入测试数据。Android / Windows 安装包仍需下次签名发版。
+- **2026-11-04 v0.15.1 公告回执**：标签 `v0.15.1`（提交 `ef10c44`）已部署到生产 Pages，地址
+  `https://028fcd74.starburst-recorder.pages.dev`，构建号 `mw1xmho8`；`.local/verify-online.mjs`
+  通过 10/10，`.local/probe-pwa.mjs` 通过 20/20。新客户端点“确认收到”后本机记住公告 ID；关闭弹窗仍会在下次启动提醒。
 - **KV 里现在只剩一条记录**，是早先在 workerd 里手测留下的 FCM 端点、`slots` 为 0
   （永远不会命中，不产生推送）。真正的用户订阅会在开启提醒时自己写进来。
