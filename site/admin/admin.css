@@ -123,6 +123,16 @@ select:disabled { color: var(--muted); }
 .notice-record__actions { display: flex; gap: 7px; }
 .button--danger { border-color: rgb(255 158 136 / 20%); color: #ffb39f; background: rgb(255 158 136 / 5%); }
 .button--danger:hover:not(:disabled) { border-color: rgb(255 158 136 / 45%); background: rgb(255 158 136 / 10%); }
+.action-dialog { width: min(560px, calc(100vw - 32px)); max-height: min(88vh, 760px); margin: auto; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 18px; color: inherit; background: var(--panel); box-shadow: 0 24px 90px rgb(0 0 0 / 55%); }
+.action-dialog::backdrop { background: rgb(3 8 14 / 72%); backdrop-filter: blur(3px); }
+.action-dialog__content { max-height: calc(88vh - 90px); padding: 26px 26px 0; overflow: auto; }
+.action-dialog__content h2 { margin-top: 10px; }
+.action-dialog__description { margin: 10px 0 0; font-size: 13px; }
+.action-dialog__preview { margin-top: 17px; padding: 15px; border: 1px solid var(--line); border-radius: 12px; background: rgb(5 10 17 / 36%); }
+.action-dialog__preview-title { margin: 0 0 8px; color: #edf3fa; font-size: 14px; }
+.action-dialog__preview-subject { margin: -2px 0 8px; color: var(--muted); font-size: 11px; }
+.action-dialog__preview-body { max-height: min(34vh, 280px); margin: 0; overflow: auto; color: #aab7c7; font-size: 13px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.action-dialog__actions { display: flex; justify-content: flex-end; gap: 10px; padding: 20px 26px 24px; }
 .empty { color: var(--muted) !important; }
 .workspace-message { margin: -12px 0 20px; padding: 12px 14px; border: 1px solid rgb(168 234 215 / 22%); border-radius: 10px; color: var(--mint); background: rgb(168 234 215 / 6%); font-size: 13px; }
 .workspace-message[data-kind="error"] { border-color: rgb(255 158 136 / 25%); color: #ffb39f; background: rgb(255 158 136 / 6%); }
@@ -142,6 +152,8 @@ select:disabled { color: var(--muted); }
   .panel { padding: 19px 17px; }
   .workspace-heading { align-items: start; }
   .workspace-heading .button { padding: 0 12px; }
+  .action-dialog__content { padding: 23px 20px 0; }
+  .action-dialog__actions { padding: 17px 20px 20px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

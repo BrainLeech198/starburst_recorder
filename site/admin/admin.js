@@ -8,6 +8,15 @@ const workspaceView = document.querySelector('#workspace-view')
 const loginForm = document.querySelector('#login-form')
 const loginMessage = document.querySelector('#login-message')
 const workspaceMessage = document.querySelector('#workspace-message')
+const actionDialog = document.querySelector('#action-dialog')
+const actionDialogTitle = document.querySelector('#action-dialog-title')
+const actionDialogDescription = document.querySelector('#action-dialog-description')
+const actionDialogPreview = document.querySelector('#action-dialog-preview')
+const actionDialogPreviewTitle = document.querySelector('#action-dialog-preview-title')
+const actionDialogPreviewSubject = document.querySelector('#action-dialog-preview-subject')
+const actionDialogPreviewBody = document.querySelector('#action-dialog-preview-body')
+const actionDialogCancel = document.querySelector('#action-dialog-cancel')
+const actionDialogConfirm = document.querySelector('#action-dialog-confirm')
 
 function showLogin(message = '') {
   sessionToken = null
@@ -21,6 +30,34 @@ function showWorkspaceMessage(message, kind = 'success') {
   workspaceMessage.dataset.kind = kind === 'error' ? 'error' : 'success'
   workspaceMessage.hidden = false
 }
+
+function requestActionConfirmation({ title, description, confirmLabel, preview, destructive = false }) {
+  actionDialogTitle.textContent = title
+  actionDialogDescription.textContent = description
+  actionDialogConfirm.textContent = confirmLabel
+  actionDialogConfirm.classList.toggle('button--danger', destructive)
+  actionDialogConfirm.classList.toggle('button--primary', !destructive)
+  actionDialogPreview.hidden = !preview
+  actionDialogPreviewTitle.textContent = preview?.title || ''
+  actionDialogPreviewSubject.hidden = !preview?.subject
+  actionDialogPreviewSubject.textContent = preview?.subject ? `邮件主题：${preview.subject}` : ''
+  actionDialogPreviewBody.textContent = preview?.body || ''
+  actionDialog.returnValue = ''
+
+  return new Promise((resolve) => {
+    actionDialog.addEventListener('close', () => {
+      resolve(actionDialog.returnValue === 'confirm')
+    }, { once: true })
+    actionDialog.showModal()
+    actionDialogCancel.focus({ preventScroll: true })
+  })
+}
+
+actionDialogCancel.addEventListener('click', () => actionDialog.close('cancel'))
+actionDialogConfirm.addEventListener('click', () => actionDialog.close('confirm'))
+actionDialog.addEventListener('click', (event) => {
+  if (event.target === actionDialog) actionDialog.close('cancel')
+})
 
 async function readResponse(response) {
   const body = await response.json().catch(() => ({}))
@@ -133,13 +170,42 @@ noticeForm.addEventListener('submit', async (event) => {
   const values = new FormData(form)
   const delivery = editingNoticeId ? 'notice' : values.get('delivery')
   const level = values.get('urgent') === 'on' ? 'urgent' : 'info'
-  if (delivery !== 'notice') {
-    const includesNotice = delivery === 'both'
-    const noticeCopy = includesNotice && level === 'urgent' ? '并发布紧急应用内公告' : includesNotice ? '并发布应用内公告' : ''
-    if (!window.confirm(`将向当前全部邮箱订阅者发送邮件${noticeCopy}。${level === 'urgent' && includesNotice ? '紧急公告会提醒应用内用户。' : ''}确认继续吗？`)) return
-  } else if (level === 'urgent' && !window.confirm('这条公告会以紧急级别展示给所有用户，确认发布吗？')) {
-    return
+
+  const preview = { title: values.get('title'), body: values.get('body') }
+  if (delivery === 'email' || delivery === 'both') {
+    preview.subject = values.get('subject')?.trim() || values.get('title')
   }
+  let confirmation
+  if (editingNoticeId) {
+    confirmation = {
+      title: '确认保存公告修改？',
+      description: '保存后会更新当前应用内公告，保留原发布时间；不会重新发送或撤回已发出的邮件。',
+      confirmLabel: '保存修改',
+      preview,
+    }
+  } else {
+    const scope = []
+    if (delivery === 'notice' || delivery === 'both') {
+      scope.push('应用内：所有查看公告的用户都能看到')
+    }
+    if (delivery === 'email' || delivery === 'both') {
+      scope.push('邮件：发送给所有已确认订阅者，发出后无法撤回')
+    }
+    if (level === 'urgent' && (delivery === 'notice' || delivery === 'both')) {
+      scope.push('级别：在应用内标记为紧急公告')
+    }
+    confirmation = {
+      title: '确认发布这条公告？',
+      description: `${scope.join('；')}。确认后才会提交。`,
+      confirmLabel: {
+        notice: '确认发布',
+        email: '确认发送邮件',
+        both: '确认发布并发送',
+      }[delivery],
+      preview,
+    }
+  }
+  if (!(await requestActionConfirmation(confirmation))) return
 
   button.disabled = true
   button.textContent = '正在发布…'
@@ -275,7 +341,14 @@ async function loadAdminNotices() {
       deleteButton.type = 'button'
       deleteButton.textContent = '删除'
       deleteButton.addEventListener('click', async () => {
-        if (!window.confirm(`确定删除公告“${notice.title}”吗？删除后会从所有用户的应用内公告列表移除；已发出的邮件无法撤回。`)) return
+        const confirmed = await requestActionConfirmation({
+          title: '确认删除这条公告？',
+          description: '删除后会从应用内公告列表移除，且无法恢复；已发出的邮件无法撤回。',
+          confirmLabel: '确认删除',
+          preview: { title: notice.title, body: notice.body },
+          destructive: true,
+        })
+        if (!confirmed) return
         deleteButton.disabled = true
         try {
           await adminRequest(`/admin/api/notices/${encodeURIComponent(notice.id)}`, { method: 'DELETE' })
@@ -286,6 +359,7 @@ async function loadAdminNotices() {
           }
           showWorkspaceMessage(`公告已删除：${notice.title}`)
           await loadAdminNotices()
+          document.querySelector('#load-notices').focus({ preventScroll: true })
         } catch (error) {
           showWorkspaceMessage(error.message || '删除公告失败。', 'error')
           deleteButton.disabled = false

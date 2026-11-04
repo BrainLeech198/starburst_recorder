@@ -146,5 +146,26 @@
         <footer class="workspace-footer">管理接口由官方 Worker 提供 · 所有公告都将公开显示</footer>
       </section>
     </main>
+    <dialog
+      id="action-dialog"
+      class="action-dialog"
+      aria-labelledby="action-dialog-title"
+      aria-describedby="action-dialog-description"
+    >
+      <div class="action-dialog__content">
+        <div class="eyebrow">确认操作</div>
+        <h2 id="action-dialog-title">确认继续？</h2>
+        <p id="action-dialog-description" class="muted action-dialog__description"></p>
+        <div id="action-dialog-preview" class="action-dialog__preview" hidden>
+          <h3 id="action-dialog-preview-title" class="action-dialog__preview-title"></h3>
+          <p id="action-dialog-preview-subject" class="action-dialog__preview-subject" hidden></p>
+          <p id="action-dialog-preview-body" class="action-dialog__preview-body"></p>
+        </div>
+      </div>
+      <div class="action-dialog__actions">
+        <button id="action-dialog-cancel" class="button button--quiet" type="button">取消</button>
+        <button id="action-dialog-confirm" class="button button--primary" type="button">确认</button>
+      </div>
+    </dialog>
   </body>
 </html>
