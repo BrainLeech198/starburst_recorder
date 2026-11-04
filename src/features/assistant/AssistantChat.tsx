@@ -197,6 +197,8 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   const currentSessionId = useSyncExternalStore(subscribeChat, getCurrentSessionId, getCurrentSessionId)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
+  /** 当前模型请求已到达的正文片段；只在屏幕暂存，最终消息仍由完整结果写入 */
+  const [streamContent, setStreamContent] = useState('')
   /** 「清空对话」的红色确认弹窗：一点即清太容易误触 */
   const [clearOpen, setClearOpen] = useState(false)
   /** 正在等模型回复的那条占位消息 */
@@ -244,10 +246,34 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   const [refOpen, setRefOpen] = useState(false)
   /** 当前这一轮的取消句柄 */
   const abortRef = useRef<AbortController | null>(null)
+  const mountedRef = useRef(false)
   /** 上一轮已经读出来的整库快照，展开推荐问时直接拿来当「当前情况」 */
   const dataRef = useRef<Awaited<ReturnType<typeof exportAllData>> | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      abortRef.current?.abort()
+    }
+  }, [])
+
+  /** 应用在请求途中退出时，localStorage 留下的空占位改成可重试状态。 */
+  useEffect(() => {
+    if (pendingId !== null) return
+    const abandoned = getChatMessages().filter(
+      (item) => item.role === 'assistant' && item.content === '' && !item.error && !item.stopped,
+    )
+    for (const item of abandoned) {
+      patchChatMessage(item.id, {
+        content: t('assistant.stopped'),
+        stopped: true,
+        error: false,
+      })
+    }
+  }, [currentSessionId, pendingId, t])
 
   useEffect(() => {
     if (messages.length === 0 && pendingId === null) return
@@ -330,6 +356,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
       ])
     }
     setPendingId(pending.id)
+    setStreamContent('')
     setBusy(true)
     const controller = new AbortController()
     abortRef.current = controller
@@ -392,6 +419,12 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         reasoning,
         planMode,
         signal: controller.signal,
+        onRequestStart: () => {
+          if (mountedRef.current) setStreamContent('')
+        },
+        onContent: (chunk) => {
+          if (mountedRef.current) setStreamContent((current) => current + chunk)
+        },
         takeGuidance: () => guidanceRef.current.splice(0),
         onStep: (step) => {
           updateChat((current) =>
@@ -403,6 +436,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
       })
 
       if (!result.ok) {
+        setStreamContent('')
         if (result.cancelled) {
           if (target) {
             restoreChatVariant(target.id)
@@ -431,6 +465,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
       }
 
       const base = result.reply || (result.question ? result.question.question : '')
+      setStreamContent('')
       // 卡片没生成时把原因写进正文：模型可能照旧说「卡片来了」，
       // 只有系统自己补这一句，用户才不会被一句空话吊着。
       const content =
@@ -492,6 +527,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         }
       }
     } catch (error) {
+      setStreamContent('')
       if (target) {
         restoreChatVariant(target.id)
         showToast({ message: (error as Error).message })
@@ -504,23 +540,26 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
       }
     } finally {
       if (abortRef.current === controller) abortRef.current = null
-      setPendingId(null)
-      setBusy(false)
-      // 这一轮已经结束时还没被工具循环取走的插话，转成普通排队消息，别让用户白打
-      const leftover = guidanceRef.current.splice(0, guidanceRef.current.length)
-      if (leftover.length > 0) {
-        queueRef.current = [
-          ...queueRef.current,
-          ...leftover.map((text) => ({ id: newChatMessageId(), text, files: [] })),
-        ]
-        setQueue([...queueRef.current])
-      }
-      // 当前这一轮结束后，自动接下一条排队消息
-      const next = queueRef.current[0]
-      if (next) {
-        queueRef.current = queueRef.current.slice(1)
-        setQueue([...queueRef.current])
-        void run(next.text, true, next.files)
+      if (mountedRef.current) {
+        setPendingId(null)
+        setBusy(false)
+        setStreamContent('')
+        // 这一轮已经结束时还没被工具循环取走的插话，转成普通排队消息，别让用户白打
+        const leftover = guidanceRef.current.splice(0, guidanceRef.current.length)
+        if (leftover.length > 0) {
+          queueRef.current = [
+            ...queueRef.current,
+            ...leftover.map((text) => ({ id: newChatMessageId(), text, files: [] })),
+          ]
+          setQueue([...queueRef.current])
+        }
+        // 当前这一轮结束后，自动接下一条排队消息
+        const next = queueRef.current[0]
+        if (next) {
+          queueRef.current = queueRef.current.slice(1)
+          setQueue([...queueRef.current])
+          void run(next.text, true, next.files)
+        }
       }
     }
   }
@@ -1269,6 +1308,11 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                             </span>
                           )}
                         </div>
+                        {loading && item.id === pendingId && streamContent.trim() !== '' && (
+                          <div className="px-3 py-2.5 text-sm leading-relaxed text-fg">
+                            <AssistantMarkdown text={streamContent} />
+                          </div>
+                        )}
                         {item.steps && item.steps.length > 0 && (
                           <ul className="m-0 list-none divide-y divide-line p-0">
                             {item.steps.map((step, index) => (

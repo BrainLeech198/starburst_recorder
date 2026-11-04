@@ -34,18 +34,14 @@
    删除仍全部要求确认，并在 [assistantActions.ts:475](../src/features/assistant/assistantActions.ts) 落库前校验档案版本号，
    撤销快照可恢复档案与记忆。回归用例在 [assistantPermission.test.ts](../src/features/assistant/assistantPermission.test.ts)
    与 [assistantActionBuild.test.ts](../src/features/assistant/assistantActionBuild.test.ts)。
-3. **AI 全链路没有取消与超时。** ✅ **传输层已补（本轮）**。三条路现在都带期限：
-   主进程那一路抽成不依赖 electron 的 [electron/aiRequest.cjs](../electron/aiRequest.cjs)
-   （`CHAT_TIMEOUT_MS` 5 分钟 / `MODELS_TIMEOUT_MS` 20 秒，用例在 [aiRequest.test.ts](../src/features/ai/aiRequest.test.ts)）；
-   渲染层直连与开发转发用 [src/features/ai/aiDeadline.ts](../src/features/ai/aiDeadline.ts) 合流「调用方 signal + 兜底定时器」，
-   用例在 [aiDeadline.test.ts](../src/features/ai/aiDeadline.test.ts)。
-   `chat(request, signal?)` / `listModels(..., signal?)` 可选收一个 AbortSignal，桌面端靠流水号转成一次 `ai:cancel`
-   （`electron/main.cjs` 的 `inFlight` 在飞表，`preload.cjs` 多递一个 requestId）。
-   **还差两件**：① 17 个调用点一个都没传 signal，「卸载不 abort」只在 [ModelForm.tsx:78](../src/features/ai/ModelForm.tsx) 这类
-   靠 `alive` 旗标兜住的地方算完，界面上也还没有「停止」按钮——顺带说一句：`viaDesktop` 交回的是主进程那份带
-   `cancelled` 标记的结果，渲染层不再自己计时，所以 [aiClient.ts](../src/features/ai/aiClient.ts) 的 `explainFailure()`
-   目前读不到它，接「停止」按钮时要先补一条取消的文案（要动九语言表，属发版占用面）。② 429 仍然只翻译文案不重试。
-   期限那两个数是粗兜底、**待标定**：等 `ai.chat.done` 日志里的 ms 分布攒够一批再收紧。
+3. **AI 请求生命周期与等待反馈。** ✅ 传输期限、取消句柄和助手「停止」按钮已接通：桌面主进程用
+   [electron/aiRequest.cjs](../electron/aiRequest.cjs) 管理 5 分钟对话 / 20 秒模型列表期限；浏览器侧由
+   [aiDeadline.ts](../src/features/ai/aiDeadline.ts) 合并调用方 signal 与兜底期限。2026-11-04 助手请求开始消费
+   OpenAI 兼容 SSE：桌面通过 requestId 对应的 IPC 增量回传，浏览器直连边读边显示，已有代理缓冲的 SSE
+   会在完整回包后解析。纯解码逻辑在 [aiStream.ts](../src/features/ai/aiStream.ts)，助手卸载会取消请求，
+   重启后遗留的空助手占位会恢复成可重试状态。**仍有限制**：部署版 PWA 的薄代理会先读完整上游响应再包信封，
+   因此还不能实时显示增量；要让该路径实时显示，需同步更新代理 Worker 的流式响应协议。429 仍只显示提示、不自动重试；
+   各家模型的首 token 延迟与 SSE 兼容性仍需结合实际使用观测，不能由客户端保证。
 4. **桌面端两个 IPC 缺纵深防御。** ✅ **已修（本轮）**。守卫集中在
    [electron/updateGuards.cjs](../electron/updateGuards.cjs)（纯函数，不起窗口就能测）：
    下载 URL 只认我们仓库的 GitHub release 路径与 Gitee 域、落盘文件名必须是安装包形状、

@@ -403,7 +403,7 @@ ipcMain.handle('ai:chat', async (_event, request, requestId) => {
   }
 
   try {
-    const requestBody = { model, messages: request?.messages ?? [], stream: false }
+    const requestBody = { model, messages: request?.messages ?? [], stream: true }
     // 采样参数有就透传：换 seed 是「每次写法不一样」的关键，别在主进程这里被吞掉
     if (request?.temperature !== undefined) requestBody.temperature = request.temperature
     if (request?.seed !== undefined) requestBody.seed = request.seed
@@ -417,14 +417,29 @@ ipcMain.handle('ai:chat', async (_event, request, requestId) => {
       Object.assign(requestBody, request.params)
     }
 
-    const outcome = await withAiRequest(requestId, CHAT_TIMEOUT_MS, (signal) =>
-      net.fetch(chatUrl(baseUrl), {
+    const outcome = await withAiRequest(requestId, CHAT_TIMEOUT_MS, async (signal) => {
+      const response = await net.fetch(chatUrl(baseUrl), {
         method: 'POST',
         headers: aiHeaders(apiKey),
         body: JSON.stringify(requestBody),
         signal,
-      }),
-    )
+      })
+      if (!response.ok || !response.body || !response.headers.get('content-type')?.includes('text/event-stream')) {
+        return { response, body: await response.text() }
+      }
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let body = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value, { stream: true })
+        body += chunk
+        if (!_event.sender.isDestroyed()) _event.sender.send('ai:chunk', { requestId, chunk })
+      }
+      body += decoder.decode()
+      return { response, body }
+    })
     if (outcome.aborted) {
       const result = abortResult(outcome.aborted, outcome.ms)
       if (result.cancelled) log.info('AI', `AI 请求已取消 | 模型 ${model} | 耗时 ${result.ms} ms`)
@@ -433,8 +448,7 @@ ipcMain.handle('ai:chat', async (_event, request, requestId) => {
     }
     if (outcome.error) throw outcome.error
 
-    const response = outcome.value
-    const body = await response.text()
+    const { response, body } = outcome.value
     const result = {
       ok: response.ok,
       status: response.status,

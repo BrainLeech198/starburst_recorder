@@ -51,8 +51,32 @@ function aiDevProxy(): Plugin {
         const apiKey = req.headers['api-key']
         if (apiKey) headers['api-key'] = String(apiKey)
 
+        const controller = new AbortController()
+        const abortOnClose = () => controller.abort()
+        res.once('close', abortOnClose)
         try {
-          const upstream = await fetch(target, { method, headers, body: raw })
+          const upstream = await fetch(target, { method, headers, body: raw, signal: controller.signal })
+          if (
+            method === 'POST' &&
+            upstream.ok &&
+            upstream.body &&
+            upstream.headers.get('content-type')?.includes('text/event-stream')
+          ) {
+            res.statusCode = upstream.status
+            res.setHeader('Content-Type', 'text/event-stream; charset=utf-8')
+            res.setHeader('Cache-Control', 'no-cache, no-transform')
+            res.setHeader('X-Accel-Buffering', 'no')
+            const reader = upstream.body.getReader()
+            while (!res.destroyed) {
+              const { done, value } = await reader.read()
+              if (done) break
+              if (!res.write(Buffer.from(value))) {
+                await new Promise<void>((resolve) => res.once('drain', resolve))
+              }
+            }
+            if (!res.destroyed) res.end()
+            return
+          }
           send(res, {
             ok: upstream.ok,
             status: upstream.status,
@@ -60,6 +84,7 @@ function aiDevProxy(): Plugin {
             ms: Date.now() - started,
           })
         } catch (error) {
+          if (res.destroyed || res.headersSent) return
           send(res, {
             ok: false,
             status: 0,
@@ -67,6 +92,8 @@ function aiDevProxy(): Plugin {
             ms: Date.now() - started,
             error: (error as Error).message,
           })
+        } finally {
+          res.removeListener('close', abortOnClose)
         }
       }
 

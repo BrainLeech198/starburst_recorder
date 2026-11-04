@@ -114,6 +114,10 @@ export interface AssistantRunOptions {
   planMode?: boolean
   /** 用户点停止 / 组件卸载时掐掉还在飞的请求 */
   signal?: AbortSignal
+  /** 模型开始新一轮请求时清除上一轮暂存的增量正文 */
+  onRequestStart?: () => void
+  /** 模型逐段返回的正文；工具调用仍等整轮结束后统一解析 */
+  onContent?: (text: string) => void
   /** 生成过程中用户补充的要求；每轮工具循环开始前取一次 */
   takeGuidance?: () => string[]
   /** 测试时固定「现在」；不传就是真实时间 */
@@ -127,6 +131,7 @@ export interface AssistantRunOptions {
 export type ChatRequestFn = (
   request: Parameters<typeof chat>[0],
   signal?: AbortSignal,
+  onContent?: (text: string) => void,
 ) => Promise<ChatTransportResult>
 
 export type AssistantRunResult =
@@ -628,6 +633,7 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
       }
     }
     const useTools = mode === 'tools'
+    options.onRequestStart?.()
     const result = await request(
       {
         baseUrl: config.baseUrl.trim(),
@@ -639,6 +645,7 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
         temperature: 0.3,
       },
       options.signal,
+      options.onContent,
     )
 
     if (!result.ok) {

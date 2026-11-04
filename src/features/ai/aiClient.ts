@@ -19,6 +19,7 @@ import { translate } from '@/shared/i18n/context'
 import { logInfo, logWarn } from '@/shared/log/log'
 import type { AiConfig } from './aiConfig'
 import { AI_CHAT_TIMEOUT_MS, AI_MODELS_TIMEOUT_MS, startAiDeadline } from './aiDeadline'
+import { AiStreamDecoder, decodeBufferedAiStream } from './aiStream'
 
 /** 地址可能带结尾斜杠，统一拼成 chat/completions */
 export function chatUrl(baseUrl: string) {
@@ -83,6 +84,29 @@ function nextRequestId() {
   return `${Date.now().toString(36)}-${aiSequence.toString(36)}`
 }
 
+/** 消费直通的 SSE 响应；缓冲型代理则继续走原来的 JSON 信封分支。 */
+async function readSseResponse(
+  response: Response,
+  onContent: ((text: string) => void) | undefined,
+  started: number,
+): Promise<ChatTransportResult | null> {
+  if (!response.ok || !response.body || !response.headers.get('content-type')?.includes('text/event-stream')) {
+    return null
+  }
+  const decoder = new AiStreamDecoder(onContent)
+  const reader = response.body.getReader()
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      decoder.push(value)
+    }
+    return { ok: true, status: response.status, body: decoder.finish(), ms: Date.now() - started }
+  } finally {
+    reader.releaseLock()
+  }
+}
+
 /**
  * 桌面端的请求交给主进程发，顺带把渲染层的 AbortSignal 翻成一次 ai:cancel。
  *
@@ -93,29 +117,41 @@ async function viaDesktop(
   bridge: DesktopBridge,
   signal: AbortSignal | undefined,
   run: (requestId: string) => Promise<ChatTransportResult>,
+  onContent?: (text: string) => void,
 ): Promise<ChatTransportResult> {
   if (signal?.aborted) {
     return { ok: false, status: 0, body: '', ms: 0, cancelled: true, error: '请求已取消' }
   }
   const requestId = nextRequestId()
+  const decoder = new AiStreamDecoder(onContent)
+  const unsubscribe = bridge.onAiChunk(requestId, (chunk) => decoder.push(new TextEncoder().encode(chunk)))
   const abort = () => {
     void bridge.cancelAi(requestId)
   }
   signal?.addEventListener('abort', abort, { once: true })
   try {
-    return await run(requestId)
+    const result = await run(requestId)
+    if (result.ok && result.body.trimStart().startsWith('data:')) {
+      result.body = decoder.finish()
+    }
+    return result
   } finally {
     signal?.removeEventListener('abort', abort)
+    unsubscribe()
   }
 }
 
 /** 发一次请求，把结果记一条日志再返回；桌面端由主进程记，不在这里重复 */
-export async function chat(request: ChatRequest, signal?: AbortSignal): Promise<ChatTransportResult> {
+export async function chat(
+  request: ChatRequest,
+  signal?: AbortSignal,
+  onContent?: (text: string) => void,
+): Promise<ChatTransportResult> {
   const bridge = desktopBridge()
-  if (bridge) return viaDesktop(bridge, signal, (requestId) => bridge.chat(request, requestId))
+  if (bridge) return viaDesktop(bridge, signal, (requestId) => bridge.chat(request, requestId), onContent)
 
   const headers = authHeaders(request.apiKey)
-  const bodyObj: Record<string, unknown> = { model: request.model, messages: request.messages, stream: false }
+  const bodyObj: Record<string, unknown> = { model: request.model, messages: request.messages, stream: true }
   // 有就带上，没有留空让服务商走默认；每次换 seed 能跳出模板重复
   if (request.temperature !== undefined) bodyObj.temperature = request.temperature
   if (request.seed !== undefined) bodyObj.seed = request.seed
@@ -139,7 +175,9 @@ export async function chat(request: ChatRequest, signal?: AbortSignal): Promise<
         body,
         signal: deadline.signal,
       })
-      result = (await response.json()) as ChatTransportResult
+      result =
+        (await readSseResponse(response, onContent, started)) ??
+        ((await response.json()) as ChatTransportResult)
     } else {
       const response = await fetch(chatUrl(request.baseUrl), {
         method: 'POST',
@@ -147,13 +185,21 @@ export async function chat(request: ChatRequest, signal?: AbortSignal): Promise<
         body,
         signal: deadline.signal,
       })
-      result = {
-        ok: response.ok,
-        status: response.status,
-        body: await response.text(),
-        ms: Date.now() - started,
+      const streaming = await readSseResponse(response, onContent, started)
+      if (streaming) {
+        result = streaming
+      } else {
+        const responseBody = await response.text()
+        result = {
+          ok: response.ok,
+          status: response.status,
+          body: responseBody,
+          ms: Date.now() - started,
+        }
       }
     }
+    const buffered = result.ok ? decodeBufferedAiStream(result.body, onContent) : null
+    if (buffered !== null) result.body = buffered
   } catch (error) {
     result = {
       ok: false,

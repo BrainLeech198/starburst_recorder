@@ -80,6 +80,8 @@ export interface DesktopBridge {
    * AbortSignal 过不去 IPC，所以取消要另走 cancelAi。
    */
   chat: (request: ChatRequest, requestId: string) => Promise<ChatTransportResult>
+  /** 桌面 AI 流式正文片段；requestId 将片段限定在单次请求内。 */
+  onAiChunk: (requestId: string, listener: (chunk: string) => void) => () => void
   /** 从主进程拉服务商的模型列表（GET {baseUrl}/models），同样绕开 CORS */
   models: (
     request: { baseUrl: string; apiKey: string },

@@ -8,6 +8,13 @@ contextBridge.exposeInMainWorld('desktop', {
   // 由主进程代发，网页那边不用操心跨域。
   // requestId 是渲染层生成的流水号，只用来「取消这一次」，不进请求体。
   chat: (request, requestId) => ipcRenderer.invoke('ai:chat', request, requestId),
+  onAiChunk: (requestId, listener) => {
+    const handler = (_event, payload) => {
+      if (payload?.requestId === requestId && typeof payload.chunk === 'string') listener(payload.chunk)
+    }
+    ipcRenderer.on('ai:chunk', handler)
+    return () => ipcRenderer.removeListener('ai:chunk', handler)
+  },
   models: (request, requestId) => ipcRenderer.invoke('ai:models', request, requestId),
   cancelAi: (requestId) => ipcRenderer.invoke('ai:cancel', requestId),
   dataPath: () => ipcRenderer.invoke('data:path'),
