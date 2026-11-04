@@ -1,3 +1,19 @@
+## 0.15.1 · 2026-11-04
+
+Announcements now have an explicit receipt confirmation
+
+### What's new
+
+- **Acknowledge receipt** — tap the button and this device remembers the notice, so it no longer pops up on later launches.
+- **Closing only postpones it** — closing, pressing Esc or tapping the backdrop does not acknowledge the notice; it appears again on the next launch, with urgent notices shown first.
+- **Receipts stay local** — acknowledgements are not uploaded or included in backups. An unacknowledged notice appears again on another device.
+- **Urgent security notice** — backups exported before 0.13.1 may contain model names and API keys in plain text. If an old backup was shared or stored in cloud storage or email, revoke old keys and generate fresh ones. Updating the app does not change files already exported.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.15.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.1/starburst-recorder-0.15.1-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.15.1/starburst-recorder-0.15.1-setup.exe)
+- Android 10+: [`starburst-recorder-0.15.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.1/starburst-recorder-0.15.1.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.15.1/starburst-recorder-0.15.1.apk)
+
 ## 0.15.0 · 2026-11-04
 
 Assistant replies stream in real time, with announcement and cross-platform channel fixes

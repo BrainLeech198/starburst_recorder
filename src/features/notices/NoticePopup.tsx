@@ -1,14 +1,14 @@
 /**
  * 应用启动公告弹窗。
  *
- * 每次应用加载时读取公开公告，沿用本机已读状态挑选一条；紧急公告优先。
- * 普通公告确认后记为已读，紧急公告继续按 noticeState 的既有规则提醒。
+ * 每次应用加载时读取公开公告，沿用本机确认状态挑选一条；紧急公告优先。
+ * 关闭只暂缓；用户点「确认收到」后，这条公告才在本机标记为已确认。
  */
 import { useCallback, useEffect, useState } from 'react'
 import { useI18n } from '@/shared/i18n/context'
 import { fetchNotices, type Notice } from '@/platform/channel'
 import Modal from '@/shared/ui/Modal'
-import { markNoticeSeen, pickNoticeToShow } from './noticeState'
+import { acknowledgeNotice, pickNoticeToShow } from './noticeState'
 
 export default function NoticePopup() {
   const { t } = useI18n()
@@ -27,8 +27,12 @@ export default function NoticePopup() {
   }, [])
 
   const dismiss = useCallback(() => {
+    setNotice(null)
+  }, [])
+
+  const acknowledge = useCallback(() => {
     if (!notice) return
-    markNoticeSeen(notice)
+    acknowledgeNotice(notice)
     setNotice(null)
   }, [notice])
 
@@ -56,13 +60,21 @@ export default function NoticePopup() {
           </p>
         </div>
       </div>
-      <div className="mt-5 flex justify-end">
+      <p className="mt-4 text-xs leading-relaxed text-muted">{t('notice.dismissHint')}</p>
+      <div className="mt-4 flex flex-wrap justify-end gap-2">
         <button
           type="button"
           onClick={dismiss}
-          className="min-h-11 rounded-lg bg-brand px-4 text-sm font-medium text-on-brand transition hover:opacity-90"
+          className="min-h-11 rounded-lg border border-line px-4 text-sm font-medium text-fg transition-colors hover:bg-surface-2"
         >
           {t('common.close')}
+        </button>
+        <button
+          type="button"
+          onClick={acknowledge}
+          className="min-h-11 rounded-lg bg-brand px-4 text-sm font-medium text-on-brand transition hover:opacity-90"
+        >
+          {t('notice.confirmReceipt')}
         </button>
       </div>
     </Modal>

@@ -1,12 +1,12 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
-## 0.15.0 · 2026-11-04
+## 0.15.1 · 2026-11-04
 
 ### What's new
 
-- **Assistant replies appear as they are generated** — see the response build in real time and stop it when needed.
-- **Announcements appear on launch** — the app surfaces unread notices; the notice list distinguishes a load failure from an empty list and offers retry.
-- **Announcement, subscription registration and feedback requests are repaired** — web, Windows and Android use the same official channel endpoint, reducing cross-origin and mobile network failures. Subscription email delivery is not enabled yet, so no subscription emails are sent.
+- **Acknowledge announcements** — tap “Acknowledge receipt” and this device remembers the notice, so it no longer pops up on later launches.
+- **Closing only postpones it** — closing, pressing Esc or tapping the backdrop does not acknowledge the notice; it will appear again on the next launch, with urgent notices still shown first.
+- **Receipt stays on this device** — acknowledgements are stored locally, not uploaded or included in backups. An unacknowledged notice appears again on another device.
 
 **Urgent security notice:** Backups exported before 0.13.1 may contain model names and API keys in plain text. If you shared an old backup or stored it in cloud storage or email, revoke the old API keys in your model provider's dashboard and generate fresh ones. Updating the app does not change files you already exported.
 
@@ -14,15 +14,15 @@ A local-first personal recorder with built-in AI: jot down today and AI turns it
 
 | Platform | File |
 | --- | --- |
-| Windows 10/11 | `starburst-recorder-0.15.0-setup.exe` (~96 MB) |
-| Android 10+ | `starburst-recorder-0.15.0.apk` (~62 MB, release-signed) |
+| Windows 10/11 | `starburst-recorder-0.15.1-setup.exe` (~96 MB) |
+| Android 10+ | `starburst-recorder-0.15.1.apk` (~62 MB, release-signed) |
 
 Android is sideloaded: allow "install unknown apps". If you previously installed a debug build, uninstall it first (different signature — the upgrade install will fail).
 Storage follows the platform: SQLite on desktop, IndexedDB in browsers and WebViews.
 
 ## Known limitations
 
-0.15.0 is still an early build, and the data format may change between versions — export a backup of anything you care about before upgrading. Older backups still import; AI chats travel with the backup and get noticeably larger when they carry image attachments. Health Connect import on Android is experimental and not yet verified on a real device; tell us if it cannot read anything.
+0.15.1 is still an early build, and the data format may change between versions — export a backup of anything you care about before upgrading. Older backups still import; AI chats travel with the backup and get noticeably larger when they carry image attachments. Health Connect import on Android is experimental and not yet verified on a real device; tell us if it cannot read anything.
 
 **Important: backups exported before 0.13.1 may contain model names and API keys in plain text.** If an old backup was kept in cloud storage or email, or sent to someone, revoke every API key it may contain in your model provider's dashboard, generate fresh keys, and enter them under Settings → AI. Since 0.13.1 an export can encrypt the `apiKey` with a passphrase, but **that only protects files exported from now on** — old exports do not become safe on their own.
 

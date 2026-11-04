@@ -1,3 +1,19 @@
+## 0.15.1 · 2026-11-04
+
+公告支持确认回执，关闭后可在下次启动继续提醒
+
+### 这一版有什么
+
+- **确认收到公告**：点“确认收到”后，本机会记住这条公告；同一设备之后启动不再重复弹出。
+- **关闭只暂缓**：关闭、按 Esc 或点遮罩都不会确认公告；下次启动会继续提醒，紧急公告仍优先显示。
+- **回执留在本机**：确认状态不上传也不进入备份；换设备后未确认的公告会再次提醒。
+- **紧急安全提醒**：0.13.1 之前导出的备份可能含明文模型名称和 API Key。若旧备份曾外传或存到云端、邮件，请撤销旧 Key 并重新生成；升级应用不会改变已导出的旧文件。
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.15.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.1/starburst-recorder-0.15.1-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.15.1/starburst-recorder-0.15.1-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.15.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.15.1/starburst-recorder-0.15.1.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.15.1/starburst-recorder-0.15.1.apk)
+
 ## 0.15.0 · 2026-11-04
 
 助手回复实时显示，公告提醒与跨平台官方频道请求修复
