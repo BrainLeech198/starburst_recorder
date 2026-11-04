@@ -385,35 +385,12 @@ Cloudflare 上没有 `web-push` 这类库（那套依赖 Node 的 `crypto` 与 `
 完整密文都是规范给定的），改错任何一步都会立刻炸。另有 VAPID JWT 的签名验证、
 时区换算（含夏令时跳变）与去重键的单测。
 
-### 9.4 官方频道：公告 / 邮箱订阅 / 反馈（不是推送）
+### 9.4 Web Push 与官方频道的边界
 
-Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不到任何推送**——
-他们在系统通知里跟应用完全隔离。所以「紧急公告」不能只挂在推送链路上：
+Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不到系统推送**，因此紧急公告还需要跨平台的官方频道 API。
+公告、邮箱订阅和反馈的通用架构、当前操作与后续发信方案见 [`docs/OFFICIAL-CHANNEL.md`](OFFICIAL-CHANNEL.md)。
 
-| 位置 | 干什么 |
-| --- | --- |
-| `src/platform/channel.ts` | 公告 / 订阅 / 反馈的客户端。三端同一套接口，只在「怎么送出去」上分叉 |
-| `src/features/notices/NoticeBanner.tsx` | 应用顶部横幅。紧急公告是给收不到推送的那些用户准备的唯一入口 |
-| `src/features/notices/NoticePage.tsx` | 全部公告，新的在前 |
-| `src/features/notices/SubscribePage.tsx` | 邮箱订阅与退订 |
-| `src/features/notices/FeedbackPage.tsx` | 给官方的反馈 |
-| `src/features/notices/noticeState.ts` | 「看过没有」的本地状态。紧急公告看过也会再提醒 |
-| `worker/push/src/channel.js` | 服务端：公告、订阅表、反馈的存取与校验 |
-
-三端怎么送请求：
-
-- **网页版**：直接 `fetch`。Worker 按 `Origin` 放行。
-- **安卓壳**：页面在 `https://localhost`，同样 `fetch`。`ALLOWED_ORIGINS` 必须含这个源，
-  否则预检就被挡。
-- **桌面壳**：页面是 `file://`，直连会被 CORS 挡，所以交给 Electron 主进程代取
-  （`electron/main.cjs` 的 `channel:request`）。**它只放行自家 Worker 的域名与那几条路径**，
-  否则等于给网页一条任意外发的口子。
-
-管理面（发公告、导出订阅邮箱、翻反馈）用独立的 `ADMIN_TOKEN`，与客户端令牌分开——
-客户端令牌会打进网页产物，管理动作不能开放给任何人。没配 `ADMIN_TOKEN` 时管理面
-**整体关闭**（503），不是放行。
-
-部署步骤与管理脚本见 `worker/push/README.md`。
+本节其余内容只说明与 Web Push 的边界：Web Push 权限和 iOS 安装条件见本页 §9.5；官方频道公告不依赖 Push。
 
 ### 9.5 已知限制
 
