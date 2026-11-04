@@ -22,21 +22,66 @@
 | 接口 | 谁能调 | 干什么 |
 | --- | --- | --- |
 | `GET /notices` | 公开 | 当前公告列表，新的在前 |
-| `POST /subscribe-email` | 公开 | 订阅邮箱（只用于收公告） |
-| `POST /unsubscribe-email` | 公开 | 退订，地址不在表里也算成功 |
+| `POST /subscribe-email` | 公开 + IP 限流 | 提交邮箱；队列发送确认邮件，未确认地址不加入群发名单 |
+| `GET/POST /confirm-email?token=` | 持有邮件内签名链接 | 确认邮箱订阅；GET 只显示页面，POST 才生效 |
+| `GET /unsubscribe-email?token=` | 持有邮件内签名链接 | 显示退订确认页，GET 不会直接退订 |
+| `POST /unsubscribe-email?token=` | 持有邮件内签名链接 | 退订；支持 RFC 8058 邮件客户端单击退订 |
+| `POST /unsubscribe-email` | 公开 | 兼容 App 直接输入邮箱退订 |
 | `GET /subscription?email=` | 公开 | 这个地址是不是已订阅 |
 | `POST /feedback` | 公开 | 用户给官方的反馈 |
+| `POST /admin/session` | 管理员名称 / 密码 + 登录限流 | 管理网页登录，换取 30 分钟会话 |
+| `POST /admin/api/notices` | 管理网页会话 | 从官网管理员网页发布公告 |
+| `POST /admin/api/messages` | 管理网页会话 | 只发公告、只发邮件或同时发送 |
+| `GET /admin/api/subscribers` | 管理网页会话 | 从官网管理员网页查看订阅者 |
+| `GET /admin/api/feedback` | 管理网页会话 | 从官网管理员网页查看反馈 |
 | `POST /admin/notices` | `ADMIN_TOKEN` | 发一条公告（`level: urgent` 即紧急公告） |
 | `GET /admin/subscribers` | `ADMIN_TOKEN` | 导出订阅邮箱表 |
 | `GET /admin/feedback` | `ADMIN_TOKEN` | 翻用户反馈 |
 
-**公开接口不需要客户端令牌**：公告是公开信息，订阅与反馈是用户主动发起的，
-写操作由 KV 每天 1000 次的写额度天然限流。
+**公开接口不需要客户端令牌**：公告是公开信息，订阅与反馈是用户主动发起的。
+订阅确认使用独立的限流 binding；Cloudflare Rate Limiting 是近似限流，不能当作全局严格配额。
 
-**管理面需要独立的 `ADMIN_TOKEN`**，与客户端的 `PUSH_TOKEN` 分开：
+**命令行管理接口需要独立的 `ADMIN_TOKEN`**，与客户端的 `PUSH_TOKEN` 分开：
 客户端令牌会打进网页产物，谁都能扒出来；而「发公告、导出订阅邮箱、翻用户反馈」
-这些动作不能开放给任何人。没配 `ADMIN_TOKEN` 时管理面**整体关闭**（返回 503），
+这些动作不能开放给任何人。没配 `ADMIN_TOKEN` 时这组 CLI 管理接口**整体关闭**（返回 503），
 而不是放行——忘了配等于没开管理后台。
+
+官网同时提供账号密码管理员网站：`https://brainleech198.github.io/starburst_recorder/admin/`。
+网页登录由 Worker 校验 `ADMIN_USERNAME` 与 PBKDF2 格式的 `ADMIN_PASSWORD_HASH`，成功后返回 30 分钟 HMAC 会话；会话只保存在网页内存。它使用单独的 `ADMIN_SESSION_SECRET` 和 `ADMIN_LOGIN_LIMITER`，不会把 `ADMIN_TOKEN` 暴露给浏览器，也不影响下方的 CLI。
+
+```bash
+# 在本机安全地输入密码并生成 PBKDF2 哈希（输入不会显示）
+node worker/push/hash-admin-password.mjs
+
+# 逐项按 Wrangler 的交互提示输入；不要将值放进命令行参数或仓库文件
+npx wrangler secret put ADMIN_USERNAME --config worker/push/wrangler.toml
+npx wrangler secret put ADMIN_PASSWORD_HASH --config worker/push/wrangler.toml
+npx wrangler secret put ADMIN_SESSION_SECRET --config worker/push/wrangler.toml
+```
+
+管理员页面可发布应用内公告、查看订阅邮箱与反馈；配置邮件服务后也可只发邮件或同时发公告和邮件。只有配置好 Resend、已验证发件地址、退订签名密钥和队列后，页面才会启用邮件选项。
+
+首次部署前创建邮件队列和死信队列：
+
+```bash
+npx wrangler queues create starburst-email --config worker/push/wrangler.toml
+npx wrangler queues create starburst-email-dlq --config worker/push/wrangler.toml
+```
+
+配置发件域名并取得 Resend API Key 后，交互式录入以下 Secrets；值只进 Worker，不进仓库或网页：
+
+```bash
+npx wrangler secret put RESEND_API_KEY --config worker/push/wrangler.toml
+npx wrangler secret put EMAIL_FROM --config worker/push/wrangler.toml
+npx wrangler secret put UNSUBSCRIBE_TOKEN_SECRET --config worker/push/wrangler.toml
+```
+
+`EMAIL_FROM` 必须是 Resend 已验证域名下的发件地址。`UNSUBSCRIBE_TOKEN_SECRET` 用本机
+`node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"` 生成。
+用户提交邮箱后会收到确认邮件；七天未确认的地址作废。已有旧版记录（没有 `confirmedAt` 字段）视为用户此前已主动订阅，保留有效状态。
+
+管理员网页入口：`https://brainleech198.github.io/starburst_recorder/admin/`。
+`wrangler.toml` 中 Rate Limiting namespace `631942` 与 `631943` 必须在 Cloudflare 账户内唯一；限流绑定或账号 Secrets 缺失时登录/订阅确认均失败关闭。
 
 ### 部署时要多做两步
 

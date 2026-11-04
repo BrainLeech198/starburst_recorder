@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import worker, { runDueReminders } from './index.js'
+import { PASSWORD_ITERATIONS, createAdminSession } from './admin-auth.js'
+import { createUnsubscribeToken } from './email.js'
 import { localParts } from './schedule.js'
 import { b64urlEncode } from './webpush.js'
 
@@ -62,7 +64,29 @@ async function makeEnv() {
     VAPID_SUBJECT: 'mailto:test@example.com',
     ALLOWED_ORIGINS: 'https://app.example.com',
     APP_URL: 'https://app.example.com/',
+    ADMIN_LOGIN_LIMITER: { async limit() { return { success: true } } },
+    EMAIL_SUBSCRIBE_LIMITER: { async limit() { return { success: true } } },
   }
+}
+
+async function makePasswordHash(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, [
+    'deriveBits',
+  ])
+  const digest = new Uint8Array(
+    await crypto.subtle.deriveBits(
+      { name: 'PBKDF2', hash: 'SHA-256', salt, iterations: PASSWORD_ITERATIONS },
+      key,
+      256,
+    ),
+  )
+  const encode = (bytes) => {
+    let binary = ''
+    for (const byte of bytes) binary += String.fromCharCode(byte)
+    return btoa(binary).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+  }
+  return `pbkdf2-sha256$${PASSWORD_ITERATIONS}$${encode(salt)}$${encode(digest)}`
 }
 
 function subscribeRequest(subscription, overrides = {}, token = '') {
@@ -162,6 +186,8 @@ describe('POST /subscribe', () => {
     )
     expect(response.status).toBe(204)
     expect(response.headers.get('Access-Control-Allow-Methods')).toContain('POST')
+    expect(response.headers.get('Access-Control-Allow-Headers')).toContain('Authorization')
+    expect(response.headers.get('Access-Control-Allow-Headers')).toContain('Idempotency-Key')
   })
 })
 
@@ -290,22 +316,121 @@ function channelRequest(path, options = {}) {
     method: options.method ?? 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Origin: 'https://app.example.com',
+      ...(options.origin === null ? {} : { Origin: options.origin ?? 'https://app.example.com' }),
       ...(options.adminToken ? { 'x-admin-token': options.adminToken } : {}),
+      ...(options.sessionToken ? { Authorization: `Bearer ${options.sessionToken}` } : {}),
+      ...(options.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : {}),
     },
     ...(options.body ? { body: JSON.stringify(options.body) } : {}),
   })
 }
 
-describe('官方频道的公开接口', () => {
-  it('订阅邮箱后能查到订阅状态，退订后就没了', async () => {
-    const env = await makeEnv()
+function configureEmail(env, sendBatch = async () => {}) {
+  const messages = []
+  env.RESEND_API_KEY = 'resend-test-key'
+  env.EMAIL_FROM = '星芒记录者 <updates@example.com>'
+  env.UNSUBSCRIBE_TOKEN_SECRET = '0123456789abcdef0123456789abcdef'
+  env.EMAIL_QUEUE = {
+    messages,
+    async send(message) {
+      messages.push({ body: message })
+    },
+    async sendBatch(batch) {
+      await sendBatch(batch)
+      messages.push(...batch)
+    },
+  }
+  return messages
+}
 
-    const subscribe = await worker.fetch(
-      channelRequest('/subscribe-email', { method: 'POST', body: { email: 'a@example.com' } }),
+async function subscribeAndConfirm(env, email) {
+  const subscription = await worker.fetch(
+    channelRequest('/subscribe-email', { method: 'POST', body: { email } }),
+    env,
+  )
+  expect(subscription.status).toBe(200)
+  const result = await subscription.json()
+  if (result.confirmationRequired) {
+    const message = env.EMAIL_QUEUE.messages.find(({ body }) => body.type === 'confirm-subscription')
+    expect(message).toBeTruthy()
+    const confirmationUrl = message.body.confirmationUrl
+    expect((await worker.fetch(new Request(confirmationUrl), env)).status).toBe(200)
+    const confirmed = await worker.fetch(
+      new Request(confirmationUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: '',
+      }),
       env,
     )
-    expect(subscribe.status).toBe(200)
+    expect(confirmed.status).toBe(200)
+  }
+  const queueMessages = env.EMAIL_QUEUE.messages
+  const remainingMessages = queueMessages.filter(({ body }) => body.type !== 'confirm-subscription')
+  queueMessages.splice(0, queueMessages.length, ...remainingMessages)
+  return result
+}
+
+async function makeAdminSession(env = {}) {
+  env.ADMIN_USERNAME = 'owner'
+  env.ADMIN_SESSION_SECRET = '0123456789abcdef0123456789abcdef'
+  return { env, sessionToken: await createAdminSession('owner', env.ADMIN_SESSION_SECRET) }
+}
+
+describe('官方频道的公开接口', () => {
+  it('新邮箱先收确认邮件；点击确认页后才进入有效订阅名单', async () => {
+    const env = await makeEnv()
+    configureEmail(env)
+    const subscribed = await worker.fetch(
+      channelRequest('/subscribe-email', { method: 'POST', body: { email: 'new@example.com' } }),
+      env,
+    )
+    expect(await subscribed.json()).toMatchObject({ ok: true, confirmationRequired: true })
+    const [queuedConfirmation] = env.EMAIL_QUEUE.messages
+    expect(queuedConfirmation.body.type).toBe('confirm-subscription')
+
+    const sent = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, init) => {
+        sent.push({ url, init })
+        return Response.json({ id: 'confirm_email_1' }, { status: 200 })
+      }),
+    )
+    const message = { body: queuedConfirmation.body, ack: vi.fn(), retry: vi.fn() }
+    await worker.queue({ messages: [message] }, env)
+    expect(message.ack).toHaveBeenCalledOnce()
+    const confirmationEmail = JSON.parse(sent[0].init.body)
+    expect(confirmationEmail.subject).toContain('确认订阅')
+    expect(confirmationEmail.html).toContain('确认订阅')
+    expect(confirmationEmail.headers).toBeUndefined()
+
+    const before = await worker.fetch(
+      channelRequest('/subscription?email=new@example.com'),
+      env,
+    )
+    expect((await before.json()).subscribed).toBe(false)
+
+    const link = queuedConfirmation.body.confirmationUrl
+    const page = await worker.fetch(new Request(link), env)
+    expect(page.status).toBe(200)
+    expect(await page.text()).toContain('确认订阅')
+    const confirmed = await worker.fetch(
+      new Request(link, { method: 'POST', body: '' }),
+      env,
+    )
+    expect(confirmed.status).toBe(200)
+    const after = await worker.fetch(
+      channelRequest('/subscription?email=new@example.com'),
+      env,
+    )
+    expect((await after.json()).subscribed).toBe(true)
+  })
+
+  it('订阅邮箱后能查到订阅状态，退订后就没了', async () => {
+    const env = await makeEnv()
+    configureEmail(env)
+    await subscribeAndConfirm(env, 'a@example.com')
 
     const status = await worker.fetch(channelRequest('/subscription?email=a@example.com'), env)
     expect(await status.json()).toEqual({ ok: true, subscribed: true })
@@ -382,10 +507,8 @@ describe('官方频道的管理面', () => {
     expect(wrong.status).toBe(401)
 
     // 先订阅一个人，管理面才能导出到他
-    await worker.fetch(
-      channelRequest('/subscribe-email', { method: 'POST', body: { email: 'a@example.com' } }),
-      env,
-    )
+    configureEmail(env)
+    await subscribeAndConfirm(env, 'a@example.com')
 
     const right = await worker.fetch(
       channelRequest('/admin/subscribers', { adminToken: 'admin-secret' }),
@@ -433,5 +556,345 @@ describe('官方频道的管理面', () => {
     const body = await response.json()
     expect(body.count).toBe(1)
     expect(body.feedback[0].body).toBe('某个按钮找不到')
+  })
+
+  it('网页登录先校验密码，再用短期会话发布公告并读取管理状态', async () => {
+    const env = await makeEnv()
+    env.ADMIN_USERNAME = 'owner'
+    env.ADMIN_PASSWORD_HASH = await makePasswordHash('correct horse battery staple')
+    env.ADMIN_SESSION_SECRET = '0123456789abcdef0123456789abcdef'
+
+    const wrong = await worker.fetch(
+      channelRequest('/admin/session', {
+        method: 'POST',
+        body: { username: 'owner', password: 'incorrect' },
+      }),
+      env,
+    )
+    expect(wrong.status).toBe(401)
+
+    const login = await worker.fetch(
+      channelRequest('/admin/session', {
+        method: 'POST',
+        body: { username: 'owner', password: 'correct horse battery staple' },
+      }),
+      env,
+    )
+    expect(login.status).toBe(200)
+    const { sessionToken, expiresIn } = await login.json()
+    expect(sessionToken).toContain('.')
+    expect(expiresIn).toBe(1800)
+
+    const noSession = await worker.fetch(channelRequest('/admin/api/subscribers'), env)
+    expect(noSession.status).toBe(401)
+
+    const status = await worker.fetch(
+      channelRequest('/admin/api/status', { sessionToken }),
+      env,
+    )
+    expect(await status.json()).toMatchObject({ ok: true, emailSendingEnabled: false })
+
+    const publish = await worker.fetch(
+      channelRequest('/admin/api/notices', {
+        method: 'POST',
+        sessionToken,
+        body: { title: '维护通知', body: '服务正常', level: 'info' },
+      }),
+      env,
+    )
+    expect(publish.status).toBe(200)
+
+    const notices = await worker.fetch(channelRequest('/notices'), env)
+    expect((await notices.json()).notices[0].title).toBe('维护通知')
+  })
+
+  it('登录限流器拒绝时返回 429；原 CLI 令牌仍独立可用', async () => {
+    const env = await makeEnv()
+    env.ADMIN_LOGIN_LIMITER = { async limit() { return { success: false } } }
+    env.ADMIN_USERNAME = 'owner'
+    env.ADMIN_PASSWORD_HASH = await makePasswordHash('correct horse battery staple')
+    env.ADMIN_SESSION_SECRET = '0123456789abcdef0123456789abcdef'
+
+    const limited = await worker.fetch(
+      channelRequest('/admin/session', {
+        method: 'POST',
+        body: { username: 'owner', password: 'correct horse battery staple' },
+      }),
+      env,
+    )
+    expect(limited.status).toBe(429)
+
+    env.ADMIN_TOKEN = 'cli-secret'
+    const cli = await worker.fetch(
+      channelRequest('/admin/notices', {
+        method: 'POST',
+        adminToken: 'cli-secret',
+        body: { title: 'CLI 公告', body: '兼容仍在', level: 'info' },
+      }),
+      env,
+    )
+    expect(cli.status).toBe(200)
+  })
+
+  it('网页登录必须有官网 Origin 和限流器配置', async () => {
+    const env = await makeEnv()
+    env.ADMIN_USERNAME = 'owner'
+    env.ADMIN_PASSWORD_HASH = await makePasswordHash('correct horse battery staple')
+    env.ADMIN_SESSION_SECRET = '0123456789abcdef0123456789abcdef'
+    env.ADMIN_LOGIN_LIMITER = undefined
+
+    const noOrigin = await worker.fetch(
+      channelRequest('/admin/session', {
+        method: 'POST',
+        origin: null,
+        body: { username: 'owner', password: 'correct horse battery staple' },
+      }),
+      env,
+    )
+    expect(noOrigin.status).toBe(403)
+
+    const noLimiter = await worker.fetch(
+      channelRequest('/admin/session', {
+        method: 'POST',
+        body: { username: 'owner', password: 'correct horse battery staple' },
+      }),
+      env,
+    )
+    expect(noLimiter.status).toBe(503)
+  })
+
+  it('邮件单发与公告+邮件分别排队', async () => {
+    const env = await makeEnv()
+    const queued = configureEmail(env)
+    const { sessionToken } = await makeAdminSession(env)
+    await subscribeAndConfirm(env, 'a@example.com')
+
+    const status = await worker.fetch(channelRequest('/admin/api/status', { sessionToken }), env)
+    expect((await status.json()).emailSendingEnabled).toBe(true)
+
+    const emailOnly = await worker.fetch(
+      channelRequest('/admin/api/messages', {
+        method: 'POST',
+        sessionToken,
+        idempotencyKey: 'campaign-email-001',
+        body: { delivery: 'email', title: '版本更新', body: '新版本已发布' },
+      }),
+      env,
+    )
+    const emailOnlyBody = await emailOnly.json()
+    expect(emailOnly.status).toBe(200)
+    expect(emailOnlyBody.notice).toBeNull()
+    expect(emailOnlyBody.email).toMatchObject({ total: 1, queued: 1, failed: 0, status: 'queued' })
+    expect(queued[0].body.subject).toBe('版本更新')
+    expect(queued[0].body.unsubscribeUrl).toContain('/unsubscribe-email?token=')
+
+    const both = await worker.fetch(
+      channelRequest('/admin/api/messages', {
+        method: 'POST',
+        sessionToken,
+        idempotencyKey: 'campaign-both-001',
+        body: { delivery: 'both', title: '紧急维护', body: '请稍后再试', level: 'urgent' },
+      }),
+      env,
+    )
+    const bothBody = await both.json()
+    expect(both.status).toBe(200)
+    expect(bothBody.notice.level).toBe('urgent')
+    expect(bothBody.email.status).toBe('queued')
+
+    const notices = await worker.fetch(channelRequest('/notices'), env)
+    const noticeList = (await notices.json()).notices
+    expect(noticeList).toHaveLength(1)
+    expect(noticeList[0].title).toBe('紧急维护')
+    expect(queued).toHaveLength(2)
+  })
+
+  it('组合发送部分失败时保留已发布公告并明确返回 207', async () => {
+    const env = await makeEnv()
+    configureEmail(env, async () => { throw new Error('queue unavailable') })
+    const { sessionToken } = await makeAdminSession(env)
+    await subscribeAndConfirm(env, 'a@example.com')
+
+    const response = await worker.fetch(
+      channelRequest('/admin/api/messages', {
+        method: 'POST',
+        sessionToken,
+        idempotencyKey: 'campaign-partial-001',
+        body: { delivery: 'both', title: '通知', body: '内容' },
+      }),
+      env,
+    )
+    const result = await response.json()
+    expect(response.status).toBe(207)
+    expect(result.notice.title).toBe('通知')
+    expect(result.email).toMatchObject({ total: 1, queued: 0, failed: 1 })
+    const notices = await worker.fetch(channelRequest('/notices'), env)
+    expect((await notices.json()).notices[0].title).toBe('通知')
+  })
+
+  it('只发邮件时队列部分失败也返回可由管理页展示的 207 结果', async () => {
+    const env = await makeEnv()
+    configureEmail(env, async () => { throw new Error('queue unavailable') })
+    const { sessionToken } = await makeAdminSession(env)
+    await subscribeAndConfirm(env, 'a@example.com')
+
+    const response = await worker.fetch(
+      channelRequest('/admin/api/messages', {
+        method: 'POST',
+        sessionToken,
+        idempotencyKey: 'campaign-email-partial-001',
+        body: { delivery: 'email', title: '通知', body: '内容' },
+      }),
+      env,
+    )
+    const result = await response.json()
+
+    expect(response.status).toBe(207)
+    expect(result.notice).toBeNull()
+    expect(result.email).toMatchObject({ total: 1, queued: 0, failed: 1, status: 'partial_or_failed' })
+  })
+
+  it('邮件队列使用稳定幂等键、退订头，并跳过已处理的重复消息', async () => {
+    const env = await makeEnv()
+    configureEmail(env)
+    await subscribeAndConfirm(env, 'a@example.com')
+    const [subscriptionKey] = [...env.PUSH_KV.store.keys()].filter((key) => key.startsWith('sub:'))
+    const subscription = await env.PUSH_KV.get(subscriptionKey, 'json')
+    const token = await createUnsubscribeToken(
+      'a@example.com',
+      env.UNSUBSCRIBE_TOKEN_SECRET,
+      subscription.subscriptionId,
+    )
+    const unsubscribeUrl = `https://push.example.workers.dev/unsubscribe-email?token=${token}`
+    const calls = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, init) => {
+        calls.push({ url, init })
+        return Response.json({ id: 'email_123' }, { status: 200 })
+      }),
+    )
+    const job = {
+      type: 'announcement',
+      id: `campaign-001-abcdefabcdefabcdefabcdefabcdefabcdefabcd-${subscription.subscriptionId}`,
+      to: 'a@example.com',
+      subscriptionId: subscription.subscriptionId,
+      title: '公告',
+      subject: '星芒记录者公告',
+      body: '<script>提醒</script>',
+      unsubscribeUrl,
+    }
+    const message = { body: job, ack: vi.fn(), retry: vi.fn() }
+
+    await worker.queue({ messages: [message] }, env)
+    expect(calls).toHaveLength(1)
+    expect(calls[0].url).toBe('https://api.resend.com/emails')
+    expect(calls[0].init.headers['Idempotency-Key']).toBe(job.id)
+    const mail = JSON.parse(calls[0].init.body)
+    expect(mail.to).toEqual(['a@example.com'])
+    expect(mail.headers['List-Unsubscribe']).toBe(`<${unsubscribeUrl}>`)
+    expect(mail.headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click')
+    expect(mail.html).toContain('&lt;script&gt;提醒&lt;/script&gt;')
+    expect(message.ack).toHaveBeenCalledOnce()
+
+    const duplicate = { body: job, ack: vi.fn(), retry: vi.fn() }
+    await worker.queue({ messages: [duplicate] }, env)
+    expect(calls).toHaveLength(1)
+    expect(duplicate.ack).toHaveBeenCalledOnce()
+  })
+
+  it('Resend 暂时拒绝时保留队列任务并按配置延迟重试', async () => {
+    const env = await makeEnv()
+    configureEmail(env)
+    await subscribeAndConfirm(env, 'a@example.com')
+    const [subscriptionKey] = [...env.PUSH_KV.store.keys()].filter((key) => key.startsWith('sub:'))
+    const subscription = await env.PUSH_KV.get(subscriptionKey, 'json')
+    const token = await createUnsubscribeToken(
+      'a@example.com',
+      env.UNSUBSCRIBE_TOKEN_SECRET,
+      subscription.subscriptionId,
+    )
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ error: 'rate limited' }, { status: 429 })))
+    const message = {
+      body: {
+        type: 'announcement',
+        id: `campaign-retry-${subscription.subscriptionId}`,
+        to: 'a@example.com',
+        subscriptionId: subscription.subscriptionId,
+        subject: '公告',
+        body: '内容',
+        unsubscribeUrl: `https://push.example.workers.dev/unsubscribe-email?token=${token}`,
+      },
+      ack: vi.fn(),
+      retry: vi.fn(),
+    }
+
+    await worker.queue({ messages: [message] }, env)
+
+    expect(message.ack).not.toHaveBeenCalled()
+    expect(message.retry).toHaveBeenCalledWith({ delaySeconds: 60 })
+  })
+
+  it('退订页不在 GET 时删除订阅，确认 POST 后通过签名链接退订', async () => {
+    const env = await makeEnv()
+    configureEmail(env)
+    await subscribeAndConfirm(env, 'a@example.com')
+    const [subscriptionKey] = [...env.PUSH_KV.store.keys()].filter((key) => key.startsWith('sub:'))
+    const subscription = await env.PUSH_KV.get(subscriptionKey, 'json')
+    const token = await createUnsubscribeToken(
+      'a@example.com',
+      env.UNSUBSCRIBE_TOKEN_SECRET,
+      subscription.subscriptionId,
+    )
+
+    const page = await worker.fetch(
+      new Request(`https://push.example.workers.dev/unsubscribe-email?token=${token}`),
+      env,
+    )
+    expect(page.status).toBe(200)
+    expect(await page.text()).toContain('确认取消订阅')
+
+    const statusBefore = await worker.fetch(channelRequest('/subscription?email=a@example.com'), env)
+    expect((await statusBefore.json()).subscribed).toBe(true)
+
+    const post = await worker.fetch(
+      new Request(`https://push.example.workers.dev/unsubscribe-email?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'List-Unsubscribe=One-Click',
+      }),
+      env,
+    )
+    expect(post.status).toBe(200)
+    expect(await post.json()).toMatchObject({ ok: true, unsubscribed: true })
+    const statusAfter = await worker.fetch(channelRequest('/subscription?email=a@example.com'), env)
+    expect((await statusAfter.json()).subscribed).toBe(false)
+  })
+
+  it('旧退订链接不能取消后来重新订阅的地址', async () => {
+    const env = await makeEnv()
+    configureEmail(env)
+    await subscribeAndConfirm(env, 'a@example.com')
+    const [subscriptionKey] = [...env.PUSH_KV.store.keys()].filter((key) => key.startsWith('sub:'))
+    const oldSubscription = await env.PUSH_KV.get(subscriptionKey, 'json')
+    const oldToken = await createUnsubscribeToken(
+      'a@example.com',
+      env.UNSUBSCRIBE_TOKEN_SECRET,
+      oldSubscription.subscriptionId,
+    )
+
+    await worker.fetch(
+      channelRequest('/unsubscribe-email', { method: 'POST', body: { email: 'a@example.com' } }),
+      env,
+    )
+    await subscribeAndConfirm(env, 'a@example.com')
+    const oldLink = `https://push.example.workers.dev/unsubscribe-email?token=${oldToken}`
+    const stalePage = await worker.fetch(new Request(oldLink), env)
+    expect(stalePage.status).toBe(400)
+    const stalePost = await worker.fetch(new Request(oldLink, { method: 'POST' }), env)
+    expect(stalePost.status).toBe(200)
+
+    const status = await worker.fetch(channelRequest('/subscription?email=a@example.com'), env)
+    expect((await status.json()).subscribed).toBe(true)
   })
 })

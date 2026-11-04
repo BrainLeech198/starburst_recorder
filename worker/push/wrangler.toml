@@ -18,12 +18,45 @@ id = "be50f38dcf4d4b4f8dfd7adc01e62908"
 # 网页版的源，多个用逗号分隔；本地调试可临时写 "*"。
 # 注意这里只写源（scheme + host），不带路径、不带结尾斜杠，否则浏览器发的 Origin 对不上。
 #
-# 三个源都要在：
+# 官网 / 应用使用的源都要在：
 #   - starburst-recorder.pages.dev  网页版 / PWA
+#   - brainleech198.github.io       官网 / 管理员网站
 #   - https://localhost              安卓壳（Capacitor 的 androidScheme 是 https）
 #   - http://localhost               本地调试与部分安卓 WebView
 #
 # 桌面壳不走这里：它的页面是 file://，由 Electron 主进程代取（见 electron/main.cjs）。
-ALLOWED_ORIGINS = "https://starburst-recorder.pages.dev,https://localhost,http://localhost"
+ALLOWED_ORIGINS = "https://starburst-recorder.pages.dev,https://brainleech198.github.io,https://localhost,http://localhost"
 # 点通知时打开哪个页面。留空则由 Service Worker 用自身 scope 兜底
 APP_URL = "https://starburst-recorder.pages.dev/"
+
+# 管理员网页登录：每个 IP 每分钟最多尝试 5 次。Cloudflare 此限流为近似值，
+# 用来挡常规密码猜测；账号密码仍须使用强密码，并保持 Worker Secrets 不泄露。
+[[ratelimits]]
+name = "ADMIN_LOGIN_LIMITER"
+namespace_id = "631942"
+
+[ratelimits.simple]
+limit = 5
+period = 60
+
+[[ratelimits]]
+name = "EMAIL_SUBSCRIBE_LIMITER"
+namespace_id = "631943"
+
+[ratelimits.simple]
+limit = 3
+period = 60
+
+# 邮件广播：先写队列，后台逐位发送；连续失败的消息进入 DLQ，便于维护者排查。
+# 首次部署前用 `wrangler queues create` 创建这两个队列。
+[[queues.producers]]
+binding = "EMAIL_QUEUE"
+queue = "starburst-email"
+
+[[queues.consumers]]
+queue = "starburst-email"
+max_batch_size = 10
+max_batch_timeout = 10
+max_retries = 5
+retry_delay = 60
+dead_letter_queue = "starburst-email-dlq"

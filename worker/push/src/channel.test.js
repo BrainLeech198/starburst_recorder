@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   emailKey,
+  confirmEmailSubscription,
   isSubscribed,
   listFeedback,
   listNotices,
@@ -122,10 +123,18 @@ describe('sanitizeFeedback', () => {
 })
 
 describe('订阅', () => {
-  it('重复订阅只留一条，退订后真的没了', async () => {
+  it('新订阅须确认后才生效；重复提交与退订都正确处理', async () => {
     const kv = createKv()
-    await subscribeEmail(kv, 'a@example.com', 100)
-    await subscribeEmail(kv, 'a@example.com', 200)
+    const first = await subscribeEmail(kv, 'a@example.com', 100)
+    const repeat = await subscribeEmail(kv, 'a@example.com', 200)
+    expect(first.alreadySubscribed).toBe(false)
+    expect(repeat.subscriptionId).toBe(first.subscriptionId)
+    expect(await isSubscribed(kv, 'a@example.com')).toBe(false)
+    expect((await listSubscribers(kv)).length).toBe(0)
+
+    const key = await emailKey('a@example.com')
+    expect(await confirmEmailSubscription(kv, key, first.subscriptionId, 300)).toBe(true)
+    expect(await isSubscribed(kv, 'a@example.com')).toBe(true)
 
     const list = await listSubscribers(kv)
     expect(list.length).toBe(1)
@@ -139,9 +148,31 @@ describe('订阅', () => {
 
   it('大小写不同的同一个地址只算一个订阅', async () => {
     const kv = createKv()
-    await subscribeEmail(kv, 'User@Example.com')
+    const first = await subscribeEmail(kv, 'User@Example.com', 100)
+    await confirmEmailSubscription(kv, await emailKey('user@example.com'), first.subscriptionId, 200)
     await subscribeEmail(kv, 'user@example.com')
     expect((await listSubscribers(kv)).length).toBe(1)
+  })
+
+  it('确认令牌只对当前订阅有效；七天后的待确认项作废', async () => {
+    const kv = createKv()
+    const first = await subscribeEmail(kv, 'a@example.com', 100)
+    const key = await emailKey('a@example.com')
+    const expired = 100 + 7 * 24 * 60 * 60 * 1000 + 1
+    expect(await confirmEmailSubscription(kv, key, first.subscriptionId, expired)).toBe(false)
+    expect(await kv.get(key)).toBeNull()
+
+    const second = await subscribeEmail(kv, 'a@example.com', expired)
+    expect(await confirmEmailSubscription(kv, key, first.subscriptionId, expired + 1)).toBe(false)
+    expect(await confirmEmailSubscription(kv, key, second.subscriptionId, expired + 1)).toBe(true)
+  })
+
+  it('旧版已订阅记录在迁移后仍保留有效状态', async () => {
+    const kv = createKv()
+    const key = await emailKey('legacy@example.com')
+    await kv.put(key, JSON.stringify({ email: 'legacy@example.com', createdAt: 100 }))
+    expect(await isSubscribed(kv, 'legacy@example.com')).toBe(true)
+    expect((await listSubscribers(kv)).map((person) => person.email)).toEqual(['legacy@example.com'])
   })
 
   it('非法邮箱不落库', async () => {

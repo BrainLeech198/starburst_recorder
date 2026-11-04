@@ -15,11 +15,25 @@
  */
 import { dedupeKey, isValidTimeZone, localParts, matchSlot } from './schedule.js'
 import { encryptPayload, vapidHeaders } from './webpush.js'
+import { createAdminSession, verifyAdminCredentials, verifyAdminSession } from './admin-auth.js'
 import {
+  createConfirmationToken,
+  createUnsubscribeToken,
+  formatAnnouncementEmail,
+  formatConfirmationEmail,
+  subscriptionConfirmationPage,
+  unsubscribeConfirmationPage,
+  verifyConfirmationToken,
+  verifyUnsubscribeToken,
+} from './email.js'
+import {
+  confirmEmailSubscription,
+  emailKey,
   isSubscribed,
   listFeedback,
   listNotices,
   listSubscribers,
+  normalizeEmail,
   putFeedback,
   putNotice,
   sanitizeNotice,
@@ -34,6 +48,8 @@ const MAX_BODY_BYTES = 16 * 1024
 /** 去重标记留 26 小时：跨过夏令时切换也不会误重发 */
 const DEDUPE_TTL = 60 * 60 * 26
 const CATEGORIES = ['weigh', 'training', 'schedule']
+const EMAIL_QUEUE_BATCH_SIZE = 15
+const EMAIL_SENT_TTL = 60 * 60 * 24 * 30
 /** 客户端没交文案时的兜底（正常路径不会走到） */
 const FALLBACK_COPY = { title: '星芒记录者', body: '你有一条提醒' }
 
@@ -42,7 +58,11 @@ const TEXT = new TextEncoder()
 function json(body, status, headers) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', ...headers },
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      ...headers,
+    },
   })
 }
 
@@ -62,8 +82,8 @@ function corsHeaders(request, env) {
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    // x-push-token 是自定义头，预检必须放行，否则浏览器连 POST 都发不出去
-    'Access-Control-Allow-Headers': 'Content-Type, x-push-token',
+    // 自定义头必须在预检时放行，否则浏览器不会发送真正的请求。
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Idempotency-Key, x-push-token, x-admin-token',
     'Access-Control-Max-Age': '86400',
     Vary: 'Origin',
   }
@@ -132,6 +152,72 @@ function adminRejected(request, env, cors) {
     diff |= provided.charCodeAt(index) ^ expected.charCodeAt(index)
   }
   return diff === 0 ? null : json({ error: 'unauthorized' }, 401, cors)
+}
+
+/** POST /admin/session：用账号密码换取 30 分钟内有效的签名会话 */
+async function postAdminSession(request, env, cors) {
+  // 登录只能从配置过的官网页面发起；命令行继续走独立的 ADMIN_TOKEN。
+  if (!request.headers.get('Origin')) return json({ error: 'origin required' }, 403, cors)
+  if (!env.ADMIN_USERNAME || !env.ADMIN_PASSWORD_HASH || !env.ADMIN_SESSION_SECRET) {
+    return json({ error: 'admin login not configured' }, 503, cors)
+  }
+  if (!env.ADMIN_LOGIN_LIMITER) return json({ error: 'admin login limiter not configured' }, 503, cors)
+
+  let allowed
+  try {
+    const client = request.headers.get('CF-Connecting-IP') || 'unknown'
+    allowed = await env.ADMIN_LOGIN_LIMITER.limit({ key: client })
+  } catch {
+    // 限流器不可用时拒绝登录，避免服务故障退化成无限次密码尝试。
+    return json({ error: 'admin login temporarily unavailable' }, 503, cors)
+  }
+  if (!allowed?.success) return json({ error: 'too many login attempts' }, 429, cors)
+
+  const parsed = await readJson(request)
+  if (parsed.error) return json({ error: parsed.error }, parsed.status, cors)
+  const { username, password } = parsed.body ?? {}
+  if (
+    typeof username !== 'string' || username.length < 1 || username.length > 100 ||
+    typeof password !== 'string' || password.length < 1 || password.length > 256
+  ) {
+    return json({ error: 'invalid credentials' }, 400, cors)
+  }
+
+  if (!(await verifyAdminCredentials(username, password, env))) {
+    return json({ error: 'invalid username or password' }, 401, cors)
+  }
+  const token = await createAdminSession(env.ADMIN_USERNAME, env.ADMIN_SESSION_SECRET)
+  if (!token) return json({ error: 'admin login not configured' }, 503, cors)
+  return json({ ok: true, sessionToken: token, expiresIn: 30 * 60 }, 200, cors)
+}
+
+/** 管理网页会话闸门：与 CLI 的 x-admin-token 完全分开 */
+async function adminSessionRejected(request, env, cors) {
+  if (!env.ADMIN_USERNAME || !env.ADMIN_SESSION_SECRET) {
+    return json({ error: 'admin login not configured' }, 503, cors)
+  }
+  const authorization = request.headers.get('Authorization') ?? ''
+  const match = /^Bearer ([A-Za-z0-9._-]+)$/.exec(authorization)
+  if (!match || !(await verifyAdminSession(match[1], env.ADMIN_SESSION_SECRET, env.ADMIN_USERNAME))) {
+    return json({ error: 'unauthorized' }, 401, cors)
+  }
+  return null
+}
+
+/** 邮件发送只有在 API Key、发件地址、退订密钥和队列都已配置时才开放。 */
+function getAdminStatus(env, cors) {
+  const emailSendingEnabled = emailSendingReady(env)
+  return json(
+    {
+      ok: true,
+      emailSendingEnabled,
+      emailReason: emailSendingEnabled
+        ? ''
+        : '邮件发送未配置：需要 Resend API Key、已验证的发件地址、退订密钥和邮件队列',
+    },
+    200,
+    cors,
+  )
 }
 function isValidTime(value) {
   if (typeof value !== 'string' || !/^\d{2}:\d{2}$/.test(value)) return false
@@ -232,8 +318,8 @@ async function unsubscribe(request, env, cors) {
 /* ─────────────── 官方频道：公告 / 邮箱订阅 / 用户反馈 ───────────────
  *
  * 这一组接口**不要求客户端令牌**：公告是公开信息，订阅与反馈是用户主动发起的。
- * 写操作由 KV 的写额度天然限流（每天 1000 次），不构成滥用风险。
- * 只有管理面（发公告、导出订阅表、翻反馈）才需要 `ADMIN_TOKEN`。
+ * 订阅确认与管理员登录分别走 Cloudflare Rate Limiting；管理员网页使用短期会话，
+ * 原有 CLI 管理接口仍使用 `ADMIN_TOKEN`。
  */
 
 /** GET /notices：当前公告列表，新的在前 */
@@ -246,13 +332,83 @@ async function getNotices(env, cors) {
 async function postSubscribeEmail(request, env, cors) {
   const parsed = await readJson(request)
   if (parsed.error) return json({ error: parsed.error }, parsed.status, cors)
-  const record = await subscribeEmail(env.PUSH_KV, parsed.body?.email)
+  const email = normalizeEmail(parsed.body?.email)
+  if (!email) return json({ error: 'invalid email' }, 400, cors)
+  if (!emailSendingReady(env) || !env.EMAIL_SUBSCRIBE_LIMITER) {
+    return json({ error: 'email subscription confirmation is not configured' }, 503, cors)
+  }
+
+  let allowed
+  try {
+    const client = request.headers.get('CF-Connecting-IP') || 'unknown'
+    allowed = await env.EMAIL_SUBSCRIBE_LIMITER.limit({ key: client })
+  } catch {
+    return json({ error: 'email subscription temporarily unavailable' }, 503, cors)
+  }
+  if (!allowed?.success) return json({ error: 'too many subscription requests' }, 429, cors)
+
+  const record = await subscribeEmail(env.PUSH_KV, email)
   if (!record) return json({ error: 'invalid email' }, 400, cors)
-  return json({ ok: true, email: record.email }, 200, cors)
+  if (record.alreadySubscribed) return json({ ok: true, subscribed: true }, 200, cors)
+
+  const token = await createConfirmationToken(
+    record.email,
+    env.UNSUBSCRIBE_TOKEN_SECRET,
+    record.subscriptionId,
+  )
+  if (!token) return json({ error: 'email confirmation unavailable' }, 503, cors)
+  const confirmationUrl = new URL('/confirm-email', request.url)
+  confirmationUrl.searchParams.set('token', token)
+  try {
+    await env.EMAIL_QUEUE.send({
+      type: 'confirm-subscription',
+      id: `confirm-${record.subscriptionId}`,
+      to: record.email,
+      subscriptionId: record.subscriptionId,
+      confirmationUrl: confirmationUrl.toString(),
+    })
+  } catch {
+    return json({ error: 'confirmation email could not be queued' }, 503, cors)
+  }
+  return json({ ok: true, confirmationRequired: true }, 200, cors)
 }
 
 /** POST /unsubscribe-email：退订。地址不在表里也算成功 */
 async function postUnsubscribeEmail(request, env, cors) {
+  const token = new URL(request.url).searchParams.get('token')
+  if (token) {
+    const contentType = request.headers.get('Content-Type') ?? ''
+    let oneClick = false
+    if (contentType.includes('application/x-www-form-urlencoded')) {
+      const form = await request.formData().catch(() => null)
+      if (form?.has('List-Unsubscribe') && form.get('List-Unsubscribe') !== 'One-Click') {
+        return json({ error: 'invalid unsubscribe request' }, 400, cors)
+      }
+      oneClick = form?.get('List-Unsubscribe') === 'One-Click'
+    }
+    const signed = await verifyUnsubscribeToken(token, env.UNSUBSCRIBE_TOKEN_SECRET)
+    if (!signed) return json({ error: 'invalid unsubscribe token' }, 400, cors)
+    const subscriber = await env.PUSH_KV.get(signed.key, 'json')
+    const currentId = subscriber?.subscriptionId ?? String(Number(subscriber?.createdAt) || 0)
+    if (subscriber?.email && currentId === signed.subscriptionId) {
+      await env.PUSH_KV.delete(signed.key)
+    }
+    if (contentType.includes('application/x-www-form-urlencoded') && !oneClick) {
+      return new Response(
+        '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>已取消订阅</title><body style="margin:0;padding:48px 18px;background:#0c1119;color:#e8edf4;font:16px/1.6 system-ui,sans-serif"><main style="max-width:440px;margin:auto;padding:28px;border:1px solid #344154;border-radius:16px;background:#151d29"><h1 style="font-size:22px">已取消邮件订阅</h1><p>之后不会再向此地址发送公告邮件。</p></main></body></html>',
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'no-store',
+            'Referrer-Policy': 'no-referrer',
+          },
+        },
+      )
+    }
+    return json({ ok: true, unsubscribed: true }, 200, cors)
+  }
+
   const parsed = await readJson(request)
   if (parsed.error) return json({ error: parsed.error }, parsed.status, cors)
   const email = parsed.body?.email
@@ -261,6 +417,81 @@ async function postUnsubscribeEmail(request, env, cors) {
   }
   await unsubscribeEmail(env.PUSH_KV, email)
   return json({ ok: true }, 200, cors)
+}
+
+/** GET /unsubscribe-email?token=… never unsubscribes on page load, to avoid email scanner clicks. */
+async function getUnsubscribeConfirmation(request, env) {
+  const token = new URL(request.url).searchParams.get('token') ?? ''
+  const signed = await verifyUnsubscribeToken(token, env.UNSUBSCRIBE_TOKEN_SECRET)
+  const subscriber = signed ? await env.PUSH_KV.get(signed.key, 'json') : null
+  const currentId = subscriber?.subscriptionId ?? String(Number(subscriber?.createdAt) || 0)
+  const isCurrent = subscriber?.email && currentId === signed?.subscriptionId
+  const html = isCurrent
+    ? unsubscribeConfirmationPage(token)
+    : '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>邮件订阅</title><body><p>此退订链接无效，或该地址已取消订阅。</p></body></html>'
+  return new Response(html, {
+    status: isCurrent ? 200 : 400,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Referrer-Policy': 'no-referrer',
+    },
+  })
+}
+
+function confirmationResultPage(confirmed) {
+  const heading = confirmed ? '订阅已确认' : '确认链接无效'
+  const message = confirmed
+    ? '之后会通过邮件发送星芒记录者的官方公告。'
+    : '链接可能已过期，或已被新的订阅请求替代。请重新提交邮箱订阅。'
+  return new Response(
+    `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>${heading}</title><body style="margin:0;padding:48px 18px;background:#0c1119;color:#e8edf4;font:16px/1.6 system-ui,sans-serif"><main style="max-width:440px;margin:auto;padding:28px;border:1px solid #344154;border-radius:16px;background:#151d29"><h1 style="font-size:22px">${heading}</h1><p>${message}</p></main></body></html>`,
+    {
+      status: confirmed ? 200 : 400,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Referrer-Policy': 'no-referrer',
+      },
+    },
+  )
+}
+
+/** Confirmation GET only shows a form; mail scanners cannot activate subscriptions by opening links. */
+async function getEmailConfirmation(request, env) {
+  const token = new URL(request.url).searchParams.get('token') ?? ''
+  const claims = await verifyConfirmationToken(token, env.UNSUBSCRIBE_TOKEN_SECRET)
+  const record = claims ? await env.PUSH_KV.get(claims.key, 'json') : null
+  const currentId = typeof record?.subscriptionId === 'string'
+    ? record.subscriptionId
+    : String(Number(record?.createdAt) || 0)
+  const matches = record?.email && currentId === claims?.subscriptionId
+  if (matches && (typeof record.confirmedAt !== 'number' || record.confirmedAt > 0)) {
+    return confirmationResultPage(true)
+  }
+  const pendingAndFresh = matches && record.confirmedAt === 0 &&
+    Date.now() - (Number(record.createdAt) || 0) <= 7 * 24 * 60 * 60 * 1000
+  if (!pendingAndFresh) return confirmationResultPage(false)
+  return new Response(subscriptionConfirmationPage(token), {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Referrer-Policy': 'no-referrer',
+    },
+  })
+}
+
+async function postEmailConfirmation(request, env) {
+  const token = new URL(request.url).searchParams.get('token') ?? ''
+  const claims = await verifyConfirmationToken(token, env.UNSUBSCRIBE_TOKEN_SECRET)
+  if (!claims) return confirmationResultPage(false)
+  const confirmed = await confirmEmailSubscription(
+    env.PUSH_KV,
+    claims.key,
+    claims.subscriptionId,
+  )
+  return confirmationResultPage(confirmed)
 }
 
 /** GET /subscription?email=…：这个地址是不是已订阅 */
@@ -281,16 +512,274 @@ async function postFeedback(request, env, cors) {
 
 /* ─────────────── 管理面：需要 ADMIN_TOKEN ─────────────── */
 
+async function storeAdminNotice(input, env) {
+  const clean = sanitizeNotice(input)
+  if (!clean) return null
+  const id = `${Date.now()}-${crypto.randomUUID()}`
+  return putNotice(env.PUSH_KV, id, clean)
+}
+
 /** POST /admin/notices：发一条公告。level 传 urgent 就是紧急公告 */
 async function postAdminNotice(request, env, cors) {
   const parsed = await readJson(request)
   if (parsed.error) return json({ error: parsed.error }, parsed.status, cors)
-  const clean = sanitizeNotice(parsed.body)
-  if (!clean) return json({ error: 'invalid notice' }, 400, cors)
-  // id 用时间戳：同一秒发两条也不会撞，后发的盖掉先发的
-  const id = String(Date.now())
-  const record = await putNotice(env.PUSH_KV, id, clean)
+  const record = await storeAdminNotice(parsed.body, env)
+  if (!record) return json({ error: 'invalid notice' }, 400, cors)
   return json({ ok: true, notice: record }, 200, cors)
+}
+
+function emailSendingReady(env) {
+  return Boolean(
+    env.RESEND_API_KEY &&
+    env.EMAIL_FROM &&
+    env.UNSUBSCRIBE_TOKEN_SECRET &&
+    new TextEncoder().encode(env.UNSUBSCRIBE_TOKEN_SECRET).length >= 32 &&
+    env.EMAIL_QUEUE,
+  )
+}
+
+/** One queue message per email; IDs stay stable if the browser retries the same operation. */
+async function enqueueAnnouncementEmails(request, env, { title, body, subject }) {
+  const idempotencyKey = request.headers.get('Idempotency-Key') ?? ''
+  if (!/^[A-Za-z0-9_-]{8,100}$/.test(idempotencyKey)) {
+    return { total: 0, queued: 0, failed: 0, error: 'missing idempotency key' }
+  }
+
+  const subscribers = await listSubscribers(env.PUSH_KV)
+  const result = { total: subscribers.length, queued: 0, failed: 0 }
+  const queueBatch = []
+  const unsubscribeBase = new URL('/unsubscribe-email', request.url)
+
+  async function flush() {
+    if (!queueBatch.length) return
+    const outgoing = queueBatch.splice(0, queueBatch.length)
+    try {
+      await env.EMAIL_QUEUE.sendBatch(outgoing.map((message) => ({ body: message, contentType: 'json' })))
+      result.queued += outgoing.length
+    } catch {
+      result.failed += outgoing.length
+      // 不写收件地址或公告内容到日志。
+      console.error(JSON.stringify({ event: 'admin_email_enqueue_failed', count: outgoing.length }))
+    }
+  }
+
+  for (const subscriber of subscribers) {
+    const subscriptionKey = await emailKey(subscriber.email)
+    const token = await createUnsubscribeToken(
+      subscriber.email,
+      env.UNSUBSCRIBE_TOKEN_SECRET,
+      subscriber.subscriptionId,
+    )
+    if (!token) {
+      result.failed += 1
+      continue
+    }
+    const unsubscribeUrl = new URL(unsubscribeBase)
+    unsubscribeUrl.searchParams.set('token', token)
+    queueBatch.push({
+      type: 'announcement',
+      id: `${idempotencyKey}-${subscriptionKey.slice('sub:'.length)}-${subscriber.subscriptionId}`,
+      subscriptionId: subscriber.subscriptionId,
+      to: subscriber.email,
+      title,
+      subject,
+      body,
+      unsubscribeUrl: unsubscribeUrl.toString(),
+    })
+    if (queueBatch.length >= EMAIL_QUEUE_BATCH_SIZE) await flush()
+  }
+  await flush()
+  return result
+}
+
+/** POST /admin/api/messages: publish the in-app notice, queue subscriber email, or do both. */
+async function postAdminMessage(request, env, cors) {
+  const parsed = await readJson(request)
+  if (parsed.error) return json({ error: parsed.error }, parsed.status, cors)
+  const input = parsed.body ?? {}
+  const delivery = input.delivery
+  if (!['notice', 'email', 'both'].includes(delivery)) {
+    return json({ error: 'invalid delivery' }, 400, cors)
+  }
+  const clean = sanitizeNotice(input)
+  if (!clean) return json({ error: 'invalid notice' }, 400, cors)
+
+  const subject = typeof input.subject === 'string' && input.subject.trim()
+    ? input.subject.trim()
+    : clean.title
+  if (subject.length > 180 || /[\r\n]/.test(subject)) {
+    return json({ error: 'invalid email subject' }, 400, cors)
+  }
+  if (delivery !== 'notice' && !/^[A-Za-z0-9_-]{8,100}$/.test(request.headers.get('Idempotency-Key') ?? '')) {
+    return json({ error: 'missing or invalid idempotency key' }, 400, cors)
+  }
+  if (delivery !== 'notice' && !emailSendingReady(env)) {
+    return json({ error: 'email sending is not configured' }, 503, cors)
+  }
+
+  let notice = null
+  if (delivery === 'notice' || delivery === 'both') {
+    notice = await storeAdminNotice(clean, env)
+    if (!notice) return json({ error: 'invalid notice' }, 400, cors)
+  }
+
+  if (delivery === 'notice') return json({ ok: true, delivery, notice }, 200, cors)
+
+  let email
+  try {
+    email = await enqueueAnnouncementEmails(request, env, {
+      title: clean.title,
+      body: clean.body,
+      subject,
+    })
+  } catch {
+    email = { total: 0, queued: 0, failed: 0, error: 'subscriber list unavailable' }
+  }
+
+  if (email.error || email.failed > 0) {
+    return json(
+      { ok: false, delivery, notice, email: { ...email, status: 'partial_or_failed' } },
+      207,
+      cors,
+    )
+  }
+  return json(
+    {
+      ok: true,
+      delivery,
+      notice,
+      email: {
+        ...email,
+        status: email.total === 0 ? 'no_subscribers' : 'queued',
+      },
+    },
+    200,
+    cors,
+  )
+}
+
+async function deliverQueuedEmail(message, env) {
+  const job = message?.body
+  const recipient = typeof job?.to === 'string' ? job.to : ''
+  const email = normalizeEmail(recipient)
+  const id = typeof job?.id === 'string' ? job.id : ''
+  const type = job?.type
+  const subscriptionId = typeof job?.subscriptionId === 'string' ? job.subscriptionId : ''
+  if (
+    !email || email !== recipient || !/^[A-Za-z0-9_-]{8,240}$/.test(id) ||
+    !/^[A-Za-z0-9_-]{1,80}$/.test(subscriptionId)
+  ) {
+    return 'invalid'
+  }
+  if (!env.RESEND_API_KEY || !env.EMAIL_FROM || !env.PUSH_KV) return 'retry'
+
+  const marker = `email:sent:${id}`
+  if (await env.PUSH_KV.get(marker)) return 'already-sent'
+
+  const key = await emailKey(email)
+  const subscription = await env.PUSH_KV.get(key, 'json')
+  const currentId = subscription?.subscriptionId ?? String(Number(subscription?.createdAt) || 0)
+  if (subscription?.email !== email || currentId !== subscriptionId) return 'unsubscribed'
+
+  let subject
+  let rendered
+  let headers = {}
+  if (type === 'confirm-subscription') {
+    const confirmationUrl = typeof job.confirmationUrl === 'string' ? job.confirmationUrl : ''
+    let confirmation
+    try {
+      confirmation = new URL(confirmationUrl)
+    } catch {
+      return 'invalid'
+    }
+    if (
+      confirmation.protocol !== 'https:' || confirmation.pathname !== '/confirm-email' ||
+      subscription.confirmedAt !== 0 || Date.now() - (Number(subscription.createdAt) || 0) > 7 * 24 * 60 * 60 * 1000
+    ) return 'unsubscribed'
+    subject = '请确认订阅星芒记录者公告邮件'
+    rendered = formatConfirmationEmail({ confirmationUrl })
+  } else if (type === 'announcement') {
+    const requestedSubject = typeof job.subject === 'string' ? job.subject : ''
+    const body = typeof job.body === 'string' ? job.body : ''
+    const unsubscribeUrl = typeof job.unsubscribeUrl === 'string' ? job.unsubscribeUrl : ''
+    let unsubscribe
+    try {
+      unsubscribe = new URL(unsubscribeUrl)
+    } catch {
+      return 'invalid'
+    }
+    if (
+      !requestedSubject || requestedSubject.length > 180 || /[\r\n]/.test(requestedSubject) ||
+      !body || body.length > 4000 || unsubscribe.protocol !== 'https:' ||
+      unsubscribe.pathname !== '/unsubscribe-email' ||
+      (typeof subscription.confirmedAt === 'number' && subscription.confirmedAt === 0)
+    ) return 'invalid'
+    subject = requestedSubject
+    rendered = formatAnnouncementEmail({ body, unsubscribeUrl })
+    headers = {
+      'List-Unsubscribe': `<${unsubscribeUrl}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    }
+  } else {
+    return 'invalid'
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+      'Idempotency-Key': id,
+    },
+    body: JSON.stringify({
+      from: env.EMAIL_FROM,
+      to: [email],
+      subject,
+      text: rendered.text,
+      html: rendered.html,
+      ...(Object.keys(headers).length ? { headers } : {}),
+    }),
+    signal: AbortSignal.timeout(15_000),
+  })
+
+  if (!response.ok) {
+    console.warn(JSON.stringify({ event: 'announcement_email_retry', jobId: id, status: response.status }))
+    return 'retry'
+  }
+
+  await env.PUSH_KV.put(marker, JSON.stringify({ sentAt: Date.now() }), {
+    expirationTtl: EMAIL_SENT_TTL,
+  })
+  console.log(JSON.stringify({ event: 'announcement_email_sent', jobId: id }))
+  return 'sent'
+}
+
+async function consumeAnnouncementEmails(batch, env) {
+  for (const message of batch.messages) {
+    try {
+      const outcome = await deliverQueuedEmail(message, env)
+      if (
+        outcome === 'sent' || outcome === 'already-sent' || outcome === 'unsubscribed' ||
+        outcome === 'invalid'
+      ) {
+        message.ack()
+        if (outcome === 'invalid') {
+          console.warn(JSON.stringify({
+            event: 'announcement_email_invalid_job',
+            jobId: typeof message.body?.id === 'string' ? message.body.id : 'invalid',
+          }))
+        }
+      } else {
+        message.retry({ delaySeconds: 60 })
+      }
+    } catch {
+      console.error(JSON.stringify({
+        event: 'announcement_email_error',
+        jobId: typeof message.body?.id === 'string' ? message.body.id : 'invalid',
+      }))
+      message.retry({ delaySeconds: 60 })
+    }
+  }
 }
 
 /** GET /admin/subscribers：导出订阅邮箱表 */
@@ -421,6 +910,15 @@ export default {
     if (url.pathname === '/unsubscribe-email' && request.method === 'POST') {
       return postUnsubscribeEmail(request, env, cors)
     }
+    if (url.pathname === '/unsubscribe-email' && request.method === 'GET') {
+      return getUnsubscribeConfirmation(request, env)
+    }
+    if (url.pathname === '/confirm-email' && request.method === 'GET') {
+      return getEmailConfirmation(request, env)
+    }
+    if (url.pathname === '/confirm-email' && request.method === 'POST') {
+      return postEmailConfirmation(request, env)
+    }
     if (url.pathname === '/subscription' && request.method === 'GET') {
       return getSubscription(request, env, cors)
     }
@@ -428,7 +926,31 @@ export default {
       return postFeedback(request, env, cors)
     }
 
-    // ─── 管理面（需要 ADMIN_TOKEN）───
+    // ─── 管理网页账号登录与短期会话 ───
+    if (url.pathname === '/admin/session' && request.method === 'POST') {
+      return postAdminSession(request, env, cors)
+    }
+    if (url.pathname.startsWith('/admin/api/')) {
+      const rejected = await adminSessionRejected(request, env, cors)
+      if (rejected) return rejected
+      if (url.pathname === '/admin/api/status' && request.method === 'GET') {
+        return getAdminStatus(env, cors)
+      }
+      if (url.pathname === '/admin/api/notices' && request.method === 'POST') {
+        return postAdminNotice(request, env, cors)
+      }
+      if (url.pathname === '/admin/api/messages' && request.method === 'POST') {
+        return postAdminMessage(request, env, cors)
+      }
+      if (url.pathname === '/admin/api/subscribers' && request.method === 'GET') {
+        return getAdminSubscribers(env, cors)
+      }
+      if (url.pathname === '/admin/api/feedback' && request.method === 'GET') {
+        return getAdminFeedback(env, cors)
+      }
+    }
+
+    // ─── 管理 CLI（需要 ADMIN_TOKEN）───
     if (url.pathname.startsWith('/admin/')) {
       const rejected = adminRejected(request, env, cors)
       if (rejected) return rejected
@@ -446,6 +968,10 @@ export default {
     if (url.pathname === '/health') return json({ ok: true }, 200, cors)
     if (url.pathname === '/') return json({ name: 'starburst-push', ok: true }, 200, cors)
     return json({ error: 'not found' }, 404, cors)
+  },
+
+  async queue(batch, env) {
+    await consumeAnnouncementEmails(batch, env)
   },
 
   async scheduled(controller, env, ctx) {

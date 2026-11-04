@@ -1,95 +1,119 @@
 # 官方频道：公告、订阅与反馈
 
-> 状态：现状已核对；管理员网站与自动邮件为已选方向、尚未实施。更新时间：2026-11-04。
-> 本文描述跨 Web / PWA、Windows 和 Android 的通用功能，不属于 iOS 专项。
+> 状态：管理员网站、公告发布、Resend 邮件队列和双重确认订阅的 Worker 代码已实现；尚未配置线上账号资源、部署 Worker 或发送真实邮件。现有 App 订阅页仍按即时订阅提示，需要在启用双重确认前完成页面反馈与隐私文案更新。更新时间：2026-11-04。
+> 这是跨 Web / PWA、Windows 和 Android 的通用频道，不属于 iOS 专项。
 
 ## 目标与边界
 
-星芒记录者保持本地优先、无账号。官方频道只处理公开公告、用户主动登记的邮箱和用户主动提交的反馈；
-不得自动上传日记、健康、收支、助手对话或 API Key。
+通过项目自己的 Worker API，为所有平台提供公开公告、用户主动订阅的公告邮件，以及用户主动提交的反馈。频道不读取或上传日记、健康、收支、AI 对话、模型配置或 API Key。
+
+邮箱是用户信息：订阅记录在 Cloudflare KV 中包含邮箱明文；确认和公告邮件由 Resend 处理。当前 App 文案仍声称邮箱“不会给第三方”，与 Resend 处理邮件的事实不一致。上线邮件前必须更正订阅页面与隐私说明，说明 Cloudflare 和 Resend 会处理该地址。只有完成邮件确认的地址才会收到群发邮件。旧版记录若没有 `confirmedAt`，视为用户之前已明确订阅，继续保留。
 
 ## 当前实现
 
-- 客户端统一经 `src/platform/channel.ts` 访问频道 API。Web / PWA 和 Android 直接请求 Worker；Windows 桌面壳经 Electron 主进程的 `channel:request` 代取，以避开 `file://` 的 CORS 限制。
-- `worker/push/src/channel.js` 使用 `PUSH_KV` 保存公告、邮箱订阅和反馈；`worker/push/src/index.js` 暴露公开读写接口及受 `ADMIN_TOKEN` 保护的管理接口。
-- 普通 / 紧急公告由应用内公告页和横幅展示。管理脚本可发布公告，紧急公告用 `--urgent`。
-- 订阅接口目前只是把邮箱写入 KV；没有确认邮件，也没有邮件发送服务。`subscribers` 命令只导出地址。
-- 官网变更说明目前写着订阅后会收到重要公告邮件；这项承诺超过了当前实现。邮件接通前应更正文案，避免继续暗示自动发信已经可用。
-- 邮箱键名使用哈希，但 KV 记录值仍保存邮箱明文；这不是加密。邮件发送前应在订阅说明中写明 Cloudflare 和邮件服务商会处理地址。
-- 反馈正文会保存到 KV；维护者可用管理脚本查看，但目前没有提醒、处理状态和回复流程。
-- `GET /subscription?email=...` 会公开回答地址是否订阅；退订接口只凭邮箱即可操作。这两项应在增加邮件确认流程时改成令牌验证。
-- 公告获取失败目前会被客户端当作空列表，页面可能把服务故障显示成“暂无公告”。应把空结果、配置缺失和请求失败分开呈现。
-- `channelConfigured()` 已定义但没有调用处；端点未配置时，公告、订阅和反馈入口仍可能显示，应明确呈现“服务未配置”状态。
+- 官网管理员入口：`https://brainleech198.github.io/starburst_recorder/admin/`。官网页脚提供入口；管理员先输入名称和密码，再进入工作台。
+- 管理员登录由 Worker 校验 PBKDF2-SHA256 密码哈希，签发 30 分钟 HMAC 会话。令牌只保存在当前页面内存，刷新或关闭页面后重新登录。网页登录与 CLI 的 `ADMIN_TOKEN` 分开。
+- 工作台支持三种发送方式：只发应用内公告、只发邮件、同时发布公告和邮件。紧急级别只影响应用内公告。邮件主题默认使用标题，也可单独编辑；邮件选项仅在 Resend、发件地址、退订签名密钥和队列绑定均已配置时开放。
+- “公告 + 邮件”先保存应用内公告，再将邮件任务写入 Cloudflare Queues。若队列只接受了部分任务，接口返回部分成功状态并报告已排队与失败数量；管理页面不会把部分成功显示为全部成功。
+- 新订阅进入待确认状态，队列发送确认邮件。确认链接的 GET 只显示确认页，用户提交确认表单后才生效；七天未确认的记录会失效。退订邮件链接也采用 GET 展示、POST 执行，避免邮件扫描器仅打开链接就误退订。一个订阅周期专用一个随机 ID，旧链接不会作用于后来重新订阅的地址。
+- Worker 会返回“需要确认”的订阅结果；当前 App 订阅页仍将接口成功显示为“已订阅”。启用新 Worker 前，需更新页面状态为“确认邮件已发送，请打开邮件完成订阅”，并同步九份语言表。
+- Cloudflare Queues 对 Resend 发信失败进行重试；Worker 配置为每条消息最多重试 5 次、间隔 60 秒，之后进入死信队列。Resend 请求附稳定幂等键，减少队列重复投递造成的重复邮件。Queues 的交付语义是至少一次，不能据此承诺邮件一定送达。
+- 管理员可以在工作台查看当前有效订阅邮箱和反馈。反馈目前只有读取能力，没有处理状态、回复或提醒工作流。
+- 旧命令行管理脚本继续使用独立 `ADMIN_TOKEN`，可发布应用内公告、导出订阅邮箱和查看反馈。
 
-## 当前人工操作
+## 技术结构
 
-在仓库根目录执行以下命令。管理令牌从 `.local/keys/admin-token.txt` 读取，服务端另需设置 `ADMIN_TOKEN`；
-不要把管理令牌放进客户端或网页构建变量。
-
-```bash
-# 发布到应用内公告页；紧急公告另加 --urgent
-node worker/push/channel-admin.mjs notice --title "标题" --body "正文"
-
-# 导出订阅邮箱；这条命令不会发邮件
-node worker/push/channel-admin.mjs subscribers
-
-# 查看已提交的反馈
-node worker/push/channel-admin.mjs feedback
-```
-
-若临时用外部邮件客户端发送导出的地址，必须用密送，避免收件人相互看到邮箱。该方式没有逐人退订、退信状态或自动重试，不能替代正式邮件订阅功能。
-
-## 推荐实现方案
-
-### 组件选择
-
-| 层 | 首版技术 | 职责 |
+| 层 | 当前技术 | 职责 |
 | --- | --- | --- |
-| 客户端 API | 现有 `channel.ts` + Worker JSON API | 页面只依赖项目自己的请求 / 响应格式，不调用邮件商 SDK |
-| 后端 | 现有 Cloudflare Worker `starburst-push` | 处理公告、订阅、反馈和维护者管理请求 |
-| 数据 | 现有 `PUSH_KV` | 首版继续保存公告、订阅和反馈；数据模型不采用邮件商专属格式 |
-| 异步任务 | Cloudflare Queues | 每位收件人一条发信任务，承接批量发送、重试和失败记录 |
-| 邮件服务 | Resend Email API | Worker 服务端调用；`RESEND_API_KEY` 只存 Worker Secret |
-| 管理网站 | `site/admin/`，随官网 GitHub Pages 发布 | 管理员名称 / 密码登录；管理操作仍由 Worker API 执行 |
-| 管理工具 | 保留 `worker/push/channel-admin.mjs` | 管理网站之外的应急命令行入口；现有 `ADMIN_TOKEN` 不放到浏览器 |
+| 管理网站 | `site/admin/` 静态 HTML / CSS / JavaScript，随官网 GitHub Pages 发布 | 登录、编辑公告、选择投递方式、查看订阅者和反馈 |
+| HTTP API | `worker/push/src/index.js` Cloudflare Worker | 登录、会话鉴权、公告、订阅确认、退订和反馈接口 |
+| 数据 | Worker 绑定的 `PUSH_KV` | 保存公告、订阅邮箱和反馈 |
+| 异步队列 | Cloudflare Queues：`starburst-email` 与 `starburst-email-dlq` | 缓冲群发任务、失败重试、隔离重试耗尽的任务 |
+| 邮件服务 | Resend Email API | Worker 服务端单人发送；API Key 只保存在 Worker Secret |
+| 登录限流 | Cloudflare Rate Limiting | 对管理员登录和订阅提交做近似限流；不是严格的全局配额 |
 
-### 管理员网站与登录
+网页只调用项目自己的 JSON API，不接触邮件服务商密钥。以后替换邮件供应商，主要改 Worker 的邮件适配层；若迁移到其他平台，可保留管理员网站和 API 契约，替换 KV、队列与邮件服务实现。
 
-- 管理员入口放在现有官网的 `site/admin/`，独立于记录者 PWA；静态网页公开可访问，所有实际管理 API 仍由 Worker 鉴权。
-- 登录页接收管理员名称与密码，通过 HTTPS 发送给 Worker。Worker 按专用账号配置验证密码哈希，成功后签发短期 HMAC 会话令牌。浏览器令牌只保存在页面内存，不写入 `localStorage`、Cookie 或 URL；刷新页面需要重新登录。
-- Worker 仅保存 `ADMIN_USERNAME`、`ADMIN_PASSWORD_HASH`、`ADMIN_SESSION_SECRET` 等 Secret。登录接口需要限流；管理 API 仅接受官网允许的 Origin 和有效会话。`ADMIN_TOKEN` 保留给原有 CLI，两个凭据不互相替代。
-- 管理页提供一份消息编辑器，发送目标可选：**只发应用内公告、只发邮件、公告和邮件都发**。紧急级别只影响应用内公告提醒；邮件主题可默认取公告标题，也允许单独编辑。
-- “只发邮件”不创建应用内公告；“公告和邮件都发”使用同一份正文，应用内公告保存成功后再投递邮件任务。页面必须区分“公告已发布”“邮件已排队”“邮件失败”，不能把部分成功显示成整体成功。
-- 邮件未配置时，管理网站要明确提示缺少发件域名 / `RESEND_API_KEY`，禁用发送按钮；公告发布仍可单独使用。
+## 管理员如何使用
 
-Resend 作为首选邮件适配器，主要是它提供 HTTP API、幂等发送和投递记录；Worker 可用 `fetch` 调用，前端不需要知道邮件商。它免费方案当前列出的上限为每月 3,000 封、每天 100 封，适合小规模先行验证；正式发信仍需验证发件域名。[Resend 邮件 API](https://resend.com/features/email-api) [定价](https://resend.com/pricing) [幂等键](https://resend.com/blog/engineering-idempotency-keys)
+1. 打开官网 `/admin/`，输入配置好的管理员名称和密码。
+2. 编辑标题和正文，选择投递目标。
+3. 发送前确认影响范围：邮件会发给所有已确认订阅者；紧急级别会在应用内突出显示。
+4. 查看结果：公告发布成功、邮件任务已排队、无订阅者、部分排队失败会分别显示。
 
-Cloudflare Email Service 可作为另一种 `EmailSender` 实现；截至 2026-11-04，它仍是公开 Beta，向任意收件人发信需要 Workers Paid 方案和由 Cloudflare DNS 管理的发件域名。[Cloudflare Email Service 计划与价格](https://developers.cloudflare.com/email-service/platform/pricing/)
+“已排队”表示 Cloudflare Queues 已接收任务，不代表收件箱已送达。队列处理失败可在 Cloudflare Worker 日志与 DLQ 中排查。反馈页面只供维护者读取，不会把用户本地记录随反馈上传。
 
-### 发送流程
+## 接口概览
 
-1. 用户提交邮箱后，Worker 把地址存为待确认状态，生成限时、一次性的确认令牌并发送确认邮件；确认后才加入有效订阅名单。
-2. 维护者用现有 `notice` 命令发布公告。增加显式的 `--email` 选项，由操作者决定是否向订阅者发送；公告级别（普通 / 紧急）和是否发邮件是两个独立设置。
-3. Worker 保存公告后，为每位有效订阅者写入一条队列任务。任务携带公告 ID 与订阅 ID，消费者调用 `EmailSender` 发单人邮件，并记录邮件商返回的 ID 和状态。
-4. 队列重试时使用稳定幂等键，避免重复邮件。Cloudflare Queues 是至少一次投递，所以应用仍需去重。[Queues 投递保证](https://developers.cloudflare.com/queues/reference/delivery-guarantees/)
-5. 邮件附项目生成的一次性退订链接；单封邮件同时带可见退订入口和 `List-Unsubscribe` / `List-Unsubscribe-Post` 邮件头。
-6. 反馈继续写入 Worker。可用同一邮件服务通知维护者，但通知邮件只含反馈编号；维护者通过受 `ADMIN_TOKEN` 保护的接口读取正文。联系方式选填，不自动附加用户记录。
+| 接口 | 权限 | 用途 |
+| --- | --- | --- |
+| `GET /notices` | 公开 | 读取应用内公告 |
+| `POST /subscribe-email` | 公开、限流 | 新建待确认订阅并排入确认邮件 |
+| `GET /confirm-email?token=` | 签名链接 | 展示确认表单，不修改订阅状态 |
+| `POST /confirm-email?token=` | 签名链接 | 确认订阅 |
+| `GET /unsubscribe-email?token=` | 签名链接 | 展示退订表单，不修改订阅状态 |
+| `POST /unsubscribe-email?token=` | 签名链接 | 退订；支持邮件客户端一键退订 |
+| `POST /unsubscribe-email` | 公开 | 兼容 App 通过邮箱地址退订 |
+| `GET /subscription?email=` | 公开 | 查询邮箱是否已确认订阅 |
+| `POST /feedback` | 公开 | 用户主动提交反馈 |
+| `POST /admin/session` | 管理员名称 / 密码、Origin 与限流校验 | 换取短期网页登录会话 |
+| `GET /admin/api/status` | 管理网页会话 | 查询可用投递选项 |
+| `POST /admin/api/messages` | 管理网页会话 | 发布公告、发邮件或两者都做 |
+| `GET /admin/api/subscribers` | 管理网页会话 | 查看有效订阅者 |
+| `GET /admin/api/feedback` | 管理网页会话 | 查看反馈 |
+| `POST /admin/notices`、`GET /admin/subscribers`、`GET /admin/feedback` | `ADMIN_TOKEN` | 兼容 CLI 管理脚本 |
 
-### 可移植的代码边界
+## 线上启用前的配置
 
-业务逻辑只依赖 `NoticeStore`、`SubscriptionStore`、`FeedbackStore`、`EmailSender` 和 `JobQueue` 这些小接口。
-首版实现分别连接 Cloudflare KV、Resend 和 Cloudflare Queues。未来可替换为 D1 / PostgreSQL、SQS 或其他邮件服务，
-而客户端 JSON API 和业务数据结构保持不变。不要把完整邮件服务商产品或通知平台模型泄漏到客户端。
+目前尚未配置生产账号或执行部署。以下操作需要维护者在 Cloudflare、Resend 账户中完成；设置 Worker Secret 会立即部署新 Worker 版本，所以应先完成代码检查，再按 `worker/push/README.md` 的发版流程操作。
 
-Novu 可参考其统一通知工作流和多邮件商适配方式；若以后需要多渠道偏好、可视化流程和应用内通知中心，再评估是否引入整套服务。[Novu](https://github.com/novuhq/novu)
+1. 确认 `worker/push/wrangler.toml` 中 `PUSH_KV` 的命名空间 ID 正确，两个 Rate Limiting `namespace_id` 在 Cloudflare 账户内唯一。
+2. 创建邮件队列和死信队列：
 
-listmonk 可参考其订阅者确认和邮件活动管理；它需要独立部署和 PostgreSQL，适合将来确实需要自托管可视化邮件后台时评估。[listmonk](https://github.com/knadh/listmonk)
+   ```bash
+   npx wrangler queues create starburst-email --config worker/push/wrangler.toml
+   npx wrangler queues create starburst-email-dlq --config worker/push/wrangler.toml
+   ```
 
-## 实施顺序
+3. 在 Resend 验证发件域名，准备一个已验证的 `EMAIL_FROM` 地址和 API Key。
+4. 在本机交互输入管理员密码，生成 PBKDF2 哈希：
 
-1. 在 `site/admin/` 搭管理员登录和管理网站；先接通只发布应用内公告的流程，保留 CLI 应急操作。
-2. 确认可配置 DNS 的发件域名；仓库目前只记录 `pages.dev` / `workers.dev`，尚未记录自有发件域名。
-3. 接入邮件商、待确认订阅、逐人退订和幂等发送，再实现“邮件”与“公告 + 邮件”两种发送目标；更新隐私说明。
-4. 给反馈增加维护者提醒、处理状态和可选联系方式；公开接口加防滥用限制。
+   ```bash
+   node worker/push/hash-admin-password.mjs
+   ```
 
-接口部署保持向后兼容：先部署 Worker，再发布 Web/PWA 与桌面 / Android 客户端。邮件验证先用维护者自己的测试地址，确认退订和重试行为后再开放给订阅者。
+5. 交互式配置 Worker Secrets。明文密码、哈希、会话密钥、Resend API Key 和退订密钥都不要写入仓库、网页或命令行参数：
+
+   ```bash
+   npx wrangler secret put ADMIN_USERNAME --config worker/push/wrangler.toml
+   npx wrangler secret put ADMIN_PASSWORD_HASH --config worker/push/wrangler.toml
+   npx wrangler secret put ADMIN_SESSION_SECRET --config worker/push/wrangler.toml
+   npx wrangler secret put RESEND_API_KEY --config worker/push/wrangler.toml
+   npx wrangler secret put EMAIL_FROM --config worker/push/wrangler.toml
+   npx wrangler secret put UNSUBSCRIBE_TOKEN_SECRET --config worker/push/wrangler.toml
+   ```
+
+   `ADMIN_SESSION_SECRET` 和 `UNSUBSCRIBE_TOKEN_SECRET` 都应由本机安全随机数生成器生成，至少 32 字节。`EMAIL_FROM` 必须属于 Resend 已验证域名。
+
+6. 在部署前先更新 App 订阅页：展示待确认状态、确认邮件发送结果和 Cloudflare / Resend 邮箱处理说明，并同步九份语言表。部署 Worker 后用维护者自己的邮箱验证订阅确认、公告投递、退订、一键退订、队列重试和 DLQ；核对网站 Origin 和邮件链接域名后，再向普通用户开放邮件订阅。
+
+**本次代码改动没有运行 `secret put`、创建线上队列、部署 Worker 或发送真实邮件。** 登录凭据、有效发件域名和 Cloudflare 资源配置仍需在部署前由维护者提供与设置。
+
+## 当前限制与后续工作
+
+- 部分任务排队失败时，管理页给出数量，但没有失败收件人的重试界面；需在 Cloudflare 日志 / 队列侧处理，后续可补管理端发送记录与可控重试。
+- 已入队任务的发送状态和邮件商投递 / 退信事件尚未回写到管理页面。
+- 公开 `/subscription?email=` 会回答订阅状态；兼容的邮箱退订接口可由知道邮箱的人调用。若要加强隐私和防误退订，应评估改为只接受签名令牌，并同步迁移现有客户端。
+- 反馈没有状态、负责人、维护者邮件提醒或回复流程。
+- 官网更新日志和订阅说明需明确表达邮件何时可用、邮箱由哪些服务处理、如何退订；在 Resend 域名与生产配置完成前，不应暗示邮件发送已上线。
+- App 订阅页面还需适配双重确认流程，并更正“邮箱不会给第三方”的旧文案。
+
+## 参考资料
+
+- [Cloudflare Queues 投递保证](https://developers.cloudflare.com/queues/reference/delivery-guarantees/)
+- [Cloudflare Queues 配置](https://developers.cloudflare.com/queues/configuration/configure-queues/)
+- [Cloudflare Queues 平台限制](https://developers.cloudflare.com/queues/platform/limits/)
+- [Cloudflare Workers Rate Limiting API](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)
+- [Resend Email API](https://resend.com/features/email-api)
+- [Resend 幂等键说明](https://resend.com/blog/engineering-idempotency-keys)
+- 可迁移的开源参考：[Novu](https://github.com/novuhq/novu)、[listmonk](https://github.com/knadh/listmonk)

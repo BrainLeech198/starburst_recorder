@@ -159,6 +159,7 @@ window.SITE_I18N = {
 
     'footer.version': '版本 0.14.0',
     'footer.tagline': '数据只存在你的设备上',
+    'footer.admin': '管理员入口',
   },
 
   en: {
@@ -321,5 +322,6 @@ window.SITE_I18N = {
 
     'footer.version': 'Version 0.14.0',
     'footer.tagline': 'Data stays on your device',
+    'footer.admin': 'Admin',
   },
 };

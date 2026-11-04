@@ -29,6 +29,8 @@ export const MAX_NOTICES = 20
 const MAX_FEEDBACK_LENGTH = 4000
 /** 邮箱地址上限。超过这个长度的一定不是邮箱 */
 const MAX_EMAIL_LENGTH = 254
+/** 待确认地址七天后失效；确认邮件可重新发送。 */
+const EMAIL_CONFIRMATION_TTL = 7 * 24 * 60 * 60 * 1000
 
 /**
  * 邮箱校验。
@@ -126,13 +128,60 @@ export async function putNotice(kv, id, notice, now = Date.now()) {
   return { id, ...clean, createdAt: now }
 }
 
-/** 订阅：同一个人重复订阅只是刷新时间，不会产生两条记录 */
+/** 新订阅先进入待确认状态；已确认地址重复提交时不重置订阅。 */
 export async function subscribeEmail(kv, email, now = Date.now()) {
   const clean = normalizeEmail(email)
   if (!clean) return null
   const key = await emailKey(clean)
-  await kv.put(key, JSON.stringify({ email: clean, createdAt: now }))
-  return { email: clean, createdAt: now }
+  const existing = await kv.get(key, 'json')
+  const existingCreatedAt = Number(existing?.createdAt) || 0
+  const existingSubscriptionId = typeof existing?.subscriptionId === 'string'
+    ? existing.subscriptionId
+    : String(existingCreatedAt)
+  const existingIsConfirmed = Boolean(existing?.email) &&
+    (typeof existing.confirmedAt !== 'number' || existing.confirmedAt > 0)
+  if (existingIsConfirmed) {
+    return {
+      email: clean,
+      createdAt: existingCreatedAt,
+      subscriptionId: existingSubscriptionId,
+      alreadySubscribed: true,
+    }
+  }
+  if (
+    existing?.email && existing.confirmedAt === 0 &&
+    now - existingCreatedAt <= EMAIL_CONFIRMATION_TTL
+  ) {
+    return {
+      email: clean,
+      createdAt: existingCreatedAt,
+      subscriptionId: existingSubscriptionId,
+      alreadySubscribed: false,
+    }
+  }
+
+  const subscriptionId = crypto.randomUUID()
+  await kv.put(key, JSON.stringify({ email: clean, createdAt: now, subscriptionId, confirmedAt: 0 }))
+  return { email: clean, createdAt: now, subscriptionId, alreadySubscribed: false }
+}
+
+/** Confirm only the current pending subscription; old links cannot confirm a later re-subscription. */
+export async function confirmEmailSubscription(kv, key, subscriptionId, now = Date.now()) {
+  if (!/^sub:[a-f0-9]{40}$/.test(key) || typeof subscriptionId !== 'string') return false
+  const record = await kv.get(key, 'json')
+  if (!record?.email) return false
+  const currentId = typeof record.subscriptionId === 'string'
+    ? record.subscriptionId
+    : String(Number(record.createdAt) || 0)
+  if (currentId !== subscriptionId) return false
+  // A legacy record has no confirmedAt field and already represents explicit consent.
+  if (typeof record.confirmedAt !== 'number' || record.confirmedAt > 0) return true
+  if (record.confirmedAt !== 0 || now - (Number(record.createdAt) || 0) > EMAIL_CONFIRMATION_TTL) {
+    await kv.delete(key)
+    return false
+  }
+  await kv.put(key, JSON.stringify({ ...record, confirmedAt: now }))
+  return true
 }
 
 /** 退订：邮箱不在订阅表里也算成功——用户要的是「别再给我发」，不是「真的有删掉东西」 */
@@ -147,7 +196,8 @@ export async function unsubscribeEmail(kv, email) {
 export async function isSubscribed(kv, email) {
   const clean = normalizeEmail(email)
   if (!clean) return false
-  return Boolean(await kv.get(await emailKey(clean)))
+  const record = await kv.get(await emailKey(clean), 'json')
+  return Boolean(record?.email) && (typeof record.confirmedAt !== 'number' || record.confirmedAt > 0)
 }
 
 /** 取全部订阅者。管理端用，按订阅时间排序 */
@@ -159,7 +209,16 @@ export async function listSubscribers(kv) {
     for (const key of page.keys) {
       const record = await kv.get(key.name, 'json')
       if (!record?.email) continue
-      people.push({ email: record.email, createdAt: Number(record.createdAt) || 0 })
+      if (typeof record.confirmedAt === 'number' && record.confirmedAt === 0) continue
+      const createdAt = Number(record.createdAt) || 0
+      people.push({
+        email: record.email,
+        createdAt,
+        // Older records do not have an ID; their creation timestamp still invalidates old links on re-subscribe.
+        subscriptionId: typeof record.subscriptionId === 'string'
+          ? record.subscriptionId
+          : String(createdAt),
+      })
     }
     cursor = page.list_complete ? undefined : page.cursor
   } while (cursor)

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https://starburst-push.starburst-recorder.workers.dev; form-action 'self'; base-uri 'self'; object-src 'none'"
+    />
+    <meta name="theme-color" content="#0c1119" />
+    <title>管理员工作台 · 星芒记录者</title>
+    <link rel="icon" href="../assets/icon.png" type="image/png" />
+    <link rel="stylesheet" href="admin.css" />
+    <script src="admin.js" defer></script>
+  </head>
+  <body>
+    <div class="ambient" aria-hidden="true"></div>
+    <header class="topbar">
+      <a class="brand" href="../" aria-label="星芒记录者官网">
+        <span class="brand__mark" aria-hidden="true">✦</span>
+        <span>星芒记录者 <small>官方管理</small></span>
+      </a>
+      <a class="back-link" href="../">返回官网 <span aria-hidden="true">↗</span></a>
+    </header>
+
+    <main class="shell">
+      <section id="login-view" class="login-card" aria-labelledby="login-title">
+        <div class="eyebrow">ADMINISTRATOR ACCESS</div>
+        <h1 id="login-title">管理员登录</h1>
+        <p class="muted">登录后可以发布官方公告、查看邮箱订阅和用户反馈。</p>
+        <form id="login-form" class="form-stack">
+          <label>
+            <span>管理员名称</span>
+            <input name="username" autocomplete="username" required maxlength="100" />
+          </label>
+          <label>
+            <span>密码</span>
+            <input
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+              maxlength="256"
+            />
+          </label>
+          <p id="login-message" class="message" role="status" aria-live="polite"></p>
+          <button class="button button--primary" type="submit">登录工作台</button>
+        </form>
+        <p class="security-note"><span aria-hidden="true">◈</span> 登录状态只保存在当前页面，关闭或刷新后需要重新登录。</p>
+      </section>
+
+      <section id="workspace-view" class="workspace" hidden aria-labelledby="workspace-title">
+        <div class="workspace-heading">
+          <div>
+            <div class="eyebrow">OFFICIAL CHANNEL</div>
+            <h1 id="workspace-title">管理员工作台</h1>
+            <p class="muted">管理公告、邮箱订阅与用户反馈。</p>
+          </div>
+          <button id="logout-button" class="button button--quiet" type="button">退出登录</button>
+        </div>
+
+        <div id="workspace-message" class="workspace-message" role="status" aria-live="polite" hidden></div>
+
+        <div class="workspace-grid">
+          <section class="panel panel--compose" aria-labelledby="notice-title">
+            <div class="panel-heading">
+              <div>
+                <span class="step">01</span>
+                <h2 id="notice-title">发布公告</h2>
+              </div>
+              <span class="badge">应用内</span>
+            </div>
+            <form id="notice-form" class="form-stack">
+              <label>
+                <span>公告标题</span>
+                <input name="title" required maxlength="120" placeholder="简洁说明这条公告的主题" />
+              </label>
+              <label>
+                <span>公告正文</span>
+                <textarea name="body" rows="7" required maxlength="4000" placeholder="写下用户需要了解的内容"></textarea>
+              </label>
+              <label id="email-subject-row" hidden>
+                <span>邮件主题 <small>留空时使用公告标题</small></span>
+                <input name="subject" maxlength="180" placeholder="星芒记录者公告" disabled />
+              </label>
+              <label>
+                <span>发布方式</span>
+                <select name="delivery" aria-describedby="mail-note">
+                  <option value="notice">只发布应用内公告</option>
+                  <option value="email" disabled>只发送邮件</option>
+                  <option value="both" disabled>应用内公告 + 邮件</option>
+                </select>
+              </label>
+              <p id="mail-note" class="inline-note">邮件发送未配置，邮件选项暂不可用。</p>
+              <label id="urgent-row" class="check-row">
+                <input name="urgent" type="checkbox" />
+                <span><strong>紧急公告</strong><small>会在应用内以紧急级别提醒用户</small></span>
+              </label>
+              <button class="button button--primary" type="submit">发布应用内公告</button>
+            </form>
+          </section>
+
+          <section class="panel" aria-labelledby="subscribers-title">
+            <div class="panel-heading">
+              <div>
+                <span class="step">02</span>
+                <h2 id="subscribers-title">邮箱订阅者</h2>
+              </div>
+              <button id="load-subscribers" class="button button--small" type="button">加载名单</button>
+            </div>
+            <p class="muted panel-description">地址属于用户信息，仅在需要处理订阅时查看。</p>
+            <p id="subscribers-count" class="count-line">尚未加载</p>
+            <ul id="subscribers-list" class="record-list" aria-live="polite"></ul>
+          </section>
+
+          <section class="panel" aria-labelledby="feedback-title">
+            <div class="panel-heading">
+              <div>
+                <span class="step">03</span>
+                <h2 id="feedback-title">用户反馈</h2>
+              </div>
+              <button id="load-feedback" class="button button--small" type="button">加载反馈</button>
+            </div>
+            <p class="muted panel-description">反馈只在管理页面读取，不会附带用户的本地记录。</p>
+            <p id="feedback-count" class="count-line">尚未加载</p>
+            <ul id="feedback-list" class="record-list" aria-live="polite"></ul>
+          </section>
+        </div>
+        <footer class="workspace-footer">管理接口由官方 Worker 提供 · 所有公告都将公开显示</footer>
+      </section>
+    </main>
+  </body>
+</html>
