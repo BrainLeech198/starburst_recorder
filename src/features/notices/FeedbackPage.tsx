@@ -32,8 +32,8 @@ export default function FeedbackPage() {
     }
     setBusy(true)
     try {
-      const ok = await submitFeedback(body)
-      if (ok) {
+      const result = await submitFeedback(body)
+      if (result.ok) {
         setText('')
         showToast({ message: t('feedback.sent') })
       } else {

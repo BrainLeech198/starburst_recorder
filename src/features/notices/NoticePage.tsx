@@ -2,7 +2,7 @@
  * 「公告」二级页：列出官方公告，新的在前。
  *
  * 应用打开时顶部的横幅只是提示，全部公告在这一页。
- * 公告内容来自服务端，本地不存——所以断网时看到的是上一次打开时留在页面里的内容。
+ * 公告内容来自服务端，本地不存；加载失败时保留错误状态并提供重试入口。
  */
 import { useEffect, useState } from 'react'
 import { useI18n } from '@/shared/i18n/context'
@@ -22,18 +22,22 @@ function formatTime(at: number, locale: string): string {
 export default function NoticePage() {
   const { t, locale } = useI18n()
   const [notices, setNotices] = useState<Notice[] | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let alive = true
-    void fetchNotices().then((list) => {
-      if (alive) setNotices(list)
+    void fetchNotices().then((result) => {
+      if (!alive) return
+      if (result.ok) setNotices(result.data ?? [])
+      else setLoadFailed(true)
     })
     return () => {
       alive = false
     }
-  }, [])
+  }, [attempt])
 
-  const urgentCount = notices?.filter((item) => item.level === 'urgent').length ?? 0
+  const urgentCount = loadFailed ? null : notices?.filter((item) => item.level === 'urgent').length
 
   return (
     <PageShell
@@ -42,18 +46,42 @@ export default function NoticePage() {
       backTo="/me"
       backLabel={t('me.title')}
       badge={
-        <SettingBadge tone={urgentCount > 0 ? 'bad' : 'plain'}>
-          {urgentCount > 0 ? t('notice.urgentCount', { count: urgentCount }) : t('notice.count')}
-        </SettingBadge>
+        urgentCount === undefined || urgentCount === null ? null : (
+          <SettingBadge tone={urgentCount > 0 ? 'bad' : 'plain'}>
+            {urgentCount > 0 ? t('notice.urgentCount', { count: urgentCount }) : t('notice.count')}
+          </SettingBadge>
+        )
       }
     >
       {notices === null ? (
         <SettingCard>
-          <p className="text-sm text-muted">{t('common.loading')}</p>
+          {loadFailed ? (
+            <div className="space-y-3" role="status">
+              <p className="text-sm text-danger">{t('notice.loadFailed')}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setLoadFailed(false)
+                  setAttempt((value) => value + 1)
+                }}
+                className="min-h-11 rounded-lg border border-line px-4 text-sm font-medium text-fg transition-colors hover:bg-surface-2"
+              >
+                {t('notice.retry')}
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-muted" role="status">{t('common.loading')}</p>
+          )}
         </SettingCard>
       ) : notices.length === 0 ? (
         <SettingCard>
-          <p className="text-sm text-muted">{t('notice.empty')}</p>
+          <div className="flex items-start gap-3" role="status">
+            <span aria-hidden="true" className="text-xl">📭</span>
+            <div>
+              <p className="text-sm font-medium text-fg">{t('notice.empty')}</p>
+              <p className="mt-1 text-xs text-muted">{t('notice.emptyHint')}</p>
+            </div>
+          </div>
         </SettingCard>
       ) : (
         <div className="space-y-3">

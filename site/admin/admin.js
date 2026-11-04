@@ -325,6 +325,7 @@ function formatTime(timestamp) {
 function showEmpty(list, message) {
   const item = document.createElement('li')
   item.className = 'empty'
+  item.setAttribute('role', 'status')
   item.textContent = message
   list.replaceChildren(item)
 }
@@ -395,7 +396,7 @@ function renderAdminNotices() {
   } else {
     count.textContent = `共 ${adminNotices.length} 条公告`
   }
-  if (!adminNotices.length) return showEmpty(list, '目前没有已发布的公告。')
+  if (!adminNotices.length) return showEmpty(list, '目前没有已发布的公告。新公告发布后会显示在这里。')
   if (!filtered.length) return showEmpty(list, '没有匹配的公告，请调整搜索词或级别筛选。')
 
   const items = filtered.map((notice) => {

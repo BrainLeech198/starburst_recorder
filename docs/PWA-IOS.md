@@ -234,6 +234,11 @@ Safari 对「可写存储」（IndexedDB、localStorage）有清理策略，长�
    `/`、`/sw.js`、`/manifest.webmanifest`、`/icons/icon-192.png`
 6. 要开后台提醒的话，构建环境里补三个变量（见 §9.2）：`VITE_PUSH_API`、`VITE_VAPID_PUBLIC_KEY`、`VITE_PUSH_TOKEN`
 
+公告、邮箱订阅和反馈共用 Cloudflare Pages 的 `/channel/*` 入口，并由 `functions/channel/[[path]].js`
+绑定到 `starburst-push` Worker；频道入口不依赖 `VITE_PUSH_API`。自托管时可通过 `VITE_CHANNEL_API`
+覆盖默认的 `https://starburst-recorder.pages.dev/channel`。Web Push 仍使用 `VITE_PUSH_API`。
+发布 Pages 时需保留仓库根目录的 `wrangler.jsonc` 服务绑定配置。
+
 **网页版地址定为 `https://starburst-recorder.pages.dev`**，所以 Cloudflare Pages 的项目名必须是
 `starburst-recorder`——名字不一样域名就不一样，`worker/push/wrangler.toml` 里的
 `ALLOWED_ORIGINS` 与 `APP_URL` 也得跟着改，否则浏览器发的 `Origin` 对不上，推送订阅直接被 403。
@@ -445,5 +450,9 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
   线上构建号 `mw0wq4hi`，部署地址 `https://7b81e493.starburst-recorder.pages.dev`，
   正式域名 `https://starburst-recorder.pages.dev` 的 `.local/verify-online.mjs` 验收 10/10，
   本地 `.local/probe-pwa.mjs` 验收 20/20。
+- **2026-11-04 频道与公告修复**：提交 `ec0e239`（Pages 同域频道转发、启动公告弹窗与公告空/错态）已部署到生产；
+  部署地址 `https://ba6aab6d.starburst-recorder.pages.dev`，构建号 `mw1tgq6q`。
+  正式域名公告接口返回 JSON 200；网页与 Android WebView Origin 预检返回 204；空反馈和无效邮箱返回 400，
+  未向生产写入测试数据。Android / Windows 安装包仍需下次签名发版。
 - **KV 里现在只剩一条记录**，是早先在 workerd 里手测留下的 FCM 端点、`slots` 为 0
   （永远不会命中，不产生推送）。真正的用户订阅会在开启提醒时自己写进来。

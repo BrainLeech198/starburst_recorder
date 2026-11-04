@@ -14,8 +14,14 @@
  * 收不到任何推送。所以「紧急公告」不能只靠推送——这个模块就是他们的通道。
  */
 
-/** Worker 地址。网页版与安卓用构建期注入的变量，桌面端走主进程也要用到它 */
-const API = ((import.meta.env.VITE_PUSH_API as string | undefined) ?? '').replace(/\/+$/, '')
+/**
+ * 公开频道固定走 Pages 同域入口，避开客户端直连 workers.dev 的网络限制。
+ * VITE_CHANNEL_API 仅用于本地 / 自托管部署；Web Push 仍单独使用 VITE_PUSH_API。
+ */
+const DEFAULT_CHANNEL_API = 'https://starburst-recorder.pages.dev/channel'
+const API = (
+  (import.meta.env.VITE_CHANNEL_API as string | undefined)?.trim() || DEFAULT_CHANNEL_API
+).replace(/\/+$/, '')
 
 /** 一条公告 */
 export interface Notice {
@@ -51,38 +57,58 @@ async function parseJson<T>(text: string): Promise<T | null> {
  * 发一条请求。
  *
  * 桌面端走主进程（避开 CORS），其余直接 fetch。
- * 拿不到结果时返回失败而不是抛异常——公告拉不到就当没有公告，
- * 不该让整个应用因为一个公告接口挂掉。
+ * 拿不到结果时返回失败而不是抛异常。公告接口不可用不影响应用主体，
+ * 但调用方必须区分“加载失败”和“成功但列表为空”。
  */
 async function request<T>(
   path: string,
   init: { method: 'GET' | 'POST'; body?: unknown } = { method: 'GET' },
 ): Promise<ChannelResult<T>> {
-  const desktop = desktopBridge()
-  if (desktop?.channel) {
-    const response = await desktop.channel.request({
-      url: `${API}${path}`,
-      method: init.method,
-      body: init.body,
-    })
-    if (!response.ok) {
-      return { ok: false, error: response.error || `http ${response.status}` }
-    }
-    const parsed = await parseJson<T>(response.body)
-    return parsed === null ? { ok: false, error: 'bad response' } : { ok: true, data: parsed }
-  }
-
   if (!API) return { ok: false, error: 'not configured' }
   try {
-    const response = await fetch(`${API}${path}`, {
-      method: init.method,
-      headers: { 'Content-Type': 'application/json' },
-      ...(init.method === 'POST' ? { body: JSON.stringify(init.body ?? {}) } : {}),
-      signal: AbortSignal.timeout(10_000),
-    })
-    if (!response.ok) return { ok: false, error: `http ${response.status}` }
-    const parsed = await parseJson<T>(await response.text())
-    return parsed === null ? { ok: false, error: 'bad response' } : { ok: true, data: parsed }
+    const desktop = desktopBridge()
+    if (desktop?.channel) {
+      const response = await desktop.channel.request({
+        url: `${API}${path}`,
+        method: init.method,
+        body: init.body,
+      })
+      if (!response.ok) {
+        const body = await parseJson<{ error?: unknown }>(response.body)
+        return {
+          ok: false,
+          error:
+            (typeof body?.error === 'string' && body.error) ||
+            response.error ||
+            `http ${response.status}`,
+        }
+      }
+      const parsed = await parseJson<T>(response.body)
+      return parsed === null ? { ok: false, error: 'bad response' } : { ok: true, data: parsed }
+    }
+
+    const controller = new AbortController()
+    const timeout = globalThis.setTimeout(() => controller.abort(), 10_000)
+    try {
+      const response = await fetch(`${API}${path}`, {
+        method: init.method,
+        ...(init.method === 'POST' ? { headers: { 'Content-Type': 'application/json' } } : {}),
+        ...(init.method === 'POST' ? { body: JSON.stringify(init.body ?? {}) } : {}),
+        signal: controller.signal,
+      })
+      const text = await response.text()
+      const parsed = await parseJson<T>(text)
+      if (!response.ok) {
+        const body = await parseJson<{ error?: unknown }>(text)
+        return {
+          ok: false,
+          error: (typeof body?.error === 'string' && body.error) || `http ${response.status}`,
+        }
+      }
+      return parsed === null ? { ok: false, error: 'bad response' } : { ok: true, data: parsed }
+    } finally {
+      globalThis.clearTimeout(timeout)
+    }
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : String(error) }
   }
@@ -91,55 +117,74 @@ async function request<T>(
 /**
  * 拉公告列表，新的在前。
  *
- * 拿不到就返回空列表：公告是加分项，不是应用能不能用的前提。
+ * 成功但没有公告时返回 `{ ok: true, data: [] }`；网络或服务错误保留在 `error`，
+ * 这样界面不会把故障误报成“暂无公告”。
  */
-export async function fetchNotices(): Promise<Notice[]> {
-  const result = await request<{ notices?: Notice[] }>('/notices')
-  if (!result.ok || !result.data) return []
-  const list = Array.isArray(result.data.notices) ? result.data.notices : []
-  return list.filter((item) => item && typeof item.title === 'string' && typeof item.body === 'string')
+export async function fetchNotices(): Promise<ChannelResult<Notice[]>> {
+  const result = await request<{ notices?: unknown }>('/notices')
+  if (!result.ok) return { ok: false, error: result.error }
+  const raw = result.data?.notices
+  if (!Array.isArray(raw)) return { ok: false, error: 'bad response' }
+
+  const notices = raw.filter(
+    (item): item is Notice =>
+      Boolean(item) &&
+      typeof item === 'object' &&
+      typeof (item as Notice).id === 'string' &&
+      typeof (item as Notice).title === 'string' &&
+      typeof (item as Notice).body === 'string' &&
+      ((item as Notice).level === 'info' || (item as Notice).level === 'urgent'),
+  )
+  if (raw.length > 0 && notices.length === 0) return { ok: false, error: 'bad response' }
+  return { ok: true, data: notices }
 }
 
 /** 订阅邮箱。只用于收公告，随时可以退订 */
-export async function subscribeEmail(email: string): Promise<boolean> {
+export async function subscribeEmail(
+  email: string,
+): Promise<ChannelResult<{ ok?: boolean; confirmationRequired?: boolean }>> {
   const result = await request<{ ok?: boolean }>('/subscribe-email', {
     method: 'POST',
     body: { email },
   })
-  return result.ok === true
+  if (!result.ok) return result
+  return result.data?.ok === true ? result : { ok: false, error: 'bad response' }
 }
 
 /** 退订 */
-export async function unsubscribeEmail(email: string): Promise<boolean> {
+export async function unsubscribeEmail(email: string): Promise<ChannelResult<{ ok?: boolean }>> {
   const result = await request<{ ok?: boolean }>('/unsubscribe-email', {
     method: 'POST',
     body: { email },
   })
-  return result.ok === true
+  if (!result.ok) return result
+  return result.data?.ok === true ? result : { ok: false, error: 'bad response' }
 }
 
 /** 这个地址是不是已订阅 */
-export async function checkSubscription(email: string): Promise<boolean> {
-  const result = await request<{ subscribed?: boolean }>(
+export async function checkSubscription(email: string): Promise<ChannelResult<boolean>> {
+  const result = await request<{ subscribed?: unknown }>(
     `/subscription?email=${encodeURIComponent(email)}`,
   )
-  return result.ok === true && result.data?.subscribed === true
+  if (!result.ok) return { ok: false, error: result.error }
+  if (typeof result.data?.subscribed !== 'boolean') return { ok: false, error: 'bad response' }
+  return { ok: true, data: result.data.subscribed }
 }
 
 /** 提交给官方的反馈 */
-export async function submitFeedback(body: string): Promise<boolean> {
+export async function submitFeedback(body: string): Promise<ChannelResult<{ ok?: boolean }>> {
   const result = await request<{ ok?: boolean }>('/feedback', {
     method: 'POST',
     body: { body },
   })
-  return result.ok === true
+  if (!result.ok) return result
+  return result.data?.ok === true ? result : { ok: false, error: 'bad response' }
 }
 
 /**
  * 通道是否可用。
  *
- * 没配 `VITE_PUSH_API` 时整个功能不显示——宁可没有入口，
- * 也不要摆一个点了没反应的按钮（与 Web Push 同一个口径）。
+ * 官方 Pages 代理固定可用；自托管部署可用 `VITE_CHANNEL_API` 覆盖地址。
  */
 export function channelConfigured(): boolean {
   return Boolean(API)

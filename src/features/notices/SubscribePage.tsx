@@ -49,6 +49,7 @@ export default function SubscribePage() {
   const [subscribed, setSubscribed] = useState(false)
   const [ready, setReady] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [statusError, setStatusError] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -65,7 +66,8 @@ export default function SubscribePage() {
     }
     void checkSubscription(saved).then((result) => {
       if (!alive) return
-      setSubscribed(result)
+      if (result.ok) setSubscribed(result.data === true)
+      else setStatusError(result.error || 'request failed')
       setReady(true)
     })
     return () => {
@@ -82,9 +84,10 @@ export default function SubscribePage() {
     setBusy(true)
     try {
       const ok = await subscribeEmail(value)
-      if (ok) {
+      if (ok.ok) {
         writeEmail(value)
         setSubscribed(true)
+        setStatusError(null)
         showToast({ message: t('subscribe.done') })
       } else {
         showToast({ message: t('subscribe.failed') })
@@ -99,12 +102,16 @@ export default function SubscribePage() {
     if (!value) return
     setBusy(true)
     try {
-      const ok = await unsubscribeEmail(value)
-      // 服务端删不掉也照样清掉本地状态：用户要的是「别再给我发」
-      writeEmail('')
-      setSubscribed(false)
-      setEmail('')
-      showToast({ message: ok ? t('subscribe.unsubscribed') : t('subscribe.failed') })
+      const result = await unsubscribeEmail(value)
+      if (result.ok) {
+        writeEmail('')
+        setSubscribed(false)
+        setEmail('')
+        setStatusError(null)
+        showToast({ message: t('subscribe.unsubscribed') })
+      } else {
+        showToast({ message: t('subscribe.failed') })
+      }
     } finally {
       setBusy(false)
     }
@@ -117,8 +124,14 @@ export default function SubscribePage() {
       backTo="/me/settings"
       backLabel={t('common.settings')}
       badge={
-        <SettingBadge tone={ready && subscribed ? 'ok' : 'plain'}>
-          {ready ? (subscribed ? t('subscribe.stateOn') : t('subscribe.stateOff')) : '…'}
+        <SettingBadge tone={statusError ? 'bad' : ready && subscribed ? 'ok' : 'plain'}>
+          {statusError
+            ? t('subscribe.failed')
+            : ready
+              ? subscribed
+                ? t('subscribe.stateOn')
+                : t('subscribe.stateOff')
+              : '…'}
         </SettingBadge>
       }
     >
@@ -134,6 +147,11 @@ export default function SubscribePage() {
             className={INPUT}
           />
           <p className="mt-2 text-xs text-muted">{t('subscribe.emailHint')}</p>
+          {statusError && (
+            <p role="alert" className="mt-2 text-xs text-danger">
+              {t('subscribe.failed')}
+            </p>
+          )}
           <div className="mt-3 flex gap-2">
             {subscribed ? (
               <button

@@ -1,0 +1,11 @@
+{
+  "name": "starburst-recorder",
+  "pages_build_output_dir": ".local/dist",
+  "compatibility_date": "2026-11-04",
+  "services": [
+    {
+      "binding": "CHANNEL_SERVICE",
+      "service": "starburst-push"
+    }
+  ]
+}

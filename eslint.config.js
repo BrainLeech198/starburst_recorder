@@ -8,9 +8,9 @@ import prettier from 'eslint-config-prettier'
 export default [
   // .local 是本机产物与资料（构建结果、安装包、参考仓库、密钥），不进仓库也不参与检查；
   // site/ 是独立静态官网（普通浏览器脚本，不走 App 构建），同样不在 lint 范围里
-  // worker/push/.wrangler 是 wrangler dev / deploy 的临时打包产物，同样不参与检查
+  // 根目录与 worker 子目录的 .wrangler 是 Wrangler 临时打包产物，不进 git 也不参与检查
   {
-    ignores: ['node_modules', 'android', 'src-tauri', '.local', 'site', 'worker/**/.wrangler'],
+    ignores: ['node_modules', 'android', 'src-tauri', '.local', '.wrangler', 'site', 'worker/**/.wrangler'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

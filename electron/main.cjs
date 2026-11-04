@@ -752,11 +752,14 @@ ipcMain.handle('app:open-external', async (_event, url) => {
  * 桌面壳的页面是 `file://`，从那里直接 fetch 外部地址会被 CORS 挡掉，
  * 所以公告、订阅、反馈这几条线统一走主进程代取——跟检查更新一个道理。
  *
- * **只放行自家 Worker 的域名**：这个通道能让渲染层往外发请求，
+ * **只放行自家 Worker 与 Pages 入口**：这个通道能让渲染层往外发请求，
  * 若不限死域名，等于给了网页一条任意外发的口子。
  * 路径也只放行公告频道那几个，避免被拿去当通用代理。
  */
-const CHANNEL_HOSTS = new Set(['starburst-push.starburst-recorder.workers.dev'])
+const CHANNEL_HOSTS = new Set([
+  'starburst-push.starburst-recorder.workers.dev',
+  'starburst-recorder.pages.dev',
+])
 const CHANNEL_PATHS = new Set([
   '/notices',
   '/subscribe-email',
@@ -776,7 +779,14 @@ ipcMain.handle('channel:request', async (_event, request) => {
   if (url.protocol !== 'https:' || !CHANNEL_HOSTS.has(url.hostname)) {
     return { ok: false, status: 0, body: '', error: 'host not allowed' }
   }
-  if (!CHANNEL_PATHS.has(url.pathname)) {
+  let channelPath = url.pathname
+  if (url.hostname === 'starburst-recorder.pages.dev') {
+    if (!url.pathname.startsWith('/channel/')) {
+      return { ok: false, status: 0, body: '', error: 'path not allowed' }
+    }
+    channelPath = url.pathname.slice('/channel'.length)
+  }
+  if (!CHANNEL_PATHS.has(channelPath)) {
     return { ok: false, status: 0, body: '', error: 'path not allowed' }
   }
   const method = request?.method === 'POST' ? 'POST' : 'GET'

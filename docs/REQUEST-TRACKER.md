@@ -14,6 +14,8 @@
 | 5 | 单条记录 PNG 卡片 | ✅ 完成 | 六类记录卡片已部署到新版 PWA；桌面 Chromium 已实际下载并核对 PNG。 |
 | 6 | 助手图片附件失败定位 | 🟡 部分完成 | 图片格式统一修复已部署；本机 MiMo 文本与合成图诊断通过，但助手附件实际失败仍未复现。 |
 | 7 | AI 对话气泡时间 | ✅ 完成 | 用户与助手气泡显示本地年月日及时分秒，并已随新版 PWA 上线。 |
+| 8 | 公告移动端读取与启动弹窗 | 🟡 PWA 已部署；原生/官网待更新 | 新 PWA 已上线启动公告、加载失败重试和空列表说明；iOS 真机按用户要求跳过，Android/Windows 安装包与 GitHub Pages 管理站仍待更新。 |
+| 9 | 订阅与反馈请求失败 | 🟡 PWA 已修复；原生版待发 | Pages 频道转发已部署并通过线上路由 / CORS 验收；Android 与 Windows 已安装包仍需后续正式发版。未向线上写入测试订阅或反馈。 |
 
 ## 1. 0.13.1 / 0.14.0 发版收尾
 
@@ -71,6 +73,24 @@
 - [x] 气泡时间随提交 `abd7ce7` 部署到生产 PWA，线上构建号 `mw0vecnn`。
 - [x] 老消息已有时间则原样展示；缺少 `at` 的旧数据由现有规范化逻辑补当前时间，无法推回历史原始时间。
 - [x] Playwright 桌面 Chromium 的悬浮助手中确认用户与助手消息均显示如 `2026/11/03 23:51:05` 的秒级时间；390×844 窄屏下仍可读。测试时未配置模型，因此没有发送外部 AI 请求。
+
+## 8. 公告移动端读取与启动弹窗
+
+- [x] 浏览器 GET 不再发送 `Content-Type: application/json`，避免多余的 OPTIONS 预检；公告请求错误不再折叠为空列表。
+- [x] App 启动时弹出一条未读公告，紧急公告优先；关闭时沿用 `noticeState` 的普通已读与紧急重复提醒规则。
+- [x] “我的 → 公告”区分加载、加载失败、空列表与有公告，并提供失败重试；空列表有明确说明。
+- [x] 管理员网站公告历史在空列表时显示说明文字并使用可读的空态样式。
+- [x] 隔离发布构建 `npm test`（78 个文件、827 项通过）、`npm run typecheck`、`npm run lint`、`npm run build` 与 Pages Function 编译均通过。
+- [x] 2026-11-04 PWA 正式构建部署到 `https://ba6aab6d.starburst-recorder.pages.dev`，线上构建号 `mw1tgq6q` 与本机构建一致；频道公告 API 返回 JSON 200，网页和 `https://localhost` 预检均返回 204。
+- [ ] iOS 真机验收按用户要求跳过；Android / Windows 安装包和 GitHub Pages 管理站空态文案仍需各自更新发布。
+
+## 9. 订阅与反馈请求失败
+
+- [x] 发现原客户端把公告、订阅、反馈都直连 `workers.dev`；修复前生产 Pages 的 `/channel/notices` 返回 SPA HTML，不能解析为 JSON。
+- [x] 新增 Pages Function `/channel/*` 与固定 Service Binding，仅转发五个允许的公开频道路由；App 默认使用 Pages 入口，Web Push 仍使用 `VITE_PUSH_API`。Electron 主进程白名单支持新主机与 `/channel/*` 路径。
+- [x] 本地 Pages + Worker 合成环境中，公告、反馈、订阅、状态查询、退订都返回预期结果；`https://localhost` 的 OPTIONS 204、未知路由 404。
+- [x] 2026-11-04 Pages 生产构建 `mw1tgq6q` 部署到 `https://ba6aab6d.starburst-recorder.pages.dev`；正式域名 `/channel/notices` 返回 JSON 200。网页与 Android WebView 来源的预检都返回 204；空反馈、无效邮箱为 400，错误方法为 405。未对生产提交真实或测试订阅/反馈。
+- [ ] PWA 线上入口已更新；Android 与 Windows 已安装包尚未包含该客户端修复，需随下一次签名正式发版更新。
 
 ## 本轮验证环境
 

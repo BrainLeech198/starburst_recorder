@@ -36,7 +36,7 @@ export default function MePage() {
           title={t('notice.title')}
           hint={t('notice.hint')}
           value={
-            urgentCount > 0 ? (
+            urgentCount !== null && urgentCount > 0 ? (
               <span
                 aria-hidden="true"
                 className="h-2 w-2 rounded-full bg-danger"
