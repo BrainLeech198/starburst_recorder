@@ -6,7 +6,7 @@
  *   - 日视图的日期栏直接点开日历，记过的天标亮
  *   - 记一笔 / 批量 / 导入 / 回收站排成一条按钮行（窄屏 2×2），和日记、健康首页一个结构
  *   - 整页左右滑就翻到上一个 / 下一个时段
- *   - 单击一行先看详情，改金额走详情里的编辑按钮
+ *   - 点击卡片信息看详情、缩略图看大图；也可从行尾菜单直接进入编辑
  *
  * 2026-11-02 排版重排（原来一屏里叠了四层控件、每笔流水占五行）：
  *   - 去掉页头大标题与散落的「导出 / 导入 / 回收站」文字按钮：日记、健康两页的页头
@@ -17,9 +17,8 @@
  *     却把这一条挤成两行；年视图下它还会错显成当前月（见下）
  *   - 修年视图的错标：原来「本月」徽标与月份区间不分视角一律按当前月算，
  *     站在「2026 年」上看会冒出「本月」「11月1日 – 11月30日」，与年份自相矛盾
- *   - 流水行压到两行（名称 + 编号 / 时刻 + 分类），行尾三个按钮回到同一行不再换行：
- *     原来 flex-wrap 让按钮带整条折到下一行、还带一条分隔线，单笔高到 120px，
- *     比同为「三个按钮」的摄入页乱得多；「建于 …」与备注移进详情弹窗（那边都有）
+ *   - 流水卡沿用食物库的两行信息结构（名称 + 编号 / 时刻 + 分类）；金额保持醒目，
+ *     编辑、分享、导出、删除收进一个行尾菜单，避免操作按钮挤占名称空间；「建于 …」与备注留在详情弹窗
  *   - 日视图不再重复日期：日期栏已经写着「2026年11月2日 星期一」，
  *     分组头又写一遍「11月2日 · 一」；改由概览卡右上角提供「查看当天记录」入口
  *
@@ -37,7 +36,9 @@ import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import BatchActions from '@/shared/ui/BatchActions'
+import RowMenu from '@/shared/ui/RowMenu'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
+import PhotoPreview from '@/shared/ui/PhotoPreview'
 import DayNav from '@/shared/ui/DayNav'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
@@ -241,6 +242,20 @@ export default function FinancePage() {
   const summary = summarizeFinance(rows)
   const days = groupFinanceByDay(rows)
   const slices = expenseByCategory(rows)
+  const summariesByDay = new Map(days.map((day) => [day.dateKey, day.summary]))
+  const weekDays =
+    view === 'week'
+      ? Array.from({ length: 7 }, (_, index) => {
+          const dateKey = shiftDay(selectedWeek.start, index)
+          const summary = summariesByDay.get(dateKey)
+          return {
+            dateKey,
+            income: summary?.income ?? 0,
+            expense: summary?.expense ?? 0,
+          }
+        })
+      : []
+  const weekDaysMax = Math.max(1, ...weekDays.map((day) => Math.max(day.income, day.expense)))
   const monthWeeks = view === 'month' ? financeWeeksOfMonth(rows, monthKey) : []
   const monthWeeksMax = Math.max(
     1,
@@ -689,7 +704,10 @@ export default function FinancePage() {
                       style={{ width: `${Math.max(2, slice.share * 100)}%` }}
                     />
                   </span>
-                  <span className="shrink-0 tabular-nums text-fg">
+                  <span
+                    title={`${money(slice.amount)} · ${Math.round(slice.share * 100)}%`}
+                    className="w-28 shrink-0 truncate text-right tabular-nums text-fg"
+                  >
                     {money(slice.amount)} · {Math.round(slice.share * 100)}%
                   </span>
                 </li>
@@ -736,6 +754,42 @@ export default function FinancePage() {
             />
           </section>
         )}
+
+      {/* 周视图拆成固定七天；无记录的日期也留一个零高度柱，便于横向比较整周。 */}
+      {view === 'week' && weekDays.some((day) => day.income > 0 || day.expense > 0) && (
+        <section className="mt-3 rounded-2xl border border-line bg-surface p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="m-0 text-xs font-medium text-fg">{t('finance.weekTrend')}</h2>
+            <div className="flex items-center gap-2 text-[10px] text-muted">
+              <span className="inline-flex items-center gap-1">
+                <span className="h-2 w-2 rounded-sm bg-success" />
+                {t('finance.income')}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-2 w-2 rounded-sm bg-danger/60" />
+                {t('finance.expense')}
+              </span>
+            </div>
+          </div>
+          <FinanceBars
+            max={weekDaysMax}
+            bars={weekDays.map((day) => {
+              const label = formatMonthDay(day.dateKey, t)
+              return {
+                key: day.dateKey,
+                label,
+                income: day.income,
+                expense: day.expense,
+                ariaLabel: t('finance.chartBucketLabel', {
+                  label,
+                  income: money(day.income),
+                  expense: money(day.expense),
+                }),
+              }
+            })}
+          />
+        </section>
+      )}
 
       {period === undefined ? null : rows.length === 0 ? (
         <div className="mt-4">
@@ -818,7 +872,7 @@ export default function FinancePage() {
                 return (
                   <li
                     key={entry.id}
-                    className={`flex items-center gap-3 rounded-xl border p-3 ${
+                    className={`flex items-start gap-3 rounded-xl border p-3 ${
                       selected ? 'border-brand bg-brand/10' : 'border-line bg-surface'
                     }`}
                   >
@@ -830,12 +884,11 @@ export default function FinancePage() {
                       />
                     )}
                     {entry.photo && (
-                      <img
+                      <PhotoPreview
                         src={entry.photo}
                         alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="h-11 w-11 shrink-0 rounded-lg border border-line/60 object-cover"
+                        wrapperClassName="shrink-0"
+                        className="h-11 w-11 rounded-lg border border-line/60"
                       />
                     )}
                     {/* 两行：名称 + 编号 / 时刻 + 分类。
@@ -861,57 +914,43 @@ export default function FinancePage() {
                         </span>
                       </button>
                     </div>
-                    {/* 金额贴顶：两行结构里垂直居中会落在「时刻 · 分类」那一行，
-                        看起来像那行的注脚；贴顶才和名称同一条基线 */}
+                    {/* 金额与名称同一行起读，收支方向仍用颜色和正负号区分。 */}
                     <span
-                      className={`shrink-0 self-start text-sm tabular-nums ${
+                      className={`shrink-0 pt-1 text-sm tabular-nums ${
                         entry.kind === 'income' ? 'text-success' : 'text-danger'
                       }`}
                     >
                       {entry.kind === 'income' ? '+' : '-'}
                       {money(entry.amount)}
                     </span>
-                    {/* 行尾三个动作挤在同一行，不换行、不加分隔线（和摄入页一致） */}
+                    {/* 低频操作收在三个点里，卡面只留一个轻量入口。 */}
                     {!batch.active && (
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setDialog({ entry, date: entry.dateKey })}
-                          title={t('finance.editEntry')}
-                          aria-label={t('finance.editEntry')}
-                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:text-brand"
-                        >
-                          {/* 原来用「✎」这个文字字形，14px 下细成一条斜线看不出是笔；
-                              换成图标集里的 edit，和详情弹窗那颗编辑按钮同一个符号 */}
-                          <Icon name="edit" className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSharing(buildFinanceShare(entry))}
-                          title={t('share.action')}
-                          aria-label={t('share.action')}
-                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:text-brand"
-                        >
-                          <Icon name="share" className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleExportEntry(entry)}
-                          title={t('records.export')}
-                          className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg px-1.5 font-mono text-[10px] text-muted transition-colors hover:text-brand"
-                        >
-                          JSON
-                          <span className="sr-only">{t('records.export')}</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPendingDelete(entry)}
-                          aria-label={t('common.delete')}
-                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-danger"
-                        >
-                          ✕
-                        </button>
-                      </div>
+                      <RowMenu
+                        label={t('common.more')}
+                        items={[
+                          {
+                            label: t('finance.editEntry'),
+                            icon: 'edit',
+                            onSelect: () => setDialog({ entry, date: entry.dateKey }),
+                          },
+                          {
+                            label: t('share.action'),
+                            icon: 'share',
+                            onSelect: () => setSharing(buildFinanceShare(entry)),
+                          },
+                          {
+                            label: t('records.export'),
+                            icon: 'export',
+                            onSelect: () => void handleExportEntry(entry),
+                          },
+                          {
+                            label: t('common.delete'),
+                            icon: 'trash',
+                            danger: true,
+                            onSelect: () => setPendingDelete(entry),
+                          },
+                        ]}
+                      />
                     )}
                   </li>
                 )

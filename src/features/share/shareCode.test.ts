@@ -23,6 +23,7 @@ function foodDoc(): ShareDoc {
     data: {
       name: '鸡胸肉',
       code: 'abc1234',
+      tags: ['肉类', '高蛋白'],
       kcal: 133,
       protein: 31,
       carbs: 0,
@@ -49,6 +50,7 @@ function mealDoc(): ShareDoc {
           food: {
             name: '鸡腿',
             code: 'def5678',
+            tags: [],
             kcal: 200,
             protein: 18,
             carbs: 2,
@@ -63,6 +65,7 @@ function mealDoc(): ShareDoc {
           food: {
             name: '米饭',
             code: 'aaa1111',
+            tags: ['主食'],
             kcal: 116,
             protein: 2.6,
             carbs: 25.9,
@@ -89,6 +92,16 @@ describe('shareCode', () => {
   it('也接受直接粘贴的 JSON', async () => {
     const doc = foodDoc()
     await expect(decodeShare(JSON.stringify(doc))).resolves.toEqual(doc)
+  })
+
+  it('旧版食物分享没有 tags 时补空数组', async () => {
+    const doc = foodDoc()
+    if (doc.kind !== 'food') throw new Error('kind changed')
+    const { tags: _tags, ...legacyData } = doc.data
+    expect(_tags).toEqual(['肉类', '高蛋白'])
+    const parsed = await decodeShare(JSON.stringify({ ...doc, data: legacyData }))
+    if (parsed.kind !== 'food') throw new Error('kind changed')
+    expect(parsed.data.tags).toEqual([])
   })
 
   it('旧版套餐分享没有封面字段也能读，照片按 null 处理', async () => {

@@ -16,6 +16,7 @@ function food(id: string, photo: string | null): HealthFood {
     servingName: null,
     servingGrams: null,
     photo,
+    tags: [],
     createdAt: T,
     updatedAt: T,
     deletedAt: null,

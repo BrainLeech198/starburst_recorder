@@ -9,6 +9,7 @@ import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import PageShell from '@/shared/ui/PageShell'
 import Modal from '@/shared/ui/Modal'
+import PhotoPreview from '@/shared/ui/PhotoPreview'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import BatchActions from '@/shared/ui/BatchActions'
 import RowMenu from '@/shared/ui/RowMenu'
@@ -16,6 +17,7 @@ import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import { BAR_DANGER, OUTLINE_BUTTON, SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
 import { INPUT } from '@/shared/ui/inputStyles'
+import TagEditor from '@/shared/ui/TagEditor'
 import FoodForm from './FoodForm'
 import type { FoodDraft } from './FoodForm'
 import MealForm from './MealForm'
@@ -70,6 +72,7 @@ export default function FoodLibraryPage() {
   const meals = useLiveQuery(() => healthMeals(), [])
   const [tab, setTab] = useState<Tab>('foods')
   const [query, setQuery] = useState('')
+  const [tagFilter, setTagFilter] = useState<string | null>(null)
 
   const [detailFood, setDetailFood] = useState<HealthFood | null>(null)
   const [editing, setEditing] = useState<HealthFood | null>(null)
@@ -135,6 +138,7 @@ export default function FoodLibraryPage() {
       id: editing?.id ?? newId(),
       code: editing?.code ?? newCode(),
       ...draft,
+      tags: draft.tags ?? [],
       createdAt: editing?.createdAt ?? now,
       updatedAt: now,
       deletedAt: null,
@@ -182,6 +186,7 @@ export default function FoodLibraryPage() {
       id: newId(),
       code: newCode(),
       ...draft,
+      tags: draft.tags ?? [],
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -286,9 +291,15 @@ export default function FoodLibraryPage() {
   const keyword = query.trim().toLowerCase()
   const sortedFoods = [...(foods ?? [])].sort(byName)
   const sortedMeals = [...(meals ?? [])].sort(byName)
-  const visibleFoods = keyword
-    ? sortedFoods.filter((food) => food.name.toLowerCase().includes(keyword))
-    : sortedFoods
+  const foodTags = [...new Set(sortedFoods.flatMap((food) => food.tags))].sort((a, b) =>
+    a.localeCompare(b, 'zh-CN', { numeric: true, sensitivity: 'base' }),
+  )
+  const visibleFoods = sortedFoods.filter((food) => {
+    const matchesSearch = !keyword || food.name.toLowerCase().includes(keyword)
+    const matchesTag = tagFilter === null
+      || (tagFilter === '' ? food.tags.length === 0 : food.tags.includes(tagFilter))
+    return matchesSearch && matchesTag
+  })
   const visibleMeals = keyword
     ? sortedMeals.filter((meal) => meal.name.toLowerCase().includes(keyword))
     : sortedMeals
@@ -377,6 +388,31 @@ export default function FoodLibraryPage() {
         />
       )}
 
+      {tab === 'foods' && sortedFoods.length > 0 && !batch.active && (
+        <div role="group" aria-label={t('foods.filterTags')} className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
+          {[
+            { value: null, label: t('foods.filterAll') },
+            { value: '', label: t('foods.filterUntagged') },
+            ...foodTags.map((tag) => ({ value: tag, label: tag })),
+          ].map((item) => {
+            const active = tagFilter === item.value
+            return (
+              <button
+                key={item.value === null ? 'filter:all' : item.value === '' ? 'filter:untagged' : `tag:${item.value}`}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setTagFilter(item.value)}
+                className={`shrink-0 rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                  active ? 'border-brand bg-brand/10 text-brand' : 'border-line bg-surface text-muted hover:text-fg'
+                }`}
+              >
+                {item.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {tab === 'foods' &&
         (foods === undefined ? null : foods.length === 0 ? (
           <EmptyState icon="🍎" text={t('foods.empty')} />
@@ -401,49 +437,43 @@ export default function FoodLibraryPage() {
                     />
                   )}
                   {food.photo && (
-                    <img
+                    <PhotoPreview
                       src={food.photo}
                       alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="h-11 w-11 shrink-0 rounded-lg border border-line object-cover"
+                      className="h-11 w-11 rounded-lg border border-line"
+                      wrapperClassName="shrink-0"
                     />
                   )}
-                  <button
-                    type="button"
-                    disabled={batch.active}
-                    onClick={() => setDetailFood(food)}
-                    aria-label={food.name}
-                    className="min-w-0 flex-1 rounded-lg text-left transition-colors hover:text-brand disabled:cursor-default"
-                  >
-                    <p className="m-0 flex items-baseline gap-2 text-sm text-fg">
-                      <span className="truncate">{food.name}</span>
-                      <span className="shrink-0 font-mono text-[10px] text-muted">{food.code}</span>
-                    </p>
-                    <p className="m-0 mt-0.5 text-xs text-muted">
-                      {formatNum(food.kcal)} kcal / 100g · {t('foods.protein')} {formatNum(food.protein)} ·{' '}
-                      {t('foods.carbs')} {formatNum(food.carbs)} · {t('foods.fat')} {formatNum(food.fat)}
-                    </p>
-                    {food.servingName && food.servingGrams && (
-                      <p className="m-0 mt-0.5 text-xs text-muted">
-                        {food.servingName} · {food.servingGrams} g
+                  <div className="min-w-0 flex-1">
+                    <button
+                      type="button"
+                      disabled={batch.active}
+                      onClick={() => setDetailFood(food)}
+                      aria-label={food.name}
+                      className="w-full rounded-lg text-left transition-colors hover:text-brand disabled:cursor-default"
+                    >
+                      <p className="m-0 flex items-baseline gap-2 text-sm text-fg">
+                        <span className="truncate">{food.name}</span>
+                        <span className="shrink-0 font-mono text-[10px] text-muted">{food.code}</span>
                       </p>
+                      <p className="m-0 mt-0.5 text-xs text-muted">
+                        {formatNum(food.kcal)} kcal / 100g · {t('foods.protein')} {formatNum(food.protein)} ·{' '}
+                        {t('foods.carbs')} {formatNum(food.carbs)} · {t('foods.fat')} {formatNum(food.fat)}
+                      </p>
+                      {food.servingName && food.servingGrams && (
+                        <p className="m-0 mt-0.5 text-xs text-muted">
+                          {food.servingName} · {food.servingGrams} g
+                        </p>
+                      )}
+                    </button>
+                    {food.tags.length > 0 && (
+                      <TagEditor tags={food.tags} onTagClick={setTagFilter} className="mt-1" />
                     )}
-                  </button>
+                  </div>
                   {!batch.active && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => setSharing(buildFoodShare(food))}
-                        aria-label={t('share.action')}
-                        title={t('share.action')}
-                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg"
-                      >
-                        <Icon name="share" className="h-4 w-4" />
-                      </button>
-                      <RowMenu
-                        label={t('common.more')}
-                        items={[
+                    <RowMenu
+                      label={t('common.more')}
+                      items={[
                           { label: t('foods.edit'), icon: 'edit', onSelect: () => openEdit(food) },
                           {
                             label: t('foods.copy'),
@@ -466,9 +496,8 @@ export default function FoodLibraryPage() {
                             danger: true,
                             onSelect: () => setPendingDelete(food),
                           },
-                        ]}
-                      />
-                    </>
+                      ]}
+                    />
                   )}
                 </li>
               )
@@ -502,12 +531,11 @@ export default function FoodLibraryPage() {
                     />
                   )}
                   {photo && (
-                    <img
+                    <PhotoPreview
                       src={photo}
                       alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="h-11 w-11 shrink-0 rounded-lg border border-line object-cover"
+                      className="h-11 w-11 rounded-lg border border-line"
+                      wrapperClassName="shrink-0"
                     />
                   )}
                   <button
@@ -534,19 +562,9 @@ export default function FoodLibraryPage() {
                     </p>
                   </button>
                   {!batch.active && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => shareMeal(meal)}
-                        aria-label={t('share.action')}
-                        title={t('share.action')}
-                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg"
-                      >
-                        <Icon name="share" className="h-4 w-4" />
-                      </button>
-                      <RowMenu
-                        label={t('common.more')}
-                        items={[
+                    <RowMenu
+                      label={t('common.more')}
+                      items={[
                           { label: t('foods.edit'), icon: 'edit', onSelect: () => openEditMeal(meal) },
                           {
                             label: t('foods.copy'),
@@ -564,9 +582,8 @@ export default function FoodLibraryPage() {
                             danger: true,
                             onSelect: () => setPendingMealDelete(meal),
                           },
-                        ]}
-                      />
-                    </>
+                      ]}
+                    />
                   )}
                 </li>
               )

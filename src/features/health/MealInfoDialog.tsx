@@ -7,6 +7,7 @@
 import type { HealthFood, HealthMeal } from '@/core/db/schema'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
+import PhotoPreview from '@/shared/ui/PhotoPreview'
 import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 import { foodMacros, formatNum, mealTotals } from './healthMath'
 import { mealPhoto } from './mealPhoto'
@@ -29,12 +30,11 @@ export default function MealInfoDialog({
     <Modal size="sm" label={meal.name} onClose={onClose}>
       <h2 className="m-0 text-base font-medium text-fg">{meal.name}</h2>
       {photo && (
-        <img
+        <PhotoPreview
           src={photo}
           alt={meal.name}
-          loading="lazy"
-          decoding="async"
-          className="mt-3 aspect-[4/3] w-full rounded-xl border border-line object-cover"
+          className="max-h-72 w-full rounded-xl border border-line"
+          wrapperClassName="mt-3 w-full"
         />
       )}
       <p className="m-0 mt-1 text-xs text-muted">

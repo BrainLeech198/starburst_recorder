@@ -36,6 +36,29 @@ function sample(): BackupPayload {
 }
 
 describe('备份读写的兼容口径', () => {
+  it('食物标签随健康分区导出并读回', () => {
+    const payload = sample()
+    payload.foods = [{
+      id: 'food-1',
+      code: 'abc1234',
+      name: '鸡胸肉',
+      tags: ['肉类', '高蛋白'],
+      kcal: 133,
+      protein: 31,
+      carbs: 0,
+      fat: 2.5,
+      servingName: null,
+      servingGrams: null,
+      photo: null,
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+    }]
+    const read = readBackup(buildBackup(payload).content)
+    expect(read.ok).toBe(true)
+    expect(read.payload.foods[0].tags).toEqual(['肉类', '高蛋白'])
+  })
+
   it('自己导出的自己一定读得回来', () => {
     const file = buildBackup(sample())
     const read = readBackup(file.content)

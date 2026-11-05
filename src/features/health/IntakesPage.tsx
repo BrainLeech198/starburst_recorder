@@ -6,6 +6,8 @@
  */
 import EmptyState from '@/shared/ui/EmptyState'
 import RowCheckbox from '@/shared/ui/RowCheckbox'
+import PhotoPreview from '@/shared/ui/PhotoPreview'
+import RowMenu from '@/shared/ui/RowMenu'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { HealthIntake } from '@/core/db/schema'
@@ -271,17 +273,13 @@ export default function IntakesPage() {
                   />
                 )}
                 {photo && (
-                  <img
+                  <PhotoPreview
                     src={photo}
                     alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className="h-11 w-11 shrink-0 rounded-lg border border-line/60 object-cover"
+                    className="h-11 w-11 rounded-lg border border-line/60"
+                    wrapperClassName="shrink-0"
                   />
                 )}
-                <span className="shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] tabular-nums text-muted">
-                  {intake.time}
-                </span>
                 <div className="min-w-0 flex-1">
                   <button
                     type="button"
@@ -295,9 +293,14 @@ export default function IntakesPage() {
                         {intake.code}
                       </span>
                     </p>
-                    <p className="m-0 mt-0.5 text-xs tabular-nums text-muted">
-                      {formatNum(intake.kcal)} {t('health.kcalUnit')} · {t('health.legendProtein')}{' '}
-                      {formatNum(intake.protein)} g
+                    <p className="m-0 mt-0.5 flex flex-wrap items-baseline gap-x-2 text-xs tabular-nums text-muted">
+                      <span>{intake.time}</span>
+                      <span>
+                        {formatNum(intake.kcal)} {t('health.kcalUnit')}
+                      </span>
+                      <span>
+                        {t('health.legendProtein')} {formatNum(intake.protein)} g
+                      </span>
                     </p>
                   </button>
                   <TimeMeta createdAt={intake.createdAt} updatedAt={intake.updatedAt} />
@@ -315,43 +318,32 @@ export default function IntakesPage() {
                   )}
                 </div>
                 {!batch.active && (
-                  <div className="flex shrink-0 items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => requestEdit(intake)}
-                      title={t('health.editIntake')}
-                      aria-label={t('health.editIntake')}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm text-muted transition-colors hover:text-brand"
-                    >
-                      ✎
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSharing(buildIntakeShare(intake))}
-                      title={t('share.action')}
-                      aria-label={t('share.action')}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:text-brand"
-                    >
-                      <Icon name="share" className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleExportIntake(intake)}
-                      title={t('records.export')}
-                      className="inline-flex h-8 items-center justify-center rounded-lg px-1.5 font-mono text-[10px] text-muted transition-colors hover:text-brand"
-                    >
-                      JSON
-                      <span className="sr-only">{t('records.export')}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPendingDelete(intake)}
-                      aria-label={t('health.deleteIntake')}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-base text-muted transition-colors hover:text-danger"
-                    >
-                      ✕
-                    </button>
-                  </div>
+                  <RowMenu
+                    label={t('common.more')}
+                    items={[
+                      {
+                        label: t('health.editIntake'),
+                        icon: 'edit',
+                        onSelect: () => requestEdit(intake),
+                      },
+                      {
+                        label: t('share.action'),
+                        icon: 'share',
+                        onSelect: () => setSharing(buildIntakeShare(intake)),
+                      },
+                      {
+                        label: t('records.export'),
+                        icon: 'export',
+                        onSelect: () => void handleExportIntake(intake),
+                      },
+                      {
+                        label: t('health.deleteIntake'),
+                        icon: 'trash',
+                        danger: true,
+                        onSelect: () => setPendingDelete(intake),
+                      },
+                    ]}
+                  />
                 )}
               </li>
             )

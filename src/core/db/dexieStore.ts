@@ -544,7 +544,7 @@ export const dexieStore: DiaryStore = {
   },
 
   async saveHealthFood(food) {
-    const next: HealthFood = { ...food, updatedAt: Date.now() }
+    const next: HealthFood = { ...food, tags: cleanTags(food.tags), updatedAt: Date.now() }
     await db.healthFoods.put(next)
     return next
   },

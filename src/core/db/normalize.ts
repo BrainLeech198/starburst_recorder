@@ -439,6 +439,7 @@ export function pickFood(raw: unknown): HealthFood | null {
     id,
     code: text(item.code) || newCode(),
     name,
+    tags: pickTags(item.tags),
     kcal: number(item.kcal, 0),
     protein: number(item.protein, 0),
     carbs: number(item.carbs, 0),

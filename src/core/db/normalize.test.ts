@@ -6,6 +6,7 @@ import {
   pickFinance,
   pickIntake,
   pickMeal,
+  pickFood,
   pickSleep,
   pickStamp,
   rows,
@@ -60,6 +61,15 @@ describe('行级校验：必填缺失就丢行', () => {
 })
 
 describe('行级校验：可选字段补默认', () => {
+  it('食物标签会清理坏值；旧备份缺字段时退回空数组', () => {
+    const base = { id: 'food-1', name: '鸡胸肉' }
+    expect(pickFood(base)?.tags).toEqual([])
+    expect(pickFood({ ...base, tags: [' 肉类 ', '', '高蛋白', '肉类', 7] })?.tags).toEqual([
+      '肉类',
+      '高蛋白',
+    ])
+  })
+
   it('旧记录没有目标口径快照，显式给 null 而不是 undefined', () => {
     const intake = pickIntake({
       id: 'a',

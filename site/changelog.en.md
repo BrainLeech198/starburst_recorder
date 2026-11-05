@@ -1,3 +1,20 @@
+## 0.16.2 · 2026-11-05
+
+Food tags, full photo viewing and smoother batch actions
+
+### What's new
+
+- **Tag and filter foods** — add your own tags in the food library and filter by them; tags are included in backups, and existing foods are migrated automatically.
+- **View and download full photos** — thumbnails keep the original aspect ratio and open in a full-screen viewer with a download action; compressed diary, food and receipt photos are scaled proportionally without cropping.
+- **Approve a group of assistant actions** — explicitly approve several pending writes from one reply to run them in sequence and review each result; switch to individual confirmation or cancel the remaining actions.
+- **See daily totals in Finance week view** — a chart compares income and spending for each day of the selected week.
+- **Cleaner record lists** — edit, share, export and delete actions are grouped in each row's menu.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.16.2-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2-setup.exe)
+- Android 10+: [`starburst-recorder-0.16.2.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2.apk)
+
 ## 0.16.1 · 2026-11-05
 
 AI-generated content is labelled at the source, and image storage is now per module
@@ -11,8 +28,8 @@ AI-generated content is labelled at the source, and image storage is now per mod
 
 ### Downloads
 
-- Windows 10/11: [`starburst-recorder-0.16.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1-setup.exe)
-- Android 10+: [`starburst-recorder-0.16.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1.apk)
+- Windows 10/11: [`starburst-recorder-0.16.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1-setup.exe) (~96 MB)
+- Android 10+: [`starburst-recorder-0.16.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1.apk) (~62 MB, release-signed)
 
 ## 0.16.0 · 2026-11-04
 

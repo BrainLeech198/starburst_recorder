@@ -70,7 +70,7 @@ function StampImages({
               src={image.dataUrl}
               alt=""
               loading="lazy"
-              className="h-16 w-16 rounded-lg border border-binding object-cover"
+              className="h-16 w-16 rounded-lg border border-binding object-contain"
             />
           </span>
           {editing && images.length > 0 && (

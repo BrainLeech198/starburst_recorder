@@ -5,16 +5,26 @@
  * 层叠顺序会乱，而且调用方传的大多是箭头函数、每次都换身份）。
  */
 import { useEffect, useRef } from 'react'
+import type { MutableRefObject } from 'react'
 import { popOverlay, pushOverlay } from './overlayStack'
+import type { OverlayEntry } from './overlayStack'
 
-export function useOverlayEntry(close: (() => void) | null) {
+export function useOverlayEntry(
+  close: (() => void) | null,
+): MutableRefObject<OverlayEntry | null> {
   const latest = useRef(close)
+  const entryRef = useRef<OverlayEntry | null>(null)
   useEffect(() => {
     latest.current = close
   })
 
   useEffect(() => {
     const entry = pushOverlay(latest.current ? () => latest.current?.() : null)
-    return () => popOverlay(entry)
+    entryRef.current = entry
+    return () => {
+      popOverlay(entry)
+      if (entryRef.current === entry) entryRef.current = null
+    }
   }, [])
+  return entryRef
 }

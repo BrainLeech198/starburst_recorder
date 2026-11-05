@@ -279,6 +279,7 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
       servingName: action.servingName,
       servingGrams: action.servingGrams,
       photo: null,
+      tags: [],
       createdAt: now,
       updatedAt: now,
       deletedAt: null,

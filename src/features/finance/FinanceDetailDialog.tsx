@@ -7,6 +7,7 @@
 import type { FinanceEntry } from '@/core/db/schema'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
+import PhotoPreview from '@/shared/ui/PhotoPreview'
 import TimeMeta from '@/shared/ui/TimeMeta'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
@@ -56,10 +57,11 @@ export default function FinanceDetailDialog({
       <TimeMeta createdAt={entry.createdAt} updatedAt={entry.updatedAt} />
 
       {entry.photo && (
-        <img
+        <PhotoPreview
           src={entry.photo}
           alt={t('finance.photo')}
-          className="mt-4 max-h-60 w-full rounded-xl object-contain"
+          className="max-h-60 w-full rounded-xl border border-line"
+          wrapperClassName="mt-4 w-full"
         />
       )}
 

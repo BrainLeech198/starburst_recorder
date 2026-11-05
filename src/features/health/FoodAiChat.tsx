@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useI18n } from '@/shared/i18n/context'
+import PhotoPreview from '@/shared/ui/PhotoPreview'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
@@ -327,11 +328,11 @@ export default function FoodAiChat({
                 {(turn.images?.length ?? 0) > 0 && (
                   <div className="mb-1 flex flex-wrap gap-1">
                     {turn.images?.map((image, imageIndex) => (
-                      <img
+                      <PhotoPreview
                         key={`${imageIndex}-${image.slice(-16)}`}
                         src={image}
                         alt=""
-                        className="h-14 w-14 rounded-lg border border-line object-cover"
+                        className="h-14 w-14 rounded-lg border border-line"
                       />
                     ))}
                   </div>

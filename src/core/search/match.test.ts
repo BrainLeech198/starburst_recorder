@@ -128,6 +128,7 @@ function food(over: Partial<HealthFood> = {}): HealthFood {
     servingName: null,
     servingGrams: null,
     photo: null,
+    tags: [],
     createdAt: T,
     updatedAt: T,
     deletedAt: null,

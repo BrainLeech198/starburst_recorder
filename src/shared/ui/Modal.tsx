@@ -14,6 +14,7 @@ import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useScrollLock } from './useScrollLock'
 import { useOverlayEntry } from './useOverlayEntry'
+import { isTopOverlay } from './overlayStack'
 import { useBackdropClose } from './useBackdropClose'
 
 /** 面板宽度：小提示用 xs，常规用 sm，要写字的（例如 AI 草稿）用 lg，并排对照用 xl */
@@ -45,7 +46,7 @@ export default function Modal({
   const panelRef = useRef<HTMLDivElement>(null)
   const backdrop = useBackdropClose(onClose)
   useScrollLock()
-  useOverlayEntry(onClose ?? null)
+  const overlayEntry = useOverlayEntry(onClose ?? null)
 
   useEffect(() => {
     panelRef.current?.scrollTo({ top: 0 })
@@ -96,11 +97,11 @@ export default function Modal({
   useEffect(() => {
     if (!onClose) return
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape' && isTopOverlay(overlayEntry.current)) onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, overlayEntry])
 
   // portal 到 body：弹窗挂进页面内容区会被 .sb-scroll 的堆叠上下文困住，
   // z-50 也压不过底部导航（同级 z-10、DOM 靠后），安卓上表现最明显

@@ -35,6 +35,7 @@ import {
 import { loadMemories, memoryPromptLines } from './assistantMemory'
 import { enabledSkills, loadSkills } from './assistantSkills'
 import { loadPermission, runsWithoutConfirm } from './assistantPermission'
+import { processAssistantActionBatch } from './assistantActionBatch'
 import AssistantQuestionCard from './AssistantQuestionCard'
 import AssistantActionCard from './AssistantActionCard'
 import AssistantWorking from './AssistantWorking'
@@ -127,8 +128,9 @@ const EXAMPLE_KEYS = [
  * 圆形主按钮（新对话）、文字 + 计数徽标（历史）、虚线折叠头（推荐问）、
  * 主色芯片（推荐内容）、方形图标钮（附件）、实心胶囊（发送）。
  */
+/** 新建对话：主色但不再是一整颗实心圆，页面上少一处抢眼的大色块 */
 const CHAT_ICON_BRAND =
-  'sb-pressable inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-sm text-on-brand transition hover:opacity-90 active:scale-[0.94] disabled:opacity-40 md:h-7 md:w-7'
+  'sb-pressable inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10 text-sm text-brand transition hover:bg-brand/20 active:scale-[0.94] disabled:opacity-40 md:h-7 md:w-7'
 const CHAT_TOOL = 'inline-flex h-11 shrink-0 items-center gap-1 px-1.5 text-[11px] text-muted transition-colors hover:text-brand disabled:opacity-50 md:h-7 md:px-1'
 const CHAT_COUNT = 'rounded-full bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-muted'
 const CHAT_CHIP = 'inline-flex min-h-11 items-center rounded-full bg-brand/10 px-3 py-1.5 text-[11px] text-brand transition-colors hover:bg-brand/20 disabled:opacity-50 md:min-h-0 md:px-2.5 md:py-1'
@@ -206,6 +208,9 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   const [pendingId, setPendingId] = useState<string | null>(null)
   /** 正在写入 / 撤销的卡片："消息id:序号" */
   const [working, setWorking] = useState('')
+  /** 当前回复选择了逐条确认时，隐藏整组授权按钮；只在本次页面会话有效。 */
+  const [individualConfirmIds, setIndividualConfirmIds] = useState<string[]>([])
+  const [batchProgress, setBatchProgress] = useState<{ messageId: string; done: number; total: number } | null>(null)
   /** 配好模型之前一直提示去设置；每次发送都重新读一遍，刚在设置页改完回来立刻能用 */
   const [configured, setConfigured] = useState(() => isConfigured(loadAiConfig()))
   /** 深度思考开关：跟设置页共用同一份 localStorage */
@@ -247,6 +252,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   const [refOpen, setRefOpen] = useState(false)
   /** 当前这一轮的取消句柄 */
   const abortRef = useRef<AbortController | null>(null)
+  const actionWriteLockRef = useRef(false)
   const mountedRef = useRef(false)
   /** 上一轮已经读出来的整库快照，展开推荐问时直接拿来当「当前情况」 */
   const dataRef = useRef<Awaited<ReturnType<typeof exportAllData>> | null>(null)
@@ -278,8 +284,18 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
 
   useEffect(() => {
     if (messages.length === 0 && pendingId === null) return
+    // 完整页面里输入区是吸底的：scrollIntoView 会把末尾内容对齐到视口底边，
+    // 正好被输入区盖住。滚到 scrollHeight 结尾才能停在输入区上方。
+    const scroller = compact ? null : (bottomRef.current?.closest('.sb-scroll') as HTMLElement | null)
+    if (scroller) {
+      const apply = () => {
+        scroller.scrollTop = scroller.scrollHeight
+      }
+      requestAnimationFrame(apply)
+      return
+    }
     bottomRef.current?.scrollIntoView({ block: 'end' })
-  }, [messages, pendingId, currentSessionId])
+  }, [messages, pendingId, currentSessionId, compact])
 
   function patchAction(messageId: string, index: number, patch: Partial<ChatActionState>) {
     patchChatAction(messageId, index, patch)
@@ -674,7 +690,8 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
 
   async function confirmAction(messageId: string, index: number, state: ChatActionState) {
     const key = `${messageId}:${index}`
-    if (working !== '' || busy) return
+    if (working !== '' || busy || actionWriteLockRef.current) return
+    actionWriteLockRef.current = true
     setWorking(key)
     try {
       const done: ActionDone = await executeAssistantAction(state.action)
@@ -694,13 +711,80 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         message: t('assistant.action.failedToast', { error: (error as Error).message }),
       })
     } finally {
+      actionWriteLockRef.current = false
       setWorking('')
+    }
+  }
+
+  /** 用户明确授权后，按卡片顺序执行本条回复中仍待确认的动作。 */
+  async function confirmBatchActions(messageId: string) {
+    if (working !== '' || busy || actionWriteLockRef.current) return
+    const message = getChatMessages().find((item) => item.id === messageId)
+    const pending = (message?.actions ?? [])
+      .map((state, index) => ({ state, index }))
+      .filter((item) => item.state.status === 'pending')
+    if (pending.length < 2) return
+
+    actionWriteLockRef.current = true
+    setWorking(`batch:${messageId}`)
+    setBatchProgress({ messageId, done: 0, total: pending.length })
+    let result: { succeeded: number; failed: number }
+    try {
+      result = await processAssistantActionBatch(
+        pending.map(({ state, index }) => ({ index, action: state })),
+        (state) => executeAssistantAction(state.action),
+        (index, outcome) => {
+          setBatchProgress((current) =>
+            current?.messageId === messageId ? { ...current, done: current.done + 1 } : current,
+          )
+          if (outcome.ok) {
+            const done: ActionDone = outcome.value
+            patchAction(messageId, index, {
+              status: 'done',
+              recordId: done.recordId,
+              previous: done.previous,
+              error: undefined,
+            })
+          } else {
+            patchAction(messageId, index, {
+              status: 'failed',
+              error: (outcome.error as Error)?.message ?? String(outcome.error),
+            })
+          }
+        },
+      )
+    } finally {
+      actionWriteLockRef.current = false
+      setBatchProgress(null)
+      setWorking('')
+    }
+    showToast({ message: t('assistant.batch.result', { done: result.succeeded, failed: result.failed }) })
+  }
+
+  /** 将本组剩余待处理动作恢复为原有逐条确认方式。 */
+  function chooseIndividualConfirmation(messageId: string) {
+    setIndividualConfirmIds((current) =>
+      current.includes(messageId) ? current : [...current, messageId],
+    )
+  }
+
+  /** 取消整组尚未执行的动作，不影响已经完成的卡片。 */
+  function cancelPendingBatch(messageId: string) {
+    if (working !== '' || busy || actionWriteLockRef.current) return
+    const message = getChatMessages().find((item) => item.id === messageId)
+    const pending = (message?.actions ?? [])
+      .map((state, index) => ({ state, index }))
+      .filter((item) => item.state.status === 'pending')
+    for (const item of pending) patchAction(messageId, item.index, { status: 'canceled' })
+    if (pending.length > 0) {
+      showToast({ message: t('assistant.batch.cancelled', { n: pending.length }) })
     }
   }
 
   async function undoAction(messageId: string, index: number, state: ChatActionState) {
     const key = `${messageId}:${index}`
-    if (working !== '' || busy) return
+    if (working !== '' || busy || actionWriteLockRef.current) return
+    actionWriteLockRef.current = true
     setWorking(key)
     try {
       await undoAssistantAction(state.action, {
@@ -714,17 +798,19 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         message: t('assistant.action.failedToast', { error: (error as Error).message }),
       })
     } finally {
+      actionWriteLockRef.current = false
       setWorking('')
     }
   }
 
   /** 一键撤销这一轮所有已写入的动作，按写入的倒序回滚 */
   async function rollbackWrites(item: ChatMessageRecord) {
-    if (busy || working !== '') return
+    if (busy || working !== '' || actionWriteLockRef.current) return
     const done = (item.actions ?? [])
       .map((state, index) => ({ state, index }))
       .filter((entry) => entry.state.status === 'done')
     if (done.length === 0) return
+    actionWriteLockRef.current = true
     setWorking(`rollback:${item.id}`)
     let failed = 0
     for (const { state, index } of [...done].reverse()) {
@@ -738,6 +824,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         failed++
       }
     }
+    actionWriteLockRef.current = false
     setWorking('')
     showToast({
       message:
@@ -854,11 +941,63 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
 
   function renderActions(item: ChatMessageRecord) {
     if (!item.actions || item.actions.length === 0) return null
+    const pendingCount = item.actions.filter((state) => state.status === 'pending').length
+    const individualConfirmation = individualConfirmIds.includes(item.id)
     const waiting = item.actions.filter(
       (state) => state.status === 'pending' || state.status === 'failed',
     ).length
     return (
       <div className="flex w-full flex-col gap-2">
+        {pendingCount > 1 && (
+          <div className="rounded-xl border border-brand/25 bg-brand/[0.04] p-3">
+            <p className="m-0 text-xs font-medium text-fg">
+              {t('assistant.batch.title', { n: pendingCount })}
+            </p>
+            <p className="mb-0 mt-1 text-[11px] leading-relaxed text-muted">
+              {t('assistant.batch.description')}
+            </p>
+            {batchProgress?.messageId === item.id && (
+              <p className="mb-0 mt-1 text-[11px] text-brand" role="status" aria-live="polite">
+                {t('assistant.batch.progress', {
+                  done: batchProgress.done,
+                  total: batchProgress.total,
+                })}
+              </p>
+            )}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={working !== '' || busy}
+                onClick={() => void confirmBatchActions(item.id)}
+                className={`${SOLID_BUTTON} min-h-9 px-3 text-[11px]`}
+              >
+                {individualConfirmation
+                  ? t('assistant.batch.confirmRemaining', { n: pendingCount })
+                  : t('assistant.batch.confirm')}
+              </button>
+              {!individualConfirmation ? (
+                <button
+                  type="button"
+                  disabled={working !== '' || busy}
+                  onClick={() => chooseIndividualConfirmation(item.id)}
+                  className="inline-flex min-h-9 items-center rounded-lg border border-line px-3 text-[11px] text-fg transition-colors hover:bg-surface-2 disabled:opacity-40"
+                >
+                  {t('assistant.batch.individual')}
+                </button>
+              ) : (
+                <span className="text-[11px] text-muted">{t('assistant.batch.individualMode')}</span>
+              )}
+              <button
+                type="button"
+                disabled={working !== '' || busy}
+                onClick={() => cancelPendingBatch(item.id)}
+                className="inline-flex min-h-9 items-center rounded-lg px-2 text-[11px] text-danger transition-colors hover:bg-danger/10 disabled:opacity-40"
+              >
+                {t('assistant.batch.cancel')}
+              </button>
+            </div>
+          </div>
+        )}
         {/* 待确认张数由系统数，不问模型：「卡片来了」这句必须和真实卡片同时成立 */}
         {waiting > 0 && (
           <p className="m-0 text-[11px] text-muted">{t('assistant.cardsReady', { n: waiting })}</p>
@@ -954,12 +1093,12 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     : []
 
   return (
-    <div className={compact ? 'flex min-h-0 flex-1 flex-col' : 'flex flex-1 flex-col'}>
-      {/* 会话工具条：标题两行（名字 + 条数），右侧是圆形新建与「历史 + 计数」 */}
-      <div className="flex items-center gap-2 border-b border-line pb-2">
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* 会话工具条：标题两行（名字 + 条数），右侧是新建与「历史 + 计数」 */}
+      <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-line bg-bg pb-2">
         {!compact && (
           <span
-            className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand/10 text-[11px] text-brand"
+            className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand/10 text-[11px] text-brand"
             aria-hidden="true"
           >
             ✦
@@ -1014,13 +1153,13 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           {t('assistant.sessions')}
           <span className={CHAT_COUNT}>{sessions.length}</span>
         </button>
-        {/* 悬浮面板里把「清空 / 导出」收进这里，底部就少一整行 */}
-        {compact && (
+        {/* 删除 / 导出收进这里：手机上底部就少一整行，桌面端仍保留底栏 */}
+        {(compact || messages.length > 0) && (
           <Dropdown
             caret={false}
             menuLabel={t('common.more')}
             label="⋯"
-            buttonClassName="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[15px] text-muted transition-colors hover:bg-surface-2 hover:text-fg md:h-7 md:w-7"
+            buttonClassName={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[15px] text-muted transition-colors hover:bg-surface-2 hover:text-fg ${compact ? 'md:h-7 md:w-7' : 'md:hidden'}`}
             items={[
               {
                 label: t('assistant.export'),
@@ -1108,19 +1247,19 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         {messages.length === 0 && (
           <div className="rounded-xl border border-line bg-surface p-3">
             <p className="m-0 text-sm text-fg">{t('assistant.intro')}</p>
-            <div className="mt-2 flex flex-col gap-1">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {EXAMPLE_KEYS.map((key) => (
                 <button
                   key={key}
                   type="button"
                   disabled={busy}
                   onClick={() => void run(t(key), true)}
-                  className="group flex items-start gap-2 rounded-lg bg-surface-2 px-3 py-2 text-left text-xs text-fg transition-colors hover:bg-brand/10 hover:text-brand disabled:opacity-50"
+                  className="inline-flex min-h-9 max-w-full items-start gap-1.5 rounded-full bg-surface-2 px-2.5 py-1.5 text-left text-[11px] leading-snug text-fg transition-colors hover:bg-brand/10 hover:text-brand disabled:opacity-50 md:min-h-0"
                 >
                   <span className="mt-0.5 shrink-0 text-[10px] text-brand" aria-hidden="true">
                     ▸
                   </span>
-                  <span className="min-w-0 flex-1">{t(key)}</span>
+                  <span className="min-w-0">{t(key)}</span>
                 </button>
               ))}
             </div>
@@ -1832,7 +1971,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           </div>
         </div>
         {!compact && messages.length > 0 && (
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="mt-2 hidden flex-wrap items-center justify-between gap-2 md:flex">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -1863,15 +2002,19 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             </div>
           </div>
         )}
-        {/* 健康口径的提示单独占一行：和开关挤在同一行时长句会被压成三行，看着最乱。
-            悬浮面板里不显示这条——那点高度留给对话本身；AI 可能出错的通用提醒始终保留。 */}
-        {!compact && (
-          <p className="m-0 mt-2 flex items-start gap-1.5 text-[10px] leading-relaxed text-muted">
-            <Icon name="info" className="mt-px h-3 w-3 shrink-0" />
-            <span className="min-w-0">{t('assistant.healthNote')}</span>
-          </p>
+        {/* 健康口径与通用免责声明合成一组脚注：各占一行、各带一个图标时，
+            看着像两条互不相干的告警。悬浮面板里只留通用那条。 */}
+        {!compact ? (
+          <div className="mt-2 space-y-1 border-t border-line/60 pt-2">
+            <p className="m-0 flex items-start gap-1.5 text-[10px] leading-snug text-muted">
+              <Icon name="info" className="mt-px h-3 w-3 shrink-0" />
+              <span className="min-w-0">{t('assistant.healthNote')}</span>
+            </p>
+            <AiDisclaimer kind="assistant" />
+          </div>
+        ) : (
+          <AiDisclaimer kind="assistant" className="mt-1" />
         )}
-        <AiDisclaimer kind="assistant" className="mt-1" />
       </div>
 
       {sessionOpen && (

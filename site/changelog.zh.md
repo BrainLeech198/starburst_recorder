@@ -1,3 +1,20 @@
+## 0.16.2 · 2026-11-05
+
+食物标签、照片查看与批量操作体验改进
+
+### 这一版有什么
+
+- **食物库支持自定义标签**：可给食物分类并按标签筛选；标签随备份导出，升级后旧食物会自动补齐默认数据。
+- **照片可以完整查看和下载**：缩略图保留原图比例，点开可在全屏查看并下载已保存的图片；日记、食物和票据的压缩模式等比缩小，不再裁掉边角。
+- **助手可一次确认一组写入**：同一条回复中的多个待确认操作可以逐项执行后汇报结果；也可改为逐条确认或取消剩余操作。
+- **经济周视图增加每日收支图**：按周查看每天的收入和支出。
+- **列表操作更清爽**：记录的编辑、分享、导出和删除集中到行尾菜单。
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.16.2-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.16.2.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2.apk)
+
 ## 0.16.1 · 2026-11-05
 
 AI 写的内容标清来路，图片存法可以按模块分开选
@@ -11,8 +28,8 @@ AI 写的内容标清来路，图片存法可以按模块分开选
 
 ### 下载
 
-- Windows 10/11：[`starburst-recorder-0.16.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1-setup.exe)
-- Android 10 以上：[`starburst-recorder-0.16.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1.apk)
+- Windows 10/11：[`starburst-recorder-0.16.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1-setup.exe)（约 96 MB）
+- Android 10 以上：[`starburst-recorder-0.16.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1.apk)（约 62 MB，正式签名）
 
 ## 0.16.0 · 2026-11-04
 

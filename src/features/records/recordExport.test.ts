@@ -122,6 +122,7 @@ function food(overrides: Partial<HealthFood> = {}): HealthFood {
     servingName: null,
     servingGrams: null,
     photo: null,
+    tags: [],
     createdAt: 1790000000000,
     updatedAt: 1790000000000,
     deletedAt: null,

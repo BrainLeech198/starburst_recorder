@@ -137,10 +137,11 @@ describe('桌面端 SQLite 分块导入', () => {
   })
 
   it('健康分块往返后照片与字段都还在', () => {
-    call('saveHealthFood', {
+    const savedFood = call<{ tags: string[] }>('saveHealthFood', {
       id: 'f1',
       code: 'F000001',
       name: '米饭',
+      tags: ['主食', '常备'],
       kcal: 116,
       protein: 2.6,
       carbs: 25.9,
@@ -152,6 +153,7 @@ describe('桌面端 SQLite 分块导入', () => {
       updatedAt: 1_700_000_000_000,
       deletedAt: null,
     })
+    expect(savedFood.tags).toEqual(['主食', '常备'])
     call('saveHealthMeal', {
       id: 'm1',
       name: '米饭套餐',
@@ -180,10 +182,11 @@ describe('桌面端 SQLite 分块导入', () => {
     })
 
     const after = call<{
-      foods: Array<{ photo: string | null }>
+      foods: Array<{ photo: string | null; tags: string[] }>
       meals: Array<{ photo: string | null; items: unknown[] }>
     }>('exportAllData')
     expect(after.foods[0].photo).toBe('data:image/png;base64,BBBB')
+    expect(after.foods[0].tags).toEqual(['主食', '常备'])
     expect(after.meals[0].photo).toBe('data:image/png;base64,CCCC')
     expect(after.meals[0].items).toEqual([{ foodId: 'f1', grams: 150 }])
   })

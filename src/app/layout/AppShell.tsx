@@ -303,8 +303,8 @@ export default function AppShell() {
           </div>
         </Suspense>
       </main>
-      {/* 悬浮球平时不显示（它还是个占位，点开只会说 AI 没接），调试开关见 debugFlags.ts */}
-      {ballVisible() && <FloatingAssistant />}
+      {/* 悬浮球平时常驻；完整助手页里它已经多余，还会压住输入区，就不显示 */}
+      {ballVisible() && pathname !== '/assistant' && <FloatingAssistant />}
       <NoticePopup />
       <ScheduleReminderHost />
       <PushReminderHost />

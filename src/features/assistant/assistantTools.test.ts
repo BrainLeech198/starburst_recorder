@@ -535,6 +535,7 @@ function food(name: string, id = 'food_1'): HealthFood {
     servingName: null,
     servingGrams: null,
     photo: null,
+    tags: [],
     createdAt: 0,
     updatedAt: 0,
     deletedAt: null,

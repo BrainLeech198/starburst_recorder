@@ -25,6 +25,7 @@ function toShareFood(food: HealthFood): ShareFoodConfig {
   return {
     name: food.name,
     code: food.code,
+    tags: food.tags,
     kcal: food.kcal,
     protein: food.protein,
     carbs: food.carbs,
@@ -70,6 +71,7 @@ async function createFood(config: ShareFoodConfig): Promise<HealthFood> {
     id: newId(),
     code: newCode(),
     name: config.name,
+    tags: config.tags,
     kcal: config.kcal,
     protein: config.protein,
     carbs: config.carbs,

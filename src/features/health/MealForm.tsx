@@ -17,6 +17,7 @@ import { INPUT, INPUT_NUM } from '@/shared/ui/inputStyles'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
+import PhotoPreview from '@/shared/ui/PhotoPreview'
 import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
 import type { FoodDraft } from './FoodForm'
 import AiImageAttachments from './AiImageAttachments'
@@ -271,10 +272,11 @@ export default function MealForm({
       {/* 套餐封面：可以自己上传；没有就用第一个有照片的成分 */}
       <div className="flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-2.5">
         {cover ? (
-          <img
+          <PhotoPreview
             src={cover}
             alt={t('foods.mealCover')}
-            className="h-16 w-16 shrink-0 rounded-lg object-cover"
+            className="h-16 w-16 rounded-lg"
+            wrapperClassName="shrink-0"
           />
         ) : (
           <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-line px-1 text-center text-[11px] text-muted">
@@ -398,11 +400,11 @@ export default function MealForm({
                       {(each.images?.length ?? 0) > 0 && (
                         <div className="mb-1 flex flex-wrap gap-1">
                           {each.images?.map((image, imageIndex) => (
-                            <img
+                            <PhotoPreview
                               key={`${imageIndex}-${image.slice(-16)}`}
                               src={image}
                               alt=""
-                              className="h-12 w-12 rounded-md border border-line object-cover"
+                              className="h-12 w-12 rounded-md border border-line"
                             />
                           ))}
                         </div>
@@ -514,12 +516,11 @@ export default function MealForm({
                 >
                   <div className="flex items-center gap-2">
                     {food?.photo && (
-                      <img
+                      <PhotoPreview
                         src={food.photo}
                         alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="h-8 w-8 shrink-0 rounded-md object-cover"
+                        className="h-8 w-8 rounded-md"
+                        wrapperClassName="shrink-0"
                       />
                     )}
                     <span
@@ -589,12 +590,11 @@ export default function MealForm({
                   className="flex w-full items-center gap-2 rounded-lg border border-line p-2 text-left transition-colors hover:border-brand/50"
                 >
                   {food.photo && (
-                    <img
+                    <PhotoPreview
                       src={food.photo}
                       alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="h-9 w-9 shrink-0 rounded-md object-cover"
+                      className="h-9 w-9 rounded-md"
+                      wrapperClassName="shrink-0"
                     />
                   )}
                   <span className="min-w-0 flex-1">

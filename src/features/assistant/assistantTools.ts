@@ -20,6 +20,7 @@ import type {
 import { formatDateCn, isDateKey, shiftDay } from '@/core/utils/dateKey'
 import { isDoneOn, occurrencesOn } from '@/features/schedule/scheduleMath'
 import { expenseByCategory, isMonthKey, shiftMonth, summarizeFinance } from '@/features/finance/financeMath'
+import { FINANCE_CATEGORIES } from '@/features/finance/financeCategories'
 import { bmiValue, trendWeighIns, weightTrendStats, type TrendRange } from '@/features/health/healthViz'
 import { healthRangeSummary } from '@/features/health/healthViz'
 import { derivedTdee } from '@/features/health/healthMath'
@@ -30,6 +31,15 @@ import { summarizeDay, summarizeWeek, trainingLabel, weekRange } from '@/feature
 import { planOfProfile } from '@/features/training/trainingPlan'
 import { findSkill, type AssistantSkill } from './assistantSkills'
 import type { AssistantMemory, AssistantMemoryKind } from './assistantMemory'
+
+const FINANCE_CATEGORY_IDS = {
+  expense: FINANCE_CATEGORIES.filter((item) => item.kind === 'expense')
+    .map((item) => item.id)
+    .join('/'),
+  income: FINANCE_CATEGORIES.filter((item) => item.kind === 'income')
+    .map((item) => item.id)
+    .join('/'),
+}
 
 /** 一次工具执行需要的东西；today 由调用方注入，纯函数不自己看时钟 */
 export interface ToolRunContext {
@@ -392,7 +402,7 @@ const ASSISTANT_WRITE_TOOLS: AssistantToolSpec[] = [
         note: { type: 'string', description: '备注，可不填' },
         category: {
           type: 'string',
-          description: '分类 id，可不填。支出：food/transport/shopping/home/health/fun/study/social/other；收入：salary/bonus/invest/gift/otherIncome',
+          description: `分类 id，可不填。支出：${FINANCE_CATEGORY_IDS.expense}；收入：${FINANCE_CATEGORY_IDS.income}`,
         },
       },
       required: ['name', 'amount'],

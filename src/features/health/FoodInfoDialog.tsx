@@ -7,6 +7,7 @@
 import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 import type { HealthFood } from '@/core/db/schema'
 import Modal from '@/shared/ui/Modal'
+import PhotoPreview from '@/shared/ui/PhotoPreview'
 import { useI18n } from '@/shared/i18n/context'
 import { formatNum } from './healthMath'
 
@@ -34,12 +35,11 @@ export default function FoodInfoDialog({
       </h2>
 
       {food.photo && (
-        <img
+        <PhotoPreview
           src={food.photo}
           alt={food.name}
-          loading="lazy"
-          decoding="async"
-          className="mt-3 aspect-square w-full rounded-xl border border-line object-cover"
+          className="max-h-72 w-full rounded-xl border border-line"
+          wrapperClassName="mt-3 w-full"
         />
       )}
 

@@ -2,9 +2,11 @@ import ErrorNote from '@/shared/ui/ErrorNote'
 import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { INPUT } from '@/shared/ui/inputStyles'
+import TagEditor from '@/shared/ui/TagEditor'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
 import { useI18n } from '@/shared/i18n/context'
+import PhotoPreview from '@/shared/ui/PhotoPreview'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import { compressImage } from '@/features/ai/aiVision'
 import AiDisclaimer from '@/features/ai/AiDisclaimer'
@@ -26,6 +28,7 @@ export interface FoodDraft {
   fat: number
   servingName: string | null
   servingGrams: number | null
+  tags?: string[]
   /** 食物照片的 data URL；没上传就是 null */
   photo: string | null
 }
@@ -51,6 +54,7 @@ export default function FoodForm({
   const [fat, setFat] = useState(asText(initial?.fat))
   const [servingName, setServingName] = useState(initial?.servingName ?? '')
   const [servingGrams, setServingGrams] = useState(asText(initial?.servingGrams))
+  const [tags, setTags] = useState<string[]>(initial?.tags ?? [])
   /** 食物照片；压缩后直接是 data URL，跟其它字段一起提交 */
   const [photo, setPhoto] = useState<string | null>(initial?.photo ?? null)
   const [photoPicking, setPhotoPicking] = useState(false)
@@ -211,6 +215,7 @@ export default function FoodForm({
       servingName: servingName.trim() === '' ? null : servingName.trim(),
       servingGrams: grams > 0 ? grams : null,
       photo,
+      tags,
     })
   }
 
@@ -226,12 +231,18 @@ export default function FoodForm({
         />
       </label>
 
+      <label className="block">
+        <span className="text-xs text-muted">{t('foods.tags')}</span>
+        <TagEditor tags={tags} onChange={setTags} className="mt-1" />
+      </label>
+
       <div className="flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-2.5">
         {photo ? (
-          <img
+          <PhotoPreview
             src={photo}
             alt={t('foods.photoField')}
-            className="h-16 w-16 shrink-0 rounded-lg object-cover"
+            className="h-16 w-16 rounded-lg"
+            wrapperClassName="shrink-0"
           />
         ) : (
           <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-line px-1 text-center text-[11px] text-muted">

@@ -9,6 +9,9 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useI18n } from '@/shared/i18n/context'
 import { useBackdropClose } from '@/shared/ui/useBackdropClose'
+import { useOverlayEntry } from '@/shared/ui/useOverlayEntry'
+import { photoDownloadName } from '@/shared/media/photoDownload'
+import { Icon } from '@/shared/ui/icons'
 
 const MIN_ZOOM = 1
 const MAX_ZOOM = 4
@@ -25,17 +28,20 @@ export default function ImageViewer({
   onClose,
 }: {
   /** 只取预览图和页序；状态不影响看大图 */
-  images: { preview: string }[]
+  images: { preview: string; downloadName?: string }[]
   index: number
   onIndexChange: (next: number) => void
   onClose: () => void
 }) {
   const { t } = useI18n()
   const backdrop = useBackdropClose(onClose)
+  useOverlayEntry(onClose)
   const [zoom, setZoom] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
 
   const stageRef = useRef<HTMLDivElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef(onClose)
   const imgRef = useRef<HTMLImageElement>(null)
   const pointers = useRef(new Map<number, { x: number; y: number }>())
   const pinch = useRef<{ distance: number; zoom: number } | null>(null)
@@ -43,6 +49,10 @@ export default function ImageViewer({
 
   const total = images.length
   const image = images[index]
+
+  useEffect(() => {
+    closeRef.current = onClose
+  }, [onClose])
 
   /** 把画布移动限制在大图边缘以内，别一拖就找不回来 */
   const clampOffset = useCallback((x: number, y: number, scale: number) => {
@@ -80,7 +90,53 @@ export default function ImageViewer({
     onIndexChange(index + 1)
   }, [index, total, onIndexChange])
 
-  // 左右切换、加减缩放；Esc 由外层 Modal 关掉这一层
+  // Esc / Tab 留在最上层查看器，避免关闭或跳入下面的弹窗。
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const previous = document.activeElement as HTMLElement | null
+    const focusable = () =>
+      Array.from(root.querySelectorAll<HTMLElement>('a[href],button:not([disabled])')).filter(
+        (item) => item.getClientRects().length > 0,
+      )
+    focusable()[0]?.focus()
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        event.stopPropagation()
+        closeRef.current()
+        return
+      }
+      if (event.key === 'Tab') {
+        const items = focusable()
+        if (items.length === 0) {
+          event.preventDefault()
+          root.focus()
+        } else {
+          const first = items[0]
+          const last = items[items.length - 1]
+          const active = document.activeElement
+          if (event.shiftKey && (active === first || !root.contains(active))) {
+            event.preventDefault()
+            last.focus()
+          } else if (!event.shiftKey && (active === last || !root.contains(active))) {
+            event.preventDefault()
+            first.focus()
+          }
+        }
+        event.stopImmediatePropagation()
+        return
+      }
+      return
+    }
+    document.addEventListener('keydown', onKey, true)
+    return () => {
+      document.removeEventListener('keydown', onKey, true)
+      if (previous?.isConnected) previous.focus()
+    }
+  }, [])
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'ArrowLeft') goPrev()
@@ -150,6 +206,7 @@ export default function ImageViewer({
   return createPortal(
     <div
       role="dialog"
+      ref={rootRef}
       aria-modal="true"
       aria-label={t('imageImport.view')}
       className="fixed inset-0 z-[60] flex flex-col bg-black/95 text-white"
@@ -203,6 +260,17 @@ export default function ImageViewer({
         className="flex flex-wrap items-center justify-center gap-2 px-4 py-3"
         onClick={(event) => event.stopPropagation()}
       >
+        <a
+          href={image.preview}
+          download={photoDownloadName(
+            image.preview,
+            image.downloadName ?? `starburst-image-${index + 1}`,
+          )}
+          className="inline-flex items-center rounded-lg border border-white/20 px-3 py-1.5 text-sm text-white/85 transition-colors hover:border-white/40 hover:text-white"
+        >
+          <Icon name="download" />
+          {t('photo.download')}
+        </a>
         <button
           type="button"
           onClick={goPrev}

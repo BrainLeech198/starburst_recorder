@@ -99,6 +99,8 @@ export interface HealthFood {
   /** 7 位十六进制短编号，列表里用来区分同名食物 */
   code: string
   name: string
+  /** 自定义标签：用于在食物库中归类与筛选 */
+  tags: string[]
   /** 每 100g 的热量与三大营养素 */
   kcal: number
   protein: number

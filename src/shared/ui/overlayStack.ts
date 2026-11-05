@@ -25,6 +25,11 @@ export function popOverlay(entry: OverlayEntry) {
   if (index >= 0) stack.splice(index, 1)
 }
 
+/** 键盘 Esc 只关闭最上层，避免叠在弹窗上的图片查看器把底层弹窗一并关掉。 */
+export function isTopOverlay(entry: OverlayEntry | null | undefined): boolean {
+  return entry !== null && entry !== undefined && stack[stack.length - 1] === entry
+}
+
 /**
  * 关掉最上面那一层。
  * - `'none'`：没有覆盖层，返回键该去管路由了

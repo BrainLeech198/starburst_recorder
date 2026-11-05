@@ -7,6 +7,7 @@
 import ErrorNote from '@/shared/ui/ErrorNote'
 import { useRef, useState } from 'react'
 import { useI18n } from '@/shared/i18n/context'
+import PhotoPreview from '@/shared/ui/PhotoPreview'
 import { compressImage } from '@/features/ai/aiVision'
 import { OUTLINE_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
@@ -72,10 +73,10 @@ export default function AiImageAttachments({
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {images.map((image, index) => (
           <span key={`${index}-${image.slice(-16)}`} className="relative">
-            <img
+            <PhotoPreview
               src={image}
               alt={t('foods.aiAttachTitle')}
-              className="h-12 w-12 rounded-lg border border-line object-cover"
+              className="h-12 w-12 rounded-lg border border-line"
             />
             <button
               type="button"

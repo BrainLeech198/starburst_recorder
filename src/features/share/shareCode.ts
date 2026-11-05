@@ -38,6 +38,7 @@ export interface ShareFinanceData {
 export interface ShareFoodConfig {
   name: string
   code: string
+  tags: string[]
   kcal: number
   protein: number
   carbs: number
@@ -121,6 +122,8 @@ function parseFoodConfig(value: unknown): ShareFoodConfig | null {
   if (!isRecord(value)) return null
   const name = text(value.name, 80)
   if (!name) return null
+  const tags = value.tags === undefined ? [] : parseTags(value.tags)
+  if (!tags) return null
   const nutrients: Array<'kcal' | 'protein' | 'carbs' | 'fat'> = ['kcal', 'protein', 'carbs', 'fat']
   for (const key of nutrients) {
     const amount = value[key]
@@ -130,6 +133,7 @@ function parseFoodConfig(value: unknown): ShareFoodConfig | null {
   return {
     name,
     code: optionalText(value.code, 16) ?? '',
+    tags,
     kcal: value.kcal as number,
     protein: value.protein as number,
     carbs: value.carbs as number,

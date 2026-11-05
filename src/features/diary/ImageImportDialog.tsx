@@ -297,12 +297,18 @@ export default function ImageImportDialog({
                     : 'border-line',
               ].join(' ')}
             >
-              <img
-                src={page.preview}
-                alt=""
-                onDoubleClick={() => setViewerIndex(index)}
-                className="aspect-[3/4] w-full object-cover"
-              />
+              <button
+                type="button"
+                onClick={() => setViewerIndex(index)}
+                aria-label={t('imageImport.view')}
+                className="flex max-h-56 w-full cursor-zoom-in items-center justify-center bg-transparent p-0"
+              >
+                <img
+                  src={page.preview}
+                  alt=""
+                  className="max-h-56 w-full object-contain"
+                />
+              </button>
               <span className="absolute top-1 left-1 rounded bg-black/55 px-1.5 py-0.5 text-[11px] leading-none text-white">
                 {index + 1}
               </span>
@@ -455,7 +461,7 @@ export default function ImageImportDialog({
 
       {viewerIndex !== null && (
         <ImageViewer
-          images={pages.map((page) => ({ preview: page.preview }))}
+          images={pages.map((page) => ({ preview: page.preview, downloadName: page.file.name }))}
           index={viewerIndex}
           onIndexChange={setViewerIndex}
           onClose={() => setViewerIndex(null)}

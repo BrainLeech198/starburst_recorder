@@ -13,6 +13,7 @@ import ToolbarRow from '@/shared/ui/ToolbarRow'
 import BackButton from '@/shared/ui/BackButton'
 import TagEditor from '@/shared/ui/TagEditor'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
+import PhotoPreview from '@/shared/ui/PhotoPreview'
 import { BACK_BUTTON, GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
 import {
@@ -96,13 +97,13 @@ function ImageBlock({
   const { t } = useI18n()
   return (
     <span className="relative my-2 block">
-      <img
+      <PhotoPreview
         src={image.dataUrl}
         alt=""
-        loading="lazy"
         width={image.width}
         height={image.height}
         className="block h-auto w-full rounded-lg border border-binding bg-paper-strong"
+        wrapperClassName="w-full"
       />
       {onRemove && (
         <button
@@ -768,10 +769,10 @@ export default function DiaryEditPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {imagesValue.map((image) => (
                     <span key={image.id} className="relative">
-                      <img
+                      <PhotoPreview
                         src={image.dataUrl}
                         alt=""
-                        className="h-20 w-20 rounded-lg border border-binding object-cover"
+                        className="h-20 w-20 rounded-lg border border-binding"
                       />
                       <button
                         type="button"

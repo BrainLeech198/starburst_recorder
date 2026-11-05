@@ -283,6 +283,7 @@ const food = (id: string, extra: Partial<HealthFood> = {}): HealthFood => ({
   servingName: null,
   servingGrams: null,
   photo: null,
+  tags: [],
   createdAt: 100,
   updatedAt: 100,
   deletedAt: null,

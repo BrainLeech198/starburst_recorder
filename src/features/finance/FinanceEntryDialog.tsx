@@ -13,6 +13,7 @@ import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
+import PhotoPreview from '@/shared/ui/PhotoPreview'
 import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
 import { GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
@@ -232,13 +233,14 @@ export default function FinanceEntryDialog({
         </label>
       </div>
 
-      {/* 票据照片：只做缩略参考图，压缩后跟着记录走 */}
+      {/* 票据照片：按模块图片设置处理后跟着记录保存 */}
       <div className="mt-3 flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-2.5">
         {photo ? (
-          <img
+          <PhotoPreview
             src={photo}
             alt={t('finance.photo')}
-            className="h-16 w-16 shrink-0 rounded-lg object-cover"
+            className="h-16 w-16 rounded-lg"
+            wrapperClassName="shrink-0"
           />
         ) : (
           <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-line px-1 text-center text-[11px] text-muted">

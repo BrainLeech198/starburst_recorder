@@ -227,3 +227,16 @@ db.version(17)
 db.version(18).stores({
   schedules: 'id, dateKey, deletedAt',
 })
+
+// 食物库支持多标签：旧食物先补空数组，标签作为记录字段不建索引。
+db.version(19)
+  .stores({})
+  .upgrade((tx) =>
+    tx
+      .table('healthFoods')
+      .toCollection()
+      .modify((food: HealthFood) => {
+        if (!Array.isArray(food.tags)) food.tags = []
+      })
+      .then(() => undefined),
+  )

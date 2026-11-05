@@ -30,6 +30,7 @@ import AiDisclaimer from '@/features/ai/AiDisclaimer'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
+import PhotoPreview from '@/shared/ui/PhotoPreview'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
@@ -505,6 +506,7 @@ export default function IntakeDialog({
       id: newId(),
       code: newCode(),
       ...draft,
+      tags: draft.tags ?? [],
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -522,6 +524,7 @@ export default function IntakeDialog({
       id: newId(),
       code: newCode(),
       ...draft,
+      tags: draft.tags ?? [],
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -719,6 +722,7 @@ export default function IntakeDialog({
       id: newId(),
       code: newCode(),
       ...draft,
+      tags: draft.tags ?? [],
       name,
       createdAt: now,
       updatedAt: now,
@@ -974,12 +978,11 @@ export default function IntakeDialog({
                       className="flex items-start gap-2 rounded-lg border border-line/70 bg-surface px-2 py-2"
                     >
                       {photo && (
-                        <img
+                        <PhotoPreview
                           src={photo}
                           alt=""
-                          loading="lazy"
-                          decoding="async"
-                          className="h-10 w-10 shrink-0 rounded-md border border-line/60 object-cover"
+                          className="h-10 w-10 rounded-md border border-line/60"
+                          wrapperClassName="shrink-0"
                         />
                       )}
                       <div className="min-w-0 flex-1">
@@ -1382,12 +1385,11 @@ export default function IntakeDialog({
                           }`}
                         >
                           {photo && (
-                            <img
+                            <PhotoPreview
                               src={photo}
                               alt=""
-                              loading="lazy"
-                              decoding="async"
-                              className="h-10 w-10 shrink-0 rounded-md border border-line object-cover"
+                              className="h-10 w-10 rounded-md border border-line"
+                              wrapperClassName="shrink-0"
                             />
                           )}
                           <span className="min-w-0 flex-1">
@@ -1450,7 +1452,7 @@ export default function IntakeDialog({
                             alt=""
                             loading="lazy"
                             decoding="async"
-                            className="h-10 w-10 object-cover"
+                            className="h-10 w-10 object-contain"
                           />
                         </button>
                       )}
@@ -1605,7 +1607,7 @@ export default function IntakeDialog({
                               alt=""
                               loading="lazy"
                               decoding="async"
-                              className="h-8 w-8 object-cover"
+                              className="h-8 w-8 object-contain"
                             />
                           </button>
                         )}

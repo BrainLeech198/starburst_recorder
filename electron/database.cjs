@@ -90,6 +90,7 @@ const SCHEMA = `
     servingName TEXT,
     servingGrams REAL,
     photo TEXT,
+    tags TEXT NOT NULL DEFAULT '[]',
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER NOT NULL,
     deletedAt INTEGER
@@ -395,6 +396,7 @@ function foodRow(row) {
     servingName: row.servingName ?? null,
     servingGrams: num(row.servingGrams),
     photo: row.photo ?? null,
+    tags: Array.isArray(row.tags) ? cleanTags(row.tags) : parseTags(row.tags),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
@@ -702,6 +704,7 @@ function createDatabase(file) {
   )
   if (!foodColumns.has('code')) db.exec('ALTER TABLE healthFoods ADD COLUMN code TEXT')
   if (!foodColumns.has('photo')) db.exec('ALTER TABLE healthFoods ADD COLUMN photo TEXT')
+  if (!foodColumns.has('tags')) db.exec("ALTER TABLE healthFoods ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'")
   const mealColumns = new Set(
     db.prepare('PRAGMA table_info(healthMeals)').all().map((row) => row.name),
   )
@@ -885,8 +888,8 @@ function createDatabase(file) {
     foodById: db.prepare('SELECT * FROM healthFoods WHERE id = ?'),
     upsertFood: db.prepare(
       `INSERT INTO healthFoods
-         (id, code, name, kcal, protein, carbs, fat, servingName, servingGrams, photo, createdAt, updatedAt, deletedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (id, code, name, kcal, protein, carbs, fat, servingName, servingGrams, photo, tags, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          code = excluded.code,
          name = excluded.name,
@@ -897,6 +900,7 @@ function createDatabase(file) {
          servingName = excluded.servingName,
          servingGrams = excluded.servingGrams,
          photo = excluded.photo,
+         tags = excluded.tags,
          createdAt = excluded.createdAt,
          updatedAt = excluded.updatedAt,
          deletedAt = excluded.deletedAt`,
@@ -1216,6 +1220,7 @@ function createDatabase(file) {
       food.servingName ?? null,
       num(food.servingGrams),
       food.photo ?? null,
+      JSON.stringify(cleanTags(food.tags)),
       food.createdAt,
       food.updatedAt,
       food.deletedAt ?? null,

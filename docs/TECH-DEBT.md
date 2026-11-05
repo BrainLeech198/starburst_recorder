@@ -33,7 +33,8 @@
    `weatherEdit` / `sleepEdit` / `profileEdit` / `weigh` 等修改动作一律走确认；
    删除仍全部要求确认，并在 [assistantActions.ts:475](../src/features/assistant/assistantActions.ts) 落库前校验档案版本号，
    撤销快照可恢复档案与记忆。回归用例在 [assistantPermission.test.ts](../src/features/assistant/assistantPermission.test.ts)
-   与 [assistantActionBuild.test.ts](../src/features/assistant/assistantActionBuild.test.ts)。
+   与 [assistantActionBuild.test.ts](../src/features/assistant/assistantActionBuild.test.ts)。同一条助手回复可由用户显式一次授权
+   批量执行所有仍待确认的动作；批次仅限该回复，逐项执行并保存结果，不修改全局权限。用户也可选择逐条确认或取消本组。
 3. **AI 请求生命周期与等待反馈。** ✅ 传输期限、取消句柄和助手「停止」按钮已接通：桌面主进程用
    [electron/aiRequest.cjs](../electron/aiRequest.cjs) 管理 5 分钟对话 / 20 秒模型列表期限；浏览器侧由
    [aiDeadline.ts](../src/features/ai/aiDeadline.ts) 合并调用方 signal 与兜底期限。2026-11-04 助手请求开始消费

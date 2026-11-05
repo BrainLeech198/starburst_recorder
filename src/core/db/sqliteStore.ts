@@ -8,6 +8,7 @@
 import { desktopBridge } from '@/platform/desktop'
 import { formatClock } from '@/core/utils/dateKey'
 import { newCode, newId } from '@/core/utils/id'
+import { cleanTags } from './normalize'
 import type {
   DiaryEntry,
   DiaryPreset,
@@ -179,7 +180,7 @@ export const sqliteStore: DiaryStore = {
   deleteHealthProfile: () => call('deleteHealthProfile'),
   healthFoods: () => call('healthFoods'),
   saveHealthFood: async (food) => {
-    const next: HealthFood = { ...food, updatedAt: Date.now() }
+    const next: HealthFood = { ...food, tags: cleanTags(food.tags), updatedAt: Date.now() }
     await call('saveHealthFood', next)
     return next
   },
