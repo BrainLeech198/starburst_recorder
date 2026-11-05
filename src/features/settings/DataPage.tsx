@@ -46,8 +46,17 @@ import {
   lastBackupAt,
   markBackupDone,
 } from './backupReminder'
-import { loadImageQuality, saveImageQuality } from '@/features/diary/imageAssets'
-import type { ImageQuality } from '@/features/diary/imageAssets'
+import {
+  loadGlobalImageQuality,
+  loadModuleImageQuality,
+  saveGlobalImageQuality,
+  saveModuleImageQuality,
+} from '@/shared/media/imageQuality'
+import type {
+  ImageModule,
+  ImageQuality,
+  ModuleImageQuality,
+} from '@/shared/media/imageQuality'
 import {
   clearDiaryData,
   clearFinanceData,
@@ -466,13 +475,28 @@ function describePayload(
   ).join('；')
 }
 
+/** 可以单独覆盖全体设置的三个模块 */
+const IMAGE_MODULES: { id: ImageModule; label: 'nav.diary' | 'nav.health' | 'nav.finance' }[] = [
+  { id: 'diary', label: 'nav.diary' },
+  { id: 'health', label: 'nav.health' },
+  { id: 'finance', label: 'nav.finance' },
+]
+
+const MODULE_OPTIONS: ModuleImageQuality[] = ['inherit', 'compressed', 'original']
+
 /**
- * 「图片怎么存」：压缩省空间（默认）还是原图更清晰。
+ * 「图片怎么存」：先选全体的压缩 / 原图，再给日记、健康、经济单独覆盖。
  * 照片直接进记录，所以这也决定了备份文件会有多大——原图可能让备份翻好几倍。
  */
 function ImageQualityCard() {
   const { t } = useI18n()
-  const [quality, setQuality] = useState<ImageQuality>(() => loadImageQuality())
+  const [quality, setQuality] = useState<ImageQuality>(() => loadGlobalImageQuality())
+  const [perModule, setPerModule] = useState<Record<ImageModule, ModuleImageQuality>>(() => ({
+    diary: loadModuleImageQuality('diary'),
+    health: loadModuleImageQuality('health'),
+    finance: loadModuleImageQuality('finance'),
+  }))
+
   const options: { value: ImageQuality; label: string; hint: string }[] = [
     {
       value: 'compressed',
@@ -486,6 +510,17 @@ function ImageQualityCard() {
     },
   ]
 
+  const moduleLabel: Record<ModuleImageQuality, string> = {
+    inherit: t('data.imageFollowGlobal'),
+    compressed: t('data.imageCompressed'),
+    original: t('data.imageOriginal'),
+  }
+
+  function pickModule(module: ImageModule, value: ModuleImageQuality) {
+    setPerModule((current) => ({ ...current, [module]: value }))
+    saveModuleImageQuality(module, value)
+  }
+
   return (
     <SettingCard title={t('data.imageTitle')} description={t('data.imageDesc')}>
       <SettingGroup label={t('data.imageGroup')}>
@@ -496,12 +531,9 @@ function ImageQualityCard() {
               type="button"
               onClick={() => {
                 setQuality(option.value)
-                saveImageQuality(option.value)
+                saveGlobalImageQuality(option.value)
               }}
-              className={[
-                choiceTile,
-                quality === option.value ? 'border-brand bg-brand/10' : '',
-              ].join(' ')}
+              className={choiceTile(quality === option.value, 'px-3 py-2 text-left')}
             >
               <span className="block text-sm text-fg">{option.label}</span>
               <span className="mt-1 block text-xs text-muted">{option.hint}</span>
@@ -509,6 +541,40 @@ function ImageQualityCard() {
           ))}
         </div>
         <p className="mt-2 text-xs text-muted">{t('data.imageBackupHint')}</p>
+      </SettingGroup>
+
+      <SettingGroup label={t('data.imageModulesGroup')}>
+        <div className="space-y-2">
+          {IMAGE_MODULES.map((module) => (
+            <div
+              key={module.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface-2 px-3 py-2"
+            >
+              <span className="text-sm text-fg">{t(module.label)}</span>
+              <div className="flex overflow-hidden rounded-lg border border-line">
+                {MODULE_OPTIONS.map((value) => {
+                  const active = perModule[module.id] === value
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => pickModule(module.id, value)}
+                      className={[
+                        'px-2.5 py-1.5 text-xs transition-colors',
+                        active
+                          ? 'bg-brand font-medium text-on-brand'
+                          : 'text-muted hover:text-fg',
+                      ].join(' ')}
+                    >
+                      {moduleLabel[value]}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-muted">{t('data.imageModuleHint')}</p>
       </SettingGroup>
     </SettingCard>
   )

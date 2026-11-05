@@ -33,8 +33,16 @@ export const PREF_GROUPS = {
     'sb_assistant_skills_v1',
     'sb_assistant_permission_v1',
   ],
-  /** 记录时的习惯：图片存法、天气地点、悬浮球 */
-  records: ['sb_image_quality', 'sb_weather_place', 'starburst.ball', 'starburst.ball.pos'],
+  /** 记录时的习惯：图片存法（全体 + 日记/健康/经济分模块）、天气地点、悬浮球 */
+  records: [
+    'sb_image_quality',
+    'sb_image_quality_diary',
+    'sb_image_quality_health',
+    'sb_image_quality_finance',
+    'sb_weather_place',
+    'starburst.ball',
+    'starburst.ball.pos',
+  ],
   /** 更新通道 */
   update: ['sb_update_channel', 'sb_update_source'],
 } as const

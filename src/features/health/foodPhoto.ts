@@ -9,6 +9,11 @@
  */
 import { translate } from '@/shared/i18n/context'
 import { loadImage } from '@/features/ai/aiVision'
+import {
+  readOriginalImage,
+  resolveImageQuality,
+  type ImageQuality,
+} from '@/shared/media/imageQuality'
 
 export const FOOD_PHOTO_MAX_EDGE = 512
 const WEBP_QUALITY = 0.75
@@ -20,8 +25,16 @@ function releaseImage(image: HTMLImageElement) {
   image.src = ''
 }
 
-/** 压缩并裁成正方形，返回可直接存库的 data URL */
-export async function compressFoodPhoto(file: File): Promise<string> {
+/**
+ * 存库用的食物照片：默认压缩并裁成正方形。
+ * 设置里给健康选了「原图」时，这里原样返回文件，不再裁剪压缩。
+ */
+export async function compressFoodPhoto(
+  file: File,
+  quality: ImageQuality = resolveImageQuality('health'),
+): Promise<string> {
+  if (quality === 'original') return readOriginalImage(file)
+
   const image = await loadImage(file)
   try {
     const side = Math.min(image.width, image.height)

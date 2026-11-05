@@ -1361,8 +1361,12 @@ export const ja: Record<MessageKey, string> = {
   'data.folderTitle': 'データの場所',
   'data.imageTitle': '画像の保存方法',
   'data.imageDesc':
-    '日記やつぶやきの写真をどう保存するか。設定後は新しく挿入した画像が新しい方法で保存され、既存の画像は変わりません。',
-  'data.imageGroup': '保存方法',
+    '日記・健康・家計の写真をどう保存するか。設定後は新しく挿入した画像が新しい方法で保存され、既存の画像は変わりません。',
+  'data.imageGroup': '全体設定',
+  'data.imageModulesGroup': 'モジュール別',
+  'data.imageFollowGlobal': '全体に従う',
+  'data.imageModuleHint':
+    '日記：本文とつぶやきの写真；健康：食べ物とセットの表紙；家計：レシートの写真。個別に選んでいないモジュールは全体設定に従います。',
   'data.imageCompressed': '圧縮して保存',
   'data.imageCompressedHint': '長辺 1600px、JPEG 圧縮で1枚あたり約100〜200KB。',
   'data.imageOriginal': '元画像のまま保存',

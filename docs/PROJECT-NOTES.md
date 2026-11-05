@@ -223,7 +223,7 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 
 - **图片直接存在记录里**（`DiaryImage { id, dataUrl, width, height }`，一条最多 9 张），**不另开图片表**：软删除、回收站、备份、跨设备导入天然一致，代价是备份文件变大。Dexie `version(10)` 给老记录补 `images: []`；SQLite 建表带 `images TEXT`，老库用 `ALTER TABLE` 补列（`PRAGMA table_info` 判断）。
 - **日记正文仍是纯文本**，图片用标记 `[[img:ULID]]` 占位（`features/diary/imageTokens.ts`，纯函数 + 单测）。锁定态渲染成真图；编辑态文本框里看到标记，另有缩略图一排可删。正文里没被标记引用的图（例如 AI 润色把标记弄丢）在末尾以「附图」显示，不会悄悄消失。
-- **压缩 / 原图两种存法**：默认长边 1600 + JPEG 0.82（复用 `aiVision.compressImage`），设置页「数据与备份 → 图片怎么存」可切原图（`localStorage: sb_image_quality`，`features/diary/imageAssets.ts`）。导出 Markdown / 纯文本与 AI 润色一律先 `stripImageTokens`；记录级 JSON 导出保留图。随记可以只有图、没有字。
+- **压缩 / 原图两种存法，分模块可覆盖**：默认全体压缩（日记长边 1600 + JPEG 0.82；健康食物图 / 经济票据图长边 512、1:1），设置页「数据与备份 → 图片怎么存」先选全体，再给日记、健康、经济各自选「跟随全体 / 压缩 / 原图」。键为 `sb_image_quality` 加上 `sb_image_quality_{diary,health,finance}`（`shared/media/imageQuality.ts` 统一读写，日记转码仍在 `features/diary/imageAssets.ts`）。导出 Markdown / 纯文本与 AI 润色一律先 `stripImageTokens`；记录级 JSON 导出保留图。随记可以只有图、没有字。
 
 ### 数据规模：单文件够不够（2026-11-02 分析）
 

@@ -1362,8 +1362,12 @@ export const de: Record<MessageKey, string> = {
   'data.folderTitle': 'Wo die Daten liegen',
   'data.imageTitle': 'Wie Bilder gespeichert werden',
   'data.imageDesc':
-    'Wie Fotos in Tagebuch und Notizen gespeichert werden. Neu eingefügte Bilder nutzen danach die neue Methode; bestehende bleiben unverändert.',
-  'data.imageGroup': 'Speichermethode',
+    'Wie Fotos in Tagebuch, Gesundheit und Finanzen gespeichert werden. Neue Bilder nutzen danach die neue Methode; bestehende bleiben unverändert.',
+  'data.imageGroup': 'Alle Module',
+  'data.imageModulesGroup': 'Pro Modul',
+  'data.imageFollowGlobal': 'Wie alle',
+  'data.imageModuleHint':
+    'Tagebuch: Eintrags- und Notizfotos; Gesundheit: Essens- und Mahlzeiten-Cover; Finanzen: Belegfotos. Module ohne eigene Wahl folgen der Einstellung für alle.',
   'data.imageCompressed': 'Komprimiert',
   'data.imageCompressedHint': 'Lange Kante 1600 px, JPEG-Kompression – etwa 100–200 KB pro Bild.',
   'data.imageOriginal': 'Original',

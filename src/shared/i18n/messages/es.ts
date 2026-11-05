@@ -1370,8 +1370,12 @@ export const es: Record<MessageKey, string> = {
   'data.folderTitle': 'Dónde están los datos',
   'data.imageTitle': 'Cómo se guardan las imágenes',
   'data.imageDesc':
-    'Cómo se guardan las fotos de las entradas y las notas. Una vez configurado, las imágenes nuevas usan este modo y las existentes no cambian.',
-  'data.imageGroup': 'Modo de guardado',
+    'Cómo se guardan las fotos del diario, la salud y las finanzas. Las imágenes nuevas usan este modo y las existentes no cambian.',
+  'data.imageGroup': 'Todos los módulos',
+  'data.imageModulesGroup': 'Por módulo',
+  'data.imageFollowGlobal': 'Como todos',
+  'data.imageModuleHint':
+    'Diario: fotos de entradas y notas; Salud: fotos de alimentos y portadas de comidas; Finanzas: fotos de recibos. Los módulos sin elección propia siguen el ajuste global.',
   'data.imageCompressed': 'Comprimidas',
   'data.imageCompressedHint': 'Lado largo 1600 px, compresión JPEG: unas 100-200 KB por imagen.',
   'data.imageOriginal': 'Originales',

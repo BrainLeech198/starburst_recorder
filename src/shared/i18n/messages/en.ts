@@ -1399,8 +1399,12 @@ export const en: Record<MessageKey, string> = {
   'data.folderTitle': 'Where data lives',
   'data.imageTitle': 'How images are stored',
   'data.imageDesc':
-    'How photos in diaries and notes are saved. Once set, newly inserted images use the new method; existing ones stay as they are.',
-  'data.imageGroup': 'Storage method',
+    'How photos in diary, health and finance entries are saved. Once set, newly inserted images use the new method; existing ones stay as they are.',
+  'data.imageGroup': 'All modules',
+  'data.imageModulesGroup': 'Per module',
+  'data.imageFollowGlobal': 'Follow all',
+  'data.imageModuleHint':
+    'Diary: entry and note photos; Health: food and meal cover photos; Finance: receipt photos. Modules without their own choice follow the all-modules setting.',
   'data.imageCompressed': 'Compressed',
   'data.imageCompressedHint': 'Long edge 1600 px, JPEG compression — about 100–200 KB each.',
   'data.imageOriginal': 'Original',

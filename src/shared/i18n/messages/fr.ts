@@ -1362,8 +1362,12 @@ export const fr: Record<MessageKey, string> = {
   'data.folderTitle': 'Où sont les données',
   'data.imageTitle': 'Stockage des images',
   'data.imageDesc':
-    'Comment les photos des entrées et des notes sont enregistrées. Une fois réglé, les nouvelles images suivent ce mode ; les images existantes ne changent pas.',
-  'data.imageGroup': 'Mode de stockage',
+    'Comment les photos du journal, de la santé et des finances sont enregistrées. Les nouvelles images suivent ce mode ; les existantes ne changent pas.',
+  'data.imageGroup': 'Tous les modules',
+  'data.imageModulesGroup': 'Par module',
+  'data.imageFollowGlobal': 'Comme tous',
+  'data.imageModuleHint':
+    'Journal : photos des entrées et notes ; Santé : photos des aliments et couvertures de repas ; Finances : photos de reçus. Les modules sans choix propre suivent le réglage global.',
   'data.imageCompressed': 'Compressées',
   'data.imageCompressedHint': 'Grand côté 1600 px, compression JPEG : environ 100 à 200 Ko par image.',
   'data.imageOriginal': 'Originales',

@@ -1361,8 +1361,12 @@ export const ko: Record<MessageKey, string> = {
   'data.folderTitle': '데이터 위치',
   'data.imageTitle': '이미지 저장 방식',
   'data.imageDesc':
-    '일기와 메모의 사진을 어떻게 저장할지. 설정하면 새로 넣는 이미지는 새 방식으로 저장되고, 기존 이미지는 그대로예요.',
-  'data.imageGroup': '저장 방식',
+    '일기, 건강, 가계의 사진을 어떻게 저장할지. 설정하면 새로 넣는 이미지는 새 방식으로 저장되고, 기존 이미지는 그대로예요.',
+  'data.imageGroup': '전체 설정',
+  'data.imageModulesGroup': '모듈별 설정',
+  'data.imageFollowGlobal': '전체 따르기',
+  'data.imageModuleHint':
+    '일기: 본문과 메모 사진, 건강: 음식과 세트 표지, 가계: 영수증 사진. 따로 선택하지 않은 모듈은 전체 설정을 따라요.',
   'data.imageCompressed': '압축 저장',
   'data.imageCompressedHint': '긴 변 1600px, JPEG 압축으로 한 장에 약 100~200KB예요.',
   'data.imageOriginal': '원본 저장',
