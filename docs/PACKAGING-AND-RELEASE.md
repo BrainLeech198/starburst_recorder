@@ -1,6 +1,6 @@
 # 打包与发版规范
 
-> 本文是 Windows / Android 打包、签名、发版的**唯一操作口径**。
+> 本文是版本定号、提交、Windows / Android 打包签名、官网与 PWA 发布的**唯一操作口径**。
 > 内容合并自 CodeBuddy 与 Trae 的项目长期记忆、2026-10-25 至 10-26 的实际发版记录、本机签名核验结果，以及 2026-11-01 定下的正式版 / 测试版双通道规范。
 > 与 `docs/PROJECT-NOTES.md`（架构与决策）互补：那份讲「为什么这样设计」，这份讲「发版时具体怎么做、哪里不能碰」。
 
@@ -69,6 +69,7 @@
 | GitHub Release | 普通 Release，**会更新 `latest`** | **Pre-release**，不影响 `latest` |
 | Gitee Release | 正常发，按 §4.1 只留最新版的附件 | **不发**，附件也不传 |
 | 官网 `site/` | 同步版本、下载与更新说明 | **不动**，官网只展示最近一个正式版 |
+| Cloudflare Pages PWA | 构建并部署到 `starburst-recorder` 的生产分支 `main` | **不部署生产环境**，避免测试版覆盖正式用户使用的 PWA |
 | 更新说明 | 官网 `notes.zh.md` / Release 正文 | 只用 Release 正文（官网说明还是上一版） |
 | 谁能收到 | 所有用户 | 在「我的 → 版本 → 更新通道」切到测试版的用户 |
 
@@ -170,7 +171,7 @@ npm run desktop:installer
 
 ## 4. 发版清单（按顺序）
 
-1. **检查**：`npm test`、`npm run typecheck`、`npm run lint`
+1. **检查改动**：查看 `git status`、`git diff` 与 `git log -1`，逐项确认本版要提交的文件及工作区里其他协作者的改动；跑 `npm test`、`npm run typecheck`、`npm run lint`。不要顺手提交不属于本版或状态不明的文件。
 2. **定版本**：改 `package.json` + `package-lock.json`
 3. **写说明**：中文 / 英文更新说明与官网「这一版有什么」、更新日志都要和实际改动一致，不能套模板。只写本版新增与修复，不写「上一版的 X 照旧 / 全部内容照旧」这类承接句——旧功能默认还在，说明不是累计清单。
 4. **出包**：按 §2、§3 打 Android 与 Windows，各自验签 / 验版本
@@ -179,7 +180,8 @@ npm run desktop:installer
 7. **打标签**：`git tag v<version>`
 8. **推送**：`git push origin main --tags`（origin = Gitee 主仓库，GitHub 由镜像自动同步）
 9. **发 Release（正式版）**：Gitee 与 GitHub 各建一条普通 Release，上传同名的 `.apk` 与 `-setup.exe`；替换同名资产时先删旧资产再传。**Gitee 只保留最新版本的附件**：免费仓库的发行版附件总量只有 1 GB，每版两个包约 110 MB，发新版前先删掉旧版本 Release 里的附件（Release 与源码归档保留）；旧版本下载只走 GitHub，官网「历史版本」链接也一直指向 GitHub。测试版走 §4.2，**不发 Gitee**。
-10. **验证**：官网 Pages 是否更新、两个平台的下载链接是否可用、APK 指纹是否仍是 §2.2；再打开一个已安装的正式版，确认「检查更新」能拿到这一版。
+10. **发布 PWA（仅正式版）**：在已推送的正式版提交上运行 `npm run build`，再执行 `npx wrangler pages deploy .local/dist --project-name starburst-recorder --branch main`，将应用部署到 Cloudflare Pages 生产分支。它与 GitHub Pages 的宣传官网是两个不同站点，不能用官网工作流代替。部署目标、构建环境变量与线上验收脚本见 [`docs/PWA-IOS.md`](PWA-IOS.md) §10；不要提交 `.env.local` 或 `.local/dist`。测试版不部署到生产 PWA。
+11. **发布后核验**：确认官网 Pages 工作流成功，首页与更新说明显示本版；Gitee / GitHub Release 均为正确通道、版本与附件，四个正式版下载地址可用且 APK 指纹符合 §2.2；正式版 PWA 的 `https://starburst-recorder.pages.dev` 已切到本次构建号，运行 `.local/verify-online.mjs` 与 `.local/probe-pwa.mjs` 并确认全部通过。最后用已安装的正式版检查「检查更新」能获取本版。把标签、包版本与校验信息、官网工作流、PWA 部署地址 / 构建号 / 探针结果记入本文 §4.1 发版记录和 `docs/PWA-IOS.md` §10。测试版按 §4.2 核验 GitHub Pre-release，不核验或覆盖生产 PWA。
 
 ### 4.1 Gitee 发行版附件配额（重要）
 
