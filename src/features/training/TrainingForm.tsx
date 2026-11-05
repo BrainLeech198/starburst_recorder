@@ -22,6 +22,7 @@ import {
   choiceTile,
 } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
+import AiDisclaimer from '@/features/ai/AiDisclaimer'
 import { FIELD, INPUT } from '@/shared/ui/inputStyles'
 import { useToast } from '@/app/providers/ToastProvider'
 import { COMMON_EXERCISES, findExercise, searchExercises } from './exerciseLibrary'
@@ -421,6 +422,7 @@ export default function TrainingForm({
           <button type="button" onClick={() => setMode('pick')} className={`${OUTLINE_BUTTON} w-full`}>
             {t('training.phraseManual')}
           </button>
+          <AiDisclaimer />
         </div>
       )}
 

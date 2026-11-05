@@ -779,6 +779,11 @@ export const zh = {
   'ai.reportSave': '存为今天的日记',
   'ai.reportSaved': '已写入今天的日记。',
   'ai.reportMs': '用时 {s} 秒',
+  'ai.disclaimerNote': '内容由 AI 生成，可能会有错误或遗漏，请核对后再使用。',
+  'ai.disclaimerHealth': 'AI 的估算与建议仅供参考，不能代替医生或营养师的专业判断。',
+  'ai.disclaimerVision': 'AI 识别可能有误，请对照原图核对后再保存。',
+  'ai.disclaimerAssistant': 'AI 助手的回答可能出错，也会按你的要求改动记录；执行前请确认。',
+  'ai.disclaimerPrivacy': '使用 AI 时，对话与图片会发给你配置的模型服务商处理；请勿输入密码等敏感信息。',
 
   'assistant.title': 'AI 助手',
   'assistant.open': '打开 AI 助手',

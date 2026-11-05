@@ -6,6 +6,7 @@ import { askWeather, loadWeatherPlace, saveWeatherPlace } from './weatherQuery'
 import type { DayWeather } from './weatherQuery'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
+import AiDisclaimer from '@/features/ai/AiDisclaimer'
 
 export default function WeatherDialog({
   dateKey,
@@ -117,6 +118,7 @@ export default function WeatherDialog({
           />
         </label>
         <p className="mt-1 text-[11px] text-muted">{t('weather.policy')}</p>
+        <AiDisclaimer className="mt-1" />
 
         {busy && <p className="mt-2 text-muted">{t('weather.querying')}</p>}
 

@@ -26,6 +26,7 @@ import { newCode, newId } from '@/core/utils/id'
 import { formatClock, todayKey } from '@/core/utils/dateKey'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import { compressImage } from '@/features/ai/aiVision'
+import AiDisclaimer from '@/features/ai/AiDisclaimer'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
@@ -1328,6 +1329,7 @@ export default function IntakeDialog({
             ) : (
               <>
                 <p className="m-0 text-xs text-muted">{t('intake.phraseHint')}</p>
+                <AiDisclaimer kind="health" />
                 <textarea
                   value={phrase}
                   onChange={(event) => setPhrase(event.target.value)}
@@ -1703,6 +1705,7 @@ export default function IntakeDialog({
             ) : (
               <>
                 <p className="m-0 text-xs text-muted">{t('intake.imageHint')}</p>
+                <AiDisclaimer kind="vision" />
                 <button
                   type="button"
                   disabled={busy}

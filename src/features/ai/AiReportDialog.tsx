@@ -14,6 +14,7 @@ import Modal from '@/shared/ui/Modal'
 import { GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { FIELD } from '@/shared/ui/inputStyles'
 import { Icon } from '@/shared/ui/icons'
+import AiDisclaimer from './AiDisclaimer'
 import { isConfigured, loadAiConfig } from './aiConfig'
 import { composeReport } from './aiReport'
 import type { ReportPeriod } from './aiReport'
@@ -108,6 +109,7 @@ export default function AiReportDialog({
       ) : (
         <>
           <p className="mt-2 text-xs text-muted">{t('ai.reportHint')}</p>
+          <AiDisclaimer className="mt-1.5" />
 
           {text === '' && !loading && (
             <p className="mt-3 text-sm text-muted">{t('ai.reportIntro')}</p>

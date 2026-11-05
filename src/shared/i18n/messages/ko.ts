@@ -778,6 +778,11 @@ export const ko: Record<MessageKey, string> = {
   'ai.reportSave': '오늘 일기로 저장',
   'ai.reportSaved': '오늘 일기에 저장했어요.',
   'ai.reportMs': '{s}초',
+  'ai.disclaimerNote': 'AI가 생성한 내용이며 오류나 누락이 있을 수 있습니다. 사용 전에 확인해 주세요.',
+  'ai.disclaimerHealth': 'AI의 추정과 제안은 참고용이며 의사나 영양사의 판단을 대신할 수 없습니다.',
+  'ai.disclaimerVision': 'AI 인식 결과가 틀릴 수 있습니다. 저장 전에 원본 이미지와 대조해 확인해 주세요.',
+  'ai.disclaimerAssistant': 'AI 어시스턴트의 답변은 틀릴 수 있고 요청에 따라 기록을 변경하기도 합니다. 적용 전에 확인해 주세요.',
+  'ai.disclaimerPrivacy': 'AI를 사용하면 대화와 이미지가 설정한 모델 제공업체로 전송됩니다. 비밀번호 같은 민감한 정보는 입력하지 마세요.',
 
   'assistant.title': 'AI 어시스턴트',
   'assistant.open': 'AI 어시스턴트 열기',

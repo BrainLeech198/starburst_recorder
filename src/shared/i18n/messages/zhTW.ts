@@ -777,6 +777,11 @@ export const zhTW: Record<MessageKey, string> = {
   'ai.reportSave': '存為今天的日記',
   'ai.reportSaved': '已寫入今天的日記。',
   'ai.reportMs': '耗時 {s} 秒',
+  'ai.disclaimerNote': '內容由 AI 產生，可能會有錯誤或遺漏，請核對後再使用。',
+  'ai.disclaimerHealth': 'AI 的估算與建議僅供參考，不能取代醫生或營養師的專業判斷。',
+  'ai.disclaimerVision': 'AI 辨識可能有誤，請對照原圖核對後再儲存。',
+  'ai.disclaimerAssistant': 'AI 助手的回答可能出錯，也會依你的要求改動記錄；執行前請確認。',
+  'ai.disclaimerPrivacy': '使用 AI 時，對話與圖片會傳送你設定的模型服務商處理；請勿輸入密碼等敏感資訊。',
 
   'assistant.title': 'AI 助手',
   'assistant.open': '開啟 AI 助手',

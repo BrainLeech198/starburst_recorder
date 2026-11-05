@@ -7,6 +7,7 @@ import { useState } from 'react'
 import type { FinanceDraft } from './financePhrase'
 import { analyzeFinancePhrase } from './financePhrase'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
+import AiDisclaimer from '@/features/ai/AiDisclaimer'
 import { newCode, newId } from '@/core/utils/id'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
@@ -84,6 +85,7 @@ export default function FinanceAiDialog({
     <Modal size="sm" label={t('finance.aiTitle')} onClose={onClose}>
       <h2 className="m-0 text-base font-medium text-fg">{t('finance.aiTitle')}</h2>
       <p className="m-0 mt-1 text-xs text-muted">{t('finance.aiDesc')}</p>
+      <AiDisclaimer className="mt-1.5" />
 
       {draft ? (
         <div className="mt-4 rounded-xl border border-line bg-surface-2 p-3 text-sm">

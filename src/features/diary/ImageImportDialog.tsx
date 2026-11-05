@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import Modal from '@/shared/ui/Modal'
 import { compressImage, transcribeDiary } from '@/features/ai/aiVision'
+import AiDisclaimer from '@/features/ai/AiDisclaimer'
 import type { Transcript } from '@/features/ai/aiVision'
 import type { AiConfig } from '@/features/ai/aiConfig'
 import { useI18n } from '@/shared/i18n/context'
@@ -261,6 +262,7 @@ export default function ImageImportDialog({
           ? t('imageImport.emptyHint')
           : t('imageImport.countHint', { count: pages.length, max: MAX_IMPORT_IMAGES })}
       </p>
+      <AiDisclaimer kind="vision" className="mt-1.5" />
 
       {pages.length === 0 ? (
         <button

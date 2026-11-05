@@ -7,6 +7,7 @@ import { Icon } from '@/shared/ui/icons'
 import { useI18n } from '@/shared/i18n/context'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import { compressImage } from '@/features/ai/aiVision'
+import AiDisclaimer from '@/features/ai/AiDisclaimer'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
 import FoodAiChat from './FoodAiChat'
@@ -372,6 +373,7 @@ export default function FoodForm({
               </div>
               {photoError !== '' && <ErrorNote>{photoError}</ErrorNote>}
               {photoNote !== '' && <p className="m-0 text-xs text-brand">{photoNote}</p>}
+              <AiDisclaimer kind="vision" className="mt-1" />
             </>
           )}
         </div>

@@ -14,6 +14,7 @@ import { INPUT } from '@/shared/ui/inputStyles'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
 import { chat, explainFailure, pickReply } from '@/features/ai/aiClient'
+import AiDisclaimer from '@/features/ai/AiDisclaimer'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import type { ChatContentPart, ChatMessage } from '@/platform/desktop'
 import type { FoodDraft } from './FoodForm'
@@ -469,6 +470,7 @@ export default function FoodAiChat({
               <p className="m-0 text-center text-[11px] text-muted">
                 {t('foods.aiProgress', { count: answeredCount, max: MAX_ROUNDS })}
               </p>
+              <AiDisclaimer kind="health" />
             </>
           )}
         </>

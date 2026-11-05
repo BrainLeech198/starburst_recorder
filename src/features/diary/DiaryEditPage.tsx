@@ -39,6 +39,7 @@ import { POLISH_SYSTEM_PROMPT, polishDiary } from '@/features/ai/aiPolish'
 import { reviseText } from '@/features/ai/aiRevision'
 import type { RevisionTurn } from '@/features/ai/aiRevision'
 import RevisionChat from '@/features/ai/RevisionChat'
+import AiDisclaimer from '@/features/ai/AiDisclaimer'
 import { MAX_IMAGES, prepareImages } from './imageAssets'
 import SketchDialog from './SketchDialog'
 import {
@@ -947,6 +948,7 @@ export default function DiaryEditPage() {
         <Modal size="sm" label={t('diaryEdit.polishTitle')} onClose={() => setPolishOpen(false)}>
           <div className="text-sm font-medium">{t('diaryEdit.polishTitle')}</div>
           <p className="mt-1 text-xs text-muted">{t('diaryEdit.polishHint')}</p>
+          <AiDisclaimer className="mt-1.5" />
 
           {polishBusy ? (
             <p className="mt-4 text-sm text-muted">{t('diaryEdit.polishBusy')}</p>

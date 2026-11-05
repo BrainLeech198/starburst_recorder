@@ -779,6 +779,11 @@ export const fr: Record<MessageKey, string> = {
   'ai.reportSave': 'Enregistrer dans le journal du jour',
   'ai.reportSaved': 'Enregistré dans le journal du jour.',
   'ai.reportMs': '{s} s',
+  'ai.disclaimerNote': 'Contenu généré par l’IA. Il peut contenir des erreurs ou des omissions — vérifiez-le avant de l’utiliser.',
+  'ai.disclaimerHealth': 'Les estimations et suggestions de l’IA sont indicatives et ne remplacent pas l’avis d’un médecin ou d’un diététicien.',
+  'ai.disclaimerVision': 'La reconnaissance par l’IA peut se tromper. Comparez avec l’image originale avant d’enregistrer.',
+  'ai.disclaimerAssistant': 'Les réponses de l’assistant IA peuvent être erronées et modifier vos enregistrements sur demande. Vérifiez avant d’appliquer.',
+  'ai.disclaimerPrivacy': 'En utilisant l’IA, les conversations et les images sont envoyées au fournisseur de modèle configuré. Ne saisissez pas de mots de passe ni de données sensibles.',
 
   'assistant.title': 'Assistant IA',
   'assistant.open': "Ouvrir l'assistant IA",

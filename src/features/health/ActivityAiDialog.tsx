@@ -19,6 +19,7 @@ import { INPUT } from '@/shared/ui/inputStyles'
 import { SOLID_BUTTON, OUTLINE_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
 import { chat, explainFailure, pickReply } from '@/features/ai/aiClient'
+import AiDisclaimer from '@/features/ai/AiDisclaimer'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import type { ChatMessage } from '@/platform/desktop'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
@@ -307,6 +308,7 @@ export default function ActivityAiDialog({
               <p className="mt-1.5 text-center text-[11px] text-muted">
                 {t('profile.activityAiProgress', { count: answeredCount, max: MAX_ROUNDS })}
               </p>
+              <AiDisclaimer kind="health" className="mt-1" />
             </>
           )}
         </>

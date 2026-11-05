@@ -781,6 +781,11 @@ export const es: Record<MessageKey, string> = {
   'ai.reportSave': 'Guardar en el diario de hoy',
   'ai.reportSaved': 'Guardado en el diario de hoy.',
   'ai.reportMs': '{s} s',
+  'ai.disclaimerNote': 'Contenido generado por IA. Puede tener errores u omisiones; revísalo antes de usarlo.',
+  'ai.disclaimerHealth': 'Las estimaciones y sugerencias de la IA son orientativas y no sustituyen el criterio de un médico o dietista.',
+  'ai.disclaimerVision': 'El reconocimiento por IA puede equivocarse. Compáralo con la imagen original antes de guardar.',
+  'ai.disclaimerAssistant': 'Las respuestas del asistente de IA pueden ser erróneas y también modificar tus registros cuando se lo pidas. Revísalas antes de aplicarlas.',
+  'ai.disclaimerPrivacy': 'Al usar la IA, las conversaciones e imágenes se envían al proveedor de modelos que hayas configurado. No introduzcas contraseñas ni otros datos sensibles.',
 
   'assistant.title': 'Asistente de IA',
   'assistant.open': 'Abrir asistente de IA',

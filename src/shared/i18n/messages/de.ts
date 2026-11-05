@@ -779,6 +779,11 @@ export const de: Record<MessageKey, string> = {
   'ai.reportSave': 'Als heutiges Tagebuch speichern',
   'ai.reportSaved': 'Im heutigen Tagebuch gespeichert.',
   'ai.reportMs': '{s} s',
+  'ai.disclaimerNote': 'Von KI erzeugt. Inhalt kann Fehler oder Auslassungen enthalten – bitte vor der Nutzung prüfen.',
+  'ai.disclaimerHealth': 'KI-Schätzungen und -Empfehlungen dienen nur zur Orientierung und ersetzen nicht die Beurteilung durch Arzt oder Ernährungsberatung.',
+  'ai.disclaimerVision': 'Die KI-Erkennung kann falsch sein. Bitte vor dem Speichern mit dem Originalbild abgleichen.',
+  'ai.disclaimerAssistant': 'Antworten des KI-Assistenten können falsch sein und auf Wunsch auch Einträge ändern. Bitte vor dem Übernehmen prüfen.',
+  'ai.disclaimerPrivacy': 'Bei Nutzung der KI werden Chats und Bilder an den von dir konfigurierten Modellanbieter gesendet. Gib keine Passwörter oder andere sensible Daten ein.',
 
   'assistant.title': 'KI-Assistent',
   'assistant.open': 'KI-Assistent öffnen',

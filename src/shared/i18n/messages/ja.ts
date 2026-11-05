@@ -779,6 +779,11 @@ export const ja: Record<MessageKey, string> = {
   'ai.reportSave': '今日の日記として保存',
   'ai.reportSaved': '今日の日記に書き込みました。',
   'ai.reportMs': '{s} 秒',
+  'ai.disclaimerNote': 'AI が生成した内容です。誤りや抜けがある可能性があるため、確認してから使ってください。',
+  'ai.disclaimerHealth': 'AI の推定と提案は参考用で、医師や管理栄養士の判断の代わりにはなりません。',
+  'ai.disclaimerVision': 'AI の読み取りは誤ることがあります。保存前に元の画像と照らし合わせて確認してください。',
+  'ai.disclaimerAssistant': 'AI アシスタントの回答は誤ることがあり、指示に従って記録を変更することもあります。実行前に内容を確認してください。',
+  'ai.disclaimerPrivacy': 'AI を使うと、会話と画像は設定したモデル提供元に送信されます。パスワードなどの機密情報は入力しないでください。',
 
   'assistant.title': 'AI アシスタント',
   'assistant.open': 'AI アシスタントを開く',

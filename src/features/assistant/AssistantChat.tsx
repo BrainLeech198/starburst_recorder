@@ -17,6 +17,7 @@ import { useI18n } from '@/shared/i18n/context'
 import { useToast } from '@/app/providers/ToastProvider'
 import { exportAllData } from '@/features/health/healthRepo'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
+import AiDisclaimer from '@/features/ai/AiDisclaimer'
 import { loadReasoning, saveReasoning } from '@/features/ai/aiReasoning'
 import { INPUT } from '@/shared/ui/inputStyles'
 import { SOLID_BUTTON } from '@/shared/ui/buttonStyles'
@@ -1862,14 +1863,15 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             </div>
           </div>
         )}
-        {/* 提示单独占一行：和开关挤在同一行时长句会被压成三行，看着最乱。
-            悬浮面板里不显示——那点高度留给对话本身。 */}
+        {/* 健康口径的提示单独占一行：和开关挤在同一行时长句会被压成三行，看着最乱。
+            悬浮面板里不显示这条——那点高度留给对话本身；AI 可能出错的通用提醒始终保留。 */}
         {!compact && (
           <p className="m-0 mt-2 flex items-start gap-1.5 text-[10px] leading-relaxed text-muted">
             <Icon name="info" className="mt-px h-3 w-3 shrink-0" />
             <span className="min-w-0">{t('assistant.healthNote')}</span>
           </p>
         )}
+        <AiDisclaimer kind="assistant" className="mt-1" />
       </div>
 
       {sessionOpen && (

@@ -25,6 +25,7 @@ import type { ComposeContext, ComposeSource, ComposeStyle } from './aiCompose'
 import { reviseText } from './aiRevision'
 import type { RevisionSeed, RevisionTurn } from './aiRevision'
 import RevisionChat from './RevisionChat'
+import AiDisclaimer from './AiDisclaimer'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import { Icon } from '@/shared/ui/icons'
@@ -213,6 +214,7 @@ export default function AiComposeDialog({
         })}
         <span className="text-fg">{t('ai.composeKeepStamps')}</span>
       </p>
+      <AiDisclaimer className="mt-1.5" />
 
       <div className="mt-3 text-xs text-muted">{t('ai.sources')}</div>
       <div className="mt-1 flex flex-wrap gap-2">

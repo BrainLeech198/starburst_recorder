@@ -28,6 +28,7 @@ import {
   SOLID_DANGER,
 } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
+import AiDisclaimer from './AiDisclaimer'
 import {
   canTest,
   isConfigured,
@@ -300,6 +301,7 @@ export default function AiSection() {
           <div className="font-mono text-xs break-all text-fg">{summary}</div>
           <div className="mt-0.5 text-xs text-muted">{verdict}</div>
         </div>
+        <AiDisclaimer kind="privacy" className="mt-2" />
 
       {models.length === 0 ? (
         <p className="mt-4 rounded-xl border border-dashed border-line px-3 py-6 text-center text-xs text-muted">

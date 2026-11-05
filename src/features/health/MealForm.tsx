@@ -11,6 +11,7 @@ import type { HealthFood, HealthMeal, HealthMealItem } from '@/core/db/schema'
 import { newId } from '@/core/utils/id'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import { compressImage } from '@/features/ai/aiVision'
+import AiDisclaimer from '@/features/ai/AiDisclaimer'
 import { useI18n } from '@/shared/i18n/context'
 import { INPUT, INPUT_NUM } from '@/shared/ui/inputStyles'
 import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
@@ -435,6 +436,7 @@ export default function MealForm({
                   {aiBusy ? t('foods.aiThinking') : t('foods.aiSend')}
                 </button>
               </div>
+              <AiDisclaimer kind="health" />
             </>
           )}
         </div>
@@ -488,6 +490,7 @@ export default function MealForm({
               </button>
               {photoError !== '' && <ErrorNote>{photoError}</ErrorNote>}
               {photoNote !== '' && <p className="m-0 text-xs text-brand">{photoNote}</p>}
+              <AiDisclaimer kind="vision" className="mt-1" />
             </>
           )}
         </div>
