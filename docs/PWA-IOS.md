@@ -415,7 +415,7 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
 
 ---
 
-## 10. 当前部署状态（2026-11-04）
+## 10. 当前部署状态（2026-11-05）
 
 | 项目 | 值 |
 | --- | --- |
@@ -457,5 +457,9 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
 - **2026-11-04 v0.15.1 公告回执**：标签 `v0.15.1`（提交 `ef10c44`）已部署到生产 Pages，地址
   `https://028fcd74.starburst-recorder.pages.dev`，构建号 `mw1xmho8`；`.local/verify-online.mjs`
   通过 10/10，`.local/probe-pwa.mjs` 通过 20/20。新客户端点“确认收到”后本机记住公告 ID；关闭弹窗仍会在下次启动提醒。
+- **2026-11-05 v0.16.2**：标签 `v0.16.2`（提交 `dc99b75`）已部署到生产 Pages，地址
+  `https://c75b25f8.starburst-recorder.pages.dev`，构建号 `mw3j9k4u`；正式域名
+  `https://starburst-recorder.pages.dev` 的线上验收 10/10，本地 PWA 探针 20/20；Service Worker 已激活并接管页面，
+  推送中继鉴权与 `/health` 均通过，测试订阅已删除。
 - **KV 里现在只剩一条记录**，是早先在 workerd 里手测留下的 FCM 端点、`slots` 为 0
   （永远不会命中，不产生推送）。真正的用户订阅会在开启提醒时自己写进来。
