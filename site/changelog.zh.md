@@ -1,3 +1,19 @@
+## 0.16.1 · 2026-11-05
+
+AI 写的内容标清来路，图片存法可以按模块分开选
+
+### 这一版有什么
+
+- **AI 写的东西边上多了一行小字**：所有 AI 入口共用一份口径，说明内容由 AI 生成、可能有误。健康估算提醒「不能代替医生或营养师」，识图提醒「对照原图核对」，助手提醒「会按你的要求改动记录」，模型设置页则提醒对话与图片会发给你配置的服务商。
+- **图片怎么存可以按模块分开选**：设置里先选全体，再给日记、健康、经济各自选「跟随全体 / 压缩 / 原图」。想让日记留原图、票据继续压缩，现在不用二选一。
+- **原图模式不再裁剪**：给健康或经济选了原图后，照片按原样保存，不再裁成正方形，票据边角不会被切掉。
+- **分模块设置跟着备份走**：三个新键已进备份白名单，换设备恢复时不用重选。
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.16.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.16.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.1/starburst-recorder-0.16.1.apk)
+
 ## 0.16.0 · 2026-11-04
 
 长辈关怀首页收缩信息密度，记录入口与分享体验同步改进
