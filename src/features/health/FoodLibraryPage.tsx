@@ -29,6 +29,9 @@ import { buildFoodShare, buildMealShare } from './foodShare'
 import type { ShareDoc } from '@/features/share/shareCode'
 import { formatNum, mealTotals } from './healthMath'
 import { mealPhoto } from './mealPhoto'
+import FoodSortControls from './FoodSortControls'
+import type { FoodSortDirection, FoodSortKey } from './foodSort'
+import { sortFoodCatalog } from './foodSort'
 import {
   healthFoods,
   healthMeals,
@@ -46,11 +49,6 @@ import {
 } from './healthRepo'
 
 type Tab = 'foods' | 'meals'
-
-/** 食物库按名字排：中文按拼音、数字按大小，跟文件管理器一个直觉 */
-function byName(a: { name: string }, b: { name: string }) {
-  return a.name.localeCompare(b.name, 'zh-CN', { numeric: true, sensitivity: 'base' })
-}
 
 /** 复制出来的名字：默认「原名 副本」，撞名就往后加序号 */
 function copyName(base: string, foods: { name: string }[], suffix: string): string {
@@ -73,6 +71,8 @@ export default function FoodLibraryPage() {
   const [tab, setTab] = useState<Tab>('foods')
   const [query, setQuery] = useState('')
   const [tagFilter, setTagFilter] = useState<string | null>(null)
+  const [sortKey, setSortKey] = useState<FoodSortKey>('name')
+  const [sortDirection, setSortDirection] = useState<FoodSortDirection>('asc')
 
   const [detailFood, setDetailFood] = useState<HealthFood | null>(null)
   const [editing, setEditing] = useState<HealthFood | null>(null)
@@ -289,8 +289,8 @@ export default function FoodLibraryPage() {
   /** 可选的合并目标：除自己以外、按搜索词过滤 */
   const mergeKeyword = mergeQuery.trim().toLowerCase()
   const keyword = query.trim().toLowerCase()
-  const sortedFoods = [...(foods ?? [])].sort(byName)
-  const sortedMeals = [...(meals ?? [])].sort(byName)
+  const sortedFoods = sortFoodCatalog(foods ?? [], sortKey, sortDirection)
+  const sortedMeals = sortFoodCatalog(meals ?? [], sortKey, sortDirection)
   const foodTags = [...new Set(sortedFoods.flatMap((food) => food.tags))].sort((a, b) =>
     a.localeCompare(b, 'zh-CN', { numeric: true, sensitivity: 'base' }),
   )
@@ -304,9 +304,13 @@ export default function FoodLibraryPage() {
     ? sortedMeals.filter((meal) => meal.name.toLowerCase().includes(keyword))
     : sortedMeals
 
-  const mergeList = (foods ?? [])
-    .filter((food) => food.id !== merging?.id && food.name.toLowerCase().includes(mergeKeyword))
-    .sort(byName)
+  const mergeList = sortFoodCatalog(
+    (foods ?? []).filter(
+      (food) => food.id !== merging?.id && food.name.toLowerCase().includes(mergeKeyword),
+    ),
+    'name',
+    'asc',
+  )
   const mergeTarget = mergeTargetId
     ? (foods ?? []).find((food) => food.id === mergeTargetId) ?? null
     : null
@@ -379,13 +383,23 @@ export default function FoodLibraryPage() {
       </div>
 
       {!tabEmpty && !batch.active && (
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t('foods.search')}
-          aria-label={t('foods.search')}
-          className={`${INPUT} mb-3`}
-        />
+        <div className="mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_16rem]">
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t('foods.search')}
+            aria-label={t('foods.search')}
+            className={INPUT}
+          />
+          <FoodSortControls
+            sortKey={sortKey}
+            direction={sortDirection}
+            onSortKeyChange={setSortKey}
+            onDirectionToggle={() =>
+              setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
+            }
+          />
+        </div>
       )}
 
       {tab === 'foods' && sortedFoods.length > 0 && !batch.active && (

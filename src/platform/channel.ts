@@ -33,6 +33,18 @@ export interface Notice {
   createdAt: number
 }
 
+export type FeedbackStatus = 'received' | 'in_progress' | 'resolved'
+
+export interface FeedbackRecord {
+  id: string
+  body: string
+  createdAt: number
+  status: FeedbackStatus
+  developerReply: string
+  statusUpdatedAt?: number
+  developerRepliedAt?: number
+}
+
 /** 统一的结果信封：失败时用 error 说明原因，不抛异常 */
 export interface ChannelResult<T> {
   ok: boolean
@@ -50,6 +62,27 @@ async function parseJson<T>(text: string): Promise<T | null> {
     return JSON.parse(text) as T
   } catch {
     return null
+  }
+}
+
+const FEEDBACK_CLIENT_ID_KEY = 'starburst.feedbackClientId'
+let temporaryFeedbackClientId: string | undefined
+
+/** Stable per-installation ID. The server hashes it before storage. */
+function feedbackClientId(): string | null {
+  try {
+    const stored = window.localStorage.getItem(FEEDBACK_CLIENT_ID_KEY)
+    if (stored && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stored)) {
+      return stored
+    }
+    const generated = globalThis.crypto?.randomUUID?.()
+    if (!generated) return null
+    window.localStorage.setItem(FEEDBACK_CLIENT_ID_KEY, generated)
+    return generated
+  } catch {
+    // Keep feedback usable for the current session if browser storage is blocked.
+    temporaryFeedbackClientId ??= globalThis.crypto?.randomUUID?.()
+    return temporaryFeedbackClientId ?? null
   }
 }
 
@@ -173,12 +206,40 @@ export async function checkSubscription(email: string): Promise<ChannelResult<bo
 
 /** 提交给官方的反馈 */
 export async function submitFeedback(body: string): Promise<ChannelResult<{ ok?: boolean }>> {
+  const clientId = feedbackClientId()
+  if (!clientId) return { ok: false, error: 'feedback client id unavailable' }
   const result = await request<{ ok?: boolean }>('/feedback', {
     method: 'POST',
-    body: { body },
+    body: { body, clientId },
   })
   if (!result.ok) return result
   return result.data?.ok === true ? result : { ok: false, error: 'bad response' }
+}
+
+/** Read feedback history for this installation only. */
+export async function fetchFeedbackHistory(): Promise<ChannelResult<FeedbackRecord[]>> {
+  const clientId = feedbackClientId()
+  if (!clientId) return { ok: false, error: 'feedback client id unavailable' }
+  const result = await request<{ feedback?: unknown }>('/feedback/history', {
+    method: 'POST',
+    body: { clientId },
+  })
+  if (!result.ok) return { ok: false, error: result.error }
+  if (!Array.isArray(result.data?.feedback)) return { ok: false, error: 'bad response' }
+  const feedback = result.data.feedback.filter(
+    (item): item is FeedbackRecord =>
+      Boolean(item) &&
+      typeof item === 'object' &&
+      typeof (item as FeedbackRecord).id === 'string' &&
+      typeof (item as FeedbackRecord).body === 'string' &&
+      Number.isFinite((item as FeedbackRecord).createdAt) &&
+      ['received', 'in_progress', 'resolved'].includes((item as FeedbackRecord).status) &&
+      typeof (item as FeedbackRecord).developerReply === 'string',
+  )
+  if (result.data.feedback.length > 0 && feedback.length === 0) {
+    return { ok: false, error: 'bad response' }
+  }
+  return { ok: true, data: feedback }
 }
 
 /**

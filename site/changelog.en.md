@@ -1,19 +1,19 @@
-## 0.16.2 · 2026-11-05
+## 0.17.0 · 2026-11-06
 
-Food tags, full photo viewing and smoother batch actions
+Feedback follow-up, food sorting and spending chart choices
 
 ### What's new
 
-- **Tag and filter foods** — add your own tags in the food library and filter by them; tags are included in backups, and existing foods are migrated automatically.
-- **View and download full photos** — thumbnails keep the original aspect ratio and open in a full-screen viewer with a download action; compressed diary, food and receipt photos are scaled proportionally without cropping.
-- **Approve a group of assistant actions** — explicitly approve several pending writes from one reply to run them in sequence and review each result; switch to individual confirmation or cancel the remaining actions.
-- **See daily totals in Finance week view** — a chart compares income and spending for each day of the selected week.
-- **Cleaner record lists** — edit, share, export and delete actions are grouped in each row's menu.
+- **Follow up on feedback** — view this installation's submitted feedback, status and developer replies. Each installation can submit up to three items every seven days. Clearing browser data or reinstalling disconnects access to the old installation's history.
+- **A feedback workspace for administrators** — switch between notices, subscribers and feedback; update feedback status and write a reply visible in the app. Older feedback without an installation ID remains viewable but cannot be replied to.
+- **Sort foods and meal choices** — sort by name or date added, in either ascending or descending order.
+- **Switch spending breakdown charts** — view category shares as a pie chart or the existing progress bars.
+- **Clearer email configuration status** — the admin page lists missing setting names without exposing secret values.
 
 ### Downloads
 
-- Windows 10/11: [`starburst-recorder-0.16.2-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2-setup.exe)
-- Android 10+: [`starburst-recorder-0.16.2.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2.apk)
+- Windows 10/11: [`starburst-recorder-0.17.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.0/starburst-recorder-0.17.0-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.0/starburst-recorder-0.17.0-setup.exe)
+- Android 10+: [`starburst-recorder-0.17.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.0/starburst-recorder-0.17.0.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.0/starburst-recorder-0.17.0.apk)
 
 ## 0.16.1 · 2026-11-05
 

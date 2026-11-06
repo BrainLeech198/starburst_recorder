@@ -1,5 +1,5 @@
 /**
- * Web Push 服务端（Cloudflare Worker + KV + Cron）。
+ * Web Push 服务端（Cloudflare Worker + KV + Durable Objects + Cron）。
  *
  * 只做三件事：
  *   1. `/subscribe`   收下订阅端点 + 时区 + 「几点、哪类」的提醒清单；
@@ -31,19 +31,22 @@ import {
   deleteNotice,
   emailKey,
   isSubscribed,
+  getFeedbackIndex,
   listFeedback,
+  listFeedbackIndex,
   listNotices,
   listSubscribers,
   normalizeEmail,
   putFeedback,
+  putFeedbackIndex,
   putNotice,
   sanitizeNotice,
   subscribeEmail,
   subscribeEmailWithoutConfirmation,
   unsubscribeEmail,
   updateNotice,
+  updateFeedbackIndex,
 } from './channel.js'
-
 /** 与客户端 `MAX_SCHEDULE_SLOTS` 对齐：超出直接拒，免得一份请求把 KV 撑爆 */
 const MAX_SLOTS = 20
 /** 请求体上限。正常一份订阅约 1KB，16KB 已经非常宽松 */
@@ -224,14 +227,16 @@ async function adminSessionRejected(request, env, cors) {
 
 /** 邮件发送只有在 API Key、发件地址、退订密钥和队列都已配置时才开放。 */
 function getAdminStatus(env, cors) {
-  const emailSendingEnabled = emailSendingReady(env)
+  const emailMissingConfig = missingEmailConfig(env)
+  const emailSendingEnabled = emailMissingConfig.length === 0
   return json(
     {
       ok: true,
       emailSendingEnabled,
+      emailMissingConfig,
       emailReason: emailSendingEnabled
         ? ''
-        : '邮件发送未配置：需要 Resend API Key、已验证的发件地址、退订密钥和邮件队列',
+        : `邮件发送未配置：缺少 ${emailMissingConfig.join('、')}`,
     },
     200,
     cors,
@@ -528,9 +533,76 @@ async function getSubscription(request, env, cors) {
 async function postFeedback(request, env, cors) {
   const parsed = await readJson(request)
   if (parsed.error) return json({ error: parsed.error }, parsed.status, cors)
-  const record = await putFeedback(env.PUSH_KV, parsed.body?.body)
-  if (!record) return json({ error: 'empty feedback' }, 400, cors)
-  return json({ ok: true, id: record.id }, 200, cors)
+  const clientId = parsed.body?.clientId
+  if (clientId === undefined || clientId === null || clientId === '') {
+    // Compatibility for clients that predate installation history; these records are read-only.
+    const legacy = await putFeedback(env.PUSH_KV, parsed.body?.body)
+    if (!legacy) return json({ error: 'empty feedback' }, 400, cors)
+    return json({ ok: true, id: legacy.id, createdAt: legacy.createdAt }, 200, cors)
+  }
+
+  const clientHash = await hashFeedbackClientId(clientId)
+  if (!clientHash) return json({ error: 'invalid feedback client id' }, 400, cors)
+  const service = getFeedbackService(env, clientHash)
+  if (!service) return json({ error: 'feedback service unavailable' }, 503, cors)
+
+  let result
+  try {
+    result = await service.submitFeedback({ body: parsed.body?.body })
+  } catch {
+    return json({ error: 'feedback service unavailable' }, 503, cors)
+  }
+  if (result?.error) {
+    return json(
+      { error: result.error, ...(result.retryAt ? { retryAt: result.retryAt } : {}) },
+      result.status || 503,
+      cors,
+    )
+  }
+  if (!result?.feedback) return json({ error: 'invalid feedback response' }, 503, cors)
+
+  try {
+    await putFeedbackIndex(env.PUSH_KV, result.feedback, clientHash)
+  } catch (error) {
+    // The feedback is already durable in the per-installation object; keep the user submission.
+    console.error('feedback admin index write failed', error)
+  }
+  return json({ ok: true, id: result.feedback.id, createdAt: result.feedback.createdAt }, 200, cors)
+}
+
+/** Hash a random installation UUID; the raw identifier is never stored server-side. */
+async function hashFeedbackClientId(clientId) {
+  if (typeof clientId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId)) {
+    return null
+  }
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(clientId.toLowerCase()))
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function getFeedbackService(env, clientHash) {
+  try {
+    return typeof clientHash === 'string' && /^[a-f0-9]{64}$/.test(clientHash)
+      ? env.FEEDBACK_SERVICE?.getByName?.(clientHash) ?? null
+      : null
+  } catch {
+    return null
+  }
+}
+
+/** POST /feedback/history keeps the pseudonymous install ID out of URLs and request logs. */
+async function getFeedbackHistory(request, env, cors) {
+  const parsed = await readJson(request)
+  if (parsed.error) return json({ error: parsed.error }, parsed.status, cors)
+  const clientHash = await hashFeedbackClientId(parsed.body?.clientId)
+  if (!clientHash) return json({ error: 'invalid feedback client id' }, 400, cors)
+  const service = getFeedbackService(env, clientHash)
+  if (!service) return json({ error: 'feedback service unavailable' }, 503, cors)
+  try {
+    const history = await service.listFeedback()
+    return json({ ok: true, ...history, count: history.feedback.length }, 200, cors)
+  } catch {
+    return json({ error: 'feedback service unavailable' }, 503, cors)
+  }
 }
 
 /* ─────────────── 管理面：需要 ADMIN_TOKEN ─────────────── */
@@ -577,13 +649,19 @@ async function deleteAdminNoticeById(id, env, cors) {
 }
 
 function emailSendingReady(env) {
-  return Boolean(
-    env.RESEND_API_KEY &&
-    env.EMAIL_FROM &&
-    env.UNSUBSCRIBE_TOKEN_SECRET &&
-    new TextEncoder().encode(env.UNSUBSCRIBE_TOKEN_SECRET).length >= 32 &&
-    env.EMAIL_QUEUE,
-  )
+  return missingEmailConfig(env).length === 0
+}
+
+/** Report missing binding/secret names only; never return or log secret values. */
+function missingEmailConfig(env) {
+  const missing = []
+  if (!env.RESEND_API_KEY) missing.push('RESEND_API_KEY')
+  if (!env.EMAIL_FROM) missing.push('EMAIL_FROM')
+  if (!env.UNSUBSCRIBE_TOKEN_SECRET || new TextEncoder().encode(env.UNSUBSCRIBE_TOKEN_SECRET).length < 32) {
+    missing.push('UNSUBSCRIBE_TOKEN_SECRET（至少 32 字节）')
+  }
+  if (!env.EMAIL_QUEUE) missing.push('EMAIL_QUEUE')
+  return missing
 }
 
 /** One queue message per email; IDs stay stable if the browser retries the same operation. */
@@ -838,8 +916,51 @@ async function getAdminSubscribers(env, cors) {
 
 /** GET /admin/feedback：翻用户反馈 */
 async function getAdminFeedback(env, cors) {
-  const items = await listFeedback(env.PUSH_KV)
+  const [legacy, indexed] = await Promise.all([
+    listFeedback(env.PUSH_KV),
+    listFeedbackIndex(env.PUSH_KV),
+  ])
+  const current = await Promise.all(indexed.map(async (item) => {
+    const service = getFeedbackService(env, item.clientHash)
+    if (!service?.getFeedback) return item
+    try {
+      const feedback = await service.getFeedback(item.id)
+      return feedback ? { ...feedback, canReply: true } : item
+    } catch {
+      return item
+    }
+  }))
+  const items = [...legacy, ...current]
+    .map((item) => {
+      const publicItem = { ...item }
+      delete publicItem.clientHash
+      return publicItem
+    })
+    .sort((a, b) => b.createdAt - a.createdAt)
   return json({ ok: true, count: items.length, feedback: items }, 200, cors)
+}
+
+/** PUT /admin/api/feedback/:id updates the status and developer response. */
+async function putAdminFeedbackById(request, id, env, cors) {
+  const parsed = await readJson(request)
+  if (parsed.error) return json({ error: parsed.error }, parsed.status, cors)
+  const indexed = await getFeedbackIndex(env.PUSH_KV, id)
+  if (!indexed) return json({ error: 'feedback not found or cannot be replied to' }, 404, cors)
+  const service = getFeedbackService(env, indexed.clientHash)
+  if (!service?.updateFeedback) return json({ error: 'feedback service unavailable' }, 503, cors)
+  let feedback
+  try {
+    feedback = await service.updateFeedback({ id, ...parsed.body })
+  } catch {
+    return json({ error: 'feedback service unavailable' }, 503, cors)
+  }
+  if (!feedback) return json({ error: 'feedback not found or cannot be replied to' }, 404, cors)
+  try {
+    await updateFeedbackIndex(env.PUSH_KV, feedback, indexed.clientHash)
+  } catch (error) {
+    console.error('feedback admin index update failed', error)
+  }
+  return json({ ok: true, feedback: { ...feedback, canReply: true } }, 200, cors)
 }
 
 /** 推一条。返回 HTTP 状态码，调用方据此判断订阅是否已经死了 */
@@ -973,6 +1094,9 @@ export default {
     if (url.pathname === '/feedback' && request.method === 'POST') {
       return postFeedback(request, env, cors)
     }
+    if (url.pathname === '/feedback/history' && request.method === 'POST') {
+      return getFeedbackHistory(request, env, cors)
+    }
 
     // ─── 管理网页账号登录与短期会话 ───
     if (url.pathname === '/admin/session' && request.method === 'POST') {
@@ -1009,6 +1133,16 @@ export default {
       }
       if (url.pathname === '/admin/api/feedback' && request.method === 'GET') {
         return getAdminFeedback(env, cors)
+      }
+      const feedbackMatch = /^\/admin\/api\/feedback\/([^/]+)$/.exec(url.pathname)
+      if (feedbackMatch && request.method === 'PUT') {
+        let id
+        try {
+          id = decodeURIComponent(feedbackMatch[1])
+        } catch {
+          return json({ error: 'invalid feedback id' }, 400, cors)
+        }
+        return putAdminFeedbackById(request, id, env, cors)
       }
     }
 

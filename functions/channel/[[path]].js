@@ -11,6 +11,7 @@ const ROUTES = new Map([
   ['unsubscribe-email', new Set(['POST'])],
   ['subscription', new Set(['GET'])],
   ['feedback', new Set(['POST'])],
+  ['feedback/history', new Set(['POST'])],
   ['admin/session', new Set(['POST'])],
   ['admin/api/status', new Set(['GET'])],
   ['admin/api/notices', new Set(['GET', 'POST'])],
@@ -23,6 +24,7 @@ function allowedMethods(route) {
   const exact = ROUTES.get(route)
   if (exact) return exact
   if (/^admin\/api\/notices\/[^/]+$/.test(route)) return new Set(['PUT', 'DELETE'])
+  if (/^admin\/api\/feedback\/[^/]+$/.test(route)) return new Set(['PUT'])
   return undefined
 }
 

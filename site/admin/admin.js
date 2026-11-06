@@ -97,6 +97,40 @@ async function fetchAdminApi(url, options) {
   }
 }
 
+const workspaceTabs = [...document.querySelectorAll('[data-workspace-target]')]
+const workspacePanels = [...document.querySelectorAll('[data-workspace-panel]')]
+
+function selectWorkspaceSection(name, moveFocus = false) {
+  for (const tab of workspaceTabs) {
+    const active = tab.dataset.workspaceTarget === name
+    tab.setAttribute('aria-selected', String(active))
+    tab.tabIndex = active ? 0 : -1
+    if (active && moveFocus) tab.focus()
+  }
+  for (const panel of workspacePanels) panel.hidden = panel.dataset.workspacePanel !== name
+  workspaceMessage.hidden = true
+}
+
+for (const [index, tab] of workspaceTabs.entries()) {
+  tab.addEventListener('click', () => selectWorkspaceSection(tab.dataset.workspaceTarget))
+  tab.addEventListener('keydown', (event) => {
+    const last = workspaceTabs.length - 1
+    const next = event.key === 'ArrowRight'
+      ? (index + 1) % workspaceTabs.length
+      : event.key === 'ArrowLeft'
+        ? (index + last) % workspaceTabs.length
+        : event.key === 'Home'
+          ? 0
+          : event.key === 'End'
+            ? last
+            : -1
+    if (next < 0) return
+    event.preventDefault()
+    const target = workspaceTabs[next]
+    selectWorkspaceSection(target.dataset.workspaceTarget, true)
+  })
+}
+
 loginForm.addEventListener('submit', async (event) => {
   event.preventDefault()
   const button = loginForm.querySelector('button[type="submit"]')
@@ -123,9 +157,20 @@ loginForm.addEventListener('submit', async (event) => {
     const emailOptions = [...loginView.ownerDocument.querySelectorAll('select[name="delivery"] option')]
       .filter((option) => option.value !== 'notice')
     for (const option of emailOptions) option.disabled = !status.emailSendingEnabled
+    const configLabels = {
+      RESEND_API_KEY: 'Resend API Key',
+      EMAIL_FROM: '发件地址',
+      'UNSUBSCRIBE_TOKEN_SECRET（至少 32 字节）': '退订签名密钥（至少 32 字节）',
+      EMAIL_QUEUE: 'Cloudflare 邮件队列',
+    }
+    const missing = Array.isArray(status.emailMissingConfig)
+      ? status.emailMissingConfig.map((item) => configLabels[item] || item)
+      : []
     document.querySelector('#mail-note').textContent = status.emailSendingEnabled
-      ? '邮件会发送给当前所有已订阅地址；每封邮件均附退订链接。'
-      : `${status.emailReason}。邮件发送选项暂不可用。`
+      ? '邮件会发送给已确认订阅者；每封邮件均附退订链接。发件地址必须已在 Resend 验证。'
+      : missing.length
+        ? `邮件功能暂不可用，服务端缺少：${missing.join('、')}。发件地址还需通过 Resend 域名验证。`
+        : `${status.emailReason || '邮件服务尚未配置'}。邮件发送选项暂不可用。`
     await loadAdminNotices()
   } catch (error) {
     if (sessionToken) {
@@ -389,6 +434,7 @@ let adminNotices = []
 let adminNoticesLoaded = false
 let subscribersLoaded = false
 let feedbackLoaded = false
+let adminFeedback = []
 const noticesSearch = document.querySelector('#notices-search')
 const noticesLevel = document.querySelector('#notices-level')
 
@@ -537,6 +583,124 @@ document.querySelector('#load-subscribers').addEventListener('click', async (eve
   }
 })
 
+function renderAdminFeedback(expandedId = null) {
+  const list = document.querySelector('#feedback-list')
+  if (!adminFeedback.length) return showEmpty(list, '还没有用户反馈。')
+
+  const statusLabels = {
+    received: '已收到',
+    in_progress: '处理中',
+    resolved: '已处理',
+  }
+  const items = adminFeedback.map((feedback) => {
+    const item = document.createElement('li')
+    item.className = 'feedback-record'
+    const details = document.createElement('details')
+    details.open = feedback.id === expandedId || (feedback.canReply && feedback.status !== 'resolved')
+
+    const summary = document.createElement('summary')
+    const summaryText = document.createElement('span')
+    summaryText.className = 'feedback-record__summary'
+    const title = document.createElement('strong')
+    title.textContent = feedback.body.replace(/\s+/g, ' ').slice(0, 90)
+    const submitted = document.createElement('small')
+    submitted.textContent = formatTime(feedback.createdAt)
+    summaryText.append(title, submitted)
+    const status = document.createElement('span')
+    status.className = 'feedback-record__status'
+    status.textContent = statusLabels[feedback.status] || statusLabels.received
+    summary.append(summaryText, status)
+
+    const body = document.createElement('p')
+    body.className = 'feedback-record__body'
+    body.textContent = feedback.body
+    details.append(summary, body)
+
+    const meta = document.createElement('div')
+    meta.className = 'feedback-record__meta'
+    const submittedMeta = document.createElement('span')
+    submittedMeta.textContent = `提交于 ${formatTime(feedback.createdAt)}`
+    meta.append(submittedMeta)
+    if (feedback.statusUpdatedAt) {
+      const updatedMeta = document.createElement('span')
+      updatedMeta.textContent = `状态更新于 ${formatTime(feedback.statusUpdatedAt)}`
+      meta.append(updatedMeta)
+    }
+    details.append(meta)
+
+    if (feedback.developerReply) {
+      const reply = document.createElement('p')
+      reply.className = 'feedback-record__reply'
+      const replyLabel = document.createElement('strong')
+      replyLabel.textContent = `管理员回复 · ${formatTime(feedback.developerRepliedAt || feedback.statusUpdatedAt)}`
+      reply.append(replyLabel, document.createTextNode(feedback.developerReply))
+      details.append(reply)
+    }
+
+    if (feedback.canReply) {
+      const form = document.createElement('form')
+      form.className = 'feedback-reply'
+      const statusLabel = document.createElement('label')
+      statusLabel.append(document.createTextNode('处理状态'))
+      const statusSelect = document.createElement('select')
+      statusSelect.name = 'status'
+      for (const [value, label] of Object.entries(statusLabels)) {
+        const option = document.createElement('option')
+        option.value = value
+        option.textContent = label
+        statusSelect.append(option)
+      }
+      statusSelect.value = statusLabels[feedback.status] ? feedback.status : 'received'
+      statusLabel.append(statusSelect)
+
+      const replyLabel = document.createElement('label')
+      replyLabel.append(document.createTextNode('给用户的回复'))
+      const replyInput = document.createElement('textarea')
+      replyInput.name = 'developerReply'
+      replyInput.maxLength = 4000
+      replyInput.placeholder = '写下用户在应用内能看到的处理说明'
+      replyInput.value = feedback.developerReply || ''
+      replyLabel.append(replyInput)
+
+      const save = document.createElement('button')
+      save.className = 'button button--primary button--small'
+      save.type = 'submit'
+      save.textContent = '保存状态与回复'
+      form.append(statusLabel, replyLabel, save)
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault()
+        save.disabled = true
+        try {
+          const result = await adminRequest(`/admin/api/feedback/${encodeURIComponent(feedback.id)}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              status: statusSelect.value,
+              developerReply: replyInput.value,
+            }),
+          })
+          const index = adminFeedback.findIndex((item) => item.id === feedback.id)
+          if (index >= 0) adminFeedback[index] = result.feedback
+          renderAdminFeedback(feedback.id)
+          showWorkspaceMessage('反馈处理状态和回复已保存，用户下次打开反馈页即可看到。')
+        } catch (error) {
+          showWorkspaceMessage(error.message || '保存反馈回复失败。', 'error')
+          save.disabled = false
+        }
+      })
+      details.append(form)
+    } else {
+      const legacy = document.createElement('p')
+      legacy.className = 'feedback-record__legacy'
+      legacy.textContent = '旧版反馈没有本机识别标识，无法把管理员回复送回对应用户，因此只能查看。'
+      details.append(legacy)
+    }
+
+    item.append(details)
+    return item
+  })
+  list.replaceChildren(...items)
+}
+
 document.querySelector('#load-feedback').addEventListener('click', async (event) => {
   const button = event.currentTarget
   const list = document.querySelector('#feedback-list')
@@ -549,16 +713,8 @@ document.querySelector('#load-feedback').addEventListener('click', async (event)
     const result = await adminRequest('/admin/api/feedback')
     feedbackLoaded = true
     count.textContent = `共 ${result.count} 条反馈`
-    if (!result.feedback.length) return showEmpty(list, '还没有用户反馈。')
-    const items = result.feedback.map((feedback) => {
-      const item = document.createElement('li')
-      item.append(document.createTextNode(feedback.body))
-      const time = document.createElement('small')
-      time.textContent = formatTime(feedback.createdAt)
-      item.append(time)
-      return item
-    })
-    list.replaceChildren(...items)
+    adminFeedback = result.feedback
+    renderAdminFeedback()
   } catch (error) {
     if (workspaceView.hidden) return
     showListFailure(error, { list, count, label: '用户反馈', loaded, previousCount })

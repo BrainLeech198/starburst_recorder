@@ -29,6 +29,7 @@
 | `POST /unsubscribe-email` | 公开 | 兼容 App 直接输入邮箱退订 |
 | `GET /subscription?email=` | 公开 | 这个地址是不是已订阅 |
 | `POST /feedback` | 公开 | 用户给官方的反馈 |
+| `POST /feedback/history` | 当前安装的随机标识 | 只读这台安装提交的反馈历史与管理员回复；标识放在请求体，不进 URL |
 | `POST /admin/session` | 管理员名称 / 密码 + 登录限流 | 管理网页登录，换取 30 分钟会话 |
 | `GET /admin/api/notices` | 管理网页会话 | 从官网管理员网页查看完整公告历史 |
 | `POST /admin/api/notices` | 管理网页会话 | 从官网管理员网页发布公告 |
@@ -37,9 +38,12 @@
 | `POST /admin/api/messages` | 管理网页会话 | 只发公告、只发邮件或同时发送 |
 | `GET /admin/api/subscribers` | 管理网页会话 | 从官网管理员网页查看订阅者 |
 | `GET /admin/api/feedback` | 管理网页会话 | 从官网管理员网页查看反馈 |
+| `PUT /admin/api/feedback/:id` | 管理网页会话 | 更新反馈状态和用户可见回复；旧版无安装标识的反馈只读 |
 | `POST /admin/notices` | `ADMIN_TOKEN` | 发一条公告（`level: urgent` 即紧急公告） |
 | `GET /admin/subscribers` | `ADMIN_TOKEN` | 导出订阅邮箱表 |
 | `GET /admin/feedback` | `ADMIN_TOKEN` | 翻用户反馈 |
+
+新版反馈页为每个安装持久保存随机 UUID；Worker 仅存 SHA-256 哈希，读取历史时只返回匹配安装的记录。单安装滚动 7 天最多提交 3 条；SQLite Durable Object 在同一对象的事务中完成计数与写入，KV 维护供管理员列表读取的快照，Durable Object 是反馈正文、状态与回复的权威副本。清除浏览器数据或重装后，旧安装记录无法恢复。旧客户端仍可提交没有安装标识的反馈，但不会有可回显的个人历史。部署时必须创建 `FEEDBACK_SERVICE` Durable Object 与 SQLite 类迁移；未部署该绑定前，新版带安装标识的反馈接口会失败关闭。
 
 **公开接口不需要客户端令牌**：公告是公开信息，订阅与反馈是用户主动发起的。
 管理员登录和邮箱订阅使用各自独立的限流 binding，并按 `X-Forwarded-For` 最后一跳地址限流。Pages Service Binding 跨 zone 调用时 `CF-Connecting-IP` 可能变成所有请求共用的 Worker 子请求地址。Cloudflare Rate Limiting 是近似限流，不能当作全局严格配额。
@@ -178,6 +182,8 @@ APP_URL = "https://starburst-recorder.pages.dev/"          # 点通知时打开�
 ```bash
 npx wrangler deploy --config worker/push/wrangler.toml
 ```
+
+`wrangler.toml` 使用 `exports.FeedbackService` 声明新的 SQLite Durable Object 类。首次部署时 Cloudflare 会创建命名空间；后续不要删除或改名该类声明，否则可能触发数据迁移或数据删除流程。
 
 记下输出的 `https://starburst-push.<子域>.workers.dev`，这是网页版要用的 `VITE_PUSH_API`。
 

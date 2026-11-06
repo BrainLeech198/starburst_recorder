@@ -102,6 +102,20 @@ interface FinanceChartBar {
   onSelect?: () => void
 }
 
+function financePieColor(index: number, total: number) {
+  return `hsl(${Math.round((index * 360) / Math.max(1, total))} 66% 56%)`
+}
+
+function financePieBackground(slices: Array<{ share: number }>) {
+  let angle = 0
+  const segments = slices.map((slice, index) => {
+    const start = angle
+    angle = index === slices.length - 1 ? 360 : angle + slice.share * 360
+    return `${financePieColor(index, slices.length)} ${start}deg ${angle}deg`
+  })
+  return `conic-gradient(${segments.join(', ')})`
+}
+
 function FinanceBars({ bars, max }: { bars: FinanceChartBar[]; max: number }) {
   return (
     <div className="mt-3 flex items-end gap-1 overflow-x-auto pb-1">
@@ -283,6 +297,7 @@ export default function FinancePage() {
   /** 挑选导出时取来的整库数据；非 null 就打开挑选弹窗 */
   const [exportData, setExportData] = useState<BackupData | null>(null)
   const [sharing, setSharing] = useState<ShareFinanceDoc | null>(null)
+  const [breakdownMode, setBreakdownMode] = useState<'pie' | 'bars'>('pie')
   /** 打开挑选弹窗时预选这些流水 */
   const [exportInitial, setExportInitial] = useState<{ finance: string[] } | undefined>(undefined)
   const importInputRef = useRef<HTMLInputElement | null>(null)
@@ -686,24 +701,72 @@ export default function FinancePage() {
           </div>
         </div>
 
-        {/* 支出分类：一行一条（名称 / 条 / 金额·占比），比「标签在上、条在下」省一半高度 */}
+        {/* 支出分类可以在饼图和原进度条之间切换；分类金额与占比共用同一份汇总。 */}
         {slices.length > 0 && (
           <>
-            <h2 className="m-0 mt-3 border-t border-dashed border-line pt-3 text-xs font-medium text-fg">
-              {t('finance.breakdown')}
-            </h2>
+            <div className="mt-3 flex items-center justify-between gap-2 border-t border-dashed border-line pt-3">
+              <h2 className="m-0 min-w-0 text-xs font-medium text-fg">
+                {t('finance.breakdown')}
+              </h2>
+              <div
+                role="group"
+                aria-label={t('finance.breakdown')}
+                className="flex shrink-0 items-center rounded-lg bg-surface-2 p-0.5"
+              >
+                {([
+                  ['pie', 'finance.pieChart'],
+                  ['bars', 'finance.progressBars'],
+                ] as const).map(([mode, labelKey]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={breakdownMode === mode}
+                    onClick={() => setBreakdownMode(mode)}
+                    className={`whitespace-nowrap rounded-md px-2 py-1 text-[10px] ${
+                      breakdownMode === mode
+                        ? 'bg-surface text-fg shadow-sm'
+                        : 'text-muted hover:text-fg'
+                    }`}
+                  >
+                    {t(labelKey)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {breakdownMode === 'pie' && (
+              <div
+                aria-hidden="true"
+                className="mx-auto mt-3 h-28 w-28 rounded-full border border-line"
+                style={{ background: financePieBackground(slices) }}
+              />
+            )}
             <ul className="m-0 mt-2 flex list-none flex-col gap-1.5 p-0">
-              {slices.map((slice) => (
+              {slices.map((slice, index) => (
                 <li key={slice.category} className="flex items-center gap-2 text-[11px]">
-                  <span className="w-14 shrink-0 truncate text-muted">
-                    {t(categoryKey(slice.category))}
-                  </span>
-                  <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2">
-                    <span
-                      className="block h-full rounded-full bg-danger/60"
-                      style={{ width: `${Math.max(2, slice.share * 100)}%` }}
-                    />
-                  </span>
+                  {breakdownMode === 'pie' ? (
+                    <>
+                      <span
+                        aria-hidden="true"
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ background: financePieColor(index, slices.length) }}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-muted">
+                        {t(categoryKey(slice.category))}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-14 shrink-0 truncate text-muted">
+                        {t(categoryKey(slice.category))}
+                      </span>
+                      <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2">
+                        <span
+                          className="block h-full rounded-full bg-danger/60"
+                          style={{ width: `${Math.max(2, slice.share * 100)}%` }}
+                        />
+                      </span>
+                    </>
+                  )}
                   <span
                     title={`${money(slice.amount)} · ${Math.round(slice.share * 100)}%`}
                     className="w-28 shrink-0 truncate text-right tabular-nums text-fg"

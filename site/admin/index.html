@@ -63,7 +63,14 @@
 
         <div id="workspace-message" class="workspace-message" role="status" aria-live="polite" hidden></div>
 
+        <nav class="workspace-nav" role="tablist" aria-label="管理员工作区">
+          <button id="tab-announcements" class="workspace-tab" type="button" role="tab" aria-selected="true" aria-controls="panel-announcements" data-workspace-target="announcements">公告</button>
+          <button id="tab-subscribers" class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-subscribers" data-workspace-target="subscribers" tabindex="-1">订阅者</button>
+          <button id="tab-feedback" class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-feedback" data-workspace-target="feedback" tabindex="-1">用户反馈</button>
+        </nav>
+
         <div class="workspace-grid">
+          <div id="panel-announcements" class="workspace-panel announcement-layout" role="tabpanel" aria-labelledby="tab-announcements" data-workspace-panel="announcements" tabindex="0">
           <section class="panel panel--compose" aria-labelledby="notice-title">
             <div class="panel-heading">
               <div>
@@ -135,7 +142,9 @@
             <p id="notices-count" class="count-line" aria-live="polite">尚未加载</p>
             <ul id="notices-list" class="record-list notice-history"></ul>
           </section>
+          </div>
 
+          <div id="panel-subscribers" class="workspace-panel" role="tabpanel" aria-labelledby="tab-subscribers" data-workspace-panel="subscribers" tabindex="0" hidden>
           <section class="panel" aria-labelledby="subscribers-title">
             <div class="panel-heading">
               <div>
@@ -148,7 +157,9 @@
             <p id="subscribers-count" class="count-line">尚未加载</p>
             <ul id="subscribers-list" class="record-list" aria-live="polite"></ul>
           </section>
+          </div>
 
+          <div id="panel-feedback" class="workspace-panel" role="tabpanel" aria-labelledby="tab-feedback" data-workspace-panel="feedback" tabindex="0" hidden>
           <section class="panel" aria-labelledby="feedback-title">
             <div class="panel-heading">
               <div>
@@ -161,6 +172,7 @@
             <p id="feedback-count" class="count-line">尚未加载</p>
             <ul id="feedback-list" class="record-list" aria-live="polite"></ul>
           </section>
+          </div>
         </div>
         <footer class="workspace-footer">管理接口由官方 Worker 提供 · 所有公告都将公开显示</footer>
       </section>

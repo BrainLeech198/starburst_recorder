@@ -4,6 +4,7 @@ import { PASSWORD_ITERATIONS, createAdminSession } from './admin-auth.js'
 import { createUnsubscribeToken } from './email.js'
 import { localParts } from './schedule.js'
 import { b64urlEncode } from './webpush.js'
+import { feedbackQuota } from './feedback-policy.js'
 
 /**
  * 服务端整链的集成测试：不碰 Cloudflare，用 Map 假装 KV、用 stub 假装推送服务。
@@ -36,6 +37,60 @@ function createKv() {
   }
 }
 
+function createFeedbackBinding() {
+  const installations = new Map()
+  return {
+    installations,
+    getByName(name) {
+      if (!installations.has(name)) installations.set(name, [])
+      const records = installations.get(name)
+      return {
+        async submitFeedback({ body }) {
+          const clean = typeof body === 'string' ? body.trim().slice(0, 4000) : ''
+          if (!clean) return { error: 'empty feedback', status: 400 }
+          const now = Date.now()
+          const quota = feedbackQuota(records.map((item) => item.createdAt), now)
+          if (!quota.accepted) return { error: 'feedback weekly limit reached', status: 429, retryAt: quota.resetsAt }
+          const feedback = {
+            id: crypto.randomUUID(),
+            body: clean,
+            createdAt: now,
+            status: 'received',
+            developerReply: '',
+            statusUpdatedAt: now,
+          }
+          records.push(feedback)
+          return { ok: true, feedback, remaining: quota.remaining, resetsAt: quota.resetsAt }
+        },
+        async listFeedback() {
+          const feedback = [...records].sort((a, b) => b.createdAt - a.createdAt)
+          const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000
+          const active = feedback.filter((item) => item.createdAt > cutoff)
+          return {
+            feedback,
+            remaining: Math.max(0, 3 - active.length),
+            resetsAt: active.length ? Math.min(...active.map((item) => item.createdAt)) + 7 * 24 * 60 * 60 * 1000 : null,
+          }
+        },
+        async getFeedback(id) {
+          return records.find((item) => item.id === id) ?? null
+        },
+        async updateFeedback({ id, status, developerReply }) {
+          const record = records.find((item) => item.id === id)
+          if (!record || !['received', 'in_progress', 'resolved'].includes(status) || typeof developerReply !== 'string') return null
+          const reply = developerReply.trim()
+          const now = Date.now()
+          record.status = status
+          record.developerReply = reply
+          record.statusUpdatedAt = now
+          if (reply) record.developerRepliedAt = now
+          return { ...record }
+        },
+      }
+    },
+  }
+}
+
 /** 造一份真实的订阅凭据：p256dh 必须是 65 字节未压缩点，否则加密会直接抛错 */
 async function makeSubscription(endpoint = 'https://push.example.com/send/abc') {
   const pair = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, [
@@ -59,6 +114,7 @@ async function makeEnv() {
   const publicKey = new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey))
   return {
     PUSH_KV: createKv(),
+    FEEDBACK_SERVICE: createFeedbackBinding(),
     VAPID_PRIVATE_KEY: jwk.d,
     VAPID_PUBLIC_KEY: b64urlEncode(publicKey),
     VAPID_SUBJECT: 'mailto:test@example.com',
@@ -632,6 +688,92 @@ describe('官方频道的管理面', () => {
     const body = await response.json()
     expect(body.count).toBe(1)
     expect(body.feedback[0].body).toBe('某个按钮找不到')
+  })
+
+  it('用户只读取本安装反馈；管理员可回复，七天最多提交三条', async () => {
+    const env = await makeEnv()
+    const clientId = 'a41c2ac6-899b-4b8f-a44a-9cefa1e4705c'
+    const otherClientId = 'a41c2ac6-899b-4b8f-a44a-9cefa1e4705d'
+    const submitted = []
+
+    for (const body of ['第一条', '第二条', '第三条']) {
+      const response = await worker.fetch(
+        channelRequest('/feedback', { method: 'POST', body: { body, clientId } }),
+        env,
+      )
+      expect(response.status).toBe(200)
+      submitted.push(await response.json())
+    }
+    const limited = await worker.fetch(
+      channelRequest('/feedback', { method: 'POST', body: { body: '第四条', clientId } }),
+      env,
+    )
+    expect(limited.status).toBe(429)
+    expect(await limited.json()).toMatchObject({ error: 'feedback weekly limit reached' })
+    expect([...env.FEEDBACK_SERVICE.installations.keys()][0]).toMatch(/^[a-f0-9]{64}$/)
+    expect(JSON.stringify([...env.PUSH_KV.store.values()])).not.toContain(clientId)
+
+    const userHistory = await worker.fetch(
+      channelRequest('/feedback/history', { method: 'POST', body: { clientId } }),
+      env,
+    )
+    expect((await userHistory.json()).feedback).toHaveLength(3)
+    const otherHistory = await worker.fetch(
+      channelRequest('/feedback/history', { method: 'POST', body: { clientId: otherClientId } }),
+      env,
+    )
+    expect((await otherHistory.json()).feedback).toEqual([])
+
+    const { sessionToken } = await makeAdminSession(env)
+    const reply = await worker.fetch(
+      channelRequest(`/admin/api/feedback/${submitted[0].id}`, {
+        method: 'PUT',
+        sessionToken,
+        body: { status: 'in_progress', developerReply: '已经收到，正在排查。' },
+      }),
+      env,
+    )
+    expect(reply.status).toBe(200)
+
+    const adminFeedback = await worker.fetch(
+      channelRequest('/admin/api/feedback', { sessionToken }),
+      env,
+    )
+    const adminItems = await adminFeedback.json()
+    expect(adminItems.feedback[0]).toMatchObject({ canReply: true })
+    expect(JSON.stringify(adminItems)).not.toContain('clientHash')
+
+    const refreshedHistory = await worker.fetch(
+      channelRequest('/feedback/history', { method: 'POST', body: { clientId } }),
+      env,
+    )
+    expect((await refreshedHistory.json()).feedback).toContainEqual(expect.objectContaining({
+      id: submitted[2].id,
+      status: 'received',
+      developerReply: '',
+    }))
+    const updatedHistory = await worker.fetch(
+      channelRequest('/feedback/history', { method: 'POST', body: { clientId } }),
+      env,
+    )
+    expect((await updatedHistory.json()).feedback).toContainEqual(
+      expect.objectContaining({ id: submitted[0].id, status: 'in_progress', developerReply: '已经收到，正在排查。' }),
+    )
+  })
+
+  it('邮件状态只返回缺少配置项名称，不返回任何 Secret 值', async () => {
+    const env = await makeEnv()
+    const { sessionToken } = await makeAdminSession(env)
+    env.RESEND_API_KEY = 'must-not-leak'
+    env.EMAIL_FROM = ''
+    env.UNSUBSCRIBE_TOKEN_SECRET = 'short'
+
+    const response = await worker.fetch(channelRequest('/admin/api/status', { sessionToken }), env)
+    const status = await response.json()
+    expect(status.emailSendingEnabled).toBe(false)
+    expect(status.emailMissingConfig).toContain('EMAIL_FROM')
+    expect(status.emailMissingConfig).toContain('UNSUBSCRIBE_TOKEN_SECRET（至少 32 字节）')
+    expect(JSON.stringify(status)).not.toContain('must-not-leak')
   })
 
   it('网页登录先校验密码，再用短期会话发布公告并读取管理状态', async () => {

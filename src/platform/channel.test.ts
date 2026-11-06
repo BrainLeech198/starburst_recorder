@@ -57,6 +57,37 @@ describe('fetchNotices', () => {
     expect(init.headers).toEqual({ 'Content-Type': 'application/json' })
   })
 
+  it('提交反馈带稳定匿名安装标识，并读取对应历史', async () => {
+    const clientId = 'a41c2ac6-899b-4b8f-a44a-9cefa1e4705c'
+    vi.stubGlobal('crypto', { randomUUID: () => clientId })
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, id: 'fb-1' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        ok: true,
+        feedback: [{
+          id: 'fb-1',
+          body: '一个问题',
+          createdAt: 123,
+          status: 'in_progress',
+          developerReply: '正在排查',
+        }],
+      }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(channel.submitFeedback('一个问题')).resolves.toMatchObject({ ok: true })
+    const [, submitInit] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(JSON.parse(String(submitInit.body))).toMatchObject({ body: '一个问题', clientId })
+
+    await expect(channel.fetchFeedbackHistory()).resolves.toMatchObject({
+      ok: true,
+      data: [{ id: 'fb-1', status: 'in_progress', developerReply: '正在排查' }],
+    })
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      'https://channel.example.test/channel/feedback/history',
+    )
+    expect(JSON.parse(String((fetchMock.mock.calls[1]?.[1] as RequestInit).body))).toEqual({ clientId })
+  })
+
   it('未覆盖频道地址时默认通过官方 Pages 代理', async () => {
     vi.resetModules()
     vi.stubEnv('VITE_CHANNEL_API', '')

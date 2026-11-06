@@ -2,7 +2,7 @@
 #
 # 部署步骤见同目录 README.md。这里只有一处需要你替换：KV 命名空间的 id。
 name = "starburst-push"
-main = "src/index.js"
+main = "src/worker.js"
 compatibility_date = "2026-10-01"
 
 # 每分钟醒一次：提醒只有「几点几分」的精度，靠这一分钟的精确命中来推。
@@ -13,6 +13,14 @@ crons = ["* * * * *"]
 [[kv_namespaces]]
 binding = "PUSH_KV"
 id = "be50f38dcf4d4b4f8dfd7adc01e62908"
+
+[[durable_objects.bindings]]
+name = "FEEDBACK_SERVICE"
+class_name = "FeedbackService"
+
+[exports.FeedbackService]
+type = "durable-object"
+storage = "sqlite"
 
 [vars]
 # 网页版的源，多个用逗号分隔；本地调试可临时写 "*"。

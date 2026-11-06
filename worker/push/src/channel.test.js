@@ -5,10 +5,12 @@ import {
   confirmEmailSubscription,
   isSubscribed,
   listFeedback,
+  listFeedbackIndex,
   listNotices,
   listSubscribers,
   normalizeEmail,
   putFeedback,
+  putFeedbackIndex,
   putNotice,
   sanitizeFeedback,
   sanitizeNotice,
@@ -16,6 +18,8 @@ import {
   subscribeEmailWithoutConfirmation,
   unsubscribeEmail,
   updateNotice,
+  updateFeedbackIndex,
+  getFeedbackIndex,
 } from './channel.js'
 
 /**
@@ -281,5 +285,40 @@ describe('反馈', () => {
     const a = await putFeedback(kv, 'x', 100, 0.1)
     const b = await putFeedback(kv, 'y', 100, 0.9)
     expect(a?.id).not.toBe(b?.id)
+  })
+
+  it('建立管理员索引并只通过索引回到对应安装，不泄露 hash 到公开列表', async () => {
+    const kv = createKv()
+    const clientHash = 'a'.repeat(64)
+    const feedback = {
+      id: 'a41c2ac6-899b-4b8f-a44a-9cefa1e4705c',
+      body: '页面不好点',
+      createdAt: 100,
+      status: 'received',
+      developerReply: '',
+      statusUpdatedAt: 100,
+    }
+    await putFeedbackIndex(kv, feedback, clientHash)
+
+    expect(await listFeedbackIndex(kv)).toMatchObject([
+      { id: feedback.id, body: '页面不好点', status: 'received', canReply: true, clientHash },
+    ])
+    expect(await getFeedbackIndex(kv, 'b41c2ac6-899b-4b8f-a44a-9cefa1e4705c')).toBeNull()
+
+    const updated = await updateFeedbackIndex(
+      kv,
+      { ...feedback, status: 'in_progress', developerReply: '已收到，正在排查。', statusUpdatedAt: 200, developerRepliedAt: 200 },
+      clientHash,
+    )
+    expect(updated).toMatchObject({ status: 'in_progress', developerReply: '已收到，正在排查。', canReply: true })
+    expect(JSON.stringify(await listFeedback(kv))).not.toContain(clientHash)
+    expect((await getFeedbackIndex(kv, feedback.id)).clientHash).toBe(clientHash)
+  })
+
+  it('拒绝给没有匿名安装标识的旧反馈保存用户可见回复', async () => {
+    const kv = createKv()
+    const legacy = await putFeedback(kv, '旧版反馈', 100, 0.1)
+    expect(await getFeedbackIndex(kv, legacy.id)).toBeNull()
+    expect((await listFeedback(kv))[0]).toMatchObject({ canReply: false, body: '旧版反馈' })
   })
 })

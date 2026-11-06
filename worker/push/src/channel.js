@@ -27,6 +27,7 @@ export const NOTICE_LEVELS = ['info', 'urgent']
 export const MAX_NOTICES = 20
 /** 反馈正文上限。够写好几段，又不至于拿它当上传通道 */
 const MAX_FEEDBACK_LENGTH = 4000
+const FEEDBACK_STATUSES = ['received', 'in_progress', 'resolved']
 /** 邮箱地址上限。超过这个长度的一定不是邮箱 */
 const MAX_EMAIL_LENGTH = 254
 /** 待确认地址七天后失效；确认邮件可重新发送。 */
@@ -270,16 +271,22 @@ export async function listSubscribers(kv) {
 }
 
 /** 存一条反馈。id 用时间戳加随机后缀，同一秒提交两条也不会撞 */
-export async function putFeedback(kv, body, now = Date.now(), rand = Math.random()) {
+export async function putFeedback(kv, body, now = Date.now(), rand = Math.random(), clientHash = null) {
   const clean = sanitizeFeedback(body)
   if (!clean) return null
   const suffix = Math.floor(rand * 1e6)
     .toString(36)
     .padStart(4, '0')
   const id = `${now.toString(36)}-${suffix}`
-  const record = { body: clean, createdAt: now }
+  const record = {
+    body: clean,
+    createdAt: now,
+    status: 'received',
+    ...(typeof clientHash === 'string' && /^[a-f0-9]{64}$/.test(clientHash) ? { clientHash } : {}),
+  }
   await kv.put(`fb:${id}`, JSON.stringify(record))
-  return { id, ...record }
+  if (record.clientHash) await kv.put(`fb-client:${record.clientHash}:${id}`, id)
+  return toPublicFeedback(id, record)
 }
 
 /** 取全部反馈。管理端用，按时间倒序（新的在前） */
@@ -292,9 +299,9 @@ export async function listFeedback(kv) {
       const record = await kv.get(key.name, 'json')
       if (!record?.body) continue
       items.push({
-        id: key.name.slice('fb:'.length),
-        body: record.body,
-        createdAt: Number(record.createdAt) || 0,
+        ...toPublicFeedback(key.name.slice('fb:'.length), record),
+        // Legacy KV records are read-only. Replies must be tied to a FeedbackService record.
+        canReply: false,
       })
     }
     cursor = page.list_complete ? undefined : page.cursor
@@ -302,3 +309,77 @@ export async function listFeedback(kv) {
   items.sort((a, b) => b.createdAt - a.createdAt)
   return items
 }
+
+function toPublicFeedback(id, record) {
+  return {
+    id,
+    body: record.body,
+    createdAt: Number(record.createdAt) || 0,
+    status: FEEDBACK_STATUSES.includes(record.status) ? record.status : 'received',
+    developerReply: typeof record.developerReply === 'string' ? record.developerReply : '',
+    ...(Number.isFinite(Number(record.statusUpdatedAt)) && Number(record.statusUpdatedAt) > 0
+      ? { statusUpdatedAt: Number(record.statusUpdatedAt) }
+      : {}),
+    ...(Number.isFinite(Number(record.developerRepliedAt)) && Number(record.developerRepliedAt) > 0
+      ? { developerRepliedAt: Number(record.developerRepliedAt) }
+      : {}),
+  }
+}
+
+function isFeedbackId(id) {
+  return typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+}
+
+function isClientHash(clientHash) {
+  return typeof clientHash === 'string' && /^[a-f0-9]{64}$/.test(clientHash)
+}
+
+/** KV keeps only the cross-installation index used by the admin list; the DO owns feedback data. */
+export async function putFeedbackIndex(kv, feedback, clientHash) {
+  if (!feedback || !isFeedbackId(feedback.id) || !isClientHash(clientHash) || !feedback.body) return null
+  const record = {
+    body: sanitizeFeedback(feedback.body),
+    createdAt: Number(feedback.createdAt) || 0,
+    status: FEEDBACK_STATUSES.includes(feedback.status) ? feedback.status : 'received',
+    developerReply: typeof feedback.developerReply === 'string' ? feedback.developerReply : '',
+    statusUpdatedAt: Number(feedback.statusUpdatedAt) || Number(feedback.createdAt) || 0,
+    developerRepliedAt: Number(feedback.developerRepliedAt) || 0,
+    clientHash,
+  }
+  if (!record.body || !record.createdAt) return null
+  await kv.put(`fb-index:${feedback.id}`, JSON.stringify(record))
+  return { ...toPublicFeedback(feedback.id, record), canReply: true }
+}
+
+/** Fetch one index row for an authenticated admin update. The hash never goes to the browser. */
+export async function getFeedbackIndex(kv, id) {
+  if (!isFeedbackId(id)) return null
+  const record = await kv.get(`fb-index:${id}`, 'json')
+  if (!record?.body || !isClientHash(record.clientHash)) return null
+  return { ...toPublicFeedback(id, record), clientHash: record.clientHash }
+}
+
+/** List new feedback index rows; clientHash is internal routing data and stripped from responses. */
+export async function listFeedbackIndex(kv) {
+  const items = []
+  let cursor
+  do {
+    const page = await kv.list({ prefix: 'fb-index:', cursor })
+    for (const key of page.keys) {
+      const id = key.name.slice('fb-index:'.length)
+      const item = await getFeedbackIndex(kv, id)
+      if (!item) continue
+      items.push({ ...item, canReply: true })
+    }
+    cursor = page.list_complete ? undefined : page.cursor
+  } while (cursor)
+  items.sort((a, b) => b.createdAt - a.createdAt)
+  return items
+}
+
+/** Refresh the admin list fallback after a reply. The Durable Object remains authoritative. */
+export async function updateFeedbackIndex(kv, feedback, clientHash) {
+  return putFeedbackIndex(kv, feedback, clientHash)
+}
+
+export { FEEDBACK_STATUSES }

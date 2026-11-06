@@ -63,6 +63,9 @@ import {
   saveHealthMeal,
 } from './healthRepo'
 import { addFinance } from '@/features/finance/financeRepo'
+import FoodSortControls from './FoodSortControls'
+import type { FoodSortDirection, FoodSortKey } from './foodSort'
+import { sortFoodCatalog } from './foodSort'
 
 
 /** 这一笔里的一项：普通食物，或者一个套餐（成分快照先算好） */
@@ -191,6 +194,8 @@ export default function IntakeDialog({
 
   /** picker 的搜索与选中 */
   const [query, setQuery] = useState('')
+  const [sortKey, setSortKey] = useState<FoodSortKey>('name')
+  const [sortDirection, setSortDirection] = useState<FoodSortDirection>('asc')
   const [pickedId, setPickedId] = useState<string | null>(null)
   const [pickedMealId, setPickedMealId] = useState<string | null>(null)
   /** 点开的食物照片：同时带上可左右翻的图片列表；null 表示关着 */
@@ -224,10 +229,14 @@ export default function IntakeDialog({
 
   const aiReady = isConfigured(loadAiConfig())
   const keyword = query.trim().toLowerCase()
-  const list = (foods ?? []).filter((item) => item.name.toLowerCase().includes(keyword))
+  const list = sortFoodCatalog(foods ?? [], sortKey, sortDirection).filter((item) =>
+    item.name.toLowerCase().includes(keyword),
+  )
   /** 当前搜索结果里带照片的，点缩略图时按这个顺序左右翻 */
   const photoFoods = list.filter((item) => item.photo !== null)
-  const mealList = (meals ?? []).filter((item) => item.name.toLowerCase().includes(keyword))
+  const mealList = sortFoodCatalog(meals ?? [], sortKey, sortDirection).filter((item) =>
+    item.name.toLowerCase().includes(keyword),
+  )
   const picked = (foods ?? []).find((item) => item.id === pickedId) ?? null
   const pickedMeal = (meals ?? []).find((item) => item.id === pickedMealId) ?? null
 
@@ -1363,6 +1372,14 @@ export default function IntakeDialog({
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t('intake.search')}
               className={INPUT}
+            />
+            <FoodSortControls
+              sortKey={sortKey}
+              direction={sortDirection}
+              onSortKeyChange={setSortKey}
+              onDirectionToggle={() =>
+                setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
+              }
             />
 
             {!pickingReplacement && mealList.length > 0 && (

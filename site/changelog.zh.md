@@ -1,19 +1,19 @@
-## 0.16.2 · 2026-11-05
+## 0.17.0 · 2026-11-06
 
-食物标签、照片查看与批量操作体验改进
+反馈跟进、食物排序与收支图表切换
 
 ### 这一版有什么
 
-- **食物库支持自定义标签**：可给食物分类并按标签筛选；标签随备份导出，升级后旧食物会自动补齐默认数据。
-- **照片可以完整查看和下载**：缩略图保留原图比例，点开可在全屏查看并下载已保存的图片；日记、食物和票据的压缩模式等比缩小，不再裁掉边角。
-- **助手可一次确认一组写入**：同一条回复中的多个待确认操作可以逐项执行后汇报结果；也可改为逐条确认或取消剩余操作。
-- **经济周视图增加每日收支图**：按周查看每天的收入和支出。
-- **列表操作更清爽**：记录的编辑、分享、导出和删除集中到行尾菜单。
+- **反馈可以跟进了**：提交后能查看本机反馈历史、处理状态和开发者回复；每台安装每 7 天最多提交 3 条。清除浏览器数据或重装后，旧安装的反馈历史无法恢复。
+- **管理后台新增反馈工作区**：按公告、订阅者、用户反馈分区查看；可更新反馈状态并填写用户能在应用里看到的回复。旧版反馈因没有安装标识仍可查看，但不能回复。
+- **食物库和摄入选择支持排序**：可按名称或添加时间排序，并切换升序、降序。
+- **支出分类图表可切换**：可在饼图和原有进度条之间切换查看分类占比。
+- **邮件配置状态更清楚**：管理后台会列出缺失的配置项名称，不会暴露密钥值。
 
 ### 下载
 
-- Windows 10/11：[`starburst-recorder-0.16.2-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2-setup.exe)
-- Android 10 以上：[`starburst-recorder-0.16.2.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.2/starburst-recorder-0.16.2.apk)
+- Windows 10/11：[`starburst-recorder-0.17.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.0/starburst-recorder-0.17.0-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.0/starburst-recorder-0.17.0-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.17.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.0/starburst-recorder-0.17.0.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.0/starburst-recorder-0.17.0.apk)
 
 ## 0.16.1 · 2026-11-05
 

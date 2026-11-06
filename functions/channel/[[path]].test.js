@@ -81,6 +81,8 @@ describe('Pages channel facade', () => {
       ['admin/api/messages', 'POST'],
       ['admin/api/subscribers', 'GET'],
       ['admin/api/feedback', 'GET'],
+      ['admin/api/feedback/fb-123', 'PUT'],
+      ['feedback/history', 'POST'],
     ]
     const fetch = vi.fn(async () => Response.json({ ok: true }))
 
