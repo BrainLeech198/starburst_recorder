@@ -4,7 +4,7 @@ A local-first personal recorder with built-in AI: jot down today and AI turns it
 
 ### What's new
 
-- **Better food and meal filtering** — search by name, filter by tags, and sort by name or date added in either direction; thumbnails load on demand and lists appear in batches.
+- **Easier food browsing and intake picking** — the food library supports name search and tag filters; intake food and meal pickers sort by name or date added in either direction. Lists load in batches, with thumbnails fetched on demand.
 - **Lighter diary, note and finance browsing** — date changes, archives, search and week/month reviews read summaries first; photos load only when shown or opened.
 - **Fewer whole-library image reads** — AI reports, references, confirmed assistant actions, sleep batch lists and record imports read only the needed summaries or records. Explicit photo viewing and full backups still include the originals.
 
