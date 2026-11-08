@@ -1,3 +1,18 @@
+## 0.17.1 · 2026-11-09
+
+图片较多时的列表加载优化
+
+### 这一版有什么
+
+- **食物库与摄入选择更好筛选**：支持按名称搜索、按标签筛选，并可按名称或添加时间排序、调整正反序；照片缩略图按需读取，列表分批显示。
+- **日记、随记和收支浏览更轻**：切换日期、打开归档、搜索、周/月回顾时先读摘要；图片只在需要显示或打开时读取。
+- **助手与批量操作减少整库读图**：AI 回顾、引用、确认写入、睡眠批量列表和记录导入只查所需摘要或记录；明确查看旧照片与完整备份仍保留原图。
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.17.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.1/starburst-recorder-0.17.1-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.1/starburst-recorder-0.17.1-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.17.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.1/starburst-recorder-0.17.1.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.1/starburst-recorder-0.17.1.apk)
+
 ## 0.17.0 · 2026-11-06
 
 反馈跟进、食物排序与收支图表切换

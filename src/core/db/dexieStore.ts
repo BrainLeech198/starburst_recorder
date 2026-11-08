@@ -19,12 +19,77 @@ import type {
   IntakeComponent,
   ScheduleItem,
 } from './schema'
-import type { DiaryStore, BackupData, BackupSections, ImportStats, SearchResults, DayActivity } from './store'
+import type {
+  DiaryEntryBrief,
+  DiaryStampBrief,
+  AssistantData,
+  DiaryComposeData,
+  FinanceEntryBrief,
+  HealthFoodBrief,
+  HealthMealBrief,
+  DiaryStore,
+  BackupData,
+  BackupSections,
+  ImportStats,
+  SearchResults,
+  DayActivity,
+} from './store'
 import { zeroStats } from './store'
+import { briefEntry, briefFinance, briefFood, briefMeal, briefStamp } from './brief'
 import { cleanTags } from './normalize'
 import { searchRows } from '@/core/search/match'
 import { newCode, newId } from '@/core/utils/id'
 import { formatClock } from '@/core/utils/dateKey'
+
+async function briefEntryRows(): Promise<DiaryEntryBrief[]> {
+  const result: DiaryEntryBrief[] = []
+  await db.diaryEntries.each((entry) => result.push(briefEntry(entry)))
+  return result
+}
+
+async function briefStampRows(): Promise<DiaryStampBrief[]> {
+  const result: DiaryStampBrief[] = []
+  await db.diaryStamps.each((stamp) => result.push(briefStamp(stamp)))
+  return result
+}
+
+async function briefFinanceRows(): Promise<FinanceEntryBrief[]> {
+  const result: FinanceEntryBrief[] = []
+  await db.financeEntries.each((entry) => result.push(briefFinance(entry)))
+  return result
+}
+
+async function briefHealthFoodRows(includeDeleted = false): Promise<HealthFoodBrief[]> {
+  const result: HealthFoodBrief[] = []
+  await db.healthFoods.each((food) => {
+    if (includeDeleted || food.deletedAt === null) result.push(briefFood(food))
+  })
+  return result
+}
+
+async function briefHealthMealRows(includeDeleted = false): Promise<HealthMealBrief[]> {
+  const result: HealthMealBrief[] = []
+  await db.healthMeals.each((meal) => {
+    if (includeDeleted || meal.deletedAt === null) result.push(briefMeal(meal))
+  })
+  return result
+}
+
+async function healthFoodPhotoById(id: string): Promise<string | null> {
+  const food = await db.healthFoods.get(id)
+  return food?.deletedAt === null ? food.photo : null
+}
+
+async function healthMealPhotoById(id: string): Promise<string | null> {
+  const meal = await db.healthMeals.get(id)
+  if (!meal || meal.deletedAt !== null) return null
+  if (meal.photo) return meal.photo
+  for (const item of meal.items) {
+    const photo = await healthFoodPhotoById(item.foodId)
+    if (photo) return photo
+  }
+  return null
+}
 
 export const dexieStore: DiaryStore = {
   entriesOfDay(dateKey) {
@@ -33,6 +98,14 @@ export const dexieStore: DiaryStore = {
       .equals(dateKey)
       .filter((entry) => entry.deletedAt === null)
       .sortBy('createdAt')
+  },
+
+  async briefEntriesOfDay(dateKey) {
+    const result: DiaryEntryBrief[] = []
+    await db.diaryEntries.where('dateKey').equals(dateKey).each((entry) => {
+      if (entry.deletedAt === null) result.push(briefEntry(entry))
+    })
+    return result.sort((a, b) => a.createdAt - b.createdAt)
   },
 
   entryByCode(code) {
@@ -101,6 +174,18 @@ export const dexieStore: DiaryStore = {
       .equals(dateKey)
       .filter((stamp) => stamp.deletedAt === null)
       .sortBy('time')
+  },
+
+  async briefStampsOfDay(dateKey) {
+    const result: DiaryStampBrief[] = []
+    await db.diaryStamps.where('dateKey').equals(dateKey).each((stamp) => {
+      if (stamp.deletedAt === null) result.push(briefStamp(stamp))
+    })
+    return result.sort((a, b) => a.time.localeCompare(b.time))
+  },
+
+  stampById(id) {
+    return db.diaryStamps.get(id)
   },
 
   async addStamp(dateKey) {
@@ -244,6 +329,58 @@ export const dexieStore: DiaryStore = {
     return db.diaryStamps.toArray()
   },
 
+  async briefEntries() {
+    return briefEntryRows()
+  },
+
+  async briefStamps() {
+    return briefStampRows()
+  },
+
+  async diaryComposeData(): Promise<DiaryComposeData> {
+    const [entries, stamps, days, finance, intakes, sleeps] = await Promise.all([
+      briefEntryRows(),
+      briefStampRows(),
+      db.diaryDays.toArray(),
+      briefFinanceRows(),
+      db.healthIntakes.toArray(),
+      db.healthSleeps.toArray(),
+    ])
+    return { entries, stamps, days, finance, intakes, sleeps }
+  },
+
+  async assistantData(): Promise<AssistantData> {
+    const [entries, stamps, days, presets, profile, foods, meals, intakes, sleeps, trainings, finance, schedules] =
+      await Promise.all([
+        briefEntryRows(),
+        briefStampRows(),
+        db.diaryDays.toArray(),
+        db.diaryPresets.toArray(),
+        db.healthProfile.get('me'),
+        briefHealthFoodRows(true),
+        briefHealthMealRows(true),
+        db.healthIntakes.toArray(),
+        db.healthSleeps.toArray(),
+        db.healthTrainings.toArray(),
+        briefFinanceRows(),
+        db.schedules.toArray(),
+      ])
+    return {
+      entries,
+      stamps,
+      days,
+      presets,
+      profile: profile ?? null,
+      foods,
+      meals,
+      intakes,
+      sleeps,
+      trainings,
+      finance,
+      schedules,
+    }
+  },
+
   everyDay() {
     return db.diaryDays.toArray()
   },
@@ -349,15 +486,15 @@ export const dexieStore: DiaryStore = {
       meals,
       presets,
     ] = await Promise.all([
-      db.diaryEntries.toArray(),
-      db.diaryStamps.toArray(),
-      db.financeEntries.toArray(),
+      briefEntryRows(),
+      briefStampRows(),
+      briefFinanceRows(),
       db.healthSleeps.toArray(),
       db.healthIntakes.toArray(),
       db.healthTrainings.toArray(),
       db.schedules.toArray(),
-      db.healthFoods.toArray(),
-      db.healthMeals.toArray(),
+      briefHealthFoodRows(),
+      briefHealthMealRows(),
       db.diaryPresets.toArray(),
     ])
     return searchRows(
@@ -543,6 +680,19 @@ export const dexieStore: DiaryStore = {
       .sortBy('name')
   },
 
+  async healthFoodBriefs(): Promise<HealthFoodBrief[]> {
+    const result = await briefHealthFoodRows()
+    return result.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric: true }))
+  },
+
+  healthFoodById(id) {
+    return db.healthFoods.get(id)
+  },
+
+  async healthFoodPhoto(id) {
+    return healthFoodPhotoById(id)
+  },
+
   async saveHealthFood(food) {
     const next: HealthFood = { ...food, tags: cleanTags(food.tags), updatedAt: Date.now() }
     await db.healthFoods.put(next)
@@ -644,6 +794,19 @@ export const dexieStore: DiaryStore = {
     return db.healthMeals
       .filter((meal) => meal.deletedAt === null)
       .sortBy('name')
+  },
+
+  async healthMealBriefs(): Promise<HealthMealBrief[]> {
+    const result = await briefHealthMealRows()
+    return result.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric: true }))
+  },
+
+  healthMealById(id) {
+    return db.healthMeals.get(id)
+  },
+
+  async healthMealPhoto(id) {
+    return healthMealPhotoById(id)
   },
 
   async saveHealthMeal(meal) {
@@ -876,6 +1039,30 @@ export const dexieStore: DiaryStore = {
         ? b.createdAt - a.createdAt
         : b.dateKey.localeCompare(a.dateKey),
     )
+  },
+
+  async financeBriefsOfMonth(monthKey: string): Promise<FinanceEntryBrief[]> {
+    const rows: FinanceEntryBrief[] = []
+    await db.financeEntries
+      .where('dateKey')
+      .startsWith(monthKey)
+      .each((entry) => {
+        if (entry.deletedAt === null) rows.push(briefFinance(entry))
+      })
+    return rows.sort((a, b) =>
+      a.dateKey === b.dateKey
+        ? b.createdAt - a.createdAt
+        : b.dateKey.localeCompare(a.dateKey),
+    )
+  },
+
+  financeById(id) {
+    return db.financeEntries.get(id)
+  },
+
+  async financePhoto(id) {
+    const entry = await db.financeEntries.get(id)
+    return entry?.deletedAt === null ? entry.photo : null
   },
 
   async financeDays(): Promise<string[]> {

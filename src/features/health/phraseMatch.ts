@@ -5,11 +5,15 @@
  * 避免它编一个不存在的名字、或大小写空格不一致导致对不上。
  */
 import type { HealthFood } from '@/core/db/schema'
+import type { HealthFoodBrief } from '@/core/db/store'
 import type { PhraseItem } from './mealPhrase'
 import { normalizeFoodName } from './intakeDraft'
 
 /** 库里同名多条时取第一条：列表里会带短编号，用户能看出是哪一条 */
-export function matchFood(name: string, foods: HealthFood[]): HealthFood | null {
+export function matchFood(
+  name: string,
+  foods: (HealthFood | HealthFoodBrief)[],
+): (HealthFood | HealthFoodBrief) | null {
   const key = normalizeFoodName(name)
   if (key === '') return null
   return foods.find((food) => normalizeFoodName(food.name) === key) ?? null
@@ -22,7 +26,7 @@ export interface PhraseSplit {
   misses: PhraseItem[]
 }
 
-export function splitPhrase(items: PhraseItem[], foods: HealthFood[]): PhraseSplit {
+export function splitPhrase(items: PhraseItem[], foods: (HealthFood | HealthFoodBrief)[]): PhraseSplit {
   const hits: PhraseItem[] = []
   const misses: PhraseItem[] = []
   for (const item of items) {

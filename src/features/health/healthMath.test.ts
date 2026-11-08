@@ -10,6 +10,8 @@ import {
   estimateTdee,
   foodMacros,
   isWeighDay,
+  mealTotals,
+  mealTotalsFromMap,
   macroKcal,
   missingProfileFields,
   remainingKcal,
@@ -82,6 +84,12 @@ describe('食物换算与当日汇总', () => {
 
   it('按克数等比换算', () => {
     expect(foodMacros(chicken, 120)).toEqual({ kcal: 198, protein: 37.2, carbs: 0, fat: 4.32 })
+  })
+
+  it('复用食物索引时与食物列表计算结果一致', () => {
+    const mealItems = [{ foodId: chicken.id, grams: 120 }]
+    const foodIndex = new Map([[chicken.id, chicken]])
+    expect(mealTotalsFromMap(mealItems, foodIndex)).toEqual(mealTotals(mealItems, [chicken]))
   })
 
   it('三大营养素反推热量', () => {

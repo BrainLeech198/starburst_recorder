@@ -9,6 +9,7 @@ import { store } from '@/core/db'
 export const {
   // 日记
   entriesOfDay,
+  briefEntriesOfDay,
   entryByCode,
   createEntry,
   updateContent,
@@ -23,6 +24,8 @@ export const {
   setWeather,
   // 随记
   stampsOfDay,
+  briefStampsOfDay,
+  stampById,
   addStamp,
   updateStamp,
   setStampTags,
@@ -53,6 +56,9 @@ export const {
   // 备份与恢复
   everyEntry,
   everyStamp,
+  briefEntries,
+  briefStamps,
+  diaryComposeData,
   everyDay,
   totals,
   exportAllData,

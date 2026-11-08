@@ -28,7 +28,7 @@ import {
   totalOf,
   type DayWeights,
 } from '@/features/calendar/calendarData'
-import { financeOfMonth } from '@/features/finance/financeRepo'
+import { financeBriefsOfMonth } from '@/features/finance/financeRepo'
 import { donePatch, isDoneOn, occurrencesOn } from '@/features/schedule/scheduleMath'
 import { saveSchedule, schedules } from '@/features/schedule/scheduleRepo'
 import ScheduleDialog from '@/features/schedule/ScheduleDialog'
@@ -68,7 +68,7 @@ export default function WeekPage() {
   // 一周可能跨月：两个月的流水各取一次，再按本周筛
   const money = useLiveQuery(async () => {
     const months = [...new Set([from.slice(0, 7), to.slice(0, 7)])]
-    const lists = await Promise.all(months.map((month) => financeOfMonth(month)))
+    const lists = await Promise.all(months.map((month) => financeBriefsOfMonth(month)))
     return lists.flat().filter((item) => item.dateKey >= from && item.dateKey <= to)
   }, [from, to]) ?? []
 

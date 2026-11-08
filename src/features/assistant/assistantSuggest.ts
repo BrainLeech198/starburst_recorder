@@ -8,14 +8,8 @@
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import { chat, pickReply } from '@/features/ai/aiClient'
 import type { AiConfig } from '@/features/ai/aiConfig'
-import type {
-  DiaryEntry,
-  DiaryStamp,
-  FinanceEntry,
-  HealthIntake,
-  HealthProfile,
-  HealthSleep,
-} from '@/core/db/schema'
+import type { HealthSleep } from '@/core/db/schema'
+import type { AssistantDataSource } from '@/core/db/store'
 import { shiftDay } from '@/core/utils/dateKey'
 
 interface Rule {
@@ -108,14 +102,9 @@ export function parseSuggestions(reply: string, limit = 3): string[] {
 }
 
 /** 推荐问要用到的本机记录；只读，不会写回任何东西 */
-export interface SituationData {
-  profile?: HealthProfile | null
-  entries?: DiaryEntry[]
-  stamps?: DiaryStamp[]
-  intakes?: HealthIntake[]
-  sleeps?: HealthSleep[]
-  finance?: FinanceEntry[]
-}
+export type SituationData = Partial<
+  Pick<AssistantDataSource, 'profile' | 'entries' | 'stamps' | 'intakes' | 'sleeps' | 'finance'>
+>
 
 /** 'HH:MM' → 当天第几分钟；格式不对返回 null */
 function minutesOf(clock: string): number | null {

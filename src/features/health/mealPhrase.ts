@@ -9,6 +9,7 @@
  * 命中库里的食物就直接查表，不让它另估一遍——这正是「拟 fit」里最不容易飘的部分。
  */
 import type { HealthFood } from '@/core/db/schema'
+import type { HealthFoodBrief } from '@/core/db/store'
 import type { ChatContentPart } from '@/platform/desktop'
 import { chat, explainFailure, pickReply } from '@/features/ai/aiClient'
 import type { AiConfig } from '@/features/ai/aiConfig'
@@ -58,7 +59,9 @@ function clamp(value: number, min: number, max: number) {
 }
 
 /** 食物库压成一行一条的简表，别把上千行都塞进提示词 */
-function libraryTable(foods: HealthFood[]) {
+type FoodCatalogItem = HealthFood | HealthFoodBrief
+
+function libraryTable(foods: FoodCatalogItem[]) {
   return foods
     .filter((food) => food.name.trim() !== '')
     .slice(0, 120)
@@ -72,7 +75,7 @@ function libraryTable(foods: HealthFood[]) {
     .join('\n')
 }
 
-function systemPrompt(foods: HealthFood[]) {
+function systemPrompt(foods: FoodCatalogItem[]) {
   const table = libraryTable(foods)
   const library = table === '' ? '（空）' : table
   return `你在帮用户把一句话里说的食物，拆成可以记进饮食账的条目。只做两件事：拆项、换算份量。
@@ -164,7 +167,7 @@ export interface MealPhraseResult {
 export async function analyzeMealPhrase(
   config: AiConfig,
   phrase: string,
-  foods: HealthFood[],
+  foods: FoodCatalogItem[],
   images: string[] = [],
 ): Promise<MealPhraseResult> {
   const imageParts = referenceImageParts(images.slice(0, MAX_REFERENCE_IMAGES))
@@ -202,7 +205,7 @@ export async function analyzeMealPhrase(
 }
 
 /** 看一张「这一餐」的照片，拆成同样的条目结构 */
-function photoPrompt(foods: HealthFood[]) {
+function photoPrompt(foods: FoodCatalogItem[]) {
   const table = libraryTable(foods)
   const library = table === '' ? '（空）' : table
   return `你负责看一张饭菜照片，把这一餐拆成几项可以记进饮食账的食物。只做两件事：拆项、估克数。
@@ -232,7 +235,7 @@ export interface MealPhotoResult {
 export async function analyzeMealPhoto(
   config: AiConfig,
   imageDataUrl: string,
-  foods: HealthFood[],
+  foods: FoodCatalogItem[],
 ): Promise<MealPhotoResult> {
   const image: ChatContentPart = { type: 'image_url', image_url: { url: imageDataUrl } }
   const result = await chat({

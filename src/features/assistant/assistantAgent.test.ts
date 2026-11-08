@@ -336,9 +336,15 @@ describe('旧记录照片', () => {
     })
     let round = 0
     let sent = ''
+    let photoLoads = 0
     const result = await runAssistant({
       config: CONFIG, data, today: '2026-10-28',
       history: [{ role: 'user', content: '请分析 2026-10-28 日记的照片' }],
+      loadRecordPhoto: async (_kind, target) => {
+        photoLoads++
+        expect(target).toMatchObject({ id: 'd1', code: 'D000001' })
+        return data.entries[0]
+      },
       prepareRecordImage: async (source) => source,
       request: async (request) => {
         round += 1
@@ -351,6 +357,7 @@ describe('旧记录照片', () => {
       },
     })
     expect(result.ok).toBe(true)
+    expect(photoLoads).toBe(1)
     expect(sent).toContain('data:image/png;base64,AAAA')
     expect(sent).toContain('image_url')
   })
@@ -364,9 +371,11 @@ describe('旧记录照片', () => {
     })
     let round = 0
     let sent = ''
+    let photoLoads = 0
     await runAssistant({
       config: CONFIG, data, today: '2026-10-28',
       history: [{ role: 'user', content: '总结 2026-10-28 的日记' }],
+      loadRecordPhoto: async () => { photoLoads++; return data.entries[0] },
       prepareRecordImage: async () => { throw new Error('不该处理图片') },
       request: async (request) => {
         round += 1
@@ -380,6 +389,7 @@ describe('旧记录照片', () => {
     })
     expect(sent).not.toContain('SECRET')
     expect(sent).not.toContain('image_url')
+    expect(photoLoads).toBe(0)
   })
 })
 

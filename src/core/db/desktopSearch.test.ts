@@ -10,7 +10,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import type { BackupData } from './store'
+import type { AssistantData, BackupData } from './store'
 import type { SearchResults } from './store'
 import { searchRows } from '@/core/search/match'
 
@@ -285,6 +285,41 @@ afterEach(() => {
 })
 
 describe('桌面端搜索与共享规则一致', () => {
+  it('助手摘要不读取图片内容，完整备份仍保留原图', () => {
+    const image = 'data:image/png;base64,AAAA'
+    call('updateContent', 'e1', '周末炖了鸡汤', [
+      { id: 'img1', dataUrl: image, width: 10, height: 10 },
+    ])
+    call('saveHealthFood', {
+      id: 'fd1', code: 'D000001', name: '鸡腿', kcal: 181, protein: 20, carbs: 0, fat: 11,
+      servingName: '1 个', servingGrams: 120, photo: image, tags: [],
+      createdAt: T, updatedAt: T, deletedAt: null,
+    })
+    call('saveHealthMeal', {
+      id: 'm1', name: '黄焖鸡套餐', items: [{ foodId: 'fd1', grams: 120 }], photo: image,
+      createdAt: T, updatedAt: T, deletedAt: null,
+    })
+    call('saveFinance', {
+      id: 'n1', code: 'N000001', dateKey: '2026-10-01', time: '12:00:00', kind: 'expense',
+      category: 'food', name: '黄焖鸡', amount: 28, photo: image, note: '',
+      createdAt: T, updatedAt: T, deletedAt: null,
+    })
+
+    const summary = call<AssistantData>('assistantData')
+    expect(summary.entries.find((item) => item.id === 'e1')).toMatchObject({ imageCount: 1 })
+    expect(summary.entries.find((item) => item.id === 'e1')).not.toHaveProperty('images')
+    expect(summary.foods.find((item) => item.id === 'fd1')).toMatchObject({ hasPhoto: true })
+    expect(summary.foods.find((item) => item.id === 'fd1')).not.toHaveProperty('photo')
+    expect(summary.meals.find((item) => item.id === 'm1')).toMatchObject({ hasPhoto: true })
+    expect(summary.finance.find((item) => item.id === 'n1')).toMatchObject({ hasPhoto: true })
+
+    const backup = call<BackupData>('exportAllData')
+    expect(backup.entries.find((item) => item.id === 'e1')?.images[0]?.dataUrl).toBe(image)
+    expect(backup.foods.find((item) => item.id === 'fd1')?.photo).toBe(image)
+    expect(backup.meals.find((item) => item.id === 'm1')?.photo).toBe(image)
+    expect(backup.finance.find((item) => item.id === 'n1')?.photo).toBe(image)
+  })
+
   it('关键词命中十类记录', () => {
     expectSame('鸡')
     expect(both('鸡').sqlite.foods).toEqual(['fd1'])

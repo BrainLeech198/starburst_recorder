@@ -5,6 +5,12 @@
  * 这里不碰存储和 i18n，方便单测和以后复用到月报。
  */
 import type { FinanceEntry } from '@/core/db/schema'
+
+/** Fields consumed by finance summaries and lists; photo bytes are optional. */
+export type FinanceRow = Omit<FinanceEntry, 'photo'> & {
+  photo?: string | null
+  hasPhoto?: boolean
+}
 import { shiftDay } from '@/core/utils/dateKey'
 
 /** '2026-10-31' → '2026-10' */
@@ -65,7 +71,7 @@ export interface FinanceWeekSummary extends FinanceSummary {
 }
 
 /** 按自然周拆出所选月份的收支；首尾周只统计月份内的记录。 */
-export function financeWeeksOfMonth(entries: FinanceEntry[], monthKey: string): FinanceWeekSummary[] {
+export function financeWeeksOfMonth(entries: FinanceRow[], monthKey: string): FinanceWeekSummary[] {
   const month = monthBounds(monthKey)
   const firstWeek = weekBounds(month.start).start
   const weeks: FinanceWeekSummary[] = []
@@ -89,7 +95,7 @@ export function financeWeeksOfMonth(entries: FinanceEntry[], monthKey: string): 
 export interface FinanceDay {
   dateKey: string
   /** 这一天的收支，新的在前 */
-  entries: FinanceEntry[]
+  entries: FinanceRow[]
   /** 这一天的小计 */
   summary: FinanceSummary
 }
@@ -98,8 +104,8 @@ export interface FinanceDay {
  * 按天分组，日期新的在前，同一天按创建时间新的在前。
  * 已删除的记录直接跳过，页面上不用再过滤一遍。
  */
-export function groupFinanceByDay(entries: FinanceEntry[]): FinanceDay[] {
-  const byDay = new Map<string, FinanceEntry[]>()
+export function groupFinanceByDay(entries: FinanceRow[]): FinanceDay[] {
+  const byDay = new Map<string, FinanceRow[]>()
   for (const entry of entries) {
     if (entry.deletedAt !== null) continue
     const list = byDay.get(entry.dateKey)
@@ -121,7 +127,7 @@ export function roundMoney(value: number): number {
 }
 
 /** 汇总一组收支；已删除的记录不算 */
-export function summarizeFinance(entries: FinanceEntry[]): FinanceSummary {
+export function summarizeFinance(entries: FinanceRow[]): FinanceSummary {
   let income = 0
   let expense = 0
   for (const entry of entries) {
@@ -149,7 +155,7 @@ export interface CategorySlice {
  * 支出按分类汇总，金额从大到小。
  * 没有支出时返回空数组，页面据此整块不显示。
  */
-export function expenseByCategory(entries: FinanceEntry[]): CategorySlice[] {
+export function expenseByCategory(entries: FinanceRow[]): CategorySlice[] {
   let total = 0
   const byCategory = new Map<string, number>()
   for (const entry of entries) {

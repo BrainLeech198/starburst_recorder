@@ -5,7 +5,7 @@
  * 真正的写入在 assistantActions.ts，模型看不到那一层。
  * 改一条已有记录永远走「原地改」的动作，不做「删掉再加一条」。
  */
-import type { BackupData } from '@/core/db/store'
+import type { AssistantDataSource } from '@/core/db/store'
 import type {
   FinanceKind,
   HealthActivity,
@@ -221,7 +221,7 @@ export interface TrainingExerciseArg {
 }
 
 export interface ActionBuildContext {
-  data: BackupData
+  data: AssistantDataSource
   today: string
   /** 让「没说具体时刻就记现在」可测 */
   now?: number

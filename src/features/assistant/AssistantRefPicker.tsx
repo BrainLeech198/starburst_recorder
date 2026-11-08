@@ -4,8 +4,8 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import { useI18n } from '@/shared/i18n/context'
-import { exportAllData } from '@/features/health/healthRepo'
-import type { BackupData } from '@/core/db/store'
+import { assistantData } from '@/features/health/healthRepo'
+import type { AssistantData } from '@/core/db/store'
 import { shiftDay, todayKey } from '@/core/utils/dateKey'
 import Modal from '@/shared/ui/Modal'
 import { INPUT } from '@/shared/ui/inputStyles'
@@ -34,12 +34,12 @@ export default function AssistantRefPicker({
   onClose: () => void
 }) {
   const { t } = useI18n()
-  const [data, setData] = useState<BackupData | null>(null)
+  const [data, setData] = useState<AssistantData | null>(null)
   const [query, setQuery] = useState('')
 
   useEffect(() => {
     let canceled = false
-    void exportAllData().then((next) => {
+    void assistantData().then((next) => {
       if (!canceled) setData(next)
     })
     return () => {

@@ -26,7 +26,7 @@ import EmptyState from '@/shared/ui/EmptyState'
 import { Icon } from '@/shared/ui/icons'
 import { SOLID_SMALL_BUTTON } from '@/shared/ui/buttonStyles'
 import { formatDate } from '@/core/utils/dateKey'
-import { everyEntry, everyStamp } from './diaryRepo'
+import { briefEntries, briefStamps } from './diaryRepo'
 import { stripImageTokens } from './imageTokens'
 import {
   ARCHIVE_KINDS,
@@ -46,8 +46,8 @@ export default function DiaryArchivePage() {
   const kind = kindFrom(params.get('kind'))
   const page = pageFrom(params.get('page'))
 
-  const entries = useLiveQuery(everyEntry, [])
-  const stamps = useLiveQuery(everyStamp, [])
+  const entries = useLiveQuery(briefEntries, [])
+  const stamps = useLiveQuery(briefStamps, [])
 
   const records = useMemo(() => {
     if (!entries || !stamps) return undefined
@@ -61,7 +61,7 @@ export default function DiaryArchivePage() {
           kind: 'diary' as const,
           label:
             stripImageTokens(entry.content).trim() ||
-            (entry.images.length ? t('diary.imageOnly') : t('diary.emptyContent')),
+            (entry.imageCount > 0 ? t('diary.imageOnly') : t('diary.emptyContent')),
           href: `/diary/${entry.code}`,
         })),
       ...stamps
@@ -73,7 +73,7 @@ export default function DiaryArchivePage() {
           kind: 'stamp' as const,
           label:
             stamp.content.trim() ||
-            (stamp.images.length ? t('diary.imageOnly') : t('diary.emptyContent')),
+            (stamp.imageCount > 0 ? t('diary.imageOnly') : t('diary.emptyContent')),
           href: `/diary?date=${stamp.dateKey}&mode=stamp`,
         })),
     ].sort(

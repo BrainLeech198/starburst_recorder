@@ -5,7 +5,15 @@
  * 每个工具都是「整库快照 + 参数」的纯函数，返回一段给模型看的文本；
  * 模型只能看到这段文本，看不到原始对象，也不会拿到 id 以外的敏感字段。
  */
-import type { BackupData, DayActivity } from '@/core/db/store'
+import type {
+  AssistantDataSource,
+  DayActivity,
+  DiaryEntryBrief,
+  DiaryStampBrief,
+  FinanceEntryBrief,
+  HealthFoodBrief,
+  HealthMealBrief,
+} from '@/core/db/store'
 import type {
   DiaryEntry,
   DiaryStamp,
@@ -43,7 +51,7 @@ const FINANCE_CATEGORY_IDS = {
 
 /** 一次工具执行需要的东西；today 由调用方注入，纯函数不自己看时钟 */
 export interface ToolRunContext {
-  data: BackupData
+  data: AssistantDataSource
   today: string
   /** 已启用的技能；load_skill 从这里取完整说明 */
   skills?: AssistantSkill[]
@@ -962,11 +970,11 @@ function matches(text: string, keyword: string) {
   return keyword === '' || text.toLowerCase().includes(keyword.toLowerCase())
 }
 
-function diaryLine(item: DiaryEntry) {
+function diaryLine(item: DiaryEntry | DiaryEntryBrief) {
   return `${formatDateCn(item.dateKey)} [${item.code}] ${clip(item.content, 400)}`
 }
 
-function stampLine(item: DiaryStamp) {
+function stampLine(item: DiaryStamp | DiaryStampBrief) {
   return `${formatDateCn(item.dateKey)} ${item.time} [${item.code}] ${clip(item.content, 200)}`
 }
 
@@ -976,7 +984,7 @@ function scheduleLine(item: ScheduleItem, dateKey: string) {
   return `${formatDateCn(dateKey)} ${time} ${item.title}（${done}）${item.note.trim() ? `，备注：${clip(item.note, 80)}` : ''} [${item.code}]`
 }
 
-function searchSchedules(from: string, to: string, keyword: string, data: BackupData) {
+function searchSchedules(from: string, to: string, keyword: string, data: AssistantDataSource) {
   const lines: string[] = []
   for (let dateKey = from; dateKey <= to; dateKey = shiftDay(dateKey, 1)) {
     for (const item of occurrencesOn(data.schedules, dateKey)) {
@@ -998,7 +1006,7 @@ function resolveScheduleRange(from: string, to: string, today: string) {
   return { from: start, to: requestedEnd > limit ? limit : requestedEnd }
 }
 
-function financeLine(item: FinanceEntry) {
+function financeLine(item: FinanceEntry | FinanceEntryBrief) {
   const note = item.note.trim()
   const kind = item.kind === 'income' ? '收入' : '支出'
   return `${formatDateCn(item.dateKey)} ${kind} ${item.name} ${item.amount} 元${note ? `（${note}）` : ''} [${item.code}]`
@@ -1029,7 +1037,7 @@ function sumKcal(items: HealthIntake[]) {
 /** 一天一张小卡片：只写有内容的项，别把「没有」也列一遍 */
 function dayBlock(
   dateKey: string,
-  data: BackupData,
+  data: AssistantDataSource,
 ): string[] {
   const lines = [formatDateCn(dateKey)]
   const day = data.days.find((item) => item.dateKey === dateKey)
@@ -1073,7 +1081,7 @@ function dayBlock(
   return lines
 }
 
-function intakeStats(from: string, to: string, data: BackupData) {
+function intakeStats(from: string, to: string, data: AssistantDataSource) {
   const items = data.intakes.filter(
     (item) => item.deletedAt === null && inRange(item.dateKey, from, to),
   )
@@ -1100,7 +1108,7 @@ function intakeStats(from: string, to: string, data: BackupData) {
   ].join('\n')
 }
 
-function sleepStats(from: string, to: string, data: BackupData) {
+function sleepStats(from: string, to: string, data: AssistantDataSource) {
   const items = data.sleeps.filter(
     (item) => item.deletedAt === null && inRange(item.dateKey, from, to),
   )
@@ -1125,7 +1133,7 @@ function sleepStats(from: string, to: string, data: BackupData) {
   ].join('\n')
 }
 
-function trainingStats(from: string, to: string, data: BackupData) {
+function trainingStats(from: string, to: string, data: AssistantDataSource) {
   const items = (data.trainings ?? [])
     .filter((item) => item.deletedAt === null && inRange(item.dateKey, from, to))
     .sort((a, b) => (a.dateKey < b.dateKey ? -1 : a.dateKey > b.dateKey ? 1 : a.time.localeCompare(b.time)))
@@ -1158,7 +1166,7 @@ function trainingStats(from: string, to: string, data: BackupData) {
     .join('\n')
 }
 
-function trainingWeekChart(dateKey: string, data: BackupData) {
+function trainingWeekChart(dateKey: string, data: AssistantDataSource) {
   const week = weekRange(dateKey)
   const previousStart = shiftDay(week.from, -7)
   const trainings = data.trainings.filter((item) => inRange(item.dateKey, previousStart, week.to))
@@ -1176,7 +1184,7 @@ function trainingWeekChart(dateKey: string, data: BackupData) {
   ].join('\n')
 }
 
-function financeStats(from: string, to: string, keyword: string, data: BackupData) {
+function financeStats(from: string, to: string, keyword: string, data: AssistantDataSource) {
   const items = data.finance.filter(
     (item) =>
       item.deletedAt === null &&
@@ -1194,7 +1202,7 @@ function financeStats(from: string, to: string, keyword: string, data: BackupDat
   ].join('\n')
 }
 
-function financeChart(month: string, data: BackupData) {
+function financeChart(month: string, data: AssistantDataSource) {
   const months = Array.from({ length: 6 }, (_, index) => shiftMonth(month, index - 5))
   const monthly = months.map((key) => ({
     month: key,
@@ -1209,7 +1217,7 @@ function financeChart(month: string, data: BackupData) {
   ].join('\n')
 }
 
-function weightChart(range: TrendRange, today: string, data: BackupData) {
+function weightChart(range: TrendRange, today: string, data: AssistantDataSource) {
   const profile = data.profile
   if (!profile) return '用户还没有填写身体档案。'
   const items = trendWeighIns(profile.weighIns ?? [], range, today)
@@ -1225,7 +1233,7 @@ function weightChart(range: TrendRange, today: string, data: BackupData) {
   ].join('\n')
 }
 
-function healthOverviewChart(range: TrendRange, today: string, data: BackupData) {
+function healthOverviewChart(range: TrendRange, today: string, data: AssistantDataSource) {
   const from = shiftDay(today, -(range - 1))
   const intakes = data.intakes.filter((item) => item.deletedAt === null && inRange(item.dateKey, from, today))
   const sleeps = data.sleeps.filter((item) => item.deletedAt === null && inRange(item.dateKey, from, today))
@@ -1246,7 +1254,7 @@ function healthOverviewChart(range: TrendRange, today: string, data: BackupData)
   ].join('\n')
 }
 
-function monthReviewChart(month: string, today: string, data: BackupData) {
+function monthReviewChart(month: string, today: string, data: AssistantDataSource) {
   const { from, to } = monthRange(month)
   const map = new Map<string, DayActivity>()
   type CountField = keyof Omit<DayActivity, 'dateKey'>
@@ -1269,7 +1277,9 @@ function monthReviewChart(month: string, today: string, data: BackupData) {
   const activities = [...map.values()].sort((a, b) => a.dateKey.localeCompare(b.dateKey))
   const summary = summarizeMonth({
     activities,
-    finance: data.finance.filter((item) => inRange(item.dateKey, from, to)),
+    finance: data.finance
+      .filter((item) => inRange(item.dateKey, from, to))
+      .map((item) => 'photo' in item ? item : { ...item, photo: null }),
     sleeps: data.sleeps.filter((item) => inRange(item.dateKey, from, to)),
     trainings: data.trainings.filter((item) => inRange(item.dateKey, from, to)),
   })
@@ -1284,7 +1294,7 @@ function monthReviewChart(month: string, today: string, data: BackupData) {
   ].join('\n')
 }
 
-function profileStats(data: BackupData) {
+function profileStats(data: AssistantDataSource) {
   const profile = data.profile
   if (!profile) return '用户还没有填写身体档案。'
   const weighIns = [...(profile.weighIns ?? [])].sort((a, b) =>
@@ -1321,7 +1331,7 @@ function profileStats(data: BackupData) {
   return lines.join('\n')
 }
 
-function foodLine(food: HealthFood) {
+function foodLine(food: HealthFood | HealthFoodBrief) {
   const serving =
     food.servingName && food.servingGrams
       ? `；常用份量「${food.servingName}」约 ${food.servingGrams} g`
@@ -1329,7 +1339,7 @@ function foodLine(food: HealthFood) {
   return `${food.name} [${food.code}]（foodId=${food.id}）每 100g：${Math.round(food.kcal)} 千卡，蛋白 ${food.protein} g，碳水 ${food.carbs} g，脂肪 ${food.fat} g${serving}`
 }
 
-function searchFood(keyword: string, data: BackupData) {
+function searchFood(keyword: string, data: AssistantDataSource) {
   const foods = data.foods.filter(
     (item) => item.deletedAt === null && matches(item.name, keyword),
   )
@@ -1347,7 +1357,7 @@ function searchFood(keyword: string, data: BackupData) {
 }
 
 /** 套餐按成分实时算营养，和页面口径一致：每项食物每 100g 值 × 克数 */
-function mealLine(meal: HealthMeal, foods: HealthFood[]) {
+function mealLine(meal: HealthMeal | HealthMealBrief, foods: Array<HealthFood | HealthFoodBrief>) {
   const items = meal.items.map((item) => {
     const food = foods.find((entry) => entry.id === item.foodId && entry.deletedAt === null)
     if (!food) return `（食物已删除）${item.grams} g`
@@ -1357,7 +1367,7 @@ function mealLine(meal: HealthMeal, foods: HealthFood[]) {
   return `${meal.name}（mealId=${meal.id}）：${items.join(' + ')}`
 }
 
-function searchMeals(keyword: string, data: BackupData) {
+function searchMeals(keyword: string, data: AssistantDataSource) {
   const meals = data.meals.filter(
     (item) => item.deletedAt === null && matches(item.name, keyword),
   )
@@ -1374,7 +1384,7 @@ function searchMeals(keyword: string, data: BackupData) {
   ].join('\n')
 }
 
-function listPresets(data: BackupData) {
+function listPresets(data: AssistantDataSource) {
   const presets = data.presets.filter((item) => item.deletedAt === null)
   if (presets.length === 0) return '预设库里还没有人名或地名。'
   return [
@@ -1433,17 +1443,17 @@ function browseRecords(kind: string, page: number, trash: boolean, ctx: ToolRunC
     [...items].sort((a, b) => b.dateKey.localeCompare(a.dateKey))
   let rows: string[]
   switch (kind) {
-    case 'diary': rows = newest(visible(data.entries)).map((item) => `${diaryLine(item)}（图片 ${item.images.length} 张）`); break
-    case 'stamps': rows = newest(visible(data.stamps)).map((item) => `${stampLine(item)}（图片 ${item.images.length} 张）`); break
+    case 'diary': rows = newest(visible(data.entries)).map((item) => `${diaryLine(item)}（图片 ${'imageCount' in item ? item.imageCount : item.images.length} 张）`); break
+    case 'stamps': rows = newest(visible(data.stamps)).map((item) => `${stampLine(item)}（图片 ${'imageCount' in item ? item.imageCount : item.images.length} 张）`); break
     case 'weather': rows = trash ? [] : newest(data.days.filter((item) => (item.weather ?? '').trim() !== '')).map((item) => `${item.dateKey} 天气：${item.weather}`); break
     case 'presets': rows = visible(data.presets).map((item) => `${item.kind === 'person' ? '人名' : '地名'}：${item.name} [${item.code}]`); break
     case 'schedules': rows = newest(visible(data.schedules)).map((item) => `${item.dateKey} ${item.time || '全天'} ${item.title} [${item.code}]（${item.repeat}）${item.note ? ` ${item.note}` : ''}`); break
-    case 'foods': rows = visible(data.foods).map((item) => `${foodLine(item)}（图片 ${item.photo ? 1 : 0} 张）`); break
-    case 'meals': rows = visible(data.meals).map((item) => `${mealLine(item, data.foods)}（独立封面 ${item.photo ? 1 : 0} 张）`); break
+    case 'foods': rows = visible(data.foods).map((item) => `${foodLine(item)}（图片 ${('hasPhoto' in item ? item.hasPhoto : Boolean(item.photo)) ? 1 : 0} 张）`); break
+    case 'meals': rows = visible(data.meals).map((item) => `${mealLine(item, data.foods)}（独立封面 ${('hasPhoto' in item ? item.hasPhoto : Boolean(item.photo)) ? 1 : 0} 张）`); break
     case 'intakes': rows = newest(visible(data.intakes)).map((item) => `${item.dateKey} ${intakeLine(item)}`); break
     case 'sleeps': rows = newest(visible(data.sleeps)).map(sleepLine); break
     case 'trainings': rows = newest(visible(data.trainings)).map((item) => `${item.dateKey} ${trainingLine(item)}`); break
-    case 'finance': rows = newest(visible(data.finance)).map((item) => `${financeLine(item)}（图片 ${item.photo ? 1 : 0} 张）`); break
+    case 'finance': rows = newest(visible(data.finance)).map((item) => `${financeLine(item)}（图片 ${('hasPhoto' in item ? item.hasPhoto : Boolean(item.photo)) ? 1 : 0} 张）`); break
     case 'weigh': rows = trash ? [] : newest(data.profile?.weighIns ?? []).map((item) => `${item.dateKey} ${item.weightKg} kg`); break
     case 'profile': rows = trash || !data.profile ? [] : ['身体档案 [me]']; break
     case 'memory': rows = trash ? [] : (ctx.memories ?? []).map((item) => `${MEMORY_KIND_LABEL[item.kind]}：${item.text}（id=${item.id}）`); break

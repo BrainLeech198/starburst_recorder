@@ -5,12 +5,12 @@
  * 被删掉的成分会标成「已删除的食物」，和列表里的「缺 N 项」对应。
  */
 import type { HealthFood, HealthMeal } from '@/core/db/schema'
+import type { HealthFoodBrief } from '@/core/db/store'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
-import PhotoPreview from '@/shared/ui/PhotoPreview'
 import { GHOST_BUTTON } from '@/shared/ui/buttonStyles'
 import { foodMacros, formatNum, mealTotals } from './healthMath'
-import { mealPhoto } from './mealPhoto'
+import FoodPhotoThumbnail from './FoodPhotoThumbnail'
 
 export default function MealInfoDialog({
   meal,
@@ -18,24 +18,33 @@ export default function MealInfoDialog({
   onClose,
 }: {
   meal: HealthMeal
-  foods: HealthFood[]
+  foods: (HealthFood | HealthFoodBrief)[]
   onClose: () => void
 }) {
   const { t } = useI18n()
   const totals = mealTotals(meal.items, foods)
   const byId = new Map(foods.map((food) => [food.id, food]))
-  const photo = mealPhoto(meal, foods)
+  const hasPhoto =
+    Boolean(meal.photo) ||
+    meal.items.some((item) => {
+      const food = byId.get(item.foodId)
+      return food ? ('hasPhoto' in food ? food.hasPhoto : Boolean(food.photo)) : false
+    })
 
   return (
     <Modal size="sm" label={meal.name} onClose={onClose}>
       <h2 className="m-0 text-base font-medium text-fg">{meal.name}</h2>
-      {photo && (
-        <PhotoPreview
-          src={photo}
-          alt={meal.name}
-          className="max-h-72 w-full rounded-xl border border-line"
-          wrapperClassName="mt-3 w-full"
-        />
+      {hasPhoto && (
+        <div className="mt-3">
+          <FoodPhotoThumbnail
+            kind="meal"
+            id={meal.id}
+            hasPhoto
+            refreshKey={meal.updatedAt}
+            className="max-h-72 w-full rounded-xl border border-line"
+            wrapperClassName="w-full"
+          />
+        </div>
       )}
       <p className="m-0 mt-1 text-xs text-muted">
         {t('foods.mealItemCount', { n: totals.count })}

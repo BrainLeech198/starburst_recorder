@@ -126,12 +126,15 @@ SemVer 比较在 `main.cjs:459-507` 与 [core/utils/versionCompare.ts](../src/co
 
 | 档 | 事项 | 触发条件 | 改动面 |
 |---|---|---|---|
-| **0（下次发版就做）** | 列表查询不带图：`store.ts` 契约加 `briefEntries()` / `briefStamps()`，只返回正文与图片**张数** | 无条件 | `core/db/store.ts`、`dexieStore.ts`、`sqliteStore.ts`、`electron/database.cjs`（两条 `SELECT` + 两个 handler）、`DiaryArchivePage`、`CalendarPage`、`SearchPage`、AI 上下文 |
+| **0（✅ 2026-11-09 完成）** | 图片摘要读取：日记 / 随记、食物 / 套餐、收支列表和搜索不把图片数据放进 UI 状态；回顾、助手、引用、睡眠批量列表及记录导入不为普通读取导出整库 | 无条件 | `core/db/store.ts`、Dexie / SQLite、日记 / 健康 / 收支、助手 / AI 回顾与记录导入 |
 | 1 | 备份分卷（按年，单卷 ≤ 20 MB，导入识别多卷） | 库 > 80 MB 或图片 > 1500 张 | `diaryBackup.ts`、`DataPage`、`recordImport.ts` |
 | 2 | 图片外置（附件表 + 文件系统，备份改 zip） | 库 > 150 MB | 数据层整体（软删除 / 回收站 / 导入导出全要重写图片寻址） |
 
 0 档为什么算「正确性」而不是优化：`everyEntry()` 是 `SELECT *`，桌面上还要跨 IPC 序列化整库 base64，
-库到 50 MB 时「全部记录」页会明显卡；它和备份能不能用是两件独立的事，不该一起等。
+库到 50 MB 时「全部记录」页会明显卡；它和备份能不能用是两件独立的事，不该一起等。2026-11-09 完成后，
+SQLite 的摘要查询不选图片列，图片缩略图按需读取；完整备份仍保留原图。浏览器 / Android 的 IndexedDB 按对象读取，
+Dexie 会在内存中映射时去掉图片字段，但 IndexedDB 仍需先克隆记录对象；若实际数据规模下这一步仍造成卡顿，
+下一档应评估已登记的附件表迁移，避免在本次 patch 中改动现有备份 / 图片寻址契约。
 
 ### 8.1 「挑选记录导出」弹窗（2026-11-03 已做一半）
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { HealthFood, HealthMeal } from '@/core/db/schema'
-import { componentPhoto, mealPhoto } from './mealPhoto'
+import { componentPhoto, mealPhoto, mealPhotoFromMap } from './mealPhoto'
 
 const T = 100
 
@@ -44,6 +44,12 @@ describe('mealPhoto', () => {
   it('没有自己的封面时，按成分顺序取第一张', () => {
     const foods = [food('f1', null), food('f2', 'second'), food('f3', 'third')]
     expect(mealPhoto(meal(null, ['f1', 'f2', 'f3']), foods)).toBe('second')
+    expect(
+      mealPhotoFromMap(
+        meal(null, ['f1', 'f2', 'f3']),
+        new Map(foods.map((item) => [item.id, item])),
+      ),
+    ).toBe('second')
     expect(componentPhoto([{ foodId: 'f1' }, { foodId: 'f3' }], foods)).toBe('third')
   })
 

@@ -12,7 +12,7 @@
  * 不真的叠三层弹窗：Modal 的焦点陷阱和 Esc 会互相打架，换内容层还多一个「返回」。
  */
 import ErrorNote from '@/shared/ui/ErrorNote'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import type {
   HealthFood,
@@ -21,6 +21,7 @@ import type {
   HealthMealItem,
   IntakeComponent,
 } from '@/core/db/schema'
+import type { HealthFoodBrief, HealthMealBrief } from '@/core/db/store'
 import { useLiveQuery } from '@/core/db/live'
 import { newCode, newId } from '@/core/utils/id'
 import { formatClock, todayKey } from '@/core/utils/dateKey'
@@ -30,7 +31,6 @@ import AiDisclaimer from '@/features/ai/AiDisclaimer'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
-import PhotoPreview from '@/shared/ui/PhotoPreview'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
@@ -44,11 +44,10 @@ import type { FoodDraft } from './FoodForm'
 import MealForm from './MealForm'
 import MealParts from './MealParts'
 import IntakeAiReview from './IntakeAiReview'
-import { dayTargets, foodMacros, formatNum, mealTotals, round2, sumMacros } from './healthMath'
+import { dayTargets, foodMacros, formatNum, mealTotalsFromMap, round2, sumMacros } from './healthMath'
 import { analyzeFoodPhoto } from './foodVision'
 import { analyzeMealPhrase } from './mealPhrase'
 import type { PhraseItem } from './mealPhrase'
-import { componentPhoto, mealPhoto } from './mealPhoto'
 import PhraseReviewDialog from './PhraseReviewDialog'
 import { matchFood, splitPhrase } from './phraseMatch'
 import { normalizeFoodName } from './intakeDraft'
@@ -56,8 +55,11 @@ import { asDraft } from './intakeDraft'
 import type { DraftFood } from './intakeDraft'
 import {
   addIntake,
-  healthFoods,
-  healthMeals,
+  healthFoodBriefs,
+  healthFoodById,
+  healthFoodPhoto,
+  healthMealBriefs,
+  healthMealById,
   healthProfile,
   saveHealthFood,
   saveHealthMeal,
@@ -66,6 +68,7 @@ import { addFinance } from '@/features/finance/financeRepo'
 import FoodSortControls from './FoodSortControls'
 import type { FoodSortDirection, FoodSortKey } from './foodSort'
 import { sortFoodCatalog } from './foodSort'
+import FoodPhotoThumbnail from './FoodPhotoThumbnail'
 
 
 /** 这一笔里的一项：普通食物，或者一个套餐（成分快照先算好） */
@@ -95,6 +98,9 @@ interface DraftMealPart {
 }
 
 type Step = 'list' | 'source' | 'picker' | 'newFood' | 'newMeal' | 'image' | 'meal' | 'phrase'
+
+const FOOD_PAGE_SIZE = 40
+const MEAL_PAGE_SIZE = 20
 
 /** 只接受大于 0 的克数；空串和不认识的字都算没填 */
 function parseGrams(text: string): number | null {
@@ -166,8 +172,8 @@ export default function IntakeDialog({
 }) {
   const { t } = useI18n()
   const { showToast } = useToast()
-  const foods = useLiveQuery(() => healthFoods(), [])
-  const meals = useLiveQuery(() => healthMeals(), [])
+  const foods = useLiveQuery(() => healthFoodBriefs(), [])
+  const meals = useLiveQuery(() => healthMealBriefs(), [])
   const profile = useLiveQuery(() => healthProfile(), [])
 
   const [step, setStep] = useState<Step>('list')
@@ -196,6 +202,8 @@ export default function IntakeDialog({
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<FoodSortKey>('name')
   const [sortDirection, setSortDirection] = useState<FoodSortDirection>('asc')
+  const [foodPage, setFoodPage] = useState({ key: '', count: FOOD_PAGE_SIZE })
+  const [mealPage, setMealPage] = useState({ key: '', count: MEAL_PAGE_SIZE })
   const [pickedId, setPickedId] = useState<string | null>(null)
   const [pickedMealId, setPickedMealId] = useState<string | null>(null)
   /** 点开的食物照片：同时带上可左右翻的图片列表；null 表示关着 */
@@ -229,15 +237,32 @@ export default function IntakeDialog({
 
   const aiReady = isConfigured(loadAiConfig())
   const keyword = query.trim().toLowerCase()
-  const list = sortFoodCatalog(foods ?? [], sortKey, sortDirection).filter((item) =>
-    item.name.toLowerCase().includes(keyword),
+  const foodIndex = useMemo(() => new Map((foods ?? []).map((item) => [item.id, item])), [foods])
+  const mealIndex = useMemo(() => new Map((meals ?? []).map((item) => [item.id, item])), [meals])
+  const sortedFoods = useMemo(
+    () => sortFoodCatalog(foods ?? [], sortKey, sortDirection),
+    [foods, sortKey, sortDirection],
+  )
+  const list = useMemo(
+    () => sortedFoods.filter((item) => item.name.toLowerCase().includes(keyword)),
+    [sortedFoods, keyword],
   )
   /** 当前搜索结果里带照片的，点缩略图时按这个顺序左右翻 */
-  const photoFoods = list.filter((item) => item.photo !== null)
-  const mealList = sortFoodCatalog(meals ?? [], sortKey, sortDirection).filter((item) =>
-    item.name.toLowerCase().includes(keyword),
+  const photoFoods = useMemo(() => list.filter((item) => item.hasPhoto), [list])
+  const sortedMeals = useMemo(
+    () => sortFoodCatalog(meals ?? [], sortKey, sortDirection),
+    [meals, sortKey, sortDirection],
   )
-  const picked = (foods ?? []).find((item) => item.id === pickedId) ?? null
+  const mealList = useMemo(
+    () => sortedMeals.filter((item) => item.name.toLowerCase().includes(keyword)),
+    [sortedMeals, keyword],
+  )
+  const pickerResultKey = `${keyword}\u0000${sortKey}\u0000${sortDirection}`
+  const visibleFoodCount = foodPage.key === pickerResultKey ? foodPage.count : FOOD_PAGE_SIZE
+  const visibleMealCount = mealPage.key === pickerResultKey ? mealPage.count : MEAL_PAGE_SIZE
+  const visibleFoods = list.slice(0, visibleFoodCount)
+  const visibleMeals = mealList.slice(0, visibleMealCount)
+  const picked = pickedId ? foodIndex.get(pickedId) ?? null : null
   const pickedMeal = (meals ?? []).find((item) => item.id === pickedMealId) ?? null
 
   // 问 AI 时带上当天已记的量与目标线；过去的日子按当天第一笔的快照
@@ -320,19 +345,23 @@ export default function IntakeDialog({
   }
 
   /** 选定一条食物库的菜，带出它自己的常用份量 */
-  function chooseLibrary(item: HealthFood) {
-    setFood(asDraft(item))
+  async function chooseLibrary(item: HealthFood | HealthFoodBrief) {
+    const fullFood = await healthFoodById(item.id)
+    if (!fullFood) return
+    setFood(asDraft(fullFood))
     setAiReviewOpen(false)
-    setGrams(item.servingGrams ? String(item.servingGrams) : '100')
-    setServings(item.servingGrams ? '1' : '')
+    setGrams(fullFood.servingGrams ? String(fullFood.servingGrams) : '100')
+    setServings(fullFood.servingGrams ? '1' : '')
     setStep('source')
   }
 
   /** 选定一个套餐：默认 1 份，展开成分可以逐项改 */
-  function chooseMeal(item: HealthMeal) {
-    setMeal(item)
+  async function chooseMeal(item: HealthMeal | HealthMealBrief) {
+    const fullMeal = await healthMealById(item.id)
+    if (!fullMeal) return
+    setMeal(fullMeal)
     setMealParts(
-      item.items.map((part) => ({
+      fullMeal.items.map((part) => ({
         foodId: part.foodId,
         name: (foods ?? []).find((each) => each.id === part.foodId)?.name ?? '',
         grams: String(part.grams),
@@ -341,6 +370,16 @@ export default function IntakeDialog({
     setMealServings('1')
     mealServingsBase.current = 1
     setStep('meal')
+  }
+
+  async function openFoodPhotoGallery(ids: string[], targetId: string) {
+    const photos = await Promise.all(ids.map((id) => healthFoodPhoto(id)))
+    const targetPosition = ids.indexOf(targetId)
+    const images = photos.filter((photo): photo is string => Boolean(photo))
+    const index = photos
+      .slice(0, targetPosition + 1)
+      .filter((photo) => Boolean(photo)).length - 1
+    if (images.length > 0 && index >= 0) setLightbox({ images, index })
   }
 
   function onServings(text: string) {
@@ -422,7 +461,7 @@ export default function IntakeDialog({
   }
 
   /** 替换掉一项已经删除的成分，克数保持原样 */
-  function replacePart(item: HealthFood) {
+  function replacePart(item: HealthFoodBrief) {
     if (replaceIndex === null) return
     setMealParts((current) =>
       current.map((part, index) =>
@@ -978,18 +1017,26 @@ export default function IntakeDialog({
                 <ul className="m-0 list-none space-y-1 p-0">
                 {items.map((item) => {
                   const macros = itemMacros(item)
-                  const photo =
-                    item.food?.photo ??
-                    (item.components.length > 0 ? componentPhoto(item.components, foods ?? []) : null)
+                  const itemFood = item.food?.foodId ? foodIndex.get(item.food.foodId) : undefined
+                  const itemMeal = item.mealId ? mealIndex.get(item.mealId) : undefined
+                  const itemPhotoKind = itemFood ? 'food' : itemMeal ? 'meal' : null
+                  const itemPhotoId = itemFood?.id ?? itemMeal?.id ?? ''
+                  const hasPhoto = Boolean(
+                    itemFood?.hasPhoto ||
+                    itemMeal?.hasPhoto ||
+                    itemMeal?.items.some((part) => foodIndex.get(part.foodId)?.hasPhoto),
+                  )
                   return (
                     <li
                       key={item.key}
                       className="flex items-start gap-2 rounded-lg border border-line/70 bg-surface px-2 py-2"
                     >
-                      {photo && (
-                        <PhotoPreview
-                          src={photo}
-                          alt=""
+                      {hasPhoto && itemPhotoKind && (
+                        <FoodPhotoThumbnail
+                          kind={itemPhotoKind}
+                          id={itemPhotoId}
+                          hasPhoto
+                          refreshKey={itemFood?.updatedAt ?? itemMeal?.updatedAt}
                           className="h-10 w-10 rounded-md border border-line/60"
                           wrapperClassName="shrink-0"
                         />
@@ -1386,9 +1433,10 @@ export default function IntakeDialog({
               <div>
                 <p className="m-0 mb-1 text-xs text-muted">{t('intake.mealTag')}</p>
                 <ul className="m-0 max-h-40 list-none space-y-1 overflow-y-auto p-0">
-                  {mealList.map((item) => {
-                    const totals = mealTotals(item.items, foods ?? [])
-                    const photo = mealPhoto(item, foods ?? [])
+                  {visibleMeals.map((item) => {
+                    const totals = mealTotalsFromMap(item.items, foodIndex)
+                    const hasPhoto =
+                      item.hasPhoto || item.items.some((part) => foodIndex.get(part.foodId)?.hasPhoto)
                     return (
                       <li key={item.id}>
                         <button
@@ -1401,10 +1449,12 @@ export default function IntakeDialog({
                             pickedMealId === item.id ? 'border-brand' : 'border-line hover:border-brand/50'
                           }`}
                         >
-                          {photo && (
-                            <PhotoPreview
-                              src={photo}
-                              alt=""
+                          {hasPhoto && (
+                            <FoodPhotoThumbnail
+                              kind="meal"
+                              id={item.id}
+                              hasPhoto
+                              refreshKey={item.updatedAt}
                               className="h-10 w-10 rounded-md border border-line"
                               wrapperClassName="shrink-0"
                             />
@@ -1432,6 +1482,22 @@ export default function IntakeDialog({
                     )
                   })}
                 </ul>
+                {mealList.length > visibleMeals.length && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMealPage((current) => ({
+                        key: pickerResultKey,
+                        count:
+                          (current.key === pickerResultKey ? current.count : MEAL_PAGE_SIZE) +
+                          MEAL_PAGE_SIZE,
+                      }))
+                    }
+                    className={`${OUTLINE_BUTTON} mt-2 w-full justify-center`}
+                  >
+                    {t('records.loadMore', { count: mealList.length - visibleMeals.length })}
+                  </button>
+                )}
               </div>
             )}
 
@@ -1445,33 +1511,28 @@ export default function IntakeDialog({
               </p>
             ) : (
               <ul className="m-0 max-h-56 list-none space-y-1 overflow-y-auto p-0">
-                {list.map((item) => (
+                {visibleFoods.map((item) => (
                   <li key={item.id}>
                     <div
                       className={`flex items-center gap-2 rounded-lg border p-2 transition-colors ${
                         pickedId === item.id ? 'border-brand' : 'border-line hover:border-brand/50'
                       }`}
                     >
-                      {item.photo && (
-                        <button
-                          type="button"
+                      {item.hasPhoto && (
+                        <FoodPhotoThumbnail
+                          kind="food"
+                          id={item.id}
+                          hasPhoto
+                          refreshKey={item.updatedAt}
                           onClick={() =>
-                            setLightbox({
-                              images: photoFoods.map((entry) => entry.photo!),
-                              index: photoFoods.findIndex((entry) => entry.id === item.id),
-                            })
+                            void openFoodPhotoGallery(
+                              photoFoods.map((entry) => entry.id),
+                              item.id,
+                            )
                           }
-                          aria-label={t('imageImport.view')}
-                          className="shrink-0 overflow-hidden rounded-md border border-line transition-opacity hover:opacity-80"
-                        >
-                          <img
-                            src={item.photo}
-                            alt=""
-                            loading="lazy"
-                            decoding="async"
-                            className="h-10 w-10 object-contain"
-                          />
-                        </button>
+                          className="h-10 w-10 object-contain"
+                          wrapperClassName="shrink-0"
+                        />
                       )}
                       <button
                         type="button"
@@ -1494,6 +1555,22 @@ export default function IntakeDialog({
                 ))}
               </ul>
             )}
+            {foods !== undefined && list.length > visibleFoods.length && (
+              <button
+                type="button"
+                onClick={() =>
+                  setFoodPage((current) => ({
+                    key: pickerResultKey,
+                    count:
+                      (current.key === pickerResultKey ? current.count : FOOD_PAGE_SIZE) +
+                      FOOD_PAGE_SIZE,
+                  }))
+                }
+                className={`${OUTLINE_BUTTON} w-full justify-center`}
+              >
+                {t('records.loadMore', { count: list.length - visibleFoods.length })}
+              </button>
+            )}
 
             <div className="flex justify-end gap-2 pt-1">
               <button type="button" onClick={stepBack} className={OUTLINE_BUTTON}>
@@ -1508,10 +1585,10 @@ export default function IntakeDialog({
                     return
                   }
                   if (pickedMeal) {
-                    chooseMeal(pickedMeal)
+                    void chooseMeal(pickedMeal)
                     return
                   }
-                  if (picked) chooseLibrary(picked)
+                  if (picked) void chooseLibrary(picked)
                 }}
                 className={`${SOLID_BUTTON} disabled:opacity-40`}
               >
@@ -1604,29 +1681,22 @@ export default function IntakeDialog({
                       className="rounded-lg border border-line px-2 py-1.5"
                     >
                       <div className="flex items-center gap-2">
-                        {found.photo && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const withPhoto = mealFound.filter((each) => each.food?.photo)
-                              setLightbox({
-                                images: withPhoto.map((each) => each.food!.photo!),
-                                index: withPhoto.findIndex(
-                                  (each) => each.food!.id === found.id,
+                        {found.hasPhoto && (
+                          <FoodPhotoThumbnail
+                            kind="food"
+                            id={found.id}
+                            hasPhoto
+                            refreshKey={found.updatedAt}
+                            onClick={() =>
+                              void openFoodPhotoGallery(
+                                mealFound.flatMap((each) =>
+                                  each.food?.hasPhoto ? [each.food.id] : [],
                                 ),
-                              })
-                            }}
-                            aria-label={t('imageImport.view')}
-                            className="shrink-0 overflow-hidden rounded-md border border-line transition-opacity hover:opacity-80"
-                          >
-                            <img
-                              src={found.photo}
-                              alt=""
-                              loading="lazy"
-                              decoding="async"
-                              className="h-8 w-8 object-contain"
-                            />
-                          </button>
+                                found.id,
+                              )
+                            }
+                            className="h-8 w-8 object-contain"
+                          />
                         )}
                         <span className="min-w-0 flex-1 truncate text-sm text-fg">
                           {found.name}

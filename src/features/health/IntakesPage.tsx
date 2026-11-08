@@ -6,11 +6,10 @@
  */
 import EmptyState from '@/shared/ui/EmptyState'
 import RowCheckbox from '@/shared/ui/RowCheckbox'
-import PhotoPreview from '@/shared/ui/PhotoPreview'
 import RowMenu from '@/shared/ui/RowMenu'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import type { HealthIntake } from '@/core/db/schema'
+import type { HealthFood, HealthIntake } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
 import { formatDate, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
@@ -33,7 +32,8 @@ import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import { formatNum } from './healthMath'
 import {
   exportAllData,
-  healthFoods,
+  healthFoodBriefs,
+  healthFoodById,
   intakeDays,
   intakesOfDay,
   removeIntake,
@@ -49,6 +49,7 @@ import { describeSave, saveTextFile } from '@/platform/saveFile'
 import ShareDialog from '@/features/share/ShareDialog'
 import type { ShareIntakeDoc } from '@/features/share/shareCode'
 import { buildIntakeShare } from '@/features/share/recordShare'
+import FoodPhotoThumbnail from './FoodPhotoThumbnail'
 
 export default function IntakesPage() {
   const { t } = useI18n()
@@ -62,21 +63,8 @@ export default function IntakesPage() {
   const batch = useBatchSelect()
   const intakes = useLiveQuery(() => intakesOfDay(dayKey), [dayKey])
   // 食物库用来给列表行找缩略图：摄入只存 foodId，照片始终取库里当前那张
-  const foods = useLiveQuery(() => healthFoods(), [])
-  const photoById = new Map((foods ?? []).map((food) => [food.id, food.photo] as const))
-  /** 套餐取第一个有照片的成分，单条直接用自己的 foodId */
-  function photoOf(intake: HealthIntake): string | null {
-    if (intake.foodId) {
-      const own = photoById.get(intake.foodId)
-      if (own) return own
-    }
-    for (const part of intake.components ?? []) {
-      if (!part.foodId) continue
-      const photo = photoById.get(part.foodId)
-      if (photo) return photo
-    }
-    return null
-  }
+  const foods = useLiveQuery(() => healthFoodBriefs(), [])
+  const foodById = new Map((foods ?? []).map((food) => [food.id, food] as const))
   const [dialogOpen, setDialogOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<HealthIntake | null>(null)
   /** 点开某一笔看完整营养成分 */
@@ -86,9 +74,8 @@ export default function IntakesPage() {
   const [editChoice, setEditChoice] = useState<HealthIntake | null>(null)
   /** 正在编辑的那一笔；syncLibrary 表示保存时同时写回食物库 */
   const [editing, setEditing] = useState<{ intake: HealthIntake; syncLibrary: boolean } | null>(null)
-  /** 同步编辑要写回的那条食物；找不到（已删）就退回单独编辑 */
-  const linkedFood =
-    editing?.intake.foodId ? ((foods ?? []).find((food) => food.id === editing.intake.foodId) ?? null) : null
+  /** 只有选「同时修改食物库」时才单独读取被编辑食物的完整行。 */
+  const [linkedFood, setLinkedFood] = useState<HealthFood | null>(null)
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
   /** 批量导出时取来的整库数据；非 null 就打开挑选弹窗 */
   const [exportData, setExportData] = useState<BackupData | null>(null)
@@ -111,13 +98,21 @@ export default function IntakesPage() {
    * 手动记录、套餐快照没有对应食物，直接进编辑。
    */
   function requestEdit(intake: HealthIntake) {
+    setLinkedFood(null)
     const hasLinkedFood =
       !!intake.foodId && (foods ?? []).some((food) => food.id === intake.foodId)
     if (hasLinkedFood) {
       setEditChoice(intake)
       return
     }
-    setEditing({ intake, syncLibrary: false })
+    void startEditing(intake, false)
+  }
+
+  async function startEditing(intake: HealthIntake, syncLibrary: boolean) {
+    const food =
+      syncLibrary && intake.foodId ? await healthFoodById(intake.foodId) : undefined
+    setLinkedFood(food?.deletedAt === null ? food : null)
+    setEditing({ intake, syncLibrary: syncLibrary && food?.deletedAt === null })
   }
 
   async function openPicker() {
@@ -257,7 +252,12 @@ export default function IntakesPage() {
         <ul className="m-0 mt-2 list-none space-y-2 p-0">
           {rows.map((intake) => {
             const selected = batch.isSelected(intake.id)
-            const photo = photoOf(intake)
+            const photoFoodId =
+              intake.foodId && foodById.get(intake.foodId)?.hasPhoto
+                ? intake.foodId
+                : (intake.components ?? []).find(
+                    (part) => part.foodId && foodById.get(part.foodId)?.hasPhoto,
+                  )?.foodId
             return (
               <li
                 key={intake.id}
@@ -272,10 +272,12 @@ export default function IntakesPage() {
                     onToggle={() => batch.toggle(intake.id)}
                   />
                 )}
-                {photo && (
-                  <PhotoPreview
-                    src={photo}
-                    alt=""
+                {photoFoodId && (
+                  <FoodPhotoThumbnail
+                    kind="food"
+                    id={photoFoodId}
+                    hasPhoto
+                    refreshKey={foodById.get(photoFoodId)?.updatedAt ?? intake.updatedAt}
                     className="h-11 w-11 rounded-lg border border-line/60"
                     wrapperClassName="shrink-0"
                   />
@@ -412,11 +414,11 @@ export default function IntakesPage() {
           name={editChoice.name}
           onCancel={() => setEditChoice(null)}
           onSingle={() => {
-            setEditing({ intake: editChoice, syncLibrary: false })
+            void startEditing(editChoice, false)
             setEditChoice(null)
           }}
           onSync={() => {
-            setEditing({ intake: editChoice, syncLibrary: true })
+            void startEditing(editChoice, true)
             setEditChoice(null)
           }}
         />

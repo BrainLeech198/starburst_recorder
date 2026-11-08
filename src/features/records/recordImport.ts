@@ -45,11 +45,6 @@ async function importSections(sections: BackupSections): Promise<ImportStats> {
   return store.importSections(sections)
 }
 
-async function exportAllData() {
-  const { store } = await import('@/core/db')
-  return store.exportAllData()
-}
-
 /** 一份记录导出文件里认出来的全部内容；没包含的种类是空数组 */
 export interface RecordsFile {
   entries: DiaryEntry[]
@@ -138,14 +133,26 @@ export async function importRecords(
   kinds: RecordKind[],
 ): Promise<RecordsImportResult> {
   const want = new Set(kinds)
-  const local = await exportAllData()
+  const { store } = await import('@/core/db')
+  const sleepDays = want.has('sleep') ? file.sleeps.map((item) => item.dateKey) : []
+  const [localSleeps, localProfile] = await Promise.all([
+    sleepDays.length > 0
+      ? store.sleepsBetween(
+          sleepDays.reduce((earliest, day) => day < earliest ? day : earliest),
+          sleepDays.reduce((latest, day) => day > latest ? day : latest),
+        )
+      : Promise.resolve([]),
+    want.has('weight') && file.weights.length > 0
+      ? store.healthProfile()
+      : Promise.resolve(undefined),
+  ])
 
   // 睡眠按天对齐：同一天已有记录就借它的 id，导入变成覆盖而不是并列两行
   let sleeps: HealthSleep[] = []
   let sleepsOverwritten = 0
   if (want.has('sleep') && file.sleeps.length > 0) {
     const byDay = new Map(
-      local.sleeps.filter((item) => !item.deletedAt).map((item) => [item.dateKey, item]),
+      localSleeps.filter((item) => !item.deletedAt).map((item) => [item.dateKey, item]),
     )
     const seenDays = new Set<string>()
     sleeps = []
@@ -167,7 +174,7 @@ export async function importRecords(
   let weights: WeighIn[] = []
   let weightsOverwritten = 0
   if (want.has('weight') && file.weights.length > 0) {
-    const current = local.profile ?? null
+    const current = localProfile ?? null
     const existing = current?.weighIns ?? []
     const existingDays = new Set(existing.map((item) => item.dateKey))
     weightsOverwritten = file.weights.filter((item) => existingDays.has(item.dateKey)).length

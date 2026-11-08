@@ -3,6 +3,7 @@ import type { ChangeEvent, ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import type { DiaryImage, DiaryStamp } from '@/core/db/schema'
+import type { DiaryStampBrief } from '@/core/db/store'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
@@ -11,6 +12,7 @@ import {
   dayInfo,
   removeStamp,
   restoreStamp,
+  stampById,
   setStampTags,
   setWeather,
   updateStamp,
@@ -26,6 +28,8 @@ import { MAX_IMAGES, prepareImages } from './imageAssets'
 import SketchDialog from './SketchDialog'
 import { buildSingleRecordExport } from '@/features/records/recordExport'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
+
+const STAMP_PAGE_SIZE = 40
 
 /**
  * 一笔随记里带的图片：小缩略图铺开，点开是灯箱。
@@ -109,7 +113,7 @@ function StampRow({
   selected,
   onToggle,
 }: {
-  stamp: DiaryStamp
+  stamp: DiaryStampBrief
   /** 编辑态由时间轴统一管：同一时刻最多只有一条在编辑 */
   editing: boolean
   draft: string
@@ -117,7 +121,7 @@ function StampRow({
   onRequestEdit: () => void
   onCancelEdit: () => void
   onSaveEdit: () => void
-  onDelete: (stamp: DiaryStamp) => void
+  onDelete: (stamp: DiaryStampBrief) => void
   /** 单条导出 JSON：时间和天气由时间轴统一取 */
   onExportJson: () => void
   onShare: () => void
@@ -140,16 +144,58 @@ function StampRow({
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
+  const rowRef = useRef<HTMLLIElement>(null)
+  const [nearViewport, setNearViewport] = useState(
+    () => typeof IntersectionObserver === 'undefined',
+  )
+  const [imageRecord, setImageRecord] = useState<DiaryStamp | null>(null)
+  useEffect(() => {
+    let alive = true
+    if (!nearViewport || stamp.imageCount === 0) {
+      void Promise.resolve().then(() => {
+        if (alive) setImageRecord(null)
+      })
+      return () => {
+        alive = false
+      }
+    }
+    void stampById(stamp.id).then((row) => {
+      if (alive) setImageRecord(row ?? null)
+    })
+    return () => {
+      alive = false
+    }
+  }, [stamp.id, stamp.imageCount, stamp.updatedAt, nearViewport])
+  const images = imageRecord?.images ?? []
+
+  useEffect(() => {
+    if (stamp.imageCount === 0) return
+    const row = rowRef.current
+    if (!row) return
+    if (typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setNearViewport(entries.some((entry) => entry.isIntersecting))
+      },
+      { rootMargin: '400px 0px' },
+    )
+    observer.observe(row)
+    return () => observer.disconnect()
+  }, [stamp.id, stamp.imageCount])
 
   async function addImages(files: File[]) {
     if (files.length === 0 || imageBusy) return
     setImageBusy(true)
     try {
       const prepared = await prepareImages(files)
-      if (stamp.images.length + prepared.length > MAX_IMAGES) {
+      let currentImages = images
+      if (stamp.imageCount > 0 && currentImages.length === 0) {
+        currentImages = (await stampById(stamp.id))?.images ?? []
+      }
+      if (currentImages.length + prepared.length > MAX_IMAGES) {
         showToast({ message: t('stamp.imageLimit', { max: MAX_IMAGES }) })
       }
-      const next = [...stamp.images, ...prepared].slice(0, MAX_IMAGES)
+      const next = [...currentImages, ...prepared].slice(0, MAX_IMAGES)
       await updateStamp(stamp.id, { images: next })
     } catch (error) {
       showToast({ message: error instanceof Error ? error.message : String(error) })
@@ -166,7 +212,7 @@ function StampRow({
   }
 
   function removeImage(id: string) {
-    void updateStamp(stamp.id, { images: stamp.images.filter((image) => image.id !== id) })
+    void updateStamp(stamp.id, { images: images.filter((image) => image.id !== id) })
   }
 
   /** 把预设名插到光标处；没有焦点时追加到末尾 */
@@ -203,7 +249,7 @@ function StampRow({
   }, [draft, editing])
 
   return (
-    <li className="stamp-row relative pb-5">
+    <li ref={rowRef} className="stamp-row relative pb-5">
       <span aria-hidden="true" className="timeline-dot" />
 
       <div
@@ -221,12 +267,12 @@ function StampRow({
             </span>
             <span className="font-hand mt-0.5 block min-h-6 text-sm leading-6 text-ink">
               {stamp.content.trim() ||
-                (stamp.images.length === 0 && (
+                (stamp.imageCount === 0 && (
                   <span className="text-ink-muted">{t('stamp.noContent')}</span>
                 ))}
             </span>
             <StampImages
-              images={stamp.images}
+              images={images}
               editing={false}
               onRemove={removeImage}
               onOpen={setViewerIndex}
@@ -283,7 +329,7 @@ function StampRow({
                   className="font-hand block w-full resize-none bg-transparent text-sm leading-6 text-ink outline-none placeholder:text-ink-muted"
                 />
                 <StampImages
-                  images={stamp.images}
+                  images={images}
                   editing
                   onRemove={removeImage}
                   onOpen={setViewerIndex}
@@ -313,7 +359,7 @@ function StampRow({
                   <button
                     type="button"
                     onClick={() => setSourceOpen(true)}
-                    disabled={imageBusy || stamp.images.length >= MAX_IMAGES}
+                    disabled={imageBusy || stamp.imageCount >= MAX_IMAGES}
                     className="rounded border border-line px-2 py-0.5 text-muted transition-colors hover:text-fg disabled:opacity-40"
                   >
                     {t('stamp.addImage')}
@@ -344,7 +390,7 @@ function StampRow({
                 className="font-hand mt-0.5 block w-full min-h-6 text-left text-sm leading-6 text-ink transition-colors hover:text-brand"
               >
                 {stamp.content.trim() ||
-                  (stamp.images.length === 0 && (
+                  (stamp.imageCount === 0 && (
                     <span className="text-ink-muted">{t('stamp.noContent')}</span>
                   ))}
               </button>
@@ -352,7 +398,7 @@ function StampRow({
             {!editing && (
               <>
                 <StampImages
-                  images={stamp.images}
+                  images={images}
                   editing={false}
                   onRemove={removeImage}
                   onOpen={setViewerIndex}
@@ -455,9 +501,9 @@ function StampRow({
           }}
         />
       )}
-      {viewerIndex !== null && viewerIndex < stamp.images.length && (
+      {viewerIndex !== null && viewerIndex < images.length && (
         <ImageViewer
-          images={stamp.images.map((image) => ({ preview: image.dataUrl }))}
+          images={images.map((image) => ({ preview: image.dataUrl }))}
           index={viewerIndex}
           onIndexChange={setViewerIndex}
           onClose={() => setViewerIndex(null)}
@@ -508,34 +554,35 @@ export default function StampTimeline({
   dateKey: string
   focusId: string
   /** 这一天的随记，由日记页统一查好传进来，批量多选要用同一份 */
-  stamps: DiaryStamp[] | undefined
+  stamps: DiaryStampBrief[] | undefined
   selectMode: boolean
   selected: string[]
   onToggleSelect: (id: string) => void
-  onShare: (stamp: DiaryStamp) => void
+  onShare: (stamp: DiaryStampBrief) => void
 }) {
   const { showToast } = useToast()
   const { t } = useI18n()
-  const [pendingDelete, setPendingDelete] = useState<DiaryStamp | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<DiaryStampBrief | null>(null)
   const [weatherOpen, setWeatherOpen] = useState(false)
   /** 同一时刻只允许一条在编辑；草稿放在这一层，切换时才判断得出有没有没存的东西 */
   const [editingId, setEditingId] = useState('')
   const [draft, setDraft] = useState('')
+  const [stampPage, setStampPage] = useState({ dateKey: '', count: STAMP_PAGE_SIZE })
   const originalRef = useRef('')
   /** 已经自动进过编辑的那条，取消后不要再把它拽回来 */
   const autoEditRef = useRef('')
-  const [pendingSwitch, setPendingSwitch] = useState<DiaryStamp | null>(null)
+  const [pendingSwitch, setPendingSwitch] = useState<DiaryStampBrief | null>(null)
 
   const day = useLiveQuery(() => dayInfo(dateKey), [dateKey])
 
-  function startEdit(stamp: DiaryStamp) {
+  function startEdit(stamp: DiaryStampBrief) {
     originalRef.current = stamp.content
     setDraft(stamp.content)
     setEditingId(stamp.id)
   }
 
   /** 点另一条要编辑：当前这条有改动就先问一句，别悄悄丢 */
-  function requestEdit(stamp: DiaryStamp) {
+  function requestEdit(stamp: DiaryStampBrief) {
     if (editingId === stamp.id) return
     if (editingId !== '' && draft !== originalRef.current) {
       setPendingSwitch(stamp)
@@ -549,7 +596,7 @@ export default function StampTimeline({
     setDraft(originalRef.current)
   }
 
-  async function saveEdit(stamp: DiaryStamp) {
+  async function saveEdit(stamp: DiaryStampBrief) {
     const next = draft
     setEditingId('')
     // 没改内容，直接退出，别存一次无效写入
@@ -592,9 +639,12 @@ export default function StampTimeline({
         })()
       : -1
 
+  const visibleStampCount = stampPage.dateKey === dateKey ? stampPage.count : STAMP_PAGE_SIZE
+  const visibleStamps = stamps?.slice(0, visibleStampCount)
+  const totalStampCount = stamps?.length ?? 0
   const items: ReactNode[] = []
-  if (stamps) {
-    stamps.forEach((stamp, index) => {
+  if (visibleStamps) {
+    visibleStamps.forEach((stamp, index) => {
       if (index === markerAt) items.push(<NowRow key={`now-${stamp.id}`} clock={now.clock} />)
       items.push(
         <StampRow
@@ -615,12 +665,21 @@ export default function StampTimeline({
         />,
       )
     })
-    if (markerAt === stamps.length) items.push(<NowRow key="now-tail" clock={now.clock} />)
+    if (markerAt === visibleStamps.length) {
+      items.push(
+        <NowRow
+          key={markerAt === totalStampCount ? 'now-tail' : 'now-page-tail'}
+          clock={now.clock}
+        />,
+      )
+    }
   }
 
   /** 单条随记导出：结构和「挑选记录导出」的 JSON 一样，带上当天天气 */
-  async function handleExportJson(stamp: DiaryStamp) {
-    const file = buildSingleRecordExport('stamp', stamp, day ?? null)
+  async function handleExportJson(stamp: DiaryStampBrief) {
+    const fullStamp = await stampById(stamp.id)
+    if (!fullStamp) return
+    const file = buildSingleRecordExport('stamp', fullStamp, day ?? null)
     const outcome = await saveTextFile(file)
     showToast({
       message: describeSave(outcome, t('records.exported', { count: 1, label: file.label }), t),
@@ -666,6 +725,22 @@ export default function StampTimeline({
         )}
 
         {stamps !== undefined && stamps.length > 0 && <ul>{items}</ul>}
+        {stamps !== undefined && stamps.length > (visibleStamps?.length ?? 0) && (
+          <button
+            type="button"
+            onClick={() =>
+              setStampPage((current) => ({
+                dateKey,
+                count:
+                  (current.dateKey === dateKey ? current.count : STAMP_PAGE_SIZE) +
+                  STAMP_PAGE_SIZE,
+              }))
+            }
+            className="mt-2 w-full rounded-lg border border-dashed border-line px-3 py-2 text-center text-xs text-muted transition-colors hover:border-brand/60 hover:text-brand"
+          >
+            {t('records.loadMore', { count: stamps.length - (visibleStamps?.length ?? 0) })}
+          </button>
+        )}
       </div>
 
       {weatherOpen && (

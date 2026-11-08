@@ -9,6 +9,9 @@ export const {
   saveHealthProfile,
   deleteHealthProfile,
   healthFoods,
+  healthFoodBriefs,
+  healthFoodById,
+  healthFoodPhoto,
   trashedHealthFoods,
   saveHealthFood,
   mergeHealthFoods,
@@ -19,6 +22,9 @@ export const {
   purgeHealthFood,
   purgeTrashedHealthFoods,
   healthMeals,
+  healthMealBriefs,
+  healthMealById,
+  healthMealPhoto,
   trashedHealthMeals,
   saveHealthMeal,
   removeHealthMeal,
@@ -49,7 +55,8 @@ export const {
   purgeHealthSleep,
   purgeTrashedHealthSleeps,
   // 整库取数：健康页的「导出」要把所选摄入放进四类记录里一起挑
+  assistantData,
   exportAllData,
 } = store
 
-export type { BackupData } from '@/core/db/store'
+export type { AssistantData, BackupData } from '@/core/db/store'

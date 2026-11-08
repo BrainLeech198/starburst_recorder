@@ -26,16 +26,24 @@ import type {
   ScheduleItem,
 } from '@/core/db/schema'
 import type { SearchResults } from '@/core/db/store'
+import type {
+  DiaryEntryBrief,
+  DiaryStampBrief,
+  FinanceEntryBrief,
+  HealthFoodBrief,
+  HealthMealBrief,
+} from '@/core/db/store'
+import { briefEntry, briefFinance, briefFoodRow, briefMealRow, briefStamp } from '@/core/db/brief'
 
 /** 一次搜索要过的十张表 */
 export interface SearchInput {
-  entries: DiaryEntry[]
-  stamps: DiaryStamp[]
-  finance: FinanceEntry[]
+  entries: (DiaryEntry | DiaryEntryBrief)[]
+  stamps: (DiaryStamp | DiaryStampBrief)[]
+  finance: (FinanceEntry | FinanceEntryBrief)[]
   sleeps: HealthSleep[]
   intakes: HealthIntake[]
-  foods: HealthFood[]
-  meals: HealthMeal[]
+  foods: (HealthFood | HealthFoodBrief)[]
+  meals: (HealthMeal | HealthMealBrief)[]
   trainings: HealthTraining[]
   schedules: ScheduleItem[]
   presets: DiaryPreset[]
@@ -145,13 +153,15 @@ export function searchRows(
     tags,
     entries: entries
       .filter((item) => hit([item.content], item.tags))
-      .sort((a, b) => byDateDesc(a, b) || byCreatedDesc(a, b)),
+      .sort((a, b) => byDateDesc(a, b) || byCreatedDesc(a, b))
+      .map(briefEntry),
     stamps: stamps
       .filter((item) => hit([item.content], item.tags))
       .sort(
         (a, b) =>
           byDateDesc(a, b) || b.time.localeCompare(a.time) || byCreatedDesc(a, b),
-      ),
+      )
+      .map(briefStamp),
     finance: finance
       .filter(
         (item) =>
@@ -161,7 +171,8 @@ export function searchRows(
       .sort(
         (a, b) =>
           byDateDesc(a, b) || b.time.localeCompare(a.time) || byCreatedDesc(a, b),
-      ),
+      )
+      .map(briefFinance),
     sleeps: sleeps.filter((item) => hit([item.note])).sort(byDateDesc),
     intakes: intakes
       .filter((item) =>
@@ -182,8 +193,8 @@ export function searchRows(
     schedules: schedules
       .filter((item) => hit([item.title, item.note]))
       .sort((a, b) => byDateDesc(a, b) || b.time.localeCompare(a.time) || byCreatedDesc(a, b)),
-    foods: foods.filter((item) => hit([item.name])).sort(byName),
-    meals: meals.filter((item) => hit([item.name])).sort(byName),
+    foods: foods.filter((item) => hit([item.name])).sort(byName).map(briefFoodRow),
+    meals: meals.filter((item) => hit([item.name])).sort(byName).map(briefMealRow),
     presets: presets.filter((item) => hit([item.name])).sort(byName),
   }
 }

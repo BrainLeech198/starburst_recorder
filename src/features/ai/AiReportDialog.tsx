@@ -6,7 +6,8 @@
  */
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { createEntry, exportAllData, updateContent } from '@/features/diary/diaryRepo'
+import { createEntry, updateContent } from '@/features/diary/diaryRepo'
+import { assistantData } from '@/features/health/healthRepo'
 import { todayKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
@@ -51,7 +52,7 @@ export default function AiReportDialog({
     setLoading(true)
     setError('')
     try {
-      const data = await exportAllData()
+      const data = await assistantData()
       const result = await composeReport(config, data, period)
       setMs(result.ms)
       if (!result.ok) {

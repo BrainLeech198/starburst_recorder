@@ -1,14 +1,12 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
-## 0.17.0 · 2026-11-06
+## 0.17.1 · 2026-11-09
 
 ### What's new
 
-- **Follow up on feedback** — view this installation's submitted feedback, status and developer replies. Each installation can submit up to three items every seven days. Clearing browser data or reinstalling disconnects access to the old installation's history.
-- **A feedback workspace for administrators** — switch between notices, subscribers and feedback; update feedback status and write a reply visible in the app. Older feedback without an installation ID remains viewable but cannot be replied to.
-- **Sort foods and meal choices** — sort by name or date added, in either ascending or descending order.
-- **Switch spending breakdown charts** — view category shares as a pie chart or the existing progress bars.
-- **Clearer email configuration status** — the admin page lists missing setting names without exposing secret values.
+- **Better food and meal filtering** — search by name, filter by tags, and sort by name or date added in either direction; thumbnails load on demand and lists appear in batches.
+- **Lighter diary, note and finance browsing** — date changes, archives, search and week/month reviews read summaries first; photos load only when shown or opened.
+- **Fewer whole-library image reads** — AI reports, references, confirmed assistant actions, sleep batch lists and record imports read only the needed summaries or records. Explicit photo viewing and full backups still include the originals.
 
 **Urgent security notice:** Backups exported before 0.13.1 may contain model names and API keys in plain text. If you shared an old backup or stored it in cloud storage or email, revoke the old API keys in your model provider's dashboard and generate fresh ones. Updating the app does not change files you already exported.
 
@@ -16,15 +14,15 @@ A local-first personal recorder with built-in AI: jot down today and AI turns it
 
 | Platform | File |
 | --- | --- |
-| Windows 10/11 | `starburst-recorder-0.17.0-setup.exe` (~96 MB) |
-| Android 10+ | `starburst-recorder-0.17.0.apk` (~62 MB, release-signed) |
+| Windows 10/11 | `starburst-recorder-0.17.1-setup.exe` (~96 MB) |
+| Android 10+ | `starburst-recorder-0.17.1.apk` (~62 MB, release-signed) |
 
 Android is sideloaded: allow "install unknown apps". If you previously installed a debug build, uninstall it first (different signature — the upgrade install will fail).
 Storage follows the platform: SQLite on desktop, IndexedDB in browsers and WebViews.
 
 ## Known limitations
 
-0.17.0 is still an early build, and the data format may change between versions — export a backup of anything you care about before upgrading. Older backups still import; AI chats travel with the backup and get noticeably larger when they carry image attachments. Health Connect import on Android is experimental and not yet verified on a real device; tell us if it cannot read anything.
+0.17.1 is still an early build, and the data format may change between versions — export a backup of anything you care about before upgrading. Older backups still import; AI chats travel with the backup and get noticeably larger when they carry image attachments. Health Connect import on Android is experimental and not yet verified on a real device; tell us if it cannot read anything.
 
 **Important: backups exported before 0.13.1 may contain model names and API keys in plain text.** If an old backup was kept in cloud storage or email, or sent to someone, revoke every API key it may contain in your model provider's dashboard, generate fresh keys, and enter them under Settings → AI. Since 0.13.1 an export can encrypt the `apiKey` with a passphrase, but **that only protects files exported from now on** — old exports do not become safe on their own.
 

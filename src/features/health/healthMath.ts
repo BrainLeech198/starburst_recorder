@@ -165,7 +165,14 @@ export function mealTotals(
   items: { foodId: string; grams: number }[],
   foods: Pick<HealthFood, 'id' | 'kcal' | 'protein' | 'carbs' | 'fat'>[],
 ): MealTotals {
-  const byId = new Map(foods.map((food) => [food.id, food]))
+  return mealTotalsFromMap(items, new Map(foods.map((food) => [food.id, food])))
+}
+
+/** 复用调用方建好的查找表，多个套餐列表行共用时避免反复扫描整个食物库。 */
+export function mealTotalsFromMap(
+  items: { foodId: string; grams: number }[],
+  byId: ReadonlyMap<string, Pick<HealthFood, 'id' | 'kcal' | 'protein' | 'carbs' | 'fat'>>,
+): MealTotals {
   const parts: Macros[] = []
   let missing = 0
   let grams = 0

@@ -1,14 +1,14 @@
 /**
  * 月度回顾的纯计算：把一个月的记录压成几句能看的数字。
  *
- * 只做汇总，不读存储：页面把 activityBetween / financeOfMonth /
+ * 只做汇总，不读存储：页面把 activityBetween / financeBriefsOfMonth /
  * sleepsBetween / trainingsBetween 的结果交进来，这里负责算平均与合计，
  * 「完成率」和「连续完成」也只认日程数据，不碰通知。
  */
 import type { DayActivity } from '@/core/db/store'
-import type { FinanceEntry, HealthSleep, HealthTraining, ScheduleItem } from '@/core/db/schema'
+import type { HealthSleep, HealthTraining, ScheduleItem } from '@/core/db/schema'
 import { sleepMinutes } from '@/features/health/sleepMath'
-import { summarizeFinance } from '@/features/finance/financeMath'
+import { summarizeFinance, type FinanceRow } from '@/features/finance/financeMath'
 import { dateKeysOfMonth, isDoneOn, occursOn } from '@/features/schedule/scheduleMath'
 
 export interface MonthSummary {
@@ -34,7 +34,7 @@ export interface MonthSummary {
 /** 某个月的汇总：活动条数来自按天计数，收支 / 睡眠 / 训练来自各自的月度记录 */
 export function summarizeMonth(input: {
   activities: DayActivity[]
-  finance: FinanceEntry[]
+  finance: FinanceRow[]
   sleeps: HealthSleep[]
   trainings: HealthTraining[]
 }): MonthSummary {

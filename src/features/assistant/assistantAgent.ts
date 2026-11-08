@@ -13,7 +13,7 @@ import { compressImage } from '@/features/ai/aiVision'
 import { chat, explainFailure } from '@/features/ai/aiClient'
 import type { AiConfig } from '@/features/ai/aiConfig'
 import { reasoningFields } from '@/features/ai/aiReasoning'
-import type { BackupData } from '@/core/db/store'
+import type { AssistantDataSource } from '@/core/db/store'
 import { translate } from '@/shared/i18n/context'
 import {
   ASSISTANT_ACTION_TOOLS,
@@ -26,7 +26,11 @@ import {
 } from './assistantTools'
 import type { AssistantSkill } from './assistantSkills'
 import { loadMemories } from './assistantMemory'
-import { selectRecordPhoto, type RecordPhotoKind } from './assistantRecordPhoto'
+import {
+  findExplicitRecordPhotoTarget,
+  selectRecordPhotoFromRecord,
+  type RecordPhotoKind,
+} from './assistantRecordPhoto'
 import {
   canWrite,
   isDeleteKind,
@@ -91,7 +95,9 @@ export interface AssistantQuestion {
 export interface AssistantRunOptions {
   config: AiConfig
   history: AssistantHistoryMessage[]
-  data: BackupData
+  data: AssistantDataSource
+  /** 只有明确点名记录和图片时，按 id 读取那一条记录。 */
+  loadRecordPhoto?: (kind: RecordPhotoKind, target: { id: string; code?: string }) => Promise<import('./assistantRecordPhoto').RecordPhotoRecord | undefined>
   /** 今天的 dateKey，由页面注入，方便单测固定日期 */
   today: string
   /** 每查一次就把结果推给界面，用于显示「查了哪些记录」 */
@@ -591,7 +597,16 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
       if (config.vision === 'no') return { text: '当前选择的 AI 模型不支持看图；请先换用支持图片的模型。' }
       const kind = argText(args, 'kind')
       if (!['diary', 'stamps', 'finance', 'foods', 'meals'].includes(kind)) return { text: '记录类别不支持照片读取。' }
-      const picked = selectRecordPhoto(data, kind as RecordPhotoKind, argText(args, 'ref'), Number(args.index), latestUserText, today)
+      const ref = argText(args, 'ref')
+      const index = Number(args.index)
+      const target = findExplicitRecordPhotoTarget(data, kind as RecordPhotoKind, ref, index, latestUserText, today)
+      if (!target) {
+        return { text: '用户本轮没有明确点名这条记录的照片，不能读取或发送图片。' }
+      }
+      if (!options.loadRecordPhoto) return { text: '无法读取指定记录的照片。' }
+      const record = await options.loadRecordPhoto(kind as RecordPhotoKind, target)
+      if (!record) return { text: '找不到这条有效记录的照片。' }
+      const picked = selectRecordPhotoFromRecord(record, kind as RecordPhotoKind, ref, index, latestUserText, today)
       if (!picked.ok) return { text: picked.error }
       try {
         const imageUrl = options.prepareRecordImage

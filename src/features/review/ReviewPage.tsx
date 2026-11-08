@@ -17,7 +17,7 @@ import ViewTabs from '@/features/calendar/ViewTabs'
 import { weekRange } from '@/features/week/weekMath'
 import { activityBetween } from '@/features/calendar/calendarRepo'
 import { isMonthKey, monthRange, shiftMonthKey } from '@/features/calendar/calendarData'
-import { financeOfMonth } from '@/features/finance/financeRepo'
+import { financeBriefsOfMonth } from '@/features/finance/financeRepo'
 import { sleepsBetween } from '@/features/health/healthRepo'
 import { trainingsBetween } from '@/features/training/trainingRepo'
 import { sleepParts } from '@/features/health/sleepMath'
@@ -44,7 +44,7 @@ export default function ReviewPage() {
   const today = todayKey()
 
   const activityResult = useLiveQuery(() => activityBetween(from, to), [from, to])
-  const financeResult = useLiveQuery(() => financeOfMonth(monthKey), [monthKey])
+  const financeResult = useLiveQuery(() => financeBriefsOfMonth(monthKey), [monthKey])
   const sleepResult = useLiveQuery(() => sleepsBetween(from, to), [from, to])
   const trainingResult = useLiveQuery(() => trainingsBetween(from, to), [from, to])
   const scheduleResult = useLiveQuery(() => schedules(), [])

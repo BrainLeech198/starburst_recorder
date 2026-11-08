@@ -1,15 +1,15 @@
 import RowCheckbox from '@/shared/ui/RowCheckbox'
 import EmptyState from '@/shared/ui/EmptyState'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import type { HealthFood, HealthMeal } from '@/core/db/schema'
+import type { HealthFoodBrief, HealthMealBrief } from '@/core/db/store'
 import { useLiveQuery } from '@/core/db/live'
 import { newCode, newId } from '@/core/utils/id'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import PageShell from '@/shared/ui/PageShell'
 import Modal from '@/shared/ui/Modal'
-import PhotoPreview from '@/shared/ui/PhotoPreview'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import BatchActions from '@/shared/ui/BatchActions'
 import RowMenu from '@/shared/ui/RowMenu'
@@ -22,19 +22,21 @@ import FoodForm from './FoodForm'
 import type { FoodDraft } from './FoodForm'
 import MealForm from './MealForm'
 import FoodInfoDialog from './FoodInfoDialog'
+import FoodPhotoThumbnail from './FoodPhotoThumbnail'
 import MealInfoDialog from './MealInfoDialog'
 import ShareDialog from '@/features/share/ShareDialog'
 import ShareReceiveDialog from '@/features/share/ShareReceiveDialog'
 import { buildFoodShare, buildMealShare } from './foodShare'
 import type { ShareDoc } from '@/features/share/shareCode'
 import { formatNum, mealTotals } from './healthMath'
-import { mealPhoto } from './mealPhoto'
 import FoodSortControls from './FoodSortControls'
 import type { FoodSortDirection, FoodSortKey } from './foodSort'
 import { sortFoodCatalog } from './foodSort'
 import {
-  healthFoods,
-  healthMeals,
+  healthFoodBriefs,
+  healthFoodById,
+  healthMealBriefs,
+  healthMealById,
   mergeHealthFoods,
   removeHealthFood,
   removeHealthFoods,
@@ -49,6 +51,8 @@ import {
 } from './healthRepo'
 
 type Tab = 'foods' | 'meals'
+
+const LIBRARY_PAGE_SIZE = 40
 
 /** 复制出来的名字：默认「原名 副本」，撞名就往后加序号 */
 function copyName(base: string, foods: { name: string }[], suffix: string): string {
@@ -66,31 +70,33 @@ function copyName(base: string, foods: { name: string }[], suffix: string): stri
 export default function FoodLibraryPage() {
   const { t } = useI18n()
   const { showToast } = useToast()
-  const foods = useLiveQuery(() => healthFoods(), [])
-  const meals = useLiveQuery(() => healthMeals(), [])
+  const foods = useLiveQuery(() => healthFoodBriefs(), [])
+  const meals = useLiveQuery(() => healthMealBriefs(), [])
   const [tab, setTab] = useState<Tab>('foods')
   const [query, setQuery] = useState('')
   const [tagFilter, setTagFilter] = useState<string | null>(null)
   const [sortKey, setSortKey] = useState<FoodSortKey>('name')
   const [sortDirection, setSortDirection] = useState<FoodSortDirection>('asc')
+  const [foodPage, setFoodPage] = useState({ key: '', count: LIBRARY_PAGE_SIZE })
+  const [mealPage, setMealPage] = useState({ key: '', count: LIBRARY_PAGE_SIZE })
 
   const [detailFood, setDetailFood] = useState<HealthFood | null>(null)
   const [editing, setEditing] = useState<HealthFood | null>(null)
   const [formOpen, setFormOpen] = useState(false)
-  const [pendingDelete, setPendingDelete] = useState<HealthFood | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<HealthFoodBrief | null>(null)
 
   /** 合并：先选「并进哪一条」，再确认；pendingMerge 非空时弹出确认框 */
-  const [merging, setMerging] = useState<HealthFood | null>(null)
+  const [merging, setMerging] = useState<HealthFoodBrief | null>(null)
   const [mergeQuery, setMergeQuery] = useState('')
   const [mergeTargetId, setMergeTargetId] = useState<string | null>(null)
-  const [pendingMerge, setPendingMerge] = useState<{ source: HealthFood; target: HealthFood } | null>(
+  const [pendingMerge, setPendingMerge] = useState<{ source: HealthFoodBrief; target: HealthFoodBrief } | null>(
     null,
   )
 
   const [editingMeal, setEditingMeal] = useState<HealthMeal | null>(null)
   const [mealFormOpen, setMealFormOpen] = useState(false)
   const [detailMeal, setDetailMeal] = useState<HealthMeal | null>(null)
-  const [pendingMealDelete, setPendingMealDelete] = useState<HealthMeal | null>(null)
+  const [pendingMealDelete, setPendingMealDelete] = useState<HealthMealBrief | null>(null)
 
   /** 批量多选：食物和套餐各管各的，换页签就退出 */
   const batch = useBatchSelect()
@@ -110,9 +116,16 @@ export default function FoodLibraryPage() {
     setFormOpen(true)
   }
 
-  function openEdit(food: HealthFood) {
-    setEditing(food)
+  async function openEdit(food: HealthFoodBrief) {
+    const fullFood = await healthFoodById(food.id)
+    if (!fullFood) return
+    setEditing(fullFood)
     setFormOpen(true)
+  }
+
+  async function openFoodInfo(food: HealthFoodBrief) {
+    const fullFood = await healthFoodById(food.id)
+    if (fullFood) setDetailFood(fullFood)
   }
 
   function openCreateMeal() {
@@ -120,8 +133,10 @@ export default function FoodLibraryPage() {
     setMealFormOpen(true)
   }
 
-  function openEditMeal(meal: HealthMeal) {
-    setEditingMeal(meal)
+  async function openEditMeal(meal: HealthMealBrief) {
+    const fullMeal = await healthMealById(meal.id)
+    if (!fullMeal) return
+    setEditingMeal(fullMeal)
     setMealFormOpen(true)
   }
 
@@ -148,11 +163,13 @@ export default function FoodLibraryPage() {
   }
 
   /** 复制一份：营养、份量原样带过来，名称加「副本」 */
-  async function handleCopy(food: HealthFood) {
+  async function handleCopy(food: HealthFoodBrief) {
+    const fullFood = await healthFoodById(food.id)
+    if (!fullFood) return
     // eslint-disable-next-line react-hooks/purity -- 在菜单回调里取时间，不在渲染期
     const now = Date.now()
     await saveHealthFood({
-      ...food,
+      ...fullFood,
       id: newId(),
       code: newCode(),
       name: copyName(food.name, foods ?? [], t('foods.copySuffix')),
@@ -163,7 +180,7 @@ export default function FoodLibraryPage() {
     showToast({ message: t('foods.copied') })
   }
 
-  function openMerge(food: HealthFood) {
+  function openMerge(food: HealthFoodBrief) {
     setMerging(food)
     setMergeQuery('')
     setMergeTargetId(null)
@@ -196,11 +213,13 @@ export default function FoodLibraryPage() {
   }
 
   /** 复制套餐：成分和克数原样带过来，名称加「副本」 */
-  async function handleCopyMeal(meal: HealthMeal) {
+  async function handleCopyMeal(meal: HealthMealBrief) {
+    const fullMeal = await healthMealById(meal.id)
+    if (!fullMeal) return
     // eslint-disable-next-line react-hooks/purity -- 在菜单回调里取时间，不在渲染期
     const now = Date.now()
     await saveHealthMeal({
-      ...meal,
+      ...fullMeal,
       id: newId(),
       name: copyName(meal.name, meals ?? [], t('foods.copySuffix')),
       createdAt: now,
@@ -211,8 +230,13 @@ export default function FoodLibraryPage() {
   }
 
   /** 分享套餐：成分缺得太多（没有可带的内容）时提示一句 */
-  function shareMeal(meal: HealthMeal) {
-    const doc = buildMealShare(meal, foods ?? [])
+  async function shareMeal(meal: HealthMealBrief) {
+    const fullMeal = await healthMealById(meal.id)
+    if (!fullMeal) return
+    const fullFoods = await Promise.all(
+      fullMeal.items.map((item) => healthFoodById(item.foodId)),
+    )
+    const doc = buildMealShare(fullMeal, fullFoods.filter((item): item is HealthFood => item !== undefined))
     if (doc) setSharing(doc)
     else showToast({ message: t('share.mealEmpty') })
   }
@@ -289,28 +313,50 @@ export default function FoodLibraryPage() {
   /** 可选的合并目标：除自己以外、按搜索词过滤 */
   const mergeKeyword = mergeQuery.trim().toLowerCase()
   const keyword = query.trim().toLowerCase()
-  const sortedFoods = sortFoodCatalog(foods ?? [], sortKey, sortDirection)
-  const sortedMeals = sortFoodCatalog(meals ?? [], sortKey, sortDirection)
-  const foodTags = [...new Set(sortedFoods.flatMap((food) => food.tags))].sort((a, b) =>
-    a.localeCompare(b, 'zh-CN', { numeric: true, sensitivity: 'base' }),
+  const sortedFoods = useMemo(
+    () => sortFoodCatalog(foods ?? [], sortKey, sortDirection),
+    [foods, sortKey, sortDirection],
   )
-  const visibleFoods = sortedFoods.filter((food) => {
+  const sortedMeals = useMemo(
+    () => sortFoodCatalog(meals ?? [], sortKey, sortDirection),
+    [meals, sortKey, sortDirection],
+  )
+  const foodTags = useMemo(
+    () => [...new Set(sortedFoods.flatMap((food) => food.tags))].sort((a, b) =>
+      a.localeCompare(b, 'zh-CN', { numeric: true, sensitivity: 'base' }),
+    ),
+    [sortedFoods],
+  )
+  const filteredFoods = useMemo(() => sortedFoods.filter((food) => {
     const matchesSearch = !keyword || food.name.toLowerCase().includes(keyword)
     const matchesTag = tagFilter === null
       || (tagFilter === '' ? food.tags.length === 0 : food.tags.includes(tagFilter))
     return matchesSearch && matchesTag
-  })
-  const visibleMeals = keyword
-    ? sortedMeals.filter((meal) => meal.name.toLowerCase().includes(keyword))
-    : sortedMeals
+  }), [keyword, sortedFoods, tagFilter])
+  const filteredMeals = useMemo(
+    () => keyword
+      ? sortedMeals.filter((meal) => meal.name.toLowerCase().includes(keyword))
+      : sortedMeals,
+    [keyword, sortedMeals],
+  )
+  const foodFilterKey = `${keyword}\u0000${tagFilter ?? 'all'}\u0000${sortKey}\u0000${sortDirection}`
+  const mealFilterKey = `${keyword}\u0000${sortKey}\u0000${sortDirection}`
+  const visibleFoods = filteredFoods.slice(
+    0,
+    foodPage.key === foodFilterKey ? foodPage.count : LIBRARY_PAGE_SIZE,
+  )
+  const visibleMeals = filteredMeals.slice(
+    0,
+    mealPage.key === mealFilterKey ? mealPage.count : LIBRARY_PAGE_SIZE,
+  )
 
-  const mergeList = sortFoodCatalog(
+  const mergeList = useMemo(() => sortFoodCatalog(
     (foods ?? []).filter(
       (food) => food.id !== merging?.id && food.name.toLowerCase().includes(mergeKeyword),
     ),
     'name',
     'asc',
-  )
+  ), [foods, merging?.id, mergeKeyword])
   const mergeTarget = mergeTargetId
     ? (foods ?? []).find((food) => food.id === mergeTargetId) ?? null
     : null
@@ -320,6 +366,7 @@ export default function FoodLibraryPage() {
     tab === 'foods' ? (foods ?? []).map((food) => food.id) : (meals ?? []).map((meal) => meal.id)
   const batchUnit = t(tab === 'foods' ? 'foods.unitFood' : 'foods.unitMeal')
   const tabEmpty = tab === 'foods' ? (foods ?? []).length === 0 : (meals ?? []).length === 0
+  const foodById = useMemo(() => new Map((foods ?? []).map((food) => [food.id, food])), [foods])
 
   return (
     <PageShell
@@ -433,6 +480,7 @@ export default function FoodLibraryPage() {
         ) : visibleFoods.length === 0 ? (
           <EmptyState icon="🔍" text={t('foods.searchEmpty')} />
         ) : (
+          <>
           <ul className="m-0 list-none space-y-2 p-0">
             {visibleFoods.map((food) => {
               const selected = batch.isSelected(food.id)
@@ -450,10 +498,12 @@ export default function FoodLibraryPage() {
                       onToggle={() => batch.toggle(food.id)}
                     />
                   )}
-                  {food.photo && (
-                    <PhotoPreview
-                      src={food.photo}
-                      alt=""
+                  {food.hasPhoto && (
+                    <FoodPhotoThumbnail
+                      kind="food"
+                      id={food.id}
+                      hasPhoto
+                      refreshKey={food.updatedAt}
                       className="h-11 w-11 rounded-lg border border-line"
                       wrapperClassName="shrink-0"
                     />
@@ -462,7 +512,7 @@ export default function FoodLibraryPage() {
                     <button
                       type="button"
                       disabled={batch.active}
-                      onClick={() => setDetailFood(food)}
+                      onClick={() => void openFoodInfo(food)}
                       aria-label={food.name}
                       className="w-full rounded-lg text-left transition-colors hover:text-brand disabled:cursor-default"
                     >
@@ -488,7 +538,7 @@ export default function FoodLibraryPage() {
                     <RowMenu
                       label={t('common.more')}
                       items={[
-                          { label: t('foods.edit'), icon: 'edit', onSelect: () => openEdit(food) },
+                          { label: t('foods.edit'), icon: 'edit', onSelect: () => void openEdit(food) },
                           {
                             label: t('foods.copy'),
                             icon: 'copy',
@@ -497,7 +547,11 @@ export default function FoodLibraryPage() {
                           {
                             label: t('share.action'),
                             icon: 'share',
-                            onSelect: () => setSharing(buildFoodShare(food)),
+                            onSelect: () => {
+                              void healthFoodById(food.id).then((fullFood) => {
+                                if (fullFood) setSharing(buildFoodShare(fullFood))
+                              })
+                            },
                           },
                           {
                             label: t('foods.merge'),
@@ -517,6 +571,23 @@ export default function FoodLibraryPage() {
               )
             })}
           </ul>
+          {filteredFoods.length > visibleFoods.length && (
+            <button
+              type="button"
+              onClick={() =>
+                setFoodPage((current) => ({
+                  key: foodFilterKey,
+                  count:
+                    (current.key === foodFilterKey ? current.count : LIBRARY_PAGE_SIZE) +
+                    LIBRARY_PAGE_SIZE,
+                }))
+              }
+              className={`${OUTLINE_BUTTON} mt-2 w-full justify-center`}
+            >
+              {t('records.loadMore', { count: filteredFoods.length - visibleFoods.length })}
+            </button>
+          )}
+          </>
         ))}
 
       {tab === 'meals' &&
@@ -525,10 +596,12 @@ export default function FoodLibraryPage() {
         ) : visibleMeals.length === 0 ? (
           <EmptyState icon="🔍" text={t('foods.searchEmpty')} />
         ) : (
+          <>
           <ul className="m-0 list-none space-y-2 p-0">
             {visibleMeals.map((meal) => {
               const totals = mealTotals(meal.items, foods ?? [])
-              const photo = mealPhoto(meal, foods ?? [])
+              const hasPhoto =
+                meal.hasPhoto || meal.items.some((item) => foodById.get(item.foodId)?.hasPhoto)
               const selected = batch.isSelected(meal.id)
               return (
                 <li
@@ -544,10 +617,12 @@ export default function FoodLibraryPage() {
                       onToggle={() => batch.toggle(meal.id)}
                     />
                   )}
-                  {photo && (
-                    <PhotoPreview
-                      src={photo}
-                      alt=""
+                  {hasPhoto && (
+                    <FoodPhotoThumbnail
+                      kind="meal"
+                      id={meal.id}
+                      hasPhoto
+                      refreshKey={meal.updatedAt}
                       className="h-11 w-11 rounded-lg border border-line"
                       wrapperClassName="shrink-0"
                     />
@@ -555,7 +630,11 @@ export default function FoodLibraryPage() {
                   <button
                     type="button"
                     disabled={batch.active}
-                    onClick={() => setDetailMeal(meal)}
+                    onClick={() => {
+                      void healthMealById(meal.id).then((fullMeal) => {
+                        if (fullMeal) setDetailMeal(fullMeal)
+                      })
+                    }}
                     className="min-w-0 flex-1 rounded text-left transition-colors hover:text-brand disabled:cursor-default"
                   >
                     <p className="m-0 text-sm text-fg">{meal.name}</p>
@@ -579,7 +658,7 @@ export default function FoodLibraryPage() {
                     <RowMenu
                       label={t('common.more')}
                       items={[
-                          { label: t('foods.edit'), icon: 'edit', onSelect: () => openEditMeal(meal) },
+                          { label: t('foods.edit'), icon: 'edit', onSelect: () => void openEditMeal(meal) },
                           {
                             label: t('foods.copy'),
                             icon: 'copy',
@@ -588,7 +667,7 @@ export default function FoodLibraryPage() {
                           {
                             label: t('share.action'),
                             icon: 'share',
-                            onSelect: () => shareMeal(meal),
+                            onSelect: () => void shareMeal(meal),
                           },
                           {
                             label: t('foods.delete'),
@@ -603,6 +682,23 @@ export default function FoodLibraryPage() {
               )
             })}
           </ul>
+          {filteredMeals.length > visibleMeals.length && (
+            <button
+              type="button"
+              onClick={() =>
+                setMealPage((current) => ({
+                  key: mealFilterKey,
+                  count:
+                    (current.key === mealFilterKey ? current.count : LIBRARY_PAGE_SIZE) +
+                    LIBRARY_PAGE_SIZE,
+                }))
+              }
+              className={`${OUTLINE_BUTTON} mt-2 w-full justify-center`}
+            >
+              {t('records.loadMore', { count: filteredMeals.length - visibleMeals.length })}
+            </button>
+          )}
+          </>
         ))}
 
       {batch.active && (

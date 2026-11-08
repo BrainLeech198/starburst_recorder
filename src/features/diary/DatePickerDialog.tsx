@@ -5,7 +5,7 @@ import { monthGrid, toDateKey, todayKey } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import { INPUT_NARROW } from '@/shared/ui/inputStyles'
-import { everyEntry, everyStamp } from './diaryRepo'
+import { briefEntries, briefStamps } from './diaryRepo'
 
 export default function DatePickerDialog({
   value,
@@ -34,7 +34,7 @@ export default function DatePickerDialog({
   useEffect(() => {
     if (highlightDays) return
     let alive = true
-    void Promise.all([everyEntry(), everyStamp()]).then(([entries, stamps]) => {
+    void Promise.all([briefEntries(), briefStamps()]).then(([entries, stamps]) => {
       if (!alive) return
       const days = new Set<string>()
       for (const item of [...entries, ...stamps]) {

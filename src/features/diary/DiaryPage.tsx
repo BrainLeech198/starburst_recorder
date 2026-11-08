@@ -1,9 +1,10 @@
 import EmptyState from '@/shared/ui/EmptyState'
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import type { DiaryEntry, DiaryStamp } from '@/core/db/schema'
+import type { DiaryEntryBrief } from '@/core/db/store'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import BatchActions from '@/shared/ui/BatchActions'
@@ -23,6 +24,9 @@ import {
 import {
   addStamp,
   dayInfo,
+  briefEntriesOfDay,
+  briefStampsOfDay,
+  entryByCode,
   entriesOfDay,
   everyDay,
   everyEntry,
@@ -36,6 +40,7 @@ import {
   restoreEntry,
   restoreStamps,
   stampsOfDay,
+  stampById,
   updateStamp,
 } from './diaryRepo'
 import { buildSingleRecordExport } from '@/features/records/recordExport'
@@ -72,8 +77,10 @@ import ShareDialog from '@/features/share/ShareDialog'
 import type { ShareDiaryDoc, ShareStampDoc } from '@/features/share/shareCode'
 import { buildDiaryShare, buildStampShare } from '@/features/share/recordShare'
 
+const DIARY_PAGE_SIZE = 40
+
 /** 纸条上的正文部分，普通模式和批量模式共用 */
-function SlipBody({ entry }: { entry: DiaryEntry }) {
+function SlipBody({ entry }: { entry: DiaryEntryBrief }) {
   const { t } = useI18n()
   // 预览只显示文字：图片标记留给编辑页，正文为空但有图时给个提示
   const text = stripImageTokens(entry.content).trim()
@@ -82,7 +89,7 @@ function SlipBody({ entry }: { entry: DiaryEntry }) {
       <div className="font-hand text-sm">{formatMonthDay(entry.dateKey, t)}</div>
       <div className="font-hand mt-1 line-clamp-3 text-sm">
         {text ||
-          (entry.images.length > 0 ? (
+          (entry.imageCount > 0 ? (
             <span className="text-ink-muted">{t('diary.imageOnly')}</span>
           ) : (
             <span className="text-ink-muted">{t('diary.emptyContent')}</span>
@@ -114,7 +121,7 @@ export default function DiaryPage() {
   }
   const mode = searchParams.get('mode') === 'stamp' ? 'stamp' : 'diary'
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [pendingDelete, setPendingDelete] = useState<DiaryEntry | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<DiaryEntryBrief | null>(null)
   const [hint, setHint] = useState('')
   /** 刚记下的那一笔，用来把光标直接落到它的内容框 */
   const [focusStampId, setFocusStampId] = useState('')
@@ -145,9 +152,16 @@ export default function DiaryPage() {
   const [configHint, setConfigHint] = useState<string | null>(null)
   /** 一批图里认出多个日期时，先停下来让用户挑一天 */
   const [dateChoice, setDateChoice] = useState<ImportSummary | null>(null)
+  const [entryPage, setEntryPage] = useState({ dateKey: '', count: DIARY_PAGE_SIZE })
 
-  const entries = useLiveQuery(() => entriesOfDay(dateKey), [dateKey])
-  const stamps = useLiveQuery(() => stampsOfDay(dateKey), [dateKey])
+  const entries = useLiveQuery(
+    () => (mode === 'diary' ? briefEntriesOfDay(dateKey) : Promise.resolve([])),
+    [dateKey, mode],
+  )
+  const stamps = useLiveQuery(
+    () => briefStampsOfDay(dateKey),
+    [dateKey],
+  )
 
   const unit = mode === 'diary' ? t('diary.unitDiary') : t('diary.unitStamp')
   /** 「3 条日记」「2 笔随记」：数量与量词一起由文案决定，方便以后换语言 */
@@ -155,10 +169,15 @@ export default function DiaryPage() {
     t(mode === 'diary' ? 'diary.targetDiary' : 'diary.targetStamp', { count })
   const selectedCount = batch.count
   /** 当前栏目里能选中的全部 id：日记看日记，随记看随记 */
-  const selectableIds =
-    mode === 'diary'
-      ? (entries ?? []).map((entry) => entry.id)
-      : (stamps ?? []).map((stamp) => stamp.id)
+  const selectableIds = useMemo(
+    () =>
+      mode === 'diary'
+        ? (entries ?? []).map((entry) => entry.id)
+        : (stamps ?? []).map((stamp) => stamp.id),
+    [mode, entries, stamps],
+  )
+  const visibleEntryCount = entryPage.dateKey === dateKey ? entryPage.count : DIARY_PAGE_SIZE
+  const visibleEntries = entries?.slice(0, visibleEntryCount) ?? []
 
   /** 换栏目时顺手退出批量，免得选中的是上一栏的 id */
   function switchMode(next: 'diary' | 'stamp') {
@@ -313,9 +332,10 @@ export default function DiaryPage() {
   }
 
   /** 单篇日记导出：结构和「挑选记录导出」的 JSON 一样，带上当天天气 */
-  async function handleExportEntry(entry: DiaryEntry) {
-    const day = await dayInfo(entry.dateKey)
-    const file = buildSingleRecordExport('diary', entry, day ?? null)
+  async function handleExportEntry(entry: DiaryEntryBrief) {
+    const [fullEntry, day] = await Promise.all([entryByCode(entry.code), dayInfo(entry.dateKey)])
+    if (!fullEntry) return
+    const file = buildSingleRecordExport('diary', fullEntry, day ?? null)
     const outcome = await saveTextFile(file)
     showToast({
       message: describeSave(outcome, t('records.exported', { count: 1, label: file.label }), t),
@@ -343,10 +363,13 @@ export default function DiaryPage() {
     let { from, to } = request
 
     if (request.range === 'selection') {
-      pickedEntries =
-        mode === 'diary' ? (entries ?? []).filter((entry) => batch.isSelected(entry.id)) : []
-      pickedStamps =
-        mode === 'stamp' ? (stamps ?? []).filter((stamp) => batch.isSelected(stamp.id)) : []
+      const selectedIds = new Set(batch.selected)
+      const [allEntries, allStamps] = await Promise.all([
+        mode === 'diary' ? entriesOfDay(dateKey) : Promise.resolve([]),
+        mode === 'stamp' ? stampsOfDay(dateKey) : Promise.resolve([]),
+      ])
+      pickedEntries = allEntries.filter((entry) => selectedIds.has(entry.id))
+      pickedStamps = allStamps.filter((stamp) => selectedIds.has(stamp.id))
       const dates = [
         ...pickedEntries.map((entry) => entry.dateKey),
         ...pickedStamps.map((stamp) => stamp.dateKey),
@@ -530,7 +553,11 @@ export default function DiaryPage() {
           selectMode={batch.active}
           selected={batch.selected}
           onToggleSelect={batch.toggle}
-          onShare={(stamp) => setSharing(buildStampShare(stamp))}
+          onShare={(stamp) => {
+            void stampById(stamp.id).then((fullStamp) => {
+              if (fullStamp) setSharing(buildStampShare(fullStamp))
+            })
+          }}
         />
       )}
 
@@ -544,7 +571,7 @@ export default function DiaryPage() {
 
       {mode === 'diary' && entries !== undefined && entries.length > 0 && (
         <ul className="mt-4 space-y-3">
-          {entries.map((entry) => {
+          {visibleEntries.map((entry) => {
             const isSelected = batch.isSelected(entry.id)
             return (
               <li
@@ -593,7 +620,11 @@ export default function DiaryPage() {
                   <>
                     <button
                       type="button"
-                      onClick={() => setSharing(buildDiaryShare(entry))}
+                      onClick={() => {
+                        void entryByCode(entry.code).then((fullEntry) => {
+                          if (fullEntry) setSharing(buildDiaryShare(fullEntry))
+                        })
+                      }}
                       title={t('share.action')}
                       aria-label={t('share.action')}
                       className="absolute top-1.5 right-[5.5rem] inline-flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted opacity-70 transition-colors hover:text-brand hover:opacity-100"
@@ -624,6 +655,23 @@ export default function DiaryPage() {
             )
           })}
         </ul>
+      )}
+
+      {mode === 'diary' && entries !== undefined && entries.length > visibleEntries.length && (
+        <button
+          type="button"
+          onClick={() =>
+            setEntryPage((current) => ({
+              dateKey,
+              count:
+                (current.dateKey === dateKey ? current.count : DIARY_PAGE_SIZE) +
+                DIARY_PAGE_SIZE,
+            }))
+          }
+          className="mt-3 w-full rounded-lg border border-dashed border-line px-3 py-2 text-center text-xs text-muted transition-colors hover:border-brand/60 hover:text-brand"
+        >
+          {t('records.loadMore', { count: entries.length - visibleEntries.length })}
+        </button>
       )}
 
       {batch.active && (

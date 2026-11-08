@@ -7,22 +7,34 @@
  */
 import type { HealthFood, HealthMeal } from '@/core/db/schema'
 
-function firstPhoto(ids: (string | null | undefined)[], foods: HealthFood[]): string | null {
-  const photoById = new Map(foods.map((food) => [food.id, food.photo] as const))
+function firstPhoto(
+  ids: (string | null | undefined)[],
+  foodById: ReadonlyMap<string, Pick<HealthFood, 'photo'>>,
+): string | null {
   for (const id of ids) {
     if (!id) continue
-    const photo = photoById.get(id)
+    const photo = foodById.get(id)?.photo
     if (photo) return photo
   }
   return null
 }
 
 export function mealPhoto(meal: HealthMeal, foods: HealthFood[]): string | null {
+  return mealPhotoFromMap(
+    meal,
+    new Map(foods.map((food) => [food.id, food] as const)),
+  )
+}
+
+export function mealPhotoFromMap(
+  meal: HealthMeal,
+  foodById: ReadonlyMap<string, Pick<HealthFood, 'photo'>>,
+): string | null {
   return (
     meal.photo ??
     firstPhoto(
       meal.items.map((item) => item.foodId),
-      foods,
+      foodById,
     )
   )
 }
@@ -34,6 +46,6 @@ export function componentPhoto(
 ): string | null {
   return firstPhoto(
     components.map((component) => component.foodId),
-    foods,
+    new Map(foods.map((food) => [food.id, food] as const)),
   )
 }

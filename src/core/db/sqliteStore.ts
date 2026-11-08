@@ -33,6 +33,7 @@ function call<T>(method: string, ...args: unknown[]): Promise<T> {
 export const sqliteStore: DiaryStore = {
   // ─────────── 日记 ───────────
   entriesOfDay: (dateKey) => call('entriesOfDay', dateKey),
+  briefEntriesOfDay: (dateKey) => call('briefEntriesOfDay', dateKey),
   entryByCode: (code) => call('entryByCode', code),
 
   async createEntry(dateKey) {
@@ -76,6 +77,8 @@ export const sqliteStore: DiaryStore = {
 
   // ─────────── 随记 ───────────
   stampsOfDay: (dateKey) => call('stampsOfDay', dateKey),
+  briefStampsOfDay: (dateKey) => call('briefStampsOfDay', dateKey),
+  stampById: (id) => call('stampById', id),
 
   async addStamp(dateKey) {
     const now = Date.now()
@@ -155,6 +158,10 @@ export const sqliteStore: DiaryStore = {
   // ─────────── 备份 ───────────
   everyEntry: () => call('everyEntry'),
   everyStamp: () => call('everyStamp'),
+  briefEntries: () => call('briefEntries'),
+  briefStamps: () => call('briefStamps'),
+  diaryComposeData: () => call('diaryComposeData'),
+  assistantData: () => call('assistantData'),
   everyDay: () => call('everyDay'),
   totals: () => call('totals'),
   exportAllData: () => call('exportAllData'),
@@ -179,6 +186,9 @@ export const sqliteStore: DiaryStore = {
   },
   deleteHealthProfile: () => call('deleteHealthProfile'),
   healthFoods: () => call('healthFoods'),
+  healthFoodBriefs: () => call('healthFoodBriefs'),
+  healthFoodById: (id) => call('healthFoodById', id),
+  healthFoodPhoto: (id) => call('healthFoodPhoto', id),
   saveHealthFood: async (food) => {
     const next: HealthFood = { ...food, tags: cleanTags(food.tags), updatedAt: Date.now() }
     await call('saveHealthFood', next)
@@ -201,6 +211,9 @@ export const sqliteStore: DiaryStore = {
     await call('purgeTrashedHealthFoods')
   },
   healthMeals: () => call('healthMeals'),
+  healthMealBriefs: () => call('healthMealBriefs'),
+  healthMealById: (id) => call('healthMealById', id),
+  healthMealPhoto: (id) => call('healthMealPhoto', id),
   saveHealthMeal: async (meal) => {
     const next: HealthMeal = { ...meal, updatedAt: Date.now() }
     await call('saveHealthMeal', next)
@@ -224,6 +237,9 @@ export const sqliteStore: DiaryStore = {
   intakesOfDay: (dateKey) => call('intakesOfDay', dateKey),
   intakesBetween: (from, to) => call('intakesBetween', from, to),
   financeOfMonth: (monthKey) => call('financeOfMonth', monthKey),
+  financeBriefsOfMonth: (monthKey) => call('financeBriefsOfMonth', monthKey),
+  financeById: (id) => call('financeById', id),
+  financePhoto: (id) => call('financePhoto', id),
   addFinance: (entry) => call('addFinance', entry),
   saveFinance: async (entry) => {
     const next: FinanceEntry = { ...entry, updatedAt: Date.now() }

@@ -34,15 +34,18 @@ import {
   restoreEntry,
   restoreStamp,
   saveDiaryPreset,
+  entryByCode,
   setWeather,
   updateContent,
   updateStamp,
 } from '@/features/diary/diaryRepo'
-import { addFinance, removeFinance, restoreFinance, saveFinance } from '@/features/finance/financeRepo'
+import { addFinance, financeById, removeFinance, restoreFinance, saveFinance } from '@/features/finance/financeRepo'
 import { removeSchedule, restoreSchedule, saveSchedule } from '@/features/schedule/scheduleRepo'
 import {
   addIntake,
-  exportAllData,
+  assistantData,
+  healthFoodById,
+  healthMealById,
   healthProfile,
   deleteHealthProfile,
   removeHealthFood,
@@ -96,7 +99,7 @@ export interface ActionDone {
  */
 export async function executeAssistantAction(action: AssistantAction): Promise<ActionDone> {
   const now = Date.now()
-  const data = await exportAllData()
+  const data = await assistantData()
 
   if (action.kind === 'scheduleCreate') {
     const item: ScheduleItem = {
@@ -137,8 +140,9 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
   }
 
   if (action.kind === 'diaryEdit') {
-    const entry = data.entries.find((item) => item.deletedAt === null && item.code === action.code)
-    if (!entry) throw new Error('这篇日记已经不在了，刷新后再看一次。')
+    const brief = data.entries.find((item) => item.deletedAt === null && item.code === action.code)
+    const entry = brief ? await entryByCode(action.code) : undefined
+    if (!entry || entry.deletedAt !== null) throw new Error('这篇日记已经不在了，刷新后再看一次。')
     await updateContent(entry.id, action.content, entry.images)
     return { recordId: entry.id, previous: entry }
   }
@@ -154,8 +158,9 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
   }
 
   if (action.kind === 'financeEdit') {
-    const entry = data.finance.find((item) => item.deletedAt === null && item.code === action.code)
-    if (!entry) throw new Error('这笔收支已经不在了，刷新后再看一次。')
+    const brief = data.finance.find((item) => item.deletedAt === null && item.code === action.code)
+    const entry = brief ? await financeById(brief.id) : undefined
+    if (!entry || entry.deletedAt !== null) throw new Error('这笔收支已经不在了，刷新后再看一次。')
     const patch: Partial<FinanceEntry> = {
       ...(action.name === undefined ? {} : { name: action.name }),
       ...(action.amount === undefined ? {} : { amount: action.amount }),
@@ -289,8 +294,9 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
   }
 
   if (action.kind === 'foodEdit') {
-    const food = data.foods.find((item) => item.deletedAt === null && item.code === action.code)
-    if (!food) throw new Error('这条食物已经不在了，刷新后再看一次。')
+    const brief = data.foods.find((item) => item.deletedAt === null && item.code === action.code)
+    const food = brief ? await healthFoodById(brief.id) : undefined
+    if (!food || food.deletedAt !== null) throw new Error('这条食物已经不在了，刷新后再看一次。')
     const next: HealthFood = {
       ...food,
       ...(action.name === undefined ? {} : { name: action.name }),
@@ -328,8 +334,9 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
   }
 
   if (action.kind === 'mealEdit') {
-    const meal = data.meals.find((item) => item.deletedAt === null && item.id === action.mealId)
-    if (!meal) throw new Error('这个套餐已经不在了，刷新后再看一次。')
+    const brief = data.meals.find((item) => item.deletedAt === null && item.id === action.mealId)
+    const meal = brief ? await healthMealById(brief.id) : undefined
+    if (!meal || meal.deletedAt !== null) throw new Error('这个套餐已经不在了，刷新后再看一次。')
     const next: HealthMeal = {
       ...meal,
       ...(action.name === undefined ? {} : { name: action.name }),

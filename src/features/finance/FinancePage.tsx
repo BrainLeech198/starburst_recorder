@@ -38,7 +38,6 @@ import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import BatchActions from '@/shared/ui/BatchActions'
 import RowMenu from '@/shared/ui/RowMenu'
 import ToolbarRow from '@/shared/ui/ToolbarRow'
-import PhotoPreview from '@/shared/ui/PhotoPreview'
 import DayNav from '@/shared/ui/DayNav'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
@@ -48,6 +47,7 @@ import { Icon } from '@/shared/ui/icons'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import {
   expenseByCategory,
+  type FinanceRow,
   financeWeeksOfMonth,
   groupFinanceByDay,
   isMonthKey,
@@ -60,7 +60,8 @@ import { categoryKey } from './financeCategories'
 import {
   exportAllData,
   financeDays,
-  financeOfMonth,
+  financeBriefsOfMonth,
+  financeById,
   removeFinance,
   removeFinances,
   restoreFinance,
@@ -83,6 +84,7 @@ import { describeSave, saveTextFile } from '@/platform/saveFile'
 import ShareDialog from '@/features/share/ShareDialog'
 import type { ShareFinanceDoc } from '@/features/share/shareCode'
 import { buildFinanceShare } from '@/features/share/recordShare'
+import FinancePhotoThumbnail from './FinancePhotoThumbnail'
 
 /** 日头用星期几：JS 的 0=周日，正好对上 date.weekdayShortN */
 function weekdayKey(dateKey: string): MessageKey {
@@ -221,14 +223,14 @@ export default function FinancePage() {
   const period = useLiveQuery(
     async () => {
       if (view === 'year') {
-        const lists = await Promise.all(yearMonths.map((key) => financeOfMonth(key)))
+        const lists = await Promise.all(yearMonths.map((key) => financeBriefsOfMonth(key)))
         return {
           entries: lists.flat(),
           months: lists.map((list) => ({ ...summarizeFinance(list), count: list.length })),
         }
       }
       if (view === 'week') {
-        const lists = await Promise.all(selectedWeekMonths.map((key) => financeOfMonth(key)))
+        const lists = await Promise.all(selectedWeekMonths.map((key) => financeBriefsOfMonth(key)))
         return {
           entries: lists
             .flat()
@@ -239,7 +241,7 @@ export default function FinancePage() {
           months: null,
         }
       }
-      const list = await financeOfMonth(view === 'day' ? monthKeyOf(dayKey) : monthKey)
+      const list = await financeBriefsOfMonth(view === 'day' ? monthKeyOf(dayKey) : monthKey)
       return { entries: list, months: null }
     },
     [view, viewYear, monthKey, dayKey, selectedWeek.start, selectedWeek.end],
@@ -301,6 +303,11 @@ export default function FinancePage() {
   /** 打开挑选弹窗时预选这些流水 */
   const [exportInitial, setExportInitial] = useState<{ finance: string[] } | undefined>(undefined)
   const importInputRef = useRef<HTMLInputElement | null>(null)
+
+  async function withFullEntry(entry: FinanceRow, action: (full: FinanceEntry) => void | Promise<void>) {
+    const full = await financeById(entry.id)
+    if (full) await action(full)
+  }
 
   /** 单条导出：结构和「挑选记录导出」的 JSON 一样 */
   async function handleExportEntry(entry: FinanceEntry) {
@@ -946,21 +953,18 @@ export default function FinancePage() {
                         onToggle={() => batch.toggle(entry.id)}
                       />
                     )}
-                    {entry.photo && (
-                      <PhotoPreview
-                        src={entry.photo}
-                        alt=""
-                        wrapperClassName="shrink-0"
-                        className="h-11 w-11 rounded-lg border border-line/60"
-                      />
-                    )}
+                    <FinancePhotoThumbnail
+                      id={entry.id}
+                      hasPhoto={Boolean(entry.hasPhoto)}
+                      refreshKey={entry.updatedAt}
+                    />
                     {/* 两行：名称 + 编号 / 时刻 + 分类。
                         备注与「建于 …」留给详情弹窗，列表里每笔都占一行只会把名字挤没 */}
                     <div className="min-w-0 flex-1">
                       <button
                         type="button"
                         disabled={batch.active}
-                        onClick={() => setViewEntry(entry)}
+                        onClick={() => void withFullEntry(entry, setViewEntry)}
                         className="block w-full rounded text-left transition-colors hover:text-brand disabled:cursor-default"
                       >
                         <span className="flex items-baseline gap-2">
@@ -994,23 +998,28 @@ export default function FinancePage() {
                           {
                             label: t('finance.editEntry'),
                             icon: 'edit',
-                            onSelect: () => setDialog({ entry, date: entry.dateKey }),
+                            onSelect: () =>
+                              void withFullEntry(entry, (full) =>
+                                setDialog({ entry: full, date: full.dateKey }),
+                              ),
                           },
                           {
                             label: t('share.action'),
                             icon: 'share',
-                            onSelect: () => setSharing(buildFinanceShare(entry)),
+                            onSelect: () =>
+                              void withFullEntry(entry, (full) => setSharing(buildFinanceShare(full))),
                           },
                           {
                             label: t('records.export'),
                             icon: 'export',
-                            onSelect: () => void handleExportEntry(entry),
+                            onSelect: () =>
+                              void withFullEntry(entry, (full) => handleExportEntry(full)),
                           },
                           {
                             label: t('common.delete'),
                             icon: 'trash',
                             danger: true,
-                            onSelect: () => setPendingDelete(entry),
+                            onSelect: () => void withFullEntry(entry, setPendingDelete),
                           },
                         ]}
                       />

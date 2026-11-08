@@ -3,6 +3,9 @@ import { store } from '@/core/db'
 
 export const {
   financeOfMonth,
+  financeBriefsOfMonth,
+  financeById,
+  financePhoto,
   financeDays,
   addFinance,
   saveFinance,

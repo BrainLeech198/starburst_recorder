@@ -93,20 +93,63 @@ export interface BackupData {
   schedules: ScheduleItem[]
 }
 
+/** 收支列表与搜索摘要：票据照片延迟按 id 读取。 */
+export type FinanceEntryBrief = Omit<FinanceEntry, 'photo'> & { hasPhoto: boolean }
+
+/** AI 写日记只用到的上下文；不包含图库或票据照片。 */
+export interface DiaryComposeData {
+  entries: DiaryEntryBrief[]
+  stamps: DiaryStampBrief[]
+  days: DiaryDay[]
+  intakes: HealthIntake[]
+  sleeps: HealthSleep[]
+  finance: FinanceEntryBrief[]
+}
+
+/** 助手 / 回顾 / 引用读取的全库摘要；仅图片字段被替换为张数或布尔值。 */
+export type AssistantData = Omit<
+  BackupData,
+  'entries' | 'stamps' | 'foods' | 'meals' | 'finance'
+> & {
+  entries: DiaryEntryBrief[]
+  stamps: DiaryStampBrief[]
+  foods: HealthFoodBrief[]
+  meals: HealthMealBrief[]
+  finance: FinanceEntryBrief[]
+}
+
+/** 只读助手可以接收摘要，也允许纯逻辑调用方传入完整备份行。 */
+export type AssistantDataSource = Omit<AssistantData, 'entries' | 'stamps' | 'foods' | 'meals' | 'finance'> & {
+  entries: Array<DiaryEntry | DiaryEntryBrief>
+  stamps: Array<DiaryStamp | DiaryStampBrief>
+  foods: Array<HealthFood | HealthFoodBrief>
+  meals: Array<HealthMeal | HealthMealBrief>
+  finance: Array<FinanceEntry | FinanceEntryBrief>
+}
+
+/** 日记列表的轻量行：正文与元数据保留，图片只报告张数。 */
+export type DiaryEntryBrief = Omit<DiaryEntry, 'images'> & { imageCount: number }
+/** 随记列表的轻量行：正文与元数据保留，图片只报告张数。 */
+export type DiaryStampBrief = Omit<DiaryStamp, 'images'> & { imageCount: number }
+/** 食物列表行：照片只报告是否存在，营养和筛选字段保留。 */
+export type HealthFoodBrief = Omit<HealthFood, 'photo'> & { hasPhoto: boolean }
+/** 套餐列表行：照片只报告是否存在，成分和筛选字段保留。 */
+export type HealthMealBrief = Omit<HealthMeal, 'photo'> & { hasPhoto: boolean }
+
 /**
  * 全局搜索的结果：十类记录，按日期倒序；没有日期的库表（食物 / 套餐 / 预设）按名称排。
  * `tags` 是库里在用的全部标签（回收站里的不算），给筛选条用。
  */
 export interface SearchResults {
-  entries: DiaryEntry[]
-  stamps: DiaryStamp[]
-  finance: FinanceEntry[]
+  entries: DiaryEntryBrief[]
+  stamps: DiaryStampBrief[]
+  finance: FinanceEntryBrief[]
   sleeps: HealthSleep[]
   intakes: HealthIntake[]
   trainings: HealthTraining[]
   schedules: ScheduleItem[]
-  foods: HealthFood[]
-  meals: HealthMeal[]
+  foods: HealthFoodBrief[]
+  meals: HealthMealBrief[]
   presets: DiaryPreset[]
   tags: string[]
 }
@@ -183,6 +226,8 @@ export interface DiaryStore {
 
   /** 某一天的全部日记，按创建时间升序，已软删除的不算 */
   entriesOfDay(dateKey: string): Promise<DiaryEntry[]>
+  /** 某一天的日记摘要，不读取图片数据 */
+  briefEntriesOfDay(dateKey: string): Promise<DiaryEntryBrief[]>
   /** 按短编号找一篇（URL 里用的就是它） */
   entryByCode(code: string): Promise<DiaryEntry | undefined>
   createEntry(dateKey: string): Promise<DiaryEntry>
@@ -206,6 +251,10 @@ export interface DiaryStore {
 
   /** 某一天的全部随记，按时间正序，已软删除的不算 */
   stampsOfDay(dateKey: string): Promise<DiaryStamp[]>
+  /** 某一天的随记摘要，不读取图片数据 */
+  briefStampsOfDay(dateKey: string): Promise<DiaryStampBrief[]>
+  /** 按 id 读取一笔随记（含图片），仅在图片进入视口或用户操作时调用 */
+  stampById(id: string): Promise<DiaryStamp | undefined>
   addStamp(dateKey: string): Promise<DiaryStamp>
   updateStamp(
     id: string,
@@ -254,6 +303,14 @@ export interface DiaryStore {
   /** 取全部，连回收站里的也一起取 */
   everyEntry(): Promise<DiaryEntry[]>
   everyStamp(): Promise<DiaryStamp[]>
+  /** 全部日记摘要，不读取图片数据 */
+  briefEntries(): Promise<DiaryEntryBrief[]>
+  /** 全部随记摘要，不读取图片数据 */
+  briefStamps(): Promise<DiaryStampBrief[]>
+  /** AI 日记上下文所需记录，不读取图片数据 */
+  diaryComposeData(): Promise<DiaryComposeData>
+  /** 助手等只读场景所需的全库摘要，不读取图片数据 */
+  assistantData(): Promise<AssistantData>
   everyDay(): Promise<DiaryDay[]>
   /** 库里在用的东西各有多少，给数据页的概览用（回收站里的不算） */
   totals(): Promise<TableTotals>
@@ -312,6 +369,9 @@ export interface DiaryStore {
   deleteHealthProfile(): Promise<void>
   /** 食物库，按名称排序，已软删除的不算 */
   healthFoods(): Promise<HealthFood[]>
+  healthFoodBriefs(): Promise<HealthFoodBrief[]>
+  healthFoodById(id: string): Promise<HealthFood | undefined>
+  healthFoodPhoto(id: string): Promise<string | null>
   /** 回收站里的食物，按删除时间倒序 */
   trashedHealthFoods(): Promise<HealthFood[]>
   /** 新增或整行覆盖；返回存进去的那一条 */
@@ -331,6 +391,9 @@ export interface DiaryStore {
   purgeTrashedHealthFoods(): Promise<void>
   /** 套餐（整体食物），按名称排序，已软删除的不算 */
   healthMeals(): Promise<HealthMeal[]>
+  healthMealBriefs(): Promise<HealthMealBrief[]>
+  healthMealById(id: string): Promise<HealthMeal | undefined>
+  healthMealPhoto(id: string): Promise<string | null>
   /** 回收站里的套餐，按删除时间倒序 */
   trashedHealthMeals(): Promise<HealthMeal[]>
   /** 新增或整行覆盖；返回存进去的那一条 */
@@ -397,6 +460,12 @@ export interface DiaryStore {
 
   /** 某个月的收支（按 dateKey 前 7 位），日期倒序、同一天按创建时间倒序 */
   financeOfMonth(monthKey: string): Promise<FinanceEntry[]>
+  /** 某个月的收支摘要，不读取票据图片 */
+  financeBriefsOfMonth(monthKey: string): Promise<FinanceEntryBrief[]>
+  /** 按 id 读取单条完整收支记录 */
+  financeById(id: string): Promise<FinanceEntry | undefined>
+  /** 按 id 读取单张票据图片 */
+  financePhoto(id: string): Promise<string | null>
   /** 有收支记录的所有日期，日历上用来标「这天记过」 */
   financeDays(): Promise<string[]>
   addFinance(entry: FinanceEntry): Promise<FinanceEntry>

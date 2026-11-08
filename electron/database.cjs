@@ -286,6 +286,22 @@ function entryRow(row) {
   }
 }
 
+/** Diary list row without base64 image payloads. */
+function entryBriefRow(row) {
+  if (!row) return undefined
+  return {
+    id: row.id,
+    code: row.code,
+    dateKey: row.dateKey,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    content: row.content,
+    tags: parseTags(row.tags),
+    deletedAt: row.deletedAt ?? null,
+    imageCount: Number(row.imageCount ?? 0),
+  }
+}
+
 function dayRow(row) {
   if (!row) return undefined
   return {
@@ -308,6 +324,23 @@ function stampRow(row) {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
+  }
+}
+
+/** Stamp list row without base64 image payloads. */
+function stampBriefRow(row) {
+  if (!row) return undefined
+  return {
+    id: row.id,
+    code: row.code ?? '',
+    dateKey: row.dateKey,
+    time: row.time,
+    content: row.content,
+    tags: parseTags(row.tags),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    deletedAt: row.deletedAt ?? null,
+    imageCount: Number(row.imageCount ?? 0),
   }
 }
 
@@ -401,6 +434,13 @@ function foodRow(row) {
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
   }
+}
+
+function foodBriefRow(row) {
+  if (!row) return undefined
+  const food = foodRow({ ...row, photo: null })
+  delete food.photo
+  return { ...food, hasPhoto: Boolean(row.hasPhoto) }
 }
 
 function intakeRow(row) {
@@ -592,6 +632,13 @@ function mealRow(row) {
   }
 }
 
+function mealBriefRow(row) {
+  if (!row) return undefined
+  const meal = mealRow({ ...row, photo: null })
+  delete meal.photo
+  return { ...meal, hasPhoto: Boolean(row.hasPhoto) }
+}
+
 /** 经济行：坏值统一兜底，金额一律收成正数 */
 function financeRow(row) {
   if (!row) return undefined
@@ -610,6 +657,13 @@ function financeRow(row) {
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
   }
+}
+
+function financeBriefRow(row) {
+  if (!row) return undefined
+  const finance = financeRow({ ...row, photo: null })
+  delete finance.photo
+  return { ...finance, hasPhoto: Boolean(row.hasPhoto) }
 }
 
 /**
@@ -762,6 +816,11 @@ function createDatabase(file) {
     entriesOfDay: db.prepare(
       'SELECT * FROM diaryEntries WHERE dateKey = ? AND deletedAt IS NULL ORDER BY createdAt ASC',
     ),
+    briefEntriesOfDay: db.prepare(
+      `SELECT id, code, dateKey, createdAt, updatedAt, content, tags, deletedAt,
+              CASE WHEN json_valid(images) THEN json_array_length(images) ELSE 0 END AS imageCount
+       FROM diaryEntries WHERE dateKey = ? AND deletedAt IS NULL ORDER BY createdAt ASC`,
+    ),
     entryByCode: db.prepare('SELECT * FROM diaryEntries WHERE code = ? LIMIT 1'),
     updateContent: db.prepare(
       'UPDATE diaryEntries SET content = ?, images = ?, updatedAt = ? WHERE id = ?',
@@ -777,6 +836,12 @@ function createDatabase(file) {
     stampsOfDay: db.prepare(
       'SELECT * FROM diaryStamps WHERE dateKey = ? AND deletedAt IS NULL ORDER BY time ASC',
     ),
+    briefStampsOfDay: db.prepare(
+      `SELECT id, code, dateKey, time, content, tags, createdAt, updatedAt, deletedAt,
+              CASE WHEN json_valid(images) THEN json_array_length(images) ELSE 0 END AS imageCount
+       FROM diaryStamps WHERE dateKey = ? AND deletedAt IS NULL ORDER BY time ASC`,
+    ),
+    stampById: db.prepare('SELECT * FROM diaryStamps WHERE id = ? LIMIT 1'),
     removeStamp: db.prepare('UPDATE diaryStamps SET deletedAt = ? WHERE id = ?'),
     setStampTags: db.prepare('UPDATE diaryStamps SET tags = ?, updatedAt = ? WHERE id = ?'),
     restoreStamp: db.prepare('UPDATE diaryStamps SET deletedAt = NULL WHERE id = ?'),
@@ -790,6 +855,21 @@ function createDatabase(file) {
     purgeStamp: db.prepare('DELETE FROM diaryStamps WHERE id = ?'),
     everyEntry: db.prepare('SELECT * FROM diaryEntries'),
     everyStamp: db.prepare('SELECT * FROM diaryStamps'),
+    briefEntries: db.prepare(
+      `SELECT id, code, dateKey, createdAt, updatedAt, content, tags, deletedAt,
+              CASE WHEN json_valid(images) THEN json_array_length(images) ELSE 0 END AS imageCount
+       FROM diaryEntries`,
+    ),
+    briefStamps: db.prepare(
+      `SELECT id, code, dateKey, time, content, tags, createdAt, updatedAt, deletedAt,
+              CASE WHEN json_valid(images) THEN json_array_length(images) ELSE 0 END AS imageCount
+       FROM diaryStamps`,
+    ),
+    composeFinanceBriefs: db.prepare(
+      `SELECT id, code, dateKey, time, kind, category, name, amount, note, createdAt, updatedAt,
+              deletedAt, photo IS NOT NULL AND photo != '' AS hasPhoto
+       FROM financeEntries`,
+    ),
     everyDay: db.prepare('SELECT * FROM diaryDays'),
     everyPreset: db.prepare('SELECT * FROM diaryPresets'),
     countEntries: db.prepare('SELECT COUNT(*) AS n FROM diaryEntries WHERE deletedAt IS NULL'),
@@ -885,6 +965,13 @@ function createDatabase(file) {
          updatedAt = excluded.updatedAt`,
     ),
     healthFoods: db.prepare('SELECT * FROM healthFoods WHERE deletedAt IS NULL ORDER BY name ASC'),
+    healthFoodBriefs: db.prepare(
+      `SELECT id, code, name, tags, kcal, protein, carbs, fat, servingName, servingGrams,
+              photo IS NOT NULL AND photo != '' AS hasPhoto, createdAt, updatedAt, deletedAt
+       FROM healthFoods WHERE deletedAt IS NULL ORDER BY name ASC`,
+    ),
+    healthFoodById: db.prepare('SELECT * FROM healthFoods WHERE id = ? LIMIT 1'),
+    healthFoodPhoto: db.prepare('SELECT photo, deletedAt FROM healthFoods WHERE id = ? LIMIT 1'),
     foodById: db.prepare('SELECT * FROM healthFoods WHERE id = ?'),
     upsertFood: db.prepare(
       `INSERT INTO healthFoods
@@ -962,6 +1049,13 @@ function createDatabase(file) {
     financeOfMonth: db.prepare(
       'SELECT * FROM financeEntries WHERE dateKey LIKE ? AND deletedAt IS NULL ORDER BY dateKey DESC, createdAt DESC',
     ),
+    financeBriefsOfMonth: db.prepare(
+      `SELECT id, code, dateKey, time, kind, category, name, amount, note, createdAt, updatedAt,
+              deletedAt, photo IS NOT NULL AND photo != '' AS hasPhoto
+       FROM financeEntries WHERE dateKey LIKE ? AND deletedAt IS NULL ORDER BY dateKey DESC, createdAt DESC`,
+    ),
+    financeById: db.prepare('SELECT * FROM financeEntries WHERE id = ? LIMIT 1'),
+    financePhoto: db.prepare('SELECT photo, deletedAt FROM financeEntries WHERE id = ? LIMIT 1'),
     financeDays: db.prepare(
       'SELECT DISTINCT dateKey FROM financeEntries WHERE deletedAt IS NULL',
     ),
@@ -1086,6 +1180,13 @@ function createDatabase(file) {
     purgeTraining: db.prepare('DELETE FROM healthTrainings WHERE id = ?'),
     purgeTrashedTrainings: db.prepare('DELETE FROM healthTrainings WHERE deletedAt IS NOT NULL'),
     healthMeals: db.prepare('SELECT * FROM healthMeals WHERE deletedAt IS NULL ORDER BY name ASC'),
+    healthMealBriefs: db.prepare(
+      `SELECT id, name, items, photo IS NOT NULL AND photo != '' AS hasPhoto,
+              createdAt, updatedAt, deletedAt
+       FROM healthMeals WHERE deletedAt IS NULL ORDER BY name ASC`,
+    ),
+    healthMealById: db.prepare('SELECT * FROM healthMeals WHERE id = ? LIMIT 1'),
+    healthMealPhoto: db.prepare('SELECT photo, items, deletedAt FROM healthMeals WHERE id = ? LIMIT 1'),
     trashedMeals: db.prepare(
       'SELECT * FROM healthMeals WHERE deletedAt IS NOT NULL ORDER BY deletedAt DESC',
     ),
@@ -1107,7 +1208,17 @@ function createDatabase(file) {
 
     // ─────────── 备份：整库导出用 ───────────
     everyFood: db.prepare('SELECT * FROM healthFoods'),
+    everyFoodBrief: db.prepare(
+      `SELECT id, code, name, tags, kcal, protein, carbs, fat, servingName, servingGrams,
+              photo IS NOT NULL AND photo != '' AS hasPhoto, createdAt, updatedAt, deletedAt
+       FROM healthFoods`,
+    ),
     everyMeal: db.prepare('SELECT * FROM healthMeals'),
+    everyMealBrief: db.prepare(
+      `SELECT id, name, items, photo IS NOT NULL AND photo != '' AS hasPhoto,
+              createdAt, updatedAt, deletedAt
+       FROM healthMeals`,
+    ),
     everyIntake: db.prepare('SELECT * FROM healthIntakes'),
     everySleep: db.prepare('SELECT * FROM healthSleeps'),
     everyTraining: db.prepare('SELECT * FROM healthTrainings'),
@@ -1538,15 +1649,15 @@ function createDatabase(file) {
    */
   function searchRecords(keyword, categoryIds) {
     const live = (rows) => rows.filter((row) => row.deletedAt === null)
-    const entries = live(q.everyEntry.all().map(entryRow))
-    const stamps = live(q.everyStamp.all().map(stampRow))
-    const finance = live(q.everyFinance.all().map(financeRow))
+    const entries = live(q.briefEntries.all().map(entryBriefRow))
+    const stamps = live(q.briefStamps.all().map(stampBriefRow))
+    const finance = live(q.composeFinanceBriefs.all().map(financeBriefRow))
     const sleeps = live(q.everySleep.all().map(sleepRow))
     const intakes = live(q.everyIntake.all().map(intakeRow))
     const trainings = live(q.everyTraining.all().map(trainingRow))
     const schedules = live(q.everySchedule.all().map(scheduleRow))
-    const foods = live(q.everyFood.all().map(foodRow))
-    const meals = live(q.everyMeal.all().map(mealRow))
+    const foods = live(q.healthFoodBriefs.all().map(foodBriefRow))
+    const meals = live(q.healthMealBriefs.all().map(mealBriefRow))
     const presets = live(q.everyPreset.all().map(presetRow))
 
     const tags = collectTags([
@@ -1853,6 +1964,7 @@ function createDatabase(file) {
   const METHODS = {
     // ─────────── 日记 ───────────
     entriesOfDay: (dateKey) => q.entriesOfDay.all(dateKey).map(entryRow),
+    briefEntriesOfDay: (dateKey) => q.briefEntriesOfDay.all(dateKey).map(entryBriefRow),
     entryByCode: (code) => entryRow(q.entryByCode.get(code)),
     insertEntry,
     updateContent: (id, content, images) => {
@@ -1880,6 +1992,8 @@ function createDatabase(file) {
 
     // ─────────── 随记 ───────────
     stampsOfDay: (dateKey) => q.stampsOfDay.all(dateKey).map(stampRow),
+    briefStampsOfDay: (dateKey) => q.briefStampsOfDay.all(dateKey).map(stampBriefRow),
+    stampById: (id) => stampRow(q.stampById.get(id)),
     insertStamp,
     updateStamp,
     removeStamp: (id) => {
@@ -1951,6 +2065,30 @@ function createDatabase(file) {
     // ─────────── 备份 ───────────
     everyEntry: () => q.everyEntry.all().map(entryRow),
     everyStamp: () => q.everyStamp.all().map(stampRow),
+    briefEntries: () => q.briefEntries.all().map(entryBriefRow),
+    briefStamps: () => q.briefStamps.all().map(stampBriefRow),
+    diaryComposeData: () => ({
+      entries: q.briefEntries.all().map(entryBriefRow),
+      stamps: q.briefStamps.all().map(stampBriefRow),
+      days: q.everyDay.all().map(dayRow),
+      intakes: q.everyIntake.all().map(intakeRow),
+      sleeps: q.everySleep.all().map(sleepRow),
+      finance: q.composeFinanceBriefs.all().map(financeBriefRow),
+    }),
+    assistantData: () => ({
+      entries: q.briefEntries.all().map(entryBriefRow),
+      stamps: q.briefStamps.all().map(stampBriefRow),
+      days: q.everyDay.all().map(dayRow),
+      presets: q.everyPreset.all().map(presetRow),
+      profile: profileRow(q.healthProfile.get()) ?? null,
+      foods: q.everyFoodBrief.all().map(foodBriefRow),
+      meals: q.everyMealBrief.all().map(mealBriefRow),
+      intakes: q.everyIntake.all().map(intakeRow),
+      sleeps: q.everySleep.all().map(sleepRow),
+      trainings: q.everyTraining.all().map(trainingRow),
+      finance: q.composeFinanceBriefs.all().map(financeBriefRow),
+      schedules: q.everySchedule.all().map(scheduleRow),
+    }),
     everyDay: () => q.everyDay.all().map(dayRow),
     totals: () => ({
       entries: Number(q.countEntries.get().n),
@@ -2038,6 +2176,12 @@ function createDatabase(file) {
     saveHealthProfile: (profile) => saveProfile(profile),
     deleteHealthProfile: () => db.prepare("DELETE FROM healthProfile WHERE id = 'me'").run(),
     healthFoods: () => q.healthFoods.all().map(foodRow),
+    healthFoodBriefs: () => q.healthFoodBriefs.all().map(foodBriefRow),
+    healthFoodById: (id) => foodRow(q.healthFoodById.get(id)),
+    healthFoodPhoto: (id) => {
+      const row = q.healthFoodPhoto.get(id)
+      return row && row.deletedAt === null && typeof row.photo === 'string' ? row.photo : null
+    },
     saveHealthFood: (food) => saveFood(food),
     mergeHealthFoods: (sourceId, targetId) => mergeFoods(sourceId, targetId),
     removeHealthFood: (id) => {
@@ -2079,6 +2223,13 @@ function createDatabase(file) {
     sleepOfDay: (dateKey) => sleepRow(q.sleepOfDay.get(dateKey)),
     sleepsBetween: (from, to) => q.sleepsBetween.all(from, to).map(sleepRow),
     financeOfMonth: (monthKey) => q.financeOfMonth.all(`${monthKey}%`).map(financeRow),
+    financeBriefsOfMonth: (monthKey) =>
+      q.financeBriefsOfMonth.all(`${monthKey}%`).map(financeBriefRow),
+    financeById: (id) => financeRow(q.financeById.get(id)),
+    financePhoto: (id) => {
+      const row = q.financePhoto.get(id)
+      return row && row.deletedAt === null && typeof row.photo === 'string' ? row.photo : null
+    },
     financeDays: () => q.financeDays.all().map((row) => row.dateKey),
     addFinance: (entry) => saveFinance(entry),
     saveFinance: (entry) => saveFinance(entry),
@@ -2133,6 +2284,20 @@ function createDatabase(file) {
       q.purgeTrashedTrainings.run()
     },
     healthMeals: () => q.healthMeals.all().map(mealRow),
+    healthMealBriefs: () => q.healthMealBriefs.all().map(mealBriefRow),
+    healthMealById: (id) => mealRow(q.healthMealById.get(id)),
+    healthMealPhoto: (id) => {
+      const row = q.healthMealPhoto.get(id)
+      if (!row || row.deletedAt !== null) return null
+      if (typeof row.photo === 'string' && row.photo !== '') return row.photo
+      for (const item of mealItemsFromDb(row.items)) {
+        const food = q.healthFoodPhoto.get(item.foodId)
+        if (food && food.deletedAt === null && typeof food.photo === 'string' && food.photo !== '') {
+          return food.photo
+        }
+      }
+      return null
+    },
     saveHealthMeal: (meal) => saveMeal(meal),
     removeHealthMeal: (id) => {
       q.removeMeal.run(Date.now(), id)

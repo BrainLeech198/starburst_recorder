@@ -38,6 +38,7 @@ import {
   restoreHealthSleep,
   sleepDays,
   sleepOfDay,
+  sleepsBetween,
 } from './healthRepo'
 import type { BackupData } from './healthRepo'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
@@ -73,14 +74,16 @@ export default function SleepsPage() {
   const [batchDeleting, setBatchDeleting] = useState(false)
   const importInputRef = useRef<HTMLInputElement | null>(null)
 
-  /** 批量模式列出所有记过睡眠的日子；平时不查，省一次整库读取 */
+  /** 批量模式只查睡眠行，不为列出睡眠而读取日记与票据图片。 */
   const allSleeps = useLiveQuery(
-    async () =>
-      batch.active
-        ? (await exportAllData()).sleeps
-            .filter((item) => !item.deletedAt)
-            .sort((a, b) => b.dateKey.localeCompare(a.dateKey))
-        : [],
+    async () => {
+      if (!batch.active) return []
+      const days = await sleepDays()
+      if (days.length === 0) return []
+      const from = days.reduce((earliest, day) => day < earliest ? day : earliest)
+      const to = days.reduce((latest, day) => day > latest ? day : latest)
+      return (await sleepsBetween(from, to)).sort((a, b) => b.dateKey.localeCompare(a.dateKey))
+    },
     [batch.active],
   )
 

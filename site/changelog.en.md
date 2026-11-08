@@ -1,3 +1,18 @@
+## 0.17.1 · 2026-11-09
+
+Faster lists for photo-heavy records
+
+### What's new
+
+- **Better food and meal filtering** — search by name, filter by tags, and sort by name or date added in either direction; thumbnails load on demand and lists appear in batches.
+- **Lighter diary, note and finance browsing** — date changes, archives, search and week/month reviews read summaries first; photos load only when shown or opened.
+- **Fewer whole-library image reads** — AI reports, references, confirmed assistant actions, sleep batch lists and record imports read only the needed summaries or records. Explicit photo viewing and full backups still include the originals.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.17.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.1/starburst-recorder-0.17.1-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.1/starburst-recorder-0.17.1-setup.exe)
+- Android 10+: [`starburst-recorder-0.17.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.1/starburst-recorder-0.17.1.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.1/starburst-recorder-0.17.1.apk)
+
 ## 0.17.0 · 2026-11-06
 
 Feedback follow-up, food sorting and spending chart choices

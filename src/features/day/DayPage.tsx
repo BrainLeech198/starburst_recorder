@@ -16,13 +16,13 @@ import DayNav from '@/shared/ui/DayNav'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import { NAV_BACK_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon, type IconName } from '@/shared/ui/icons'
-import { entriesOfDay, stampsOfDay } from '@/features/diary/diaryRepo'
+import { briefEntriesOfDay, briefStampsOfDay } from '@/features/diary/diaryRepo'
 import { stripImageTokens } from '@/features/diary/imageTokens'
 import { healthProfile, intakesOfDay, sleepOfDay } from '@/features/health/healthRepo'
 import { sleepMinutes, sleepParts } from '@/features/health/sleepMath'
 import { trainingOfDay } from '@/features/training/trainingRepo'
 import { categoryKey } from '@/features/finance/financeCategories'
-import { financeOfMonth } from '@/features/finance/financeRepo'
+import { financeBriefsOfMonth } from '@/features/finance/financeRepo'
 import { schedules } from '@/features/schedule/scheduleRepo'
 import { isDoneOn, occurrencesOn } from '@/features/schedule/scheduleMath'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
@@ -87,12 +87,12 @@ export default function DayPage() {
     const monthKey = dayKey.slice(0, 7)
     const [entries, stamps, intakes, sleep, trainings, finance, profile, scheduleItems] =
       await Promise.all([
-        entriesOfDay(dayKey),
-        stampsOfDay(dayKey),
+        briefEntriesOfDay(dayKey),
+        briefStampsOfDay(dayKey),
         intakesOfDay(dayKey),
         sleepOfDay(dayKey),
         trainingOfDay(dayKey),
-        financeOfMonth(monthKey),
+        financeBriefsOfMonth(monthKey),
         healthProfile(),
         schedules(),
       ])

@@ -9,7 +9,7 @@
  * 对比、能量收支分清「维持线 / 目标线 / 实际」三条线、体重只看序列、
  * 风险点和下一步必须能执行。素材层把数字算全，让模型只做归纳不做口算。
  */
-import type { BackupData } from '@/core/db/store'
+import type { AssistantDataSource, BackupData } from '@/core/db/store'
 import { formatDateCn, shiftDay, weekdayLabel } from '@/core/utils/dateKey'
 import type { HealthProfile } from '@/core/db/schema'
 import {
@@ -81,7 +81,7 @@ function hoursMinutes(minutes: number): string {
 }
 
 /** 一天的素材压成几行；没有任何内容时返回 null，整天空着不占篇幅 */
-function dayLines(data: BackupData, dateKey: string): string[] | null {
+function dayLines(data: AssistantDataSource, dateKey: string): string[] | null {
   const entries = data.entries.filter((item) => item.dateKey === dateKey && item.deletedAt === null)
   const stamps = data.stamps.filter((item) => item.dateKey === dateKey && item.deletedAt === null)
   const intakes = data.intakes.filter((item) => item.dateKey === dateKey && item.deletedAt === null)
@@ -257,7 +257,7 @@ function foodSourcesOf(intakes: BackupData['intakes']): ReportTotals['foodSource
 }
 
 /** 这段时间的总量：开头给模型一个「这段时间大概是什么样」的底 */
-export function reportTotals(data: BackupData, period: ReportPeriod): ReportTotals {
+export function reportTotals(data: AssistantDataSource, period: ReportPeriod): ReportTotals {
   const inRange = (dateKey: string) => dateKey >= period.from && dateKey <= period.to
   const entries = data.entries.filter((item) => inRange(item.dateKey) && item.deletedAt === null)
   const stamps = data.stamps.filter((item) => inRange(item.dateKey) && item.deletedAt === null)
@@ -540,7 +540,7 @@ function compactTotals(prefix: string, totals: ReportTotals): string {
   return `${prefix}：${bits.join('；')}`
 }
 
-function monthlyLines(data: BackupData, period: ReportPeriod): string[] {
+function monthlyLines(data: AssistantDataSource, period: ReportPeriod): string[] {
   const year = Number(period.from.slice(0, 4))
   if (!Number.isFinite(year)) return ['（这一年没有可用的记录）']
   const lines: string[] = []
@@ -557,7 +557,7 @@ function monthlyLines(data: BackupData, period: ReportPeriod): string[] {
 
 /** 把这段时间的素材拼成给模型看的那段话 */
 export function buildReportUserPrompt(
-  data: BackupData,
+  data: AssistantDataSource,
   period: ReportPeriod,
   totals: ReportTotals = reportTotals(data, period),
 ): string {
@@ -613,7 +613,7 @@ export interface ReportResult {
 /** 把这段时间的记录交给模型，拿回一篇回顾草稿 */
 export async function composeReport(
   config: AiConfig,
-  data: BackupData,
+  data: AssistantDataSource,
   period: ReportPeriod,
 ): Promise<ReportResult> {
   const result = await chat({

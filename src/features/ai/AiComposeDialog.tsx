@@ -8,9 +8,10 @@ import { GHOST_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
-import type { DiaryStamp, FinanceEntry, HealthIntake } from '@/core/db/schema'
+import type { FinanceEntry, HealthIntake } from '@/core/db/schema'
+import type { DiaryStampBrief } from '@/core/db/store'
 import { formatDate, shiftDay, weekdayKey } from '@/core/utils/dateKey'
-import { dayInfo, exportAllData } from '@/features/diary/diaryRepo'
+import { dayInfo, diaryComposeData } from '@/features/diary/diaryRepo'
 import { parseWeather, weatherIcons, weatherText } from '@/features/diary/weather'
 import { loadAiConfig } from './aiConfig'
 import {
@@ -59,7 +60,7 @@ export default function AiComposeDialog({
   onCancel,
 }: {
   dateKey: string
-  stamps: DiaryStamp[]
+  stamps: DiaryStampBrief[]
   onConfirm: (content: string) => void
   onCancel: () => void
 }) {
@@ -67,7 +68,7 @@ export default function AiComposeDialog({
   const [config] = useState(loadAiConfig)
   const day = useLiveQuery(() => dayInfo(dateKey), [dateKey])
   /** 摄入和收支不在日记页手里，打开弹窗时整库读一次，够当天和历史用 */
-  const snapshot = useLiveQuery(() => exportAllData(), [dateKey])
+  const snapshot = useLiveQuery(() => diaryComposeData(), [dateKey])
 
   const dayIntakes = (snapshot?.intakes ?? EMPTY_INTAKES).filter(
     (item) => item.dateKey === dateKey && item.deletedAt === null,
@@ -136,7 +137,7 @@ export default function AiComposeDialog({
     setSeed(null)
     setTurns([])
     setChatError('')
-    const data = await exportAllData()
+    const data = await diaryComposeData()
     const window = historyWindow()
     const context: ComposeContext = {
       dateKey,

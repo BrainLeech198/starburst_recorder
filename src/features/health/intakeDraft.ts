@@ -5,6 +5,7 @@
  * foodId 为空表示还没入库（AI 估的、或用户刚要新建的）。
  */
 import type { HealthFood } from '@/core/db/schema'
+import type { HealthFoodBrief } from '@/core/db/store'
 import type { FoodDraft } from './FoodForm'
 
 export interface DraftFood extends FoodDraft {
@@ -12,7 +13,7 @@ export interface DraftFood extends FoodDraft {
   foodId: string | null
 }
 
-export function asDraft(food: HealthFood): DraftFood {
+export function asDraft(food: HealthFood | HealthFoodBrief): DraftFood {
   return {
     foodId: food.id,
     name: food.name,
@@ -22,7 +23,7 @@ export function asDraft(food: HealthFood): DraftFood {
     fat: food.fat,
     servingName: food.servingName,
     servingGrams: food.servingGrams,
-    photo: food.photo,
+    photo: 'photo' in food ? food.photo : null,
   }
 }
 

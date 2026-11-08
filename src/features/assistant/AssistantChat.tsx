@@ -15,7 +15,10 @@ import type { ChatContentPart } from '@/platform/desktop'
 import { todayKey } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import { useToast } from '@/app/providers/ToastProvider'
-import { exportAllData } from '@/features/health/healthRepo'
+import { assistantData, healthFoodById, healthMealById } from '@/features/health/healthRepo'
+import { entryByCode, stampById } from '@/features/diary/diaryRepo'
+import { financeById } from '@/features/finance/financeRepo'
+import type { AssistantData } from '@/core/db/store'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import AiDisclaimer from '@/features/ai/AiDisclaimer'
 import { loadReasoning, saveReasoning } from '@/features/ai/aiReasoning'
@@ -36,6 +39,7 @@ import { loadMemories, memoryPromptLines } from './assistantMemory'
 import { enabledSkills, loadSkills } from './assistantSkills'
 import { loadPermission, runsWithoutConfirm } from './assistantPermission'
 import { processAssistantActionBatch } from './assistantActionBatch'
+import type { RecordPhotoKind, RecordPhotoTarget, RecordPhotoRecord } from './assistantRecordPhoto'
 import AssistantQuestionCard from './AssistantQuestionCard'
 import AssistantActionCard from './AssistantActionCard'
 import AssistantWorking from './AssistantWorking'
@@ -179,6 +183,18 @@ function historyContent(item: ChatMessageRecord, withImages: boolean): string | 
   return [{ type: 'text', text: text || '（图片）' }, ...images]
 }
 
+/** 旧照片只按目标编号读单条记录，不触发全库备份导出。 */
+async function loadAssistantRecordPhoto(
+  kind: RecordPhotoKind,
+  target: RecordPhotoTarget,
+): Promise<RecordPhotoRecord | undefined> {
+  if (kind === 'diary') return target.code ? entryByCode(target.code) : undefined
+  if (kind === 'stamps') return stampById(target.id)
+  if (kind === 'finance') return financeById(target.id)
+  if (kind === 'foods') return healthFoodById(target.id)
+  return healthMealById(target.id)
+}
+
 export default function AssistantChat({ compact = false }: { compact?: boolean }) {
   const { t, locale } = useI18n()
   const timestampFormatter = useMemo(
@@ -255,7 +271,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   const actionWriteLockRef = useRef(false)
   const mountedRef = useRef(false)
   /** 上一轮已经读出来的整库快照，展开推荐问时直接拿来当「当前情况」 */
-  const dataRef = useRef<Awaited<ReturnType<typeof exportAllData>> | null>(null)
+  const dataRef = useRef<AssistantData | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
 
@@ -403,7 +419,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     const permission = loadPermission()
     try {
       // 每轮都取一份最新快照：刚刚在别的页面记的东西也能查到
-      const data = await exportAllData()
+      const data = await assistantData()
       dataRef.current = data
       // 历史里只放已经说出口的话；正在加载的占位、错误和停止的消息都不算
       const source = getChatMessages().filter(
@@ -426,6 +442,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         config,
         history,
         data,
+        loadRecordPhoto: loadAssistantRecordPhoto,
         today: todayKey(),
         memories: memoryPromptLines(loadMemories()),
         notes: writtenNotes(),

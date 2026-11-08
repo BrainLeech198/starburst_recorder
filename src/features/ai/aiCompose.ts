@@ -11,6 +11,8 @@ import type {
   HealthIntake,
   HealthSleep,
 } from '@/core/db/schema'
+import type { DiaryEntryBrief, DiaryStampBrief } from '@/core/db/store'
+import type { FinanceEntryBrief } from '@/core/db/store'
 import { sleepMinutes, sleepParts } from '@/features/health/sleepMath'
 import { formatDateCn, weekdayLabel } from '@/core/utils/dateKey'
 import { parseWeather, weatherLabel } from '@/features/diary/weather'
@@ -25,13 +27,13 @@ export type ComposeSource = 'stamps' | 'health' | 'finance'
 export interface ComposeDay {
   dateKey: string
   weather: string | null
-  stamps: DiaryStamp[]
+  stamps: (DiaryStamp | DiaryStampBrief)[]
   intakes: HealthIntake[]
   /** 一夜睡眠（dateKey = 起床那天），一天最多一夜 */
   sleep: HealthSleep | null
-  finance: FinanceEntry[]
+  finance: (FinanceEntry | FinanceEntryBrief)[]
   /** 只有历史日才有；当天没有「已经写好的日记」这一项 */
-  entries?: DiaryEntry[]
+  entries?: (DiaryEntry | DiaryEntryBrief)[]
 }
 
 /** 给模型的全部输入 */
@@ -132,12 +134,12 @@ function clip(text: string, max: number) {
 /** 按天把备份里的记录聚起来，只留目标日期之前、区间内的未删除内容 */
 export function buildHistoryDays(
   data: {
-    entries: DiaryEntry[]
-    stamps: DiaryStamp[]
+    entries: (DiaryEntry | DiaryEntryBrief)[]
+    stamps: (DiaryStamp | DiaryStampBrief)[]
     days: DiaryDay[]
     intakes: HealthIntake[]
     sleeps: HealthSleep[]
-    finance: FinanceEntry[]
+    finance: (FinanceEntry | FinanceEntryBrief)[]
   },
   from: string,
   to: string,
@@ -202,7 +204,7 @@ export function buildHistoryDays(
 
 /** 最近的几篇日记正文，给模型当文风样例 */
 export function buildStyleSamples(
-  entries: DiaryEntry[],
+  entries: (DiaryEntry | DiaryEntryBrief)[],
   limit: number = STYLE_SAMPLE_COUNT,
 ): string[] {
   return entries
@@ -212,7 +214,7 @@ export function buildStyleSamples(
     .map((item) => clip(item.content, STYLE_SAMPLE_CHARS))
 }
 
-function formatFinance(item: FinanceEntry) {
+function formatFinance(item: FinanceEntry | FinanceEntryBrief) {
   const note = item.note.trim()
   const kind = item.kind === 'income' ? '收入' : '支出'
   return `${kind} ${item.name} ${item.amount} 元${note ? `（${note}）` : ''}`

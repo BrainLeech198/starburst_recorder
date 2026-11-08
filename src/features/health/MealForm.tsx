@@ -8,6 +8,7 @@ import ErrorNote from '@/shared/ui/ErrorNote'
 import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import type { HealthFood, HealthMeal, HealthMealItem } from '@/core/db/schema'
+import type { HealthFoodBrief } from '@/core/db/store'
 import { newId } from '@/core/utils/id'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import { compressImage } from '@/features/ai/aiVision'
@@ -25,8 +26,8 @@ import { MAX_REFERENCE_IMAGES, addReferenceImage } from './aiImages'
 import { analyzeMealPhrase, analyzeMealPhoto } from './mealPhrase'
 import type { PhraseItem } from './mealPhrase'
 import { foodMacros, formatNum, mealTotals } from './healthMath'
-import { componentPhoto } from './mealPhoto'
 import { compressFoodPhoto } from './foodPhoto'
+import FoodPhotoThumbnail from './FoodPhotoThumbnail'
 
 interface Part {
   key: string
@@ -39,6 +40,10 @@ function asParts(items: HealthMealItem[]): Part[] {
   return items.map((item) => ({ key: newId(), foodId: item.foodId, grams: String(item.grams) }))
 }
 
+function foodHasPhoto(food: HealthFood | HealthFoodBrief) {
+  return 'hasPhoto' in food ? food.hasPhoto : Boolean(food.photo)
+}
+
 export default function MealForm({
   initial,
   foods,
@@ -48,7 +53,7 @@ export default function MealForm({
   onCreateFood,
 }: {
   initial?: HealthMeal
-  foods: HealthFood[]
+  foods: HealthFoodBrief[]
   submitLabel: string
   onSubmit: (draft: { name: string; photo: string | null; items: HealthMealItem[] }) => void
   onCancel: () => void
@@ -91,7 +96,8 @@ export default function MealForm({
 
   const aiReady = isConfigured(loadAiConfig())
 
-  const allFoods = extraFoods.length === 0 ? foods : [...foods, ...extraFoods]
+  const allFoods: (HealthFood | HealthFoodBrief)[] =
+    extraFoods.length === 0 ? foods : [...foods, ...extraFoods]
   const byId = new Map(allFoods.map((food) => [food.id, food]))
   const keyword = query.trim().toLowerCase()
   const matches = allFoods.filter((food) => food.name.toLowerCase().includes(keyword))
@@ -101,10 +107,15 @@ export default function MealForm({
     parts.map((part) => ({ foodId: part.foodId, grams: Number(part.grams) || 0 })),
     allFoods,
   )
-  /** 自己的封面优先；没上传就跟列表、摄入一样，取第一个有照片的成分 */
-  const cover = coverPhoto ?? componentPhoto(parts, allFoods)
+  /** 自己的封面优先；成分照片只按需取第一张。 */
+  const componentCoverId = coverPhoto
+    ? null
+    : parts.find((part) => {
+        const food = byId.get(part.foodId)
+        return food ? foodHasPhoto(food) : false
+      })?.foodId ?? null
 
-  function addPart(food: HealthFood) {
+  function addPart(food: HealthFood | HealthFoodBrief) {
     setParts((current) => [
       ...current,
       { key: newId(), foodId: food.id, grams: String(food.servingGrams ?? 100) },
@@ -271,10 +282,19 @@ export default function MealForm({
 
       {/* 套餐封面：可以自己上传；没有就用第一个有照片的成分 */}
       <div className="flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-2.5">
-        {cover ? (
+        {coverPhoto ? (
           <PhotoPreview
-            src={cover}
+            src={coverPhoto}
             alt={t('foods.mealCover')}
+            className="h-16 w-16 rounded-lg"
+            wrapperClassName="shrink-0"
+          />
+        ) : componentCoverId ? (
+          <FoodPhotoThumbnail
+            kind="food"
+            id={componentCoverId}
+            hasPhoto
+            refreshKey={byId.get(componentCoverId)?.updatedAt}
             className="h-16 w-16 rounded-lg"
             wrapperClassName="shrink-0"
           />
@@ -515,10 +535,12 @@ export default function MealForm({
                   className="rounded-lg border border-line px-2 py-1.5"
                 >
                   <div className="flex items-center gap-2">
-                    {food?.photo && (
-                      <PhotoPreview
-                        src={food.photo}
-                        alt=""
+                    {food && foodHasPhoto(food) && (
+                      <FoodPhotoThumbnail
+                        kind="food"
+                        id={food.id}
+                        hasPhoto
+                        refreshKey={food.updatedAt}
                         className="h-8 w-8 rounded-md"
                         wrapperClassName="shrink-0"
                       />
@@ -589,10 +611,12 @@ export default function MealForm({
                   onClick={() => addPart(food)}
                   className="flex w-full items-center gap-2 rounded-lg border border-line p-2 text-left transition-colors hover:border-brand/50"
                 >
-                  {food.photo && (
-                    <PhotoPreview
-                      src={food.photo}
-                      alt=""
+                  {foodHasPhoto(food) && (
+                    <FoodPhotoThumbnail
+                      kind="food"
+                      id={food.id}
+                      hasPhoto
+                      refreshKey={food.updatedAt}
                       className="h-9 w-9 rounded-md"
                       wrapperClassName="shrink-0"
                     />

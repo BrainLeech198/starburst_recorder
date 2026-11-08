@@ -9,6 +9,7 @@
 import ErrorNote from '@/shared/ui/ErrorNote'
 import { useRef, useState } from 'react'
 import type { HealthFood } from '@/core/db/schema'
+import type { HealthFoodBrief } from '@/core/db/store'
 import { useI18n } from '@/shared/i18n/context'
 import Modal from '@/shared/ui/Modal'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
@@ -33,7 +34,7 @@ export default function PhraseReviewDialog({
   onLog,
 }: {
   items: PhraseItem[]
-  foods: HealthFood[]
+  foods: (HealthFood | HealthFoodBrief)[]
   onClose: () => void
   /** 立即建进食物库并记进这一笔；失败时抛错，表单会停在本项 */
   onLog: (item: PhraseItem, draft: FoodDraft, grams: number) => Promise<void>
@@ -177,7 +178,7 @@ function Detail({
   onLog,
 }: {
   item: PhraseItem
-  foods: HealthFood[]
+  foods: (HealthFood | HealthFoodBrief)[]
   onBack: () => void
   onSkip: () => void
   onLog: (draft: FoodDraft, grams: number) => Promise<void>
