@@ -63,6 +63,43 @@
 
         <div id="workspace-message" class="workspace-message" role="status" aria-live="polite" hidden></div>
 
+        <section class="overview" aria-labelledby="overview-title">
+          <div class="overview-heading">
+            <div>
+              <span class="eyebrow">WORKSPACE OVERVIEW</span>
+              <h2 id="overview-title">运营概览</h2>
+              <p class="muted">快速查看公告、订阅和反馈状态；订阅名单与反馈详情只在对应工作区点击加载时读取。</p>
+            </div>
+            <span class="overview-refresh-note"><span aria-hidden="true">●</span> 数据按需刷新</span>
+          </div>
+          <div class="overview-grid" aria-label="运营状态摘要">
+            <button class="overview-card overview-card--notices" type="button" data-open-workspace="announcements">
+              <span class="overview-card__top"><span>公告管理</span><span class="overview-card__symbol" aria-hidden="true">01</span></span>
+              <strong id="overview-notices-value" class="overview-card__value">—</strong>
+              <span id="overview-notices-detail" class="overview-card__detail">登录后加载公告历史</span>
+              <span class="overview-card__action">打开公告工作区 <span aria-hidden="true">↗</span></span>
+            </button>
+            <button class="overview-card overview-card--subscribers" type="button" data-open-workspace="subscribers">
+              <span class="overview-card__top"><span>邮箱订阅者</span><span class="overview-card__symbol" aria-hidden="true">02</span></span>
+              <strong id="overview-subscribers-value" class="overview-card__value">按需查看</strong>
+              <span id="overview-subscribers-detail" class="overview-card__detail">进入工作区后手动加载</span>
+              <span class="overview-card__action">打开订阅者工作区 <span aria-hidden="true">↗</span></span>
+            </button>
+            <button class="overview-card overview-card--feedback" type="button" data-open-workspace="feedback">
+              <span class="overview-card__top"><span>用户反馈</span><span class="overview-card__symbol" aria-hidden="true">03</span></span>
+              <strong id="overview-feedback-value" class="overview-card__value">按需查看</strong>
+              <span id="overview-feedback-detail" class="overview-card__detail">进入工作区后手动加载</span>
+              <span class="overview-card__action">打开反馈工作区 <span aria-hidden="true">↗</span></span>
+            </button>
+            <div class="overview-card overview-card--email" role="status" aria-live="polite">
+              <span class="overview-card__top"><span>邮件服务</span><span class="overview-card__symbol" aria-hidden="true">04</span></span>
+              <strong id="overview-email-value" class="overview-card__value">检查中</strong>
+              <span id="overview-email-detail" class="overview-card__detail">正在读取服务端配置</span>
+              <span class="overview-card__action">来自服务端配置状态</span>
+            </div>
+          </div>
+        </section>
+
         <nav class="workspace-nav" role="tablist" aria-label="管理员工作区">
           <button id="tab-announcements" class="workspace-tab" type="button" role="tab" aria-selected="true" aria-controls="panel-announcements" data-workspace-target="announcements">公告</button>
           <button id="tab-subscribers" class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-subscribers" data-workspace-target="subscribers" tabindex="-1">订阅者</button>

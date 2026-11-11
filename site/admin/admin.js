@@ -9,6 +9,31 @@ const workspaceView = document.querySelector('#workspace-view')
 const loginForm = document.querySelector('#login-form')
 const loginMessage = document.querySelector('#login-message')
 const workspaceMessage = document.querySelector('#workspace-message')
+const overviewMetrics = {
+  notices: {
+    value: document.querySelector('#overview-notices-value'),
+    detail: document.querySelector('#overview-notices-detail'),
+  },
+  subscribers: {
+    value: document.querySelector('#overview-subscribers-value'),
+    detail: document.querySelector('#overview-subscribers-detail'),
+  },
+  feedback: {
+    value: document.querySelector('#overview-feedback-value'),
+    detail: document.querySelector('#overview-feedback-detail'),
+  },
+  email: {
+    value: document.querySelector('#overview-email-value'),
+    detail: document.querySelector('#overview-email-detail'),
+  },
+}
+
+function updateOverviewMetric(name, value, detail) {
+  const metric = overviewMetrics[name]
+  if (!metric) return
+  metric.value.textContent = value
+  metric.detail.textContent = detail
+}
 const actionDialog = document.querySelector('#action-dialog')
 const actionDialogTitle = document.querySelector('#action-dialog-title')
 const actionDialogDescription = document.querySelector('#action-dialog-description')
@@ -60,11 +85,14 @@ actionDialog.addEventListener('click', (event) => {
   if (event.target === actionDialog) actionDialog.close('cancel')
 })
 
-async function readResponse(response) {
+async function readResponse(response, { sessionRequest = false } = {}) {
   const body = await response.json().catch(() => ({}))
   if (response.status === 401) {
-    showLogin('登录状态已失效，请重新登录。')
-    throw new Error('登录状态已失效')
+    const message = sessionRequest
+      ? '管理员名称或密码不正确，请检查后重试。'
+      : '登录状态已失效，请重新登录。'
+    if (!sessionRequest) showLogin(message)
+    throw new Error(message)
   }
   if (!response.ok && response.status !== 207) {
     throw new Error(body.error || `请求失败（${response.status}）`)
@@ -111,6 +139,17 @@ function selectWorkspaceSection(name, moveFocus = false) {
   workspaceMessage.hidden = true
 }
 
+for (const card of document.querySelectorAll('[data-open-workspace]')) {
+  card.addEventListener('click', () => {
+    const target = workspaceTabs.find((tab) => tab.dataset.workspaceTarget === card.dataset.openWorkspace)
+    target?.click()
+    document.querySelector(`[data-workspace-panel="${card.dataset.openWorkspace}"]`)?.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'start',
+    })
+  })
+}
+
 for (const [index, tab] of workspaceTabs.entries()) {
   tab.addEventListener('click', () => selectWorkspaceSection(tab.dataset.workspaceTarget))
   tab.addEventListener('keydown', (event) => {
@@ -147,7 +186,7 @@ loginForm.addEventListener('submit', async (event) => {
         password: values.get('password'),
       }),
     })
-    const result = await readResponse(response)
+    const result = await readResponse(response, { sessionRequest: true })
     sessionToken = result.sessionToken
     loginForm.elements.password.value = ''
     loginView.hidden = true
@@ -171,9 +210,19 @@ loginForm.addEventListener('submit', async (event) => {
       : missing.length
         ? `邮件功能暂不可用，服务端缺少：${missing.join('、')}。发件地址还需通过 Resend 域名验证。`
         : `${status.emailReason || '邮件服务尚未配置'}。邮件发送选项暂不可用。`
+    updateOverviewMetric(
+      'email',
+      status.emailSendingEnabled ? '已就绪' : '未配置',
+      status.emailSendingEnabled
+        ? '可选择邮件投递'
+        : missing.length
+          ? `邮件发送还缺少 ${missing.length} 项配置`
+          : status.emailReason || '邮件发送暂不可用',
+    )
     await loadAdminNotices()
   } catch (error) {
     if (sessionToken) {
+      updateOverviewMetric('email', '状态未知', '无法读取服务端邮件配置')
       showWorkspaceMessage(error.message || '已登录，但无法读取工作台配置。', 'error')
     } else {
       loginMessage.textContent = error.message || '登录失败，请稍后重试。'
@@ -533,9 +582,16 @@ async function loadAdminNotices() {
     const result = await adminRequest('/admin/api/notices')
     adminNotices = result.notices
     adminNoticesLoaded = true
+    const urgentCount = adminNotices.filter((notice) => notice.level === 'urgent').length
+    updateOverviewMetric(
+      'notices',
+      String(adminNotices.length),
+      adminNotices.length ? `其中 ${urgentCount} 条紧急公告` : '目前没有已发布公告',
+    )
     renderAdminNotices()
   } catch (error) {
     if (workspaceView.hidden) return
+    if (!loaded) updateOverviewMetric('notices', '加载失败', '打开公告工作区后可重试')
     showListFailure(error, {
       list,
       count,
@@ -565,6 +621,7 @@ document.querySelector('#load-subscribers').addEventListener('click', async (eve
     const result = await adminRequest('/admin/api/subscribers')
     subscribersLoaded = true
     count.textContent = `共 ${result.count} 位订阅者`
+    updateOverviewMetric('subscribers', String(result.count), '已确认邮箱订阅者')
     if (!result.subscribers.length) return showEmpty(list, '还没有邮箱订阅者。')
     const items = result.subscribers.map((person) => {
       const item = document.createElement('li')
@@ -680,6 +737,7 @@ function renderAdminFeedback(expandedId = null) {
           })
           const index = adminFeedback.findIndex((item) => item.id === feedback.id)
           if (index >= 0) adminFeedback[index] = result.feedback
+          updateFeedbackOverview()
           renderAdminFeedback(feedback.id)
           showWorkspaceMessage('反馈处理状态和回复已保存，用户下次打开反馈页即可看到。')
         } catch (error) {
@@ -701,6 +759,16 @@ function renderAdminFeedback(expandedId = null) {
   list.replaceChildren(...items)
 }
 
+function updateFeedbackOverview() {
+  if (!feedbackLoaded) return
+  const pendingCount = adminFeedback.filter((feedback) => feedback.status !== 'resolved').length
+  updateOverviewMetric(
+    'feedback',
+    String(pendingCount),
+    `待处理 · 共 ${adminFeedback.length} 条反馈`,
+  )
+}
+
 document.querySelector('#load-feedback').addEventListener('click', async (event) => {
   const button = event.currentTarget
   const list = document.querySelector('#feedback-list')
@@ -714,6 +782,7 @@ document.querySelector('#load-feedback').addEventListener('click', async (event)
     feedbackLoaded = true
     count.textContent = `共 ${result.count} 条反馈`
     adminFeedback = result.feedback
+    updateFeedbackOverview()
     renderAdminFeedback()
   } catch (error) {
     if (workspaceView.hidden) return
