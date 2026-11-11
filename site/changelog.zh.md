@@ -1,3 +1,16 @@
+## 0.17.2 · 2026-11-11
+
+收支、摄入与食物库无图记录的占位缩略图
+
+### 这一版有什么
+
+- **列表缩略图排版更整齐**：收支记录、摄入历史、食物和套餐在没有可用照片时显示对应的手绘插画；真实照片仍按需加载和预览。
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.17.2-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.2/starburst-recorder-0.17.2-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.2/starburst-recorder-0.17.2-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.17.2.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.2/starburst-recorder-0.17.2.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.2/starburst-recorder-0.17.2.apk)
+
 ## 0.17.1 · 2026-11-09
 
 图片较多时的列表加载优化

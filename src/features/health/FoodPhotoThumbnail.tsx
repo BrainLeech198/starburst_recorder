@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '@/shared/i18n/context'
 import PhotoPreview from '@/shared/ui/PhotoPreview'
+import foodPlaceholder from '@/assets/placeholders/food.jpg'
+import mealPlaceholder from '@/assets/placeholders/meal.jpg'
 import { healthFoodPhoto, healthMealPhoto } from './healthRepo'
 
 /** Load a catalog photo only when its thumbnail approaches the viewport. */
@@ -26,7 +28,11 @@ export default function FoodPhotoThumbnail({
   const [nearViewport, setNearViewport] = useState(
     () => typeof IntersectionObserver === 'undefined',
   )
-  const [photo, setPhoto] = useState<string | null>(null)
+  const [loadedPhoto, setLoadedPhoto] = useState<{
+    key: string
+    src: string | null
+  } | null>(null)
+  const photoKey = `${kind}:${id}:${refreshKey ?? ''}`
 
   useEffect(() => {
     if (!hasPhoto || typeof IntersectionObserver === 'undefined') return
@@ -42,9 +48,9 @@ export default function FoodPhotoThumbnail({
 
   useEffect(() => {
     let alive = true
-    if (!nearViewport || !hasPhoto) {
+    if (!hasPhoto || !nearViewport) {
       void Promise.resolve().then(() => {
-        if (alive) setPhoto(null)
+        if (alive) setLoadedPhoto(null)
       })
       return () => {
         alive = false
@@ -52,16 +58,31 @@ export default function FoodPhotoThumbnail({
     }
     const load = kind === 'food' ? healthFoodPhoto(id) : healthMealPhoto(id)
     void load.then((next) => {
-      if (alive) setPhoto(next)
+      if (alive) setLoadedPhoto({ key: photoKey, src: next })
     }).catch(() => {
-      if (alive) setPhoto(null)
+      if (alive) setLoadedPhoto({ key: photoKey, src: null })
     })
     return () => {
       alive = false
     }
-  }, [kind, id, hasPhoto, nearViewport, refreshKey])
+  }, [kind, id, hasPhoto, nearViewport, photoKey])
 
-  if (!hasPhoto) return null
+  const photoResolved = loadedPhoto?.key === photoKey
+  const photo = loadedPhoto?.key === photoKey ? loadedPhoto.src : null
+
+  if (!hasPhoto || (photoResolved && !photo)) {
+    return (
+      <span aria-hidden="true" className={`inline-flex shrink-0 ${wrapperClassName}`}>
+        <img
+          src={kind === 'food' ? foodPlaceholder : mealPlaceholder}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className={`${className} object-cover`}
+        />
+      </span>
+    )
+  }
   if (!photo) {
     return (
       <span

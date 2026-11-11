@@ -1,3 +1,16 @@
+## 0.17.2 · 2026-11-11
+
+Illustrated placeholders for records without photos
+
+### What's new
+
+- **Neater list thumbnails** — finance entries, intake history, and food or meal rows now show matching illustrations when no photo is available. Real photos still load on demand and remain previewable.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.17.2-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.2/starburst-recorder-0.17.2-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.2/starburst-recorder-0.17.2-setup.exe)
+- Android 10+: [`starburst-recorder-0.17.2.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.2/starburst-recorder-0.17.2.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.2/starburst-recorder-0.17.2.apk)
+
 ## 0.17.1 · 2026-11-09
 
 Faster lists for photo-heavy records

@@ -34,6 +34,7 @@ import {
   exportAllData,
   healthFoodBriefs,
   healthFoodById,
+  healthMealBriefs,
   intakeDays,
   intakesOfDay,
   removeIntake,
@@ -62,9 +63,11 @@ export default function IntakesPage() {
 
   const batch = useBatchSelect()
   const intakes = useLiveQuery(() => intakesOfDay(dayKey), [dayKey])
-  // 食物库用来给列表行找缩略图：摄入只存 foodId，照片始终取库里当前那张
+  // 用轻量食物 / 套餐索引为历史摄入找缩略图；摄入行不保存照片副本。
   const foods = useLiveQuery(() => healthFoodBriefs(), [])
+  const meals = useLiveQuery(() => healthMealBriefs(), [])
   const foodById = new Map((foods ?? []).map((food) => [food.id, food] as const))
+  const mealById = new Map((meals ?? []).map((meal) => [meal.id, meal] as const))
   const [dialogOpen, setDialogOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<HealthIntake | null>(null)
   /** 点开某一笔看完整营养成分 */
@@ -252,12 +255,24 @@ export default function IntakesPage() {
         <ul className="m-0 mt-2 list-none space-y-2 p-0">
           {rows.map((intake) => {
             const selected = batch.isSelected(intake.id)
-            const photoFoodId =
-              intake.foodId && foodById.get(intake.foodId)?.hasPhoto
-                ? intake.foodId
-                : (intake.components ?? []).find(
-                    (part) => part.foodId && foodById.get(part.foodId)?.hasPhoto,
-                  )?.foodId
+            const intakeMeal = intake.mealId ? mealById.get(intake.mealId) : undefined
+            const intakeFood = intake.foodId ? foodById.get(intake.foodId) : undefined
+            const componentFood = (intake.components ?? [])
+              .map((part) => (part.foodId ? foodById.get(part.foodId) : undefined))
+              .find((food) => food?.hasPhoto)
+            const thumbnailFood = intakeFood ?? componentFood
+            const thumbnailKind = intakeMeal ? 'meal' : thumbnailFood ? 'food' : 'meal'
+            const thumbnailId = intakeMeal?.id ?? thumbnailFood?.id ?? intake.id
+            const thumbnailHasPhoto = intakeMeal
+              ? Boolean(
+                  intakeMeal.hasPhoto ||
+                    (intake.components ?? []).some(
+                      (part) => part.foodId && foodById.get(part.foodId)?.hasPhoto,
+                    ),
+                )
+              : Boolean(thumbnailFood?.hasPhoto)
+            const thumbnailRefreshKey =
+              intakeMeal?.updatedAt ?? thumbnailFood?.updatedAt ?? intake.updatedAt
             return (
               <li
                 key={intake.id}
@@ -272,16 +287,14 @@ export default function IntakesPage() {
                     onToggle={() => batch.toggle(intake.id)}
                   />
                 )}
-                {photoFoodId && (
-                  <FoodPhotoThumbnail
-                    kind="food"
-                    id={photoFoodId}
-                    hasPhoto
-                    refreshKey={foodById.get(photoFoodId)?.updatedAt ?? intake.updatedAt}
-                    className="h-11 w-11 rounded-lg border border-line/60"
-                    wrapperClassName="shrink-0"
-                  />
-                )}
+                <FoodPhotoThumbnail
+                  kind={thumbnailKind}
+                  id={thumbnailId}
+                  hasPhoto={thumbnailHasPhoto}
+                  refreshKey={thumbnailRefreshKey}
+                  className="h-11 w-11 rounded-lg border border-line/60"
+                  wrapperClassName="shrink-0"
+                />
                 <div className="min-w-0 flex-1">
                   <button
                     type="button"

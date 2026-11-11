@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import financePlaceholder from '@/assets/placeholders/finance.jpg'
 import PhotoPreview from '@/shared/ui/PhotoPreview'
 import { financePhoto } from './financeRepo'
 
@@ -16,7 +17,11 @@ export default function FinancePhotoThumbnail({
   const [nearViewport, setNearViewport] = useState(
     () => typeof IntersectionObserver === 'undefined',
   )
-  const [photo, setPhoto] = useState<string | null>(null)
+  const [loadedPhoto, setLoadedPhoto] = useState<{
+    key: string
+    src: string | null
+  } | null>(null)
+  const photoKey = `${id}:${refreshKey}`
 
   useEffect(() => {
     if (!hasPhoto || typeof IntersectionObserver === 'undefined') return
@@ -32,25 +37,40 @@ export default function FinancePhotoThumbnail({
 
   useEffect(() => {
     let alive = true
-    if (!nearViewport || !hasPhoto) {
+    if (!hasPhoto || !nearViewport) {
       void Promise.resolve().then(() => {
-        if (alive) setPhoto(null)
+        if (alive) setLoadedPhoto(null)
       })
       return () => {
         alive = false
       }
     }
     void financePhoto(id).then((next) => {
-      if (alive) setPhoto(next)
+      if (alive) setLoadedPhoto({ key: photoKey, src: next })
     }).catch(() => {
-      if (alive) setPhoto(null)
+      if (alive) setLoadedPhoto({ key: photoKey, src: null })
     })
     return () => {
       alive = false
     }
-  }, [id, hasPhoto, nearViewport, refreshKey])
+  }, [id, hasPhoto, nearViewport, photoKey])
 
-  if (!hasPhoto) return null
+  const photoResolved = loadedPhoto?.key === photoKey
+  const photo = loadedPhoto?.key === photoKey ? loadedPhoto.src : null
+
+  if (!hasPhoto || (photoResolved && !photo)) {
+    return (
+      <span aria-hidden="true" className="shrink-0">
+        <img
+          src={financePlaceholder}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="h-11 w-11 rounded-lg border border-line/60 object-cover"
+        />
+      </span>
+    )
+  }
   if (!photo) {
     return (
       <span

@@ -498,16 +498,14 @@ export default function FoodLibraryPage() {
                       onToggle={() => batch.toggle(food.id)}
                     />
                   )}
-                  {food.hasPhoto && (
-                    <FoodPhotoThumbnail
-                      kind="food"
-                      id={food.id}
-                      hasPhoto
-                      refreshKey={food.updatedAt}
-                      className="h-11 w-11 rounded-lg border border-line"
-                      wrapperClassName="shrink-0"
-                    />
-                  )}
+                  <FoodPhotoThumbnail
+                    kind="food"
+                    id={food.id}
+                    hasPhoto={food.hasPhoto}
+                    refreshKey={food.updatedAt}
+                    className="h-11 w-11 rounded-lg border border-line"
+                    wrapperClassName="shrink-0"
+                  />
                   <div className="min-w-0 flex-1">
                     <button
                       type="button"
@@ -617,16 +615,14 @@ export default function FoodLibraryPage() {
                       onToggle={() => batch.toggle(meal.id)}
                     />
                   )}
-                  {hasPhoto && (
-                    <FoodPhotoThumbnail
-                      kind="meal"
-                      id={meal.id}
-                      hasPhoto
-                      refreshKey={meal.updatedAt}
-                      className="h-11 w-11 rounded-lg border border-line"
-                      wrapperClassName="shrink-0"
-                    />
-                  )}
+                  <FoodPhotoThumbnail
+                    kind="meal"
+                    id={meal.id}
+                    hasPhoto={hasPhoto}
+                    refreshKey={meal.updatedAt}
+                    className="h-11 w-11 rounded-lg border border-line"
+                    wrapperClassName="shrink-0"
+                  />
                   <button
                     type="button"
                     disabled={batch.active}
