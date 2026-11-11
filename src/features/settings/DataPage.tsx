@@ -91,7 +91,7 @@ import {
 } from '@/features/records/recordImport'
 import { RECORD_KINDS } from '@/features/records/recordExport'
 import { clearAllChatSessions, exportChatSessions, importChatSessions } from '@/features/assistant/assistantChatStore'
-import { applyPrefs, exportPrefs, prefsContainSecrets, prefsCount } from './userPrefs'
+import { applyPrefs, exportPrefs, prefsContainSecrets, prefsCount, splitPrefs } from './userPrefs'
 import {
   decryptPrefSecrets,
   encryptPrefSecrets,
@@ -133,6 +133,7 @@ interface Report {
   chats?: { added: number; updated: number; skipped: number }
   /** 偏好与助手设置也不在数据库里：写了多少项 */
   prefs?: number
+  aiModels?: number
 }
 
 /** 「数据在哪」：只有桌面程序里有这一块 */
@@ -354,6 +355,11 @@ function SectionPicker({
       label: t('data.sectionPrefs'),
       detail: sectionDetail(payload, 'prefs', t),
     },
+    {
+      section: 'aiModels',
+      label: t('data.sectionAiModels'),
+      detail: sectionDetail(payload, 'aiModels', t),
+    },
   ]
 
   return (
@@ -460,6 +466,9 @@ function sectionDetail(
   }
   if (section === 'prefs') {
     return t('data.sectionPrefsDetail', { count: prefsCount(payload.prefs) })
+  }
+  if (section === 'aiModels') {
+    return t('data.sectionAiModelsDetail', { count: prefsCount(payload.aiModels) })
   }
   return t('data.sectionFinanceDetail', { count: payload.finance.length })
 }
@@ -601,13 +610,8 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
   const [backupAt, setBackupAt] = useState<number | null>(lastBackupAt)
   /** 口令弹窗：导出时问「要不要加密密钥」，导入时问「口令是多少」 */
   const [secretMode, setSecretMode] = useState<'encrypt' | 'decrypt' | null>(null)
-  /** 等口令才能继续的那次导入；弹窗关掉就作废 */
-  const pendingImportRef = useRef<{
-    name: string
-    payload: BackupPayload
-    skipped: number
-    present: BackupSection[]
-  } | null>(null)
+  /** 分区选择后，只有选了加密的 AI 模型才会暂存并询问口令 */
+  const pendingImportRef = useRef<Pending | null>(null)
 
   const backupDays = backupAt === null ? null : daysSince(backupAt)
   /** 从没导出过，或者已经到 / 超过提醒天数：用警示色，别让它混在灰字里 */
@@ -643,7 +647,7 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
 
   function asPayload(data: BackupData): BackupPayload {
     // AI 对话与偏好都存在 localStorage，不在数据库导出里；在备份边界一并带上
-    return { ...data, chats: exportChatSessions(), prefs: exportPrefs() }
+    return { ...data, chats: exportChatSessions(), ...splitPrefs(exportPrefs()) }
   }
 
   function toggleIn(set: Set<BackupSection>, section: BackupSection) {
@@ -669,12 +673,12 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
   }
 
   /**
-   * 点「导出」：勾了偏好且里面真有明文密钥，就先问口令；否则直接走。
+   * 点「导出」：勾了 AI 模型且里面真有明文密钥，就先问口令；否则直接走。
    * 问口令这一步是可选的——留空就是明文导出，按钮文案会跟着变。
    */
   function handleExportConfirm() {
     if (!exportData || exportSelected.size === 0) return
-    if (exportSelected.has('prefs') && prefsContainSecrets(exportData.prefs)) {
+    if (exportSelected.has('aiModels') && prefsContainSecrets(exportData.aiModels)) {
       setSecretMode('encrypt')
       return
     }
@@ -688,7 +692,10 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
     let payload = exportData
     if (passphrase) {
       try {
-        payload = { ...exportData, prefs: await encryptPrefSecrets(exportData.prefs ?? {}, passphrase) }
+        payload = {
+          ...exportData,
+          aiModels: await encryptPrefSecrets(exportData.aiModels ?? {}, passphrase),
+        }
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : String(caught))
         return
@@ -816,17 +823,7 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
       return
     }
 
-    // 备份里的 AI 密钥可能是加密的：先要口令，再往下走
-    if (hasEncryptedSecrets(result.payload.prefs)) {
-      pendingImportRef.current = {
-        name: file.name,
-        payload: result.payload,
-        skipped: result.skipped,
-        present: result.sections,
-      }
-      setSecretMode('decrypt')
-      return
-    }
+    // 先选要恢复的分区；只有选中加密的 AI 模型时才询问口令
     stageImport(file.name, result.payload, result.skipped, result.sections)
   }
 
@@ -868,8 +865,13 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
     // 绝不能把 `enc:v1:…` 原样写进 localStorage——那会让 AI 配置直接坏掉
     setBusy(true)
     try {
-      const { prefs, failed } = await decryptPrefSecrets(waiting.payload.prefs ?? {}, passphrase)
-      stageImport(waiting.name, { ...waiting.payload, prefs }, waiting.skipped, waiting.present)
+      const { prefs: aiModels, failed } = await decryptPrefSecrets(
+        waiting.payload.aiModels ?? {},
+        passphrase,
+      )
+      const next = { ...waiting, payload: { ...waiting.payload, aiModels } }
+      setPending(next)
+      await continueRangeConfirm(next)
       if (failed > 0) showToast({ message: t('data.secretFailed', { count: failed }) })
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught))
@@ -882,6 +884,15 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
   async function handleRangeConfirm() {
     if (!pending || pending.selected.size === 0) return
     const target = pending
+    if (target.selected.has('aiModels') && hasEncryptedSecrets(target.payload.aiModels)) {
+      pendingImportRef.current = target
+      setSecretMode('decrypt')
+      return
+    }
+    await continueRangeConfirm(target)
+  }
+
+  async function continueRangeConfirm(target: Pending) {
     const selected = target.selected
 
     // 替换等于快照恢复：选中的块整体重来，不需要逐条比冲突
@@ -1039,7 +1050,10 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
         : undefined
       // 偏好同理：数据库那边写完之后才动 localStorage，坏在这一步也不会毁掉记录
       const prefs = target.selected.has('prefs')
-        ? applyPrefs(target.payload.prefs ?? {}, target.mode)
+        ? applyPrefs(target.payload.prefs ?? {}, target.mode, 'general')
+        : undefined
+      const aiModels = target.selected.has('aiModels')
+        ? applyPrefs(target.payload.aiModels ?? {}, target.mode, 'aiModels')
         : undefined
       setReport({
         stats,
@@ -1047,6 +1061,7 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
         mode: target.mode,
         ...(chats ? { chats } : {}),
         ...(prefs !== undefined ? { prefs } : {}),
+        ...(aiModels !== undefined ? { aiModels } : {}),
       })
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught))
@@ -1124,6 +1139,9 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
     }
     if (report.prefs !== undefined) {
       rows.push({ key: 'prefs', text: t('data.importPrefs', { count: report.prefs }) })
+    }
+    if (report.aiModels !== undefined) {
+      rows.push({ key: 'aiModels', text: t('data.importAiModels', { count: report.aiModels }) })
     }
     return rows
   })()
@@ -1384,7 +1402,7 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
           onConfirm={() => void handleExportConfirm()}
           confirmLabel={t('data.exportRangeConfirm')}
           hint={
-            exportSelected.has('prefs') && prefsContainSecrets(exportData.prefs)
+            exportSelected.has('aiModels') && prefsContainSecrets(exportData.aiModels)
               ? t('data.exportHasKeys')
               : undefined
           }

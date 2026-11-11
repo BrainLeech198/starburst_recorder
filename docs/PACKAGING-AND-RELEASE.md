@@ -67,7 +67,7 @@
 | --- | --- | --- |
 | 版本 / 标签 | `0.8.0` / `v0.8.0` | `0.8.0-beta.1` / `v0.8.0-beta.1` |
 | GitHub Release | 普通 Release，**会更新 `latest`** | **Pre-release**，不影响 `latest` |
-| Gitee Release | 正常发，按 §4.1 只留最新版的附件 | **不发**，附件也不传 |
+| Gitee Release | **不发布软件包**；Gitee 仍是源码主仓库 | **不发**，附件也不传 |
 | 官网 `site/` | 同步版本、下载与更新说明 | **不动**，官网只展示最近一个正式版 |
 | Cloudflare Pages PWA | 构建并部署到 `starburst-recorder` 的生产分支 `main` | **不部署生产环境**，避免测试版覆盖正式用户使用的 PWA |
 | 更新说明 | 官网 `notes.zh.md` / Release 正文 | 只用 Release 正文（官网说明还是上一版） |
@@ -175,15 +175,19 @@ npm run desktop:installer
 2. **定版本**：改 `package.json` + `package-lock.json`
 3. **写说明与更新日志**：中文 / 英文更新说明、官网「这一版有什么」和更新日志都要与本版实际改动一致。每版按「版本号与日期 → 一句概述 → 本版新增 / 改进 / 修复 → 下载」组织，先写用户能感知的结果，再补必要边界；只保留可核实、彼此不重复的要点，不照搬提交记录，也不写「上一版的 X 照旧 / 全部内容照旧」这类承接句。中英文逐项对应，版本号、日期、功能范围、限制和下载地址一致。长期有效的已知限制、迁移说明或安全提醒放在统一说明位置，不要在后续版本条目里重复；只有本版确实修复或引入了新的安全问题时，才在本版说明里写清影响范围与用户应采取的动作。发布前并排检查中英文及 Markdown / 官网 HTML 版本，确认没有旧版本内容误贴、重复段落、空章节或下载信息错配。
 4. **出包**：按 §2、§3 打 Android 与 Windows，各自验签 / 验版本
-5. **归档**：两个产物放 `.local/artifacts/`，文件名带版本号；不再往桌面复制，发布时作为 Release 附件上传（见第 9 步）
+5. **归档**：两个产物放 `.local/artifacts/`，文件名带版本号；不再往桌面复制，正式版和测试版的软件包都只上传到 GitHub Release（见第 9 步和 §4.2）
 6. **提交**：只提交源码与文档；`git add` 用具体文件名，不用 `git add -A`
 7. **打标签**：`git tag v<version>`
 8. **推送**：`git push origin main --tags`（origin = Gitee 主仓库，GitHub 由镜像自动同步）
-9. **发 Release（正式版）**：Gitee 与 GitHub 各建一条普通 Release，上传同名的 `.apk` 与 `-setup.exe`；替换同名资产时先删旧资产再传。**Gitee 只保留最新版本的附件**：免费仓库的发行版附件总量只有 1 GB，每版两个包约 110 MB，发新版前先删掉旧版本 Release 里的附件（Release 与源码归档保留）；旧版本下载只走 GitHub，官网「历史版本」链接也一直指向 GitHub。测试版走 §4.2，**不发 Gitee**。
+9. **发 GitHub Release（正式版）**：创建普通 Release，上传同名的 `.apk` 与 `-setup.exe`；替换同名资产时先删旧资产再传。软件包和历史版本下载统一由 GitHub Release 提供。Gitee 只承载源码主仓库，不创建新 Release、不上传软件包；已有 Gitee Release 与附件作为历史记录保留。测试版走 §4.2，也只发 GitHub Pre-release。
 10. **发布 PWA（仅正式版）**：在已推送的正式版提交上运行 `npm run build`，再执行 `npx wrangler pages deploy .local/dist --project-name starburst-recorder --branch main`，将应用部署到 Cloudflare Pages 生产分支。它与 GitHub Pages 的宣传官网是两个不同站点，不能用官网工作流代替。部署目标、构建环境变量与线上验收脚本见 [`docs/PWA-IOS.md`](PWA-IOS.md) §10；不要提交 `.env.local` 或 `.local/dist`。测试版不部署到生产 PWA。
-11. **发布后核验**：确认官网 Pages 工作流成功，首页与更新说明显示本版；Gitee / GitHub Release 均为正确通道、版本与附件，四个正式版下载地址可用且 APK 指纹符合 §2.2；正式版 PWA 的 `https://starburst-recorder.pages.dev` 已切到本次构建号，运行 `.local/verify-online.mjs` 与 `.local/probe-pwa.mjs` 并确认全部通过。最后用已安装的正式版检查「检查更新」能获取本版。把标签、包版本与校验信息、官网工作流、PWA 部署地址 / 构建号 / 探针结果记入本文 §4.1 发版记录和 `docs/PWA-IOS.md` §10。测试版按 §4.2 核验 GitHub Pre-release，不核验或覆盖生产 PWA。
+11. **发布后核验**：确认 GitHub Pages 工作流成功，首页与更新说明显示本版；GitHub Release 的通道、版本和两项资产正确，APK 与 Windows 下载地址可用且 APK 指纹符合 §2.2；Gitee `origin/main` 已推送且 GitHub 源码镜像同步到相同提交。正式版 PWA 的 `https://starburst-recorder.pages.dev` 已切到本次构建号，运行 `.local/verify-online.mjs` 与 `.local/probe-pwa.mjs` 并确认全部通过。最后用已安装的正式版检查「检查更新」能获取本版。把标签、包版本与校验信息、GitHub Pages 工作流、PWA 部署地址 / 构建号 / 探针结果记入本文 §4.1 发版记录和 `docs/PWA-IOS.md` §10。测试版按 §4.2 核验 GitHub Pre-release，不核验或覆盖生产 PWA。
 
-### 4.1 Gitee 发行版附件配额（重要）
+### 4.1 Gitee 历史发行版附件（旧版本维护）
+
+**自 2026-11-11 起，正式版和测试版软件包都只通过 GitHub Release 发布；正式版另部署 Cloudflare Pages PWA。** Gitee 继续作为源码主仓库（`origin`），GitHub 同步源码并托管发行包。不要为新版本创建 Gitee Release 或上传二进制；已有 Gitee Release、源码归档和附件保留为历史记录，除非用户明确要求整理。
+
+以下配额和清理步骤只用于理解、核查旧 Gitee 附件，不再是常规发版步骤：
 
 Gitee 免费仓库（社区版）的 Release 附件有**两层限制**，不要混为一谈：
 
@@ -192,16 +196,16 @@ Gitee 免费仓库（社区版）的 Release 附件有**两层限制**，不要�
 | 单个附件大小 | **≤ 100 MB** | exe 约 94.9 MB，**已经贴着上限**；再长过 100 MB 就传不上 Gitee |
 | 仓库附件总量 | **≤ 1 GB** | 每版 `apk + exe` 约 110 MB，约 9 个版本占满 |
 
-GitHub 没有这两个总量限制（单文件上限远高于此）。如果哪天 Windows 包超过 100 MB，Gitee 只能放 APK，官网的 Gitee Windows 链接要下掉或改指向 GitHub。
+GitHub 没有这两个总量限制（单文件上限远高于此）。这些上限只解释旧版本为何需要控制 Gitee 附件；当前新版本不再上传 Gitee 软件包。
 
-**定下的规矩（2026-10-26）：Gitee 只保留最新版本的 `apk` 与 `-setup.exe`。**
+**历史规则（2026-10-26，已于 2026-11-11 停用）：Gitee 只保留最新版本的 `apk` 与 `-setup.exe`。**
 
-- 发新版前，先删掉旧版本 Release 里的附件；**Release 条目与源码归档（zip / tar.gz）保留**。
-- 旧版本下载只走 GitHub；官网「历史版本」链接本来就全部指向 GitHub。
-- 上传前先看剩余配额，传完核对附件数量与大小；同名资产先删旧再传。
-- Token 在 `.local/keys/gitee-token.txt`：写请求时放在请求体（JSON / multipart）或查询串里，不要出现在命令行参数、提交信息或日志中。
+- 这条规则曾用于清理旧版附件；现在发新版时不要再删旧 Gitee 附件，也不要上传新包。
+- 旧版本下载统一走 GitHub；官网「历史版本」链接指向 GitHub。
+- 只有用户明确要求整理历史 Gitee 附件时，才检查配额、同名资产和附件大小。
+- Token 在 `.local/keys/gitee-token.txt`：仅历史附件维护时使用；写请求按下方接口说明处理，不要出现在提交信息或日志中。
 
-清理用的接口（`access_token` 均放在请求体或查询串，不要提交到 git）：
+历史附件维护接口（`access_token` 均放在请求体或查询串，不要提交到 git）：
 
 ```text
 GET    https://gitee.com/api/v5/repos/{owner}/{repo}/releases

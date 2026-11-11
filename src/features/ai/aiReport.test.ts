@@ -56,9 +56,33 @@ function schedule(patch: Partial<ScheduleItem> = {}): ScheduleItem {
   }
 }
 
+function intake(patch: Partial<HealthIntake>): HealthIntake {
+  return {
+    id: 'i1',
+    code: 'i000001',
+    dateKey: '2026-11-02',
+    time: '12:00',
+    foodId: null,
+    name: '午饭',
+    grams: 0,
+    kcal: 600,
+    protein: 30,
+    carbs: 60,
+    fat: 20,
+    source: 'manual',
+    mealId: '',
+    createdAt: 1,
+    updatedAt: 1,
+    deletedAt: null,
+    ...patch,
+  }
+}
+
 const PERIOD = { kind: 'week' as const, from: '2026-11-02', to: '2026-11-08', label: '11/02 – 11/08' }
 const DAY = { kind: 'day' as const, from: '2026-11-02', to: '2026-11-02', label: '11/02' }
 const YEAR = { kind: 'year' as const, from: '2026-01-01', to: '2026-12-31', label: '2026' }
+const MONTH = { kind: 'month' as const, from: '2026-11-01', to: '2026-11-30', label: '2026-11' }
+const LEAP_YEAR = { kind: 'year' as const, from: '2024-01-01', to: '2024-12-31', label: '2024' }
 
 describe('reportTotals', () => {
   it('只统计区间内的记录', () => {
@@ -137,25 +161,6 @@ describe('buildReportUserPrompt', () => {
         { dateKey: '2026-11-08', weightKg: 63.1, createdAt: 2 },
       ],
     }
-    const intake = (patch: Partial<HealthIntake>): HealthIntake => ({
-      id: 'i1',
-      code: 'i000001',
-      dateKey: '2026-11-02',
-      time: '12:00',
-      foodId: null,
-      name: '午饭',
-      grams: 0,
-      kcal: 600,
-      protein: 30,
-      carbs: 60,
-      fat: 20,
-      source: 'manual',
-      mealId: '',
-      createdAt: 1,
-      updatedAt: 1,
-      deletedAt: null,
-      ...patch,
-    })
     data.intakes = [intake({}), intake({ id: 'i2', time: '08:00', kcal: 400, protein: 20 })]
 
     const totals = reportTotals(data, PERIOD)
@@ -222,5 +227,51 @@ describe('buildReportUserPrompt', () => {
     expect(prompt).toContain('8 月：')
     expect(prompt).not.toContain('三月的一篇日记')
     expect(prompt).not.toContain('每天的记录')
+  })
+
+  it('月报对比完整的上一个日历月', () => {
+    const data = emptyData()
+    data.entries = [
+      entry({ id: 'oct-first', dateKey: '2026-10-01', content: '上月第一天' }),
+      entry({ id: 'oct-last', dateKey: '2026-10-31', content: '上月最后一天' }),
+      entry({ id: 'sep-last', dateKey: '2026-09-30', content: '上上月最后一天' }),
+      entry({ id: 'nov', dateKey: '2026-11-15', content: '本月记录' }),
+    ]
+
+    const prompt = buildReportUserPrompt(data, MONTH)
+    const previous = prompt.split('— 上月总量（对比用）—')[1] ?? ''
+    expect(previous).toContain('日记 2 篇')
+    expect(previous).not.toContain('日记 3 篇')
+  })
+
+  it('闰年年报对比完整的上一年', () => {
+    const data = emptyData()
+    data.entries = [
+      entry({ id: 'prior-first', dateKey: '2023-01-01', content: '去年第一天' }),
+      entry({ id: 'prior-last', dateKey: '2023-12-31', content: '去年最后一天' }),
+      entry({ id: 'older-last', dateKey: '2022-12-31', content: '前年最后一天' }),
+      entry({ id: 'current', dateKey: '2024-01-01', content: '今年记录' }),
+    ]
+
+    const prompt = buildReportUserPrompt(data, LEAP_YEAR)
+    const previous = prompt.split('— 去年总量（对比用）—')[1] ?? ''
+    expect(previous).toContain('日记 2 篇')
+    expect(previous).not.toContain('日记 3 篇')
+  })
+
+  it('年报逐月摄入日均只按有摄入的天数计算', () => {
+    const data = emptyData()
+    data.intakes = [
+      intake({ id: 'i1', dateKey: '2026-01-01', kcal: 600 }),
+      intake({ id: 'i2', dateKey: '2026-01-01', time: '18:00', kcal: 400 }),
+    ]
+    data.entries = [
+      entry({ id: 'd2', dateKey: '2026-01-02' }),
+      entry({ id: 'd3', dateKey: '2026-01-03' }),
+      entry({ id: 'd4', dateKey: '2026-01-04' }),
+    ]
+
+    const prompt = buildReportUserPrompt(data, YEAR)
+    expect(prompt).toContain('1 月：记录 4 天；摄入日均 1000 千卡')
   })
 })

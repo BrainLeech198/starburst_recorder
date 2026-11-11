@@ -23,11 +23,10 @@
 export const PREF_GROUPS = {
   /** 外观与语言 */
   appearance: ['starburst.theme', 'starburst.accent', 'sb_locale', 'starburst.care'],
-  /** 助手：模型配置（含密钥）、深度思考、长期记忆、技能、权限 */
+  /** AI 模型：配置（含密钥）、启用项与推理设置 */
+  aiModels: ['sb_ai_models', 'sb_ai_active', 'sb_ai_reasoning_v1'],
+  /** 助手：计划模式、长期记忆、技能、权限 */
   assistant: [
-    'sb_ai_models',
-    'sb_ai_active',
-    'sb_ai_reasoning_v1',
     'starburst.assistant.plan',
     'sb_assistant_memories',
     'sb_assistant_skills_v1',
@@ -49,6 +48,15 @@ export const PREF_GROUPS = {
 
 /** 白名单全集，顺序稳定（导出文件的键序稳定，diff 好看） */
 export const PREF_KEYS: string[] = Object.values(PREF_GROUPS).flat()
+const AI_MODEL_PREF_KEYS = new Set<string>(PREF_GROUPS.aiModels)
+
+export type PrefScope = 'all' | 'general' | 'aiModels'
+
+function keysForScope(scope: PrefScope): string[] {
+  if (scope === 'aiModels') return [...PREF_GROUPS.aiModels]
+  if (scope === 'general') return PREF_KEYS.filter((key) => !AI_MODEL_PREF_KEYS.has(key))
+  return PREF_KEYS
+}
 
 /** 单个值的长度上限。技能说明最长也就几十 KB，1M 字符是「明显不对」的线 */
 const MAX_VALUE_LENGTH = 1_000_000
@@ -77,6 +85,18 @@ export function exportPrefs(): PrefSnapshot {
   return snapshot
 }
 
+/** 把完整本机快照拆成可独立备份/恢复的普通偏好与 AI 模型设置 */
+export function splitPrefs(snapshot: PrefSnapshot): { prefs: PrefSnapshot; aiModels: PrefSnapshot } {
+  const safe = readPrefs(snapshot)
+  const prefs: PrefSnapshot = {}
+  const aiModels: PrefSnapshot = {}
+  for (const [key, value] of Object.entries(safe)) {
+    if (AI_MODEL_PREF_KEYS.has(key)) aiModels[key] = value
+    else prefs[key] = value
+  }
+  return { prefs, aiModels }
+}
+
 /** 一份快照里有几项：备份分区上显示的条数 */
 export function prefsCount(snapshot: PrefSnapshot | undefined): number {
   return Object.keys(snapshot ?? {}).length
@@ -89,11 +109,11 @@ export function prefsCount(snapshot: PrefSnapshot | undefined): number {
  * 备份层多校验一遍只会两处打架。坏值写进去，下次读的时候会被各模块的
  * normalize 修掉或忽略，最坏结果是「这项回到默认」，不会让应用起不来。
  */
-export function readPrefs(raw: unknown): PrefSnapshot {
+export function readPrefs(raw: unknown, scope: PrefScope = 'all'): PrefSnapshot {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
   const source = raw as Record<string, unknown>
   const snapshot: PrefSnapshot = {}
-  for (const key of PREF_KEYS) {
+  for (const key of keysForScope(scope)) {
     const value = source[key]
     if (typeof value !== 'string') continue
     if (value.length > MAX_VALUE_LENGTH) continue
@@ -110,13 +130,18 @@ export function readPrefs(raw: unknown): PrefSnapshot {
  *
  * 返回实际写入的项数，报告里要报数。
  */
-export function applyPrefs(snapshot: PrefSnapshot, mode: 'merge' | 'replace'): number {
+export function applyPrefs(
+  snapshot: PrefSnapshot,
+  mode: 'merge' | 'replace',
+  scope: PrefScope = 'all',
+): number {
   const store = storage()
   if (!store) return 0
-  const entries = Object.entries(readPrefs(snapshot))
+  const keys = keysForScope(scope)
+  const entries = Object.entries(readPrefs(snapshot, scope))
   try {
     if (mode === 'replace') {
-      for (const key of PREF_KEYS) store.removeItem(key)
+      for (const key of keys) store.removeItem(key)
     }
     for (const [key, value] of entries) store.setItem(key, value)
   } catch {

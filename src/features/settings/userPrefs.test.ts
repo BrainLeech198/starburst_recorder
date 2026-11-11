@@ -6,6 +6,7 @@ import {
   prefsContainSecrets,
   prefsCount,
   readPrefs,
+  splitPrefs,
 } from './userPrefs'
 
 /** 最小可用的 Storage 替身：Node 环境没有 localStorage，行为够测就够了 */
@@ -83,11 +84,28 @@ describe('readPrefs', () => {
   it('白名单本身就是导出范围，别在别处另列一份', () => {
     expect(PREF_KEYS).toContain('sb_assistant_memories')
     expect(PREF_KEYS).toContain('sb_ai_models')
+    expect(PREF_KEYS).toContain('sb_ai_active')
+    expect(PREF_KEYS).toContain('sb_ai_reasoning_v1')
     expect(PREF_KEYS).toContain('starburst.assistant.plan')
     expect(PREF_KEYS).toContain('sb_image_quality_diary')
     expect(PREF_KEYS).toContain('sb_image_quality_health')
     expect(PREF_KEYS).toContain('sb_image_quality_finance')
     expect(new Set(PREF_KEYS).size).toBe(PREF_KEYS.length)
+  })
+
+  it('普通偏好与 AI 模型设置可按分区读取并拆分', () => {
+    const snapshot = {
+      'starburst.theme': 'paper',
+      sb_ai_models: '[]',
+      sb_ai_active: 'm1',
+      evil: 'x',
+    }
+    expect(readPrefs(snapshot, 'general')).toEqual({ 'starburst.theme': 'paper' })
+    expect(readPrefs(snapshot, 'aiModels')).toEqual({ sb_ai_models: '[]', sb_ai_active: 'm1' })
+    expect(splitPrefs(snapshot)).toEqual({
+      prefs: { 'starburst.theme': 'paper' },
+      aiModels: { sb_ai_models: '[]', sb_ai_active: 'm1' },
+    })
   })
 })
 
@@ -111,6 +129,27 @@ describe('applyPrefs', () => {
     install(store)
     applyPrefs({}, 'replace')
     expect(store.dump()).toEqual({ 'starburst.debug.ball': '0' })
+  })
+
+  it('分区替换只清理对应分区的键', () => {
+    const store = fakeStorage({
+      'starburst.theme': 'dark',
+      sb_ai_models: 'old-models',
+      sb_ai_active: 'old-id',
+      sb_ai_reasoning_v1: 'low',
+    })
+    install(store)
+
+    expect(applyPrefs({ sb_locale: 'ja' }, 'replace', 'general')).toBe(1)
+    expect(store.dump()).toEqual({
+      sb_ai_models: 'old-models',
+      sb_ai_active: 'old-id',
+      sb_ai_reasoning_v1: 'low',
+      sb_locale: 'ja',
+    })
+
+    expect(applyPrefs({ sb_ai_active: 'new-id' }, 'replace', 'aiModels')).toBe(1)
+    expect(store.dump()).toEqual({ sb_ai_active: 'new-id', sb_locale: 'ja' })
   })
 
   it('脏值进不来：白名单外的键写不进本机', () => {

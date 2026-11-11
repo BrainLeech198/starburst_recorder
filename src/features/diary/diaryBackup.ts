@@ -76,8 +76,10 @@ export type BackupSection =
   | 'training'
   | 'finance'
   | 'assistant'
-  /** 偏好与助手设置：外观、语言、AI 模型、长期记忆、技能、权限（2026-11-02 加） */
+  /** 外观、语言、助手记忆、技能与权限（2026-11-02 加） */
   | 'prefs'
+  /** AI 模型配置、启用项与推理设置（单独分区） */
+  | 'aiModels'
 
 export const ALL_SECTIONS: BackupSection[] = [
   'diary',
@@ -87,6 +89,7 @@ export const ALL_SECTIONS: BackupSection[] = [
   'finance',
   'assistant',
   'prefs',
+  'aiModels',
 ]
 
 export interface BackupPayload {
@@ -108,6 +111,8 @@ export interface BackupPayload {
   chats?: ChatSession[]
   /** 偏好与助手设置（localStorage 白名单快照）；旧备份没有这一块 */
   prefs?: PrefSnapshot
+  /** AI 模型设置；旧版备份把这些键放在 prefs 里 */
+  aiModels?: PrefSnapshot
 }
 
 export function emptyPayload(): BackupPayload {
@@ -126,6 +131,7 @@ export function emptyPayload(): BackupPayload {
     finance: [],
     chats: [],
     prefs: {},
+    aiModels: {},
   }
 }
 
@@ -146,7 +152,10 @@ export function onlySections(payload: BackupPayload, sections: BackupSection[]):
     trainings: keep.has('training') ? payload.trainings : [],
     finance: keep.has('finance') ? payload.finance : [],
     chats: keep.has('assistant') ? payload.chats ?? [] : [],
-    prefs: keep.has('prefs') ? payload.prefs ?? {} : {},
+    prefs: keep.has('prefs') ? readPrefs(payload.prefs, 'general') : {},
+    aiModels: keep.has('aiModels')
+      ? readPrefs({ ...payload.prefs, ...payload.aiModels }, 'aiModels')
+      : {},
   }
 }
 
@@ -171,7 +180,10 @@ export function sectionSize(payload: BackupPayload, section: BackupSection): num
   if (section === 'schedule') return payload.schedules.length
   if (section === 'training') return payload.trainings.length
   if (section === 'assistant') return payload.chats?.length ?? 0
-  if (section === 'prefs') return Object.keys(payload.prefs ?? {}).length
+  if (section === 'prefs') return Object.keys(readPrefs(payload.prefs, 'general')).length
+  if (section === 'aiModels') {
+    return Object.keys(readPrefs({ ...payload.prefs, ...payload.aiModels }, 'aiModels')).length
+  }
   return payload.finance.length
 }
 
@@ -236,7 +248,8 @@ export function buildBackup(
           ...(keep.has('finance') ? { finance: { entries: data.finance } } : {}),
           ...(keep.has('assistant') ? { assistant: { sessions: data.chats ?? [] } } : {}),
           // 写文件前再过一遍白名单：调用方拼出来的快照也不该把脏键带出去
-          ...(keep.has('prefs') ? { prefs: readPrefs(data.prefs) } : {}),
+          ...(keep.has('prefs') ? { prefs: readPrefs(data.prefs, 'general') } : {}),
+          ...(keep.has('aiModels') ? { aiModels: readPrefs(data.aiModels, 'aiModels') } : {}),
         },
       },
       null,
@@ -282,6 +295,7 @@ export function readBackup(text: string): BackupReadResult {
   const scheduleBag = bag(sectionsBag.schedule)
   const trainingBag = bag(sectionsBag.training)
   const assistantBag = bag(sectionsBag.assistant)
+  const aiModelsBag = bag(sectionsBag.aiModels)
 
   const rawEntries = rows(diaryBag.entries)
   const rawStamps = rows(diaryBag.stamps)
@@ -295,8 +309,10 @@ export function readBackup(text: string): BackupReadResult {
   const rawTrainings = rows(trainingBag.entries ?? healthBag.trainings)
   const rawFinance = rows(financeBag.entries)
   const rawChats = rows(assistantBag.sessions ?? assistantBag.chats)
-  // 偏好是一张平表（键 → 原值），不走 rows()；白名单校验在 userPrefs.readPrefs 里
-  const prefs = readPrefs(sectionsBag.prefs)
+  // 偏好是平表（键 → 原值），不走 rows()；兼容旧备份里仍放在 prefs 的模型设置
+  const rawPrefs = bag(sectionsBag.prefs)
+  const prefs = readPrefs(rawPrefs, 'general')
+  const aiModels = readPrefs({ ...rawPrefs, ...aiModelsBag }, 'aiModels')
 
   const entries = rawEntries.map(pickEntry).filter((item): item is DiaryEntry => item !== null)
   const stamps = rawStamps.map(pickStamp).filter((item): item is DiaryStamp => item !== null)
@@ -335,6 +351,7 @@ export function readBackup(text: string): BackupReadResult {
     finance,
     chats,
     prefs,
+    aiModels,
   }
 
   const present = sectionsOf(payload)
@@ -355,10 +372,10 @@ export function readBackup(text: string): BackupReadResult {
     rawTrainings.length +
     rawFinance.length +
     rawChats.length +
-    Object.keys(bag(sectionsBag.prefs)).length +
+    new Set([...Object.keys(rawPrefs), ...Object.keys(aiModelsBag)]).size +
     (healthBag.profile ? 1 : 0)
   const keptTotal =
-    entries.length + stamps.length + days.length + presets.length + schedules.length + foods.length + meals.length + intakes.length + sleeps.length + trainings.length + finance.length + chats.length + Object.keys(prefs).length + (profile ? 1 : 0)
+    entries.length + stamps.length + days.length + presets.length + schedules.length + foods.length + meals.length + intakes.length + sleeps.length + trainings.length + finance.length + chats.length + Object.keys(prefs).length + Object.keys(aiModels).length + (profile ? 1 : 0)
 
   return {
     ok: true,

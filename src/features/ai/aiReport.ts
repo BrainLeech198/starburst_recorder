@@ -60,15 +60,34 @@ function* dateKeysBetween(from: string, to: string): Generator<string> {
   }
 }
 
-/** 区间天数（含首尾），上一期按同样长度往前平移 */
+/** 区间天数（含首尾），日报 / 周报的上一期按同样长度往前平移 */
 function rangeDays(from: string, to: string): number {
   const start = Date.parse(`${from}T00:00:00Z`)
   const end = Date.parse(`${to}T00:00:00Z`)
   return Math.round((end - start) / 86_400_000) + 1
 }
 
-/** 上一周期：紧邻本期、等长的一段时间 */
+/** 上一周期：日报 / 周报按相同长度平移，月报 / 年报按上一个日历周期 */
 function prevPeriod(period: ReportPeriod): ReportPeriod {
+  if (period.kind === 'month') {
+    const [year, month] = period.from.slice(0, 7).split('-').map(Number)
+    const previous = new Date(year, month - 2, 1)
+    const previousYear = previous.getFullYear()
+    const previousMonth = previous.getMonth() + 1
+    const from = `${previousYear}-${String(previousMonth).padStart(2, '0')}-01`
+    const lastDay = new Date(previousYear, previousMonth, 0).getDate()
+    const to = `${previousYear}-${String(previousMonth).padStart(2, '0')}-${String(
+      lastDay,
+    ).padStart(2, '0')}`
+    return { kind: period.kind, from, to, label: `${from} ~ ${to}` }
+  }
+  if (period.kind === 'year') {
+    const year = Number(period.from.slice(0, 4)) - 1
+    const from = `${year}-01-01`
+    const to = `${year}-12-31`
+    return { kind: period.kind, from, to, label: `${from} ~ ${to}` }
+  }
+
   const days = rangeDays(period.from, period.to)
   const to = shiftDay(period.from, -1)
   const from = shiftDay(to, -(days - 1))
@@ -524,9 +543,8 @@ ${structure}`
 /** 年度回顾按月先压成一行，避免把 365 天逐日素材塞进提示词 */
 function compactTotals(prefix: string, totals: ReportTotals): string {
   const bits = [`记录 ${totals.days} 天`]
-  const days = Math.max(1, totals.days)
   if (totals.intakes > 0) {
-    bits.push(`摄入日均 ${Math.round(totals.kcal / days)} 千卡`)
+    bits.push(`摄入日均 ${Math.round(totals.kcal / Math.max(1, totals.intakeDays))} 千卡`)
     bits.push(`蛋白 ${Math.round(totals.protein)} g`)
   }
   if (totals.trainingSessions > 0) bits.push(`训练 ${totals.trainingSessions} 次`)

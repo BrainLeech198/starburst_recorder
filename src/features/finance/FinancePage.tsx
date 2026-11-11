@@ -71,6 +71,7 @@ import FinanceEntryDialog from './FinanceEntryDialog'
 import FinanceDetailDialog from './FinanceDetailDialog'
 import FinanceAiDialog from './FinanceAiDialog'
 import type { BackupData } from '@/core/db/store'
+import FinanceTrendChart from './FinanceTrendChart'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
 import RecordExportDialog from '@/features/records/RecordExportDialog'
 import { buildSingleRecordExport } from '@/features/records/recordExport'
@@ -271,12 +272,7 @@ export default function FinancePage() {
           }
         })
       : []
-  const weekDaysMax = Math.max(1, ...weekDays.map((day) => Math.max(day.income, day.expense)))
   const monthWeeks = view === 'month' ? financeWeeksOfMonth(rows, monthKey) : []
-  const monthWeeksMax = Math.max(
-    1,
-    ...monthWeeks.map((item) => Math.max(item.income, item.expense)),
-  )
   const yearSummaries = period?.months ?? []
   const yearMonthsMax = Math.max(
     1,
@@ -795,27 +791,30 @@ export default function FinancePage() {
               <h2 className="m-0 text-xs font-medium text-fg">{t('finance.trend')}</h2>
               <div className="flex items-center gap-2 text-[10px] text-muted">
                 <span className="inline-flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-sm bg-success" />
+                  <span className="h-2 w-2 rounded-full bg-success" />
                   {t('finance.income')}
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-sm bg-danger/60" />
+                  <span className="h-2 w-2 rounded-full bg-danger" />
                   {t('finance.expense')}
                 </span>
               </div>
             </div>
-            <FinanceBars
-              max={monthWeeksMax}
-              bars={monthWeeks.map((item) => {
+            <FinanceTrendChart
+              ariaLabel={t('finance.trend')}
+              locale={locale}
+              money={money}
+              points={monthWeeks.map((item) => {
                 const label = formatMonthDay(item.rangeStart, t)
-                const rangeLabel = `${formatMonthDay(item.rangeStart, t)} – ${formatMonthDay(item.rangeEnd, t)}`
+                const detailLabel = `${formatMonthDay(item.rangeStart, t)} – ${formatMonthDay(item.rangeEnd, t)}`
                 return {
                   key: item.weekStart,
                   label,
+                  detailLabel,
                   income: item.income,
                   expense: item.expense,
                   ariaLabel: t('finance.chartBucketLabel', {
-                    label: rangeLabel,
+                    label: detailLabel,
                     income: money(item.income),
                     expense: money(item.expense),
                   }),
@@ -825,29 +824,32 @@ export default function FinancePage() {
           </section>
         )}
 
-      {/* 周视图拆成固定七天；无记录的日期也留一个零高度柱，便于横向比较整周。 */}
+      {/* 周视图拆成固定七天；无记录日期也保留零值点，横向比较完整一周。 */}
       {view === 'week' && weekDays.some((day) => day.income > 0 || day.expense > 0) && (
         <section className="mt-3 rounded-2xl border border-line bg-surface p-4">
           <div className="flex items-center justify-between gap-2">
             <h2 className="m-0 text-xs font-medium text-fg">{t('finance.weekTrend')}</h2>
             <div className="flex items-center gap-2 text-[10px] text-muted">
               <span className="inline-flex items-center gap-1">
-                <span className="h-2 w-2 rounded-sm bg-success" />
+                <span className="h-2 w-2 rounded-full bg-success" />
                 {t('finance.income')}
               </span>
               <span className="inline-flex items-center gap-1">
-                <span className="h-2 w-2 rounded-sm bg-danger/60" />
+                <span className="h-2 w-2 rounded-full bg-danger" />
                 {t('finance.expense')}
               </span>
             </div>
           </div>
-          <FinanceBars
-            max={weekDaysMax}
-            bars={weekDays.map((day) => {
+          <FinanceTrendChart
+            ariaLabel={t('finance.weekTrend')}
+            locale={locale}
+            money={money}
+            points={weekDays.map((day) => {
               const label = formatMonthDay(day.dateKey, t)
               return {
                 key: day.dateKey,
                 label,
+                detailLabel: label,
                 income: day.income,
                 expense: day.expense,
                 ariaLabel: t('finance.chartBucketLabel', {

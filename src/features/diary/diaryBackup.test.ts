@@ -420,4 +420,64 @@ describe('备份读写的兼容口径', () => {
     expect(read.sections).toEqual(['prefs'])
     expect(read.payload.prefs).toEqual({ sb_locale: 'ja' })
   })
+
+  it('AI 模型设置独立分区导出并读回', () => {
+    const model = JSON.stringify([{ id: 'm1', apiKey: 'sk-secret' }])
+    const payload = {
+      ...emptyPayload(),
+      prefs: {
+        'starburst.theme': 'paper',
+        sb_ai_models: model,
+        sb_ai_active: 'm1',
+        sb_ai_reasoning_v1: 'high',
+      },
+    }
+    const file = buildBackup(payload)
+    const raw = JSON.parse(file.content) as {
+      sections: { prefs: Record<string, string>; aiModels: Record<string, string> }
+    }
+    expect(raw.sections.prefs).toEqual({ 'starburst.theme': 'paper' })
+    expect(raw.sections.aiModels).toEqual({
+      sb_ai_models: model,
+      sb_ai_active: 'm1',
+      sb_ai_reasoning_v1: 'high',
+    })
+
+    const read = readBackup(file.content)
+    expect(read.ok).toBe(true)
+    expect(read.sections).toEqual(['prefs', 'aiModels'])
+    expect(read.payload.prefs).toEqual({ 'starburst.theme': 'paper' })
+    expect(read.payload.aiModels).toEqual(raw.sections.aiModels)
+  })
+
+  it('旧备份里放在 prefs 的 AI 模型设置仍可读为独立分区', () => {
+    const model = JSON.stringify([{ id: 'm1', apiKey: 'sk-secret' }])
+    const current = JSON.parse(
+      buildBackup({ ...emptyPayload(), prefs: { 'starburst.theme': 'paper' } }, '备份', ['prefs']).content,
+    ) as { sections: Record<string, Record<string, string>> }
+    current.sections.prefs.sb_ai_models = model
+    current.sections.prefs.sb_ai_active = 'm1'
+
+    const read = readBackup(JSON.stringify(current))
+    expect(read.ok).toBe(true)
+    expect(read.sections).toEqual(['prefs', 'aiModels'])
+    expect(read.payload.prefs).toEqual({ 'starburst.theme': 'paper' })
+    expect(read.payload.aiModels).toEqual({ sb_ai_models: model, sb_ai_active: 'm1' })
+    expect(read.skipped).toBe(0)
+  })
+
+  it('只选 AI 模型时不带普通偏好，反之亦然', () => {
+    const payload = {
+      ...emptyPayload(),
+      prefs: { 'starburst.theme': 'paper', sb_ai_active: 'm1' },
+    }
+    expect(onlySections(payload, ['prefs'])).toMatchObject({
+      prefs: { 'starburst.theme': 'paper' },
+      aiModels: {},
+    })
+    expect(onlySections(payload, ['aiModels'])).toMatchObject({
+      prefs: {},
+      aiModels: { sb_ai_active: 'm1' },
+    })
+  })
 })
