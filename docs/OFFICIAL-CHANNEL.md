@@ -82,7 +82,7 @@
 
 管理员网站现已发布：`https://brainleech198.github.io/starburst_recorder/admin/`。Pages workflow `41775382671` 成功；Worker `starburst-push` 版本 `17613267-08dd-4503-813a-ba055f7b49c2` 已部署。管理员登录和状态接口均返回 HTTP 200，当前 `emailSendingEnabled=false`。登录凭据保存在本机忽略文件 `.local/keys/admin-credentials.txt`，不要复制到仓库或公开位置。
 
-2026-11-11 管理员工作台改为运营概览 + 响应式分区布局；登录 401 现在按凭证错误提示。Worker 当前登录密钥已轮换，版本 `c3cffd87-a8c2-4a73-81f5-af090cd8c510`；Cloudflare Pages `0.17.2` 部署地址 `https://0f381498.starburst-recorder.pages.dev`，构建号 `mwc4b9g1`。新后台页面随本次 Gitee 主线提交通过 GitHub Pages workflow 发布。
+2026-11-11 管理员工作台改为运营概览 + 响应式分区布局；登录 401 现在按凭证错误提示。Worker 当前登录密钥已轮换，版本 `c3cffd87-a8c2-4a73-81f5-af090cd8c510`；Cloudflare Pages `0.17.2` 部署地址 `https://0f381498.starburst-recorder.pages.dev`，构建号 `mwc4b9g1`。新后台页面随本次 Gitee 主线提交发布，GitHub Pages workflow `43024549842` 成功。
 
 管理员登录 Secrets、登录限流器、订阅限流器和邮件队列已配置。邮件仍需 Resend 发件域名和 API Key；启用前还要完成 App 订阅页的待确认提示与隐私文案。设置 Worker Secret 会立即部署新 Worker 版本，应先完成代码检查，再按 `worker/push/README.md` 的发版流程操作。
 
