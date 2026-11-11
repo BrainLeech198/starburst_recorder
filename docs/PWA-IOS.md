@@ -473,5 +473,7 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
   `https://c2e6013b.starburst-recorder.pages.dev`，构建号 `mwc3ckww`；正式域名
   `https://starburst-recorder.pages.dev` 的线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并接管页面，
   推送中继鉴权与 `/health` 均通过，测试订阅已删除。
+- **2026-11-11 管理员频道绑定刷新**：基于 `v0.17.2` 源码重新部署 Pages，地址
+  `https://0f381498.starburst-recorder.pages.dev`，构建号 `mwc4b9g1`；管理员登录与状态接口经 `/channel` 代理均返回 HTTP 200，线上验收 10/10、本地 PWA 探针 20/20；测试订阅已删除。
 - **KV 里现在只剩一条记录**，是早先在 workerd 里手测留下的 FCM 端点、`slots` 为 0
   （永远不会命中，不产生推送）。真正的用户订阅会在开启提醒时自己写进来。

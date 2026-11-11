@@ -1,6 +1,6 @@
 # 官方频道：公告、订阅与反馈
 
-> 状态：管理员网站、Worker 与 Pages 频道转发入口已部署。v0.17.0 正式版已发布，Android / Windows 客户端与生产 PWA 已包含反馈历史、状态回复、分区界面和 Durable Object 限额。Worker 版本 `8d533145-1aad-40b2-ab37-57f501b6fbea` 已部署；线上无效安装标识请求按预期返回 400，未写入测试反馈。Resend 尚未配置，邮件发送未启用，也没有发出真实邮件；启用邮件前仍需配置邮件服务并更新 App 订阅页的双重确认提示。更新时间：2026-11-06。
+> 状态：管理员网站、Worker 与 Pages 频道转发入口已部署。v0.17.2 正式版已发布，Android / Windows 客户端与生产 PWA 已包含反馈历史、状态回复、分区界面和 Durable Object 限额。2026-11-11 已轮换管理员登录哈希与会话密钥，并刷新 Pages 服务绑定；经 Pages 频道代理的登录与状态接口均返回 HTTP 200。Resend 尚未配置，邮件发送未启用，也没有发出真实邮件；启用邮件前仍需配置邮件服务并更新 App 订阅页的双重确认提示。更新时间：2026-11-11。
 > 这是跨 Web / PWA、Windows 和 Android 的通用频道，不属于 iOS 专项。
 
 ## 目标与边界
@@ -81,6 +81,8 @@
 ## 线上启用前的配置
 
 管理员网站现已发布：`https://brainleech198.github.io/starburst_recorder/admin/`。Pages workflow `41775382671` 成功；Worker `starburst-push` 版本 `17613267-08dd-4503-813a-ba055f7b49c2` 已部署。管理员登录和状态接口均返回 HTTP 200，当前 `emailSendingEnabled=false`。登录凭据保存在本机忽略文件 `.local/keys/admin-credentials.txt`，不要复制到仓库或公开位置。
+
+2026-11-11 管理员工作台改为运营概览 + 响应式分区布局；登录 401 现在按凭证错误提示。Worker 当前登录密钥已轮换，版本 `c3cffd87-a8c2-4a73-81f5-af090cd8c510`；Cloudflare Pages `0.17.2` 部署地址 `https://0f381498.starburst-recorder.pages.dev`，构建号 `mwc4b9g1`。新后台页面随本次 Gitee 主线提交通过 GitHub Pages workflow 发布。
 
 管理员登录 Secrets、登录限流器、订阅限流器和邮件队列已配置。邮件仍需 Resend 发件域名和 API Key；启用前还要完成 App 订阅页的待确认提示与隐私文案。设置 Worker Secret 会立即部署新 Worker 版本，应先完成代码检查，再按 `worker/push/README.md` 的发版流程操作。
 
