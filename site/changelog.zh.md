@@ -1,3 +1,32 @@
+## 0.17.4 · 2026-11-11
+
+日历 AI 回顾修正、AI 模型独立备份与收支趋势图
+
+### 这一版有什么
+
+- **日历 AI 回顾覆盖完整月份和年份**：修正月末、年末比较范围，并按有摄入记录的天数计算年度日均热量。
+- **AI 模型成为独立备份分区**：模型配置可分别导出或恢复；旧备份自动迁移，口令只在选择含密钥的模型分区时询问。
+- **收支周/月趋势改为双折线图**：收入与支出在同一时间轴上更容易对照。
+- **官网增加网页版直达和手机导航菜单**：首屏仍保留下载安装入口。
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.17.4-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.4/starburst-recorder-0.17.4-setup.exe)（约 96 MB）
+- Android 10 以上：[`starburst-recorder-0.17.4.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.4/starburst-recorder-0.17.4.apk)（约 62 MB，正式签名）
+
+## 0.17.3 · 2026-11-11
+
+食物库编辑可选择是否同步更新历史摄入
+
+### 这一版有什么
+
+- **食物库编辑先选同步范围**：可以只改食物库，也可以同步更新引用该食物的历史摄入；套餐摄入会按原克数重算对应成分和营养合计。
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.17.3-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3-setup.exe)（约 96 MB）
+- Android 10 以上：[`starburst-recorder-0.17.3.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3.apk)（约 62 MB，正式签名）
+
 ## 0.17.2 · 2026-11-11
 
 收支、摄入与食物库无图记录的占位缩略图

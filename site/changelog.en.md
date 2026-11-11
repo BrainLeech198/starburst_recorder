@@ -1,3 +1,32 @@
+## 0.17.4 · 2026-11-11
+
+Calendar review fixes, separate AI model backups and finance trends
+
+### What's new
+
+- **Calendar AI reviews cover complete months and years** — fixes end-of-period comparisons and uses days with intake records for annual average calories.
+- **AI models are a separate backup section** — choose model settings independently for export or restore; older formats migrate automatically, and passphrases are requested only for selected model sections containing keys.
+- **Weekly and monthly finance views use two line series** — compare income and expenses on the same timeline.
+- **The website now opens the web app directly and adds mobile navigation** — the download entry remains on the home screen.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.17.4-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.4/starburst-recorder-0.17.4-setup.exe) (~96 MB)
+- Android 10+: [`starburst-recorder-0.17.4.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.4/starburst-recorder-0.17.4.apk) (~62 MB, release-signed)
+
+## 0.17.3 · 2026-11-11
+
+Choose whether food library edits update intake history
+
+### What's new
+
+- **Choose the scope when editing a food** — update the library only, or also sync historical intakes that reference it. Meal intake snapshots recalculate the matching component and totals using their original grams.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.17.3-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3-setup.exe) (~96 MB)
+- Android 10+: [`starburst-recorder-0.17.3.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3.apk) (~62 MB, release-signed)
+
 ## 0.17.2 · 2026-11-11
 
 Illustrated placeholders for records without photos

@@ -1,24 +1,27 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
-## 0.17.3 · 2026-11-11
+## 0.17.4 · 2026-11-11
 
 ### What's new
 
-- **Choose the scope when editing a food** — update the library only, or also sync historical intakes that reference it. Meal intake snapshots recalculate the matching component and totals using their original grams.
+- **Calendar AI reviews cover complete months and years** — fixes end-of-period comparisons and uses days with intake records for annual average calories.
+- **AI models are a separate backup section** — choose model settings independently for export or restore; older backups migrate automatically, and passphrases are requested only for selected model sections containing keys.
+- **Weekly and monthly finance trends use two line series** — compare income and expenses on the same timeline.
+- **The website now opens the web app directly and adds mobile navigation** — the download entry remains on the home screen.
 
 ## Download
 
 | Platform | File |
 | --- | --- |
-| Windows 10/11 | `starburst-recorder-0.17.3-setup.exe` (~96 MB) |
-| Android 10+ | `starburst-recorder-0.17.3.apk` (~62 MB, release-signed) |
+| Windows 10/11 | `starburst-recorder-0.17.4-setup.exe` (~96 MB) |
+| Android 10+ | `starburst-recorder-0.17.4.apk` (~62 MB, release-signed) |
 
 Android is sideloaded: allow "install unknown apps". If you previously installed a debug build, uninstall it first (different signature — the upgrade install will fail).
 Storage follows the platform: SQLite on desktop, IndexedDB in browsers and WebViews.
 
 ## Known limitations
 
-0.17.3 is still an early build, and the data format may change between versions — export a backup of anything you care about before upgrading. Older backups still import; AI chats travel with the backup and get noticeably larger when they carry image attachments. Health Connect import on Android is experimental and not yet verified on a real device; tell us if it cannot read anything.
+0.17.4 is still an early build, and the data format may change between versions — export a backup of anything you care about before upgrading. Older backups still import; AI chats travel with the backup and get noticeably larger when they carry image attachments. Health Connect import on Android is experimental and not yet verified on a real device; tell us if it cannot read anything.
 
 **Important: backups exported before 0.13.1 may contain model names and API keys in plain text.** If an old backup was kept in cloud storage or email, or sent to someone, revoke every API key it may contain in your model provider's dashboard, generate fresh keys, and enter them under Settings → AI. Since 0.13.1 an export can encrypt the `apiKey` with a passphrase, but **that only protects files exported from now on** — old exports do not become safe on their own.
 
