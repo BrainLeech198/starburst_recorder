@@ -85,7 +85,6 @@ Announcements now have an explicit receipt confirmation
 - **Acknowledge receipt** — tap the button and this device remembers the notice, so it no longer pops up on later launches.
 - **Closing only postpones it** — closing, pressing Esc or tapping the backdrop does not acknowledge the notice; it appears again on the next launch, with urgent notices shown first.
 - **Receipts stay local** — acknowledgements are not uploaded or included in backups. An unacknowledged notice appears again on another device.
-- **Urgent security notice** — backups exported before 0.13.1 may contain model names and API keys in plain text. If an old backup was shared or stored in cloud storage or email, revoke old keys and generate fresh ones. Updating the app does not change files already exported.
 
 ### Downloads
 
@@ -101,7 +100,6 @@ Assistant replies stream in real time, with announcement and cross-platform chan
 - **Assistant replies appear as they are generated** — see the response build in real time and stop it when needed.
 - **Announcements appear on launch** — the app surfaces unread notices; the notice list distinguishes a load failure from an empty list and offers retry.
 - **Announcement, subscription registration and feedback requests are repaired** — web, Windows and Android use the same official channel endpoint, reducing cross-origin and mobile network failures. Subscription email delivery is not enabled yet, so no subscription emails are sent.
-- **Urgent security notice** — backups exported before 0.13.1 may contain model names and API keys in plain text. If an old backup was shared or stored in cloud storage or email, revoke old keys and generate fresh ones. Updating the app does not change files already exported.
 
 ### Downloads
 
