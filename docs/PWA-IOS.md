@@ -415,7 +415,7 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
 
 ---
 
-## 10. 当前部署状态（2026-11-09）
+## 10. 当前部署状态（2026-11-11）
 
 | 项目 | 值 |
 | --- | --- |
@@ -467,6 +467,10 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
   推送中继鉴权与 `/health` 均通过，测试订阅已删除。反馈路由无效安装标识请求返回 400，未创建生产测试数据。
 - **2026-11-09 v0.17.1**：标签 `v0.17.1`（提交 `67e0d51`）已部署到生产 Pages，地址
   `https://d678f9f3.starburst-recorder.pages.dev`，构建号 `mw87ukmk`；正式域名
+  `https://starburst-recorder.pages.dev` 的线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并接管页面，
+  推送中继鉴权与 `/health` 均通过，测试订阅已删除。
+- **2026-11-11 v0.17.2**：标签 `v0.17.2`（提交 `daa6bf0`）已部署到生产 Pages，地址
+  `https://c2e6013b.starburst-recorder.pages.dev`，构建号 `mwc3ckww`；正式域名
   `https://starburst-recorder.pages.dev` 的线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并接管页面，
   推送中继鉴权与 `/health` 均通过，测试订阅已删除。
 - **KV 里现在只剩一条记录**，是早先在 workerd 里手测留下的 FCM 端点、`slots` 为 0
