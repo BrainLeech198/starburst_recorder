@@ -20,6 +20,9 @@ window.SITE_I18N = {
     'nav.shots': '截图',
     'nav.download': '下载',
     'nav.skills': '技能',
+    'nav.label': '站点导航',
+    'nav.menu': '打开导航菜单',
+    'nav.close': '关闭导航菜单',
 
     'skillsPage.title': '星芒技能库',
     'skillsPage.lead':
@@ -42,7 +45,8 @@ window.SITE_I18N = {
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
       '随手记下今天，AI 帮你整理成完整的日记；也可以直接问助手，让它查记录、记账、写随记或记睡眠。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
-    'hero.cta': '下载 0.17.3',
+    'hero.cta': '打开网页版',
+    'hero.download': '下载电脑版 / Android',
     'hero.source': '看源码',
     'hero.meta.local': '数据在本地',
     'hero.meta.noAccount': '不用注册',
@@ -178,6 +182,9 @@ window.SITE_I18N = {
     'nav.shots': 'Screenshots',
     'nav.download': 'Download',
     'nav.skills': 'Skills',
+    'nav.label': 'Site navigation',
+    'nav.menu': 'Open navigation menu',
+    'nav.close': 'Close navigation menu',
 
     'skillsPage.title': 'Starburst Skills',
     'skillsPage.lead':
@@ -201,7 +208,8 @@ window.SITE_I18N = {
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
       'Jot down today and let AI shape it into a finished entry — or just ask the assistant to look things up, log spending, write a note or record your sleep. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
-    'hero.cta': 'Download 0.17.3',
+    'hero.cta': 'Open web app',
+    'hero.download': 'Download for Windows / Android',
     'hero.source': 'View source',
     'hero.meta.local': 'Data on your device',
     'hero.meta.noAccount': 'No sign-up',

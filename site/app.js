@@ -7,6 +7,19 @@
   var STORAGE_KEY = 'sb_locale';
   var dict = window.SITE_I18N || {};
   var buttons = Array.prototype.slice.call(document.querySelectorAll('.lang__btn'));
+  var topbar = document.querySelector('.topbar');
+  var menuToggle = document.querySelector('.topbar__menu-toggle');
+  var nav = document.querySelector('.topbar__nav');
+
+  function setMenuOpen(open, lang) {
+    if (!topbar || !menuToggle) return;
+    menuToggle.setAttribute('aria-expanded', String(open));
+    topbar.setAttribute('data-menu-open', String(open));
+
+    var messages = dict[lang] || dict.zh || {};
+    menuToggle.setAttribute('aria-label', messages[open ? 'nav.close' : 'nav.menu'] || 'Menu');
+    if (nav && messages['nav.label']) nav.setAttribute('aria-label', messages['nav.label']);
+  }
 
   function readLang() {
     try {
@@ -62,6 +75,8 @@
     buttons.forEach(function (button) {
       button.setAttribute('aria-pressed', String(button.dataset.lang === lang));
     });
+
+    if (menuToggle) setMenuOpen(menuToggle.getAttribute('aria-expanded') === 'true', lang);
   }
 
   buttons.forEach(function (button) {
@@ -71,6 +86,32 @@
       saveLang(lang);
     });
   });
+
+  if (menuToggle) {
+    menuToggle.addEventListener('click', function () {
+      var open = menuToggle.getAttribute('aria-expanded') !== 'true';
+      setMenuOpen(open, readLang());
+      if (open && nav) {
+        var firstLink = nav.querySelector('a');
+        if (firstLink) firstLink.focus();
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && menuToggle.getAttribute('aria-expanded') === 'true') {
+        setMenuOpen(false, readLang());
+        menuToggle.focus();
+      }
+    });
+  }
+
+  if (nav && menuToggle) {
+    nav.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', function () {
+        setMenuOpen(false, readLang());
+      });
+    });
+  }
 
   apply(readLang());
 
