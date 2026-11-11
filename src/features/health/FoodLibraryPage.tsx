@@ -19,6 +19,7 @@ import { Icon } from '@/shared/ui/icons'
 import { INPUT } from '@/shared/ui/inputStyles'
 import TagEditor from '@/shared/ui/TagEditor'
 import FoodForm from './FoodForm'
+import FoodEditChoiceDialog from './FoodEditChoiceDialog'
 import type { FoodDraft } from './FoodForm'
 import MealForm from './MealForm'
 import FoodInfoDialog from './FoodInfoDialog'
@@ -47,6 +48,7 @@ import {
   restoreHealthMeal,
   restoreHealthMeals,
   saveHealthFood,
+  saveHealthFoodAndSyncIntakes,
   saveHealthMeal,
 } from './healthRepo'
 
@@ -82,6 +84,8 @@ export default function FoodLibraryPage() {
 
   const [detailFood, setDetailFood] = useState<HealthFood | null>(null)
   const [editing, setEditing] = useState<HealthFood | null>(null)
+  const [pendingFoodEdit, setPendingFoodEdit] = useState<HealthFood | null>(null)
+  const [syncIntakesOnSave, setSyncIntakesOnSave] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<HealthFoodBrief | null>(null)
 
@@ -113,13 +117,20 @@ export default function FoodLibraryPage() {
 
   function openCreate() {
     setEditing(null)
+    setSyncIntakesOnSave(false)
     setFormOpen(true)
   }
 
   async function openEdit(food: HealthFoodBrief) {
     const fullFood = await healthFoodById(food.id)
     if (!fullFood) return
-    setEditing(fullFood)
+    setPendingFoodEdit(fullFood)
+  }
+
+  function continueFoodEdit(food: HealthFood, syncIntakes: boolean) {
+    setPendingFoodEdit(null)
+    setEditing(food)
+    setSyncIntakesOnSave(syncIntakes)
     setFormOpen(true)
   }
 
@@ -149,7 +160,7 @@ export default function FoodLibraryPage() {
       return
     }
     const now = Date.now()
-    await saveHealthFood({
+    const nextFood: HealthFood = {
       id: editing?.id ?? newId(),
       code: editing?.code ?? newCode(),
       ...draft,
@@ -157,9 +168,17 @@ export default function FoodLibraryPage() {
       createdAt: editing?.createdAt ?? now,
       updatedAt: now,
       deletedAt: null,
-    })
+    }
+    if (editing && syncIntakesOnSave) {
+      const result = await saveHealthFoodAndSyncIntakes(nextFood)
+      showToast({ message: t('foods.savedAndSynced', { n: result.intakes }) })
+    } else {
+      await saveHealthFood(nextFood)
+      showToast({ message: t('foods.saved') })
+    }
     setFormOpen(false)
-    showToast({ message: t('foods.saved') })
+    setEditing(null)
+    setSyncIntakesOnSave(false)
   }
 
   /** 复制一份：营养、份量原样带过来，名称加「副本」 */
@@ -807,13 +826,26 @@ export default function FoodLibraryPage() {
         <Modal
           size="sm"
           label={t('foods.add')}
-          onClose={() => setFormOpen(false)}
+          onClose={() => {
+            setFormOpen(false)
+            setEditing(null)
+            setSyncIntakesOnSave(false)
+          }}
         >
           <h2 className="m-0 mb-3 text-base font-medium text-fg">
             {editing ? t('foods.edit') : t('foods.add')}
           </h2>
           <FoodForm initial={editing ?? undefined} submitLabel={t('foods.save')} onSubmit={handleSubmit} />
         </Modal>
+      )}
+
+      {pendingFoodEdit && (
+        <FoodEditChoiceDialog
+          name={pendingFoodEdit.name}
+          onCancel={() => setPendingFoodEdit(null)}
+          onLibraryOnly={() => continueFoodEdit(pendingFoodEdit, false)}
+          onSyncIntakes={() => continueFoodEdit(pendingFoodEdit, true)}
+        />
       )}
 
       {mealFormOpen && (

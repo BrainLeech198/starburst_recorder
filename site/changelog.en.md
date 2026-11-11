@@ -824,3 +824,15 @@ The first release: diary, notes, AI drafting and health logging
 
 - Windows 10/11: [`starburst-recorder-0.1.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.1.0/starburst-recorder-0.1.0-setup.exe) (~95 MB)
 - Android 10+: [`starburst-recorder-0.1.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.1.0/starburst-recorder-0.1.0.apk) (~16 MB, release-signed)
+## 0.17.3 · 2026-11-11
+
+Choose whether food library edits update intake history
+
+### What's new
+
+- **Choose the scope when editing a food** — update the library only, or also sync historical intakes that reference it. Meal intake snapshots recalculate the matching component and totals using their original grams.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.17.3-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3-setup.exe) (~96 MB) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3-setup.exe)
+- Android 10+: [`starburst-recorder-0.17.3.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3.apk) (~62 MB, release-signed) · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3.apk)

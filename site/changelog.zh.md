@@ -833,3 +833,15 @@ AI 整理能挑素材，也能翻旧账
 
 - Windows 10/11：[`starburst-recorder-0.1.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.1.0/starburst-recorder-0.1.0-setup.exe)（约 95 MB）
 - Android 10 以上：[`starburst-recorder-0.1.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.1.0/starburst-recorder-0.1.0.apk)（约 16 MB，正式签名）
+## 0.17.3 · 2026-11-11
+
+食物库编辑可选择是否同步更新历史摄入
+
+### 这一版有什么
+
+- **食物库编辑先选同步范围**：可以只改食物库，也可以同步更新引用该食物的历史摄入；套餐摄入会按原克数重算对应成分和营养合计。
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.17.3-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.17.3.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3.apk)

@@ -14,6 +14,7 @@ export const {
   healthFoodPhoto,
   trashedHealthFoods,
   saveHealthFood,
+  saveHealthFoodAndSyncIntakes,
   mergeHealthFoods,
   removeHealthFood,
   removeHealthFoods,

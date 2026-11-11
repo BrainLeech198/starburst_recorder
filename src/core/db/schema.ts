@@ -149,7 +149,7 @@ export interface IntakeComponent {
   fat: number
 }
 
-/** 记下的一笔摄入：存当时的快照，以后改食物库不会改历史 */
+/** 记下的一笔摄入：默认保存当时快照；食物库编辑时用户可选择同步更新关联历史。 */
 export interface HealthIntake {
   id: string
   /** 7 位十六进制短编号，跟日记一样用来指代某一笔 */

@@ -70,6 +70,7 @@ export const WRITE_METHODS = new Set([
   'saveHealthProfile',
   'deleteHealthProfile',
   'saveHealthFood',
+  'saveHealthFoodAndSyncIntakes',
   'mergeHealthFoods',
   'removeHealthFood',
   'removeHealthFoods',

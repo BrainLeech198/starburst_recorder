@@ -194,6 +194,10 @@ export const sqliteStore: DiaryStore = {
     await call('saveHealthFood', next)
     return next
   },
+  saveHealthFoodAndSyncIntakes: async (food) => {
+    const next: HealthFood = { ...food, tags: cleanTags(food.tags), updatedAt: Date.now() }
+    return call('saveHealthFoodAndSyncIntakes', next)
+  },
   mergeHealthFoods: (sourceId, targetId) => call('mergeHealthFoods', sourceId, targetId),
   removeHealthFood: async (id) => {
     await call('removeHealthFood', id)

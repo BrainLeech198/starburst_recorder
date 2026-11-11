@@ -433,7 +433,7 @@ export default function IntakeDialog({
 
   /**
    * 列表里改某一项套餐的成分克数：这一笔存的是快照，所以按原比例折算营养，
-   * 不回头读食物库（历史记录不随改食物库而变）。合计克数一并更新。
+   * 不回头读食物库。合计克数一并更新。
    */
   function updateComponent(itemKey: string, index: number, grams: number) {
     setItems((current) =>
@@ -499,7 +499,7 @@ export default function IntakeDialog({
     backToList()
   }
 
-  /** 套餐整份加进这一笔：成分先算成快照，之后改食物库不影响这一笔 */
+  /** 套餐整份加进这一笔：成分先算成快照，食物库默认不倒改这笔 */
   function confirmMeal() {
     if (!meal) return
     if (mealParts.length === 0) {

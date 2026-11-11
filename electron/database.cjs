@@ -1620,6 +1620,53 @@ function createDatabase(file) {
     return { intakes: intakes.length, meals: meals.length }
   }
 
+  /** 保存食物库条目，并按新营养同步所有直接引用或套餐成分快照。 */
+  function saveFoodAndSyncIntakes(food) {
+    db.exec('BEGIN IMMEDIATE')
+    try {
+      const current = foodRow(q.healthFoodById.get(food.id))
+      if (!current || current.deletedAt !== null) throw new Error('sync food: food not found')
+
+      const nextFood = saveFood(food)
+      const rows = q.everyIntake.all().map(intakeRow)
+      let count = 0
+      for (const row of rows) {
+        const next = syncFoodIntakeSnapshot(row, nextFood)
+        if (!next) continue
+        insertIntake(next)
+        count += 1
+      }
+      db.exec('COMMIT')
+      return { intakes: count }
+    } catch (error) {
+      db.exec('ROLLBACK')
+      throw error
+    }
+  }
+
+  function syncFoodIntakeSnapshot(intake, food) {
+    const hasDirectFood = intake.foodId === food.id
+    const components = intake.components ?? []
+    const hasFoodComponent = components.some((part) => part.foodId === food.id)
+    if (!hasDirectFood && !hasFoodComponent) return null
+
+    let next = intake
+    if (hasFoodComponent) {
+      const nextComponents = components.map((part) =>
+        part.foodId === food.id ? recalcPart(part, food) : part,
+      )
+      next = { ...next, components: nextComponents, ...sumParts(nextComponents) }
+    }
+    if (hasDirectFood) {
+      next = {
+        ...next,
+        name: food.name,
+        ...(components.length === 0 ? macrosFor(food, intake.grams) : {}),
+      }
+    }
+    return { ...next, updatedAt: food.updatedAt }
+  }
+
   /** 整库导出：健康、经济都带上回收站里的行 */
   function exportAll() {
     return {
@@ -2183,6 +2230,7 @@ function createDatabase(file) {
       return row && row.deletedAt === null && typeof row.photo === 'string' ? row.photo : null
     },
     saveHealthFood: (food) => saveFood(food),
+    saveHealthFoodAndSyncIntakes: (food) => saveFoodAndSyncIntakes(food),
     mergeHealthFoods: (sourceId, targetId) => mergeFoods(sourceId, targetId),
     removeHealthFood: (id) => {
       q.removeFood.run(Date.now(), id)

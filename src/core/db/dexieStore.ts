@@ -40,6 +40,7 @@ import { cleanTags } from './normalize'
 import { searchRows } from '@/core/search/match'
 import { newCode, newId } from '@/core/utils/id'
 import { formatClock } from '@/core/utils/dateKey'
+import { syncFoodIntakeSnapshot } from './syncFoodIntakeSnapshot'
 
 async function briefEntryRows(): Promise<DiaryEntryBrief[]> {
   const result: DiaryEntryBrief[] = []
@@ -697,6 +698,25 @@ export const dexieStore: DiaryStore = {
     const next: HealthFood = { ...food, tags: cleanTags(food.tags), updatedAt: Date.now() }
     await db.healthFoods.put(next)
     return next
+  },
+
+  async saveHealthFoodAndSyncIntakes(food) {
+    const now = Date.now()
+    const next: HealthFood = { ...food, tags: cleanTags(food.tags), updatedAt: now }
+    return db.transaction('rw', [db.healthFoods, db.healthIntakes], async () => {
+      const current = await db.healthFoods.get(food.id)
+      if (!current || current.deletedAt !== null) throw new Error('sync food: food not found')
+      await db.healthFoods.put(next)
+      const rows = await db.healthIntakes.toArray()
+      let intakes = 0
+      for (const row of rows) {
+        const updated = syncFoodIntakeSnapshot(row, next, now)
+        if (!updated) continue
+        await db.healthIntakes.put(updated)
+        intakes += 1
+      }
+      return { intakes }
+    })
   },
 
   async mergeHealthFoods(sourceId, targetId) {

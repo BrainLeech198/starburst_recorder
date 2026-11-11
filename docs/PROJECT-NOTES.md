@@ -288,6 +288,7 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 - `/health/intakes`（`IntakesPage`）：日期导航 + 按钮行（记一笔 / 批量 / 回收站）+ 当天摄入列表。批量导出与删除、单条 JSON 导出、营养详情弹窗、删除撤销都在这。
 - `/health/sleeps`（`SleepsPage`）：一天一条的详情卡 + 删除 / 回收站，理想作息设置从首页卡片搬到这里。
 - `/health/weights`（`WeightsPage`）：按天看称重、可补记、可删单条（toast 撤销），称重日 / 提醒时刻设置搬到这里；趋势图和推算 TDEE 仍留在卡片上当概览。
+- **食物库编辑可选同步历史**（`FoodLibraryPage`）：编辑时先选只改食物库，或同时更新引用该食物的历史摄入。同步走 `DiaryStore.saveHealthFoodAndSyncIntakes`，Dexie / SQLite 各自在事务里保存食物并更新快照；普通摄入按原克数重算名称和营养，套餐摄入只重算对应成分及合计。新增食物与摄入记录仍保留原有快照行为。
 - 三个页面共用 `shared/ui/DayNav`，和日记页同一套日期导航（前一天 / 后一天 / 回到今日 / 日历选择），日期写进 URL 的 `?date=`，刷新或返回都停在那一天；页面根节点挂 `useDaySwipe`，左滑下一天、右滑前一天（输入框与横向滚动控件内不触发）。
 
 - 体重删除直接改档案里的 `weighIns` 并重算「最新体重」，没有新增表，也不进回收站。

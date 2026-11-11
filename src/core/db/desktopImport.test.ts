@@ -11,7 +11,15 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { countRecords, type TableTotals } from './store'
-import type { DiaryEntry, DiaryImage, DiaryStamp, HealthTraining, ScheduleItem } from './schema'
+import type {
+  DiaryEntry,
+  DiaryImage,
+  DiaryStamp,
+  HealthFood,
+  HealthIntake,
+  HealthTraining,
+  ScheduleItem,
+} from './schema'
 import { pickProfile } from './normalize'
 
 const require = createRequire(import.meta.url)
@@ -76,6 +84,94 @@ afterEach(() => {
 })
 
 describe('桌面端 SQLite 分块导入', () => {
+  it('编辑食物并同步时重算直接摄入与套餐成分快照', () => {
+    const food: HealthFood = {
+      id: 'f1',
+      code: 'F000001',
+      name: '米饭',
+      tags: [],
+      kcal: 116,
+      protein: 2.6,
+      carbs: 25.9,
+      fat: 0.3,
+      servingName: null,
+      servingGrams: null,
+      photo: null,
+      createdAt: 100,
+      updatedAt: 100,
+      deletedAt: null,
+    }
+    call('saveHealthFood', food)
+    const direct: HealthIntake = {
+      id: 'i1',
+      code: 'D000001',
+      dateKey: '2026-11-11',
+      time: '12:00',
+      foodId: food.id,
+      name: food.name,
+      grams: 150,
+      kcal: 174,
+      protein: 3.9,
+      carbs: 38.9,
+      fat: 0.5,
+      source: 'library',
+      createdAt: 200,
+      updatedAt: 200,
+      deletedAt: null,
+    }
+    const meal: HealthIntake = {
+      ...direct,
+      id: 'i2',
+      code: 'D000002',
+      foodId: null,
+      name: '米饭套餐',
+      grams: 250,
+      kcal: 274,
+      protein: 8.9,
+      carbs: 58.9,
+      fat: 5.5,
+      components: [
+        { foodId: food.id, name: food.name, grams: 150, kcal: 174, protein: 3.9, carbs: 38.9, fat: 0.5 },
+        { foodId: 'egg', name: '鸡蛋', grams: 100, kcal: 100, protein: 5, carbs: 20, fat: 5 },
+      ],
+    }
+    call('insertIntake', direct)
+    call('insertIntake', meal)
+
+    const result = call<{ intakes: number }>('saveHealthFoodAndSyncIntakes', {
+      ...food,
+      name: '熟米饭',
+      kcal: 140,
+      protein: 3,
+      carbs: 30,
+      fat: 0.4,
+      updatedAt: 400,
+    })
+
+    expect(result.intakes).toBe(2)
+    const rows = call<HealthIntake[]>('intakesOfDay', '2026-11-11')
+    expect(rows.find((row) => row.id === 'i1')).toMatchObject({
+      name: '熟米饭',
+      grams: 150,
+      kcal: 210,
+      protein: 4.5,
+      carbs: 45,
+      fat: 0.6,
+    })
+    expect(rows.find((row) => row.id === 'i2')).toMatchObject({
+      name: '米饭套餐',
+      kcal: 310,
+      protein: 9.5,
+      carbs: 65,
+      fat: 5.6,
+    })
+    expect(rows.find((row) => row.id === 'i2')?.components?.[0]).toMatchObject({
+      name: '熟米饭',
+      kcal: 210,
+      carbs: 45,
+    })
+  })
+
   it('只删除身体档案，保存的快照可恢复称重历史', () => {
     call('insertEntry', entry)
     const initial = pickProfile({

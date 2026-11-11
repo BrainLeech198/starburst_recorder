@@ -376,6 +376,8 @@ export interface DiaryStore {
   trashedHealthFoods(): Promise<HealthFood[]>
   /** 新增或整行覆盖；返回存进去的那一条 */
   saveHealthFood(food: HealthFood): Promise<HealthFood>
+  /** 原子保存食物并同步更新所有引用它的历史摄入快照；返回受影响的摄入笔数。 */
+  saveHealthFoodAndSyncIntakes(food: HealthFood): Promise<{ intakes: number }>
   /**
    * 把 source 并进 target：历史摄入和套餐都改指 target，并按 target 当前营养重算。
    * source 进回收站。两份同时出现在同一笔 / 同一套餐里时保持两行，只换引用。
