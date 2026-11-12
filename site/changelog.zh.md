@@ -11,8 +11,8 @@
 
 ### 下载
 
-- Windows 10/11：[`starburst-recorder-0.17.4-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.4/starburst-recorder-0.17.4-setup.exe)（约 96 MB）
-- Android 10 以上：[`starburst-recorder-0.17.4.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.4/starburst-recorder-0.17.4.apk)（约 62 MB，正式签名）
+- Windows 10/11：[`starburst-recorder-0.17.4-setup.exe`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.4/starburst-recorder-0.17.4-setup.exe)（约 96 MB） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.4/starburst-recorder-0.17.4-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.17.4.apk`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.4/starburst-recorder-0.17.4.apk)（约 62 MB，正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.4/starburst-recorder-0.17.4.apk)
 
 ## 0.17.3 · 2026-11-11
 
@@ -37,8 +37,8 @@
 
 ### 下载
 
-- Windows 10/11：[`starburst-recorder-0.17.2-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.2/starburst-recorder-0.17.2-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.2/starburst-recorder-0.17.2-setup.exe)
-- Android 10 以上：[`starburst-recorder-0.17.2.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.2/starburst-recorder-0.17.2.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.2/starburst-recorder-0.17.2.apk)
+- Windows 10/11：[`starburst-recorder-0.17.2-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.2/starburst-recorder-0.17.2-setup.exe)（约 96 MB）
+- Android 10 以上：[`starburst-recorder-0.17.2.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.2/starburst-recorder-0.17.2.apk)（约 62 MB，正式签名）
 
 ## 0.17.1 · 2026-11-09
 
@@ -52,8 +52,8 @@
 
 ### 下载
 
-- Windows 10/11：[`starburst-recorder-0.17.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.1/starburst-recorder-0.17.1-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.1/starburst-recorder-0.17.1-setup.exe)
-- Android 10 以上：[`starburst-recorder-0.17.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.1/starburst-recorder-0.17.1.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.1/starburst-recorder-0.17.1.apk)
+- Windows 10/11：[`starburst-recorder-0.17.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.1/starburst-recorder-0.17.1-setup.exe)（约 96 MB）
+- Android 10 以上：[`starburst-recorder-0.17.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.1/starburst-recorder-0.17.1.apk)（约 62 MB，正式签名）
 
 ## 0.17.0 · 2026-11-06
 
@@ -69,8 +69,8 @@
 
 ### 下载
 
-- Windows 10/11：[`starburst-recorder-0.17.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.0/starburst-recorder-0.17.0-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.0/starburst-recorder-0.17.0-setup.exe)
-- Android 10 以上：[`starburst-recorder-0.17.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.0/starburst-recorder-0.17.0.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.0/starburst-recorder-0.17.0.apk)
+- Windows 10/11：[`starburst-recorder-0.17.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.0/starburst-recorder-0.17.0-setup.exe)（约 96 MB）
+- Android 10 以上：[`starburst-recorder-0.17.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.0/starburst-recorder-0.17.0.apk)（约 62 MB，正式签名）
 
 ## 0.16.1 · 2026-11-05
 
@@ -102,8 +102,8 @@ AI 写的内容标清来路，图片存法可以按模块分开选
 
 ### 下载
 
-- Windows 10/11：[`starburst-recorder-0.16.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.0/starburst-recorder-0.16.0-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.0/starburst-recorder-0.16.0-setup.exe)
-- Android 10 以上：[`starburst-recorder-0.16.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.0/starburst-recorder-0.16.0.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.16.0/starburst-recorder-0.16.0.apk)
+- Windows 10/11：[`starburst-recorder-0.16.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.0/starburst-recorder-0.16.0-setup.exe)（约 96 MB）
+- Android 10 以上：[`starburst-recorder-0.16.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.16.0/starburst-recorder-0.16.0.apk)（约 62 MB，正式签名）
 
 ## 0.15.1 · 2026-11-04
 
@@ -872,5 +872,5 @@ AI 整理能挑素材，也能翻旧账
 
 ### 下载
 
-- Windows 10/11：[`starburst-recorder-0.17.3-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3-setup.exe)（约 96 MB） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3-setup.exe)
-- Android 10 以上：[`starburst-recorder-0.17.3.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3.apk)（约 62 MB，正式签名） · [Gitee](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3.apk)
+- Windows 10/11：[`starburst-recorder-0.17.3-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3-setup.exe)（约 96 MB）
+- Android 10 以上：[`starburst-recorder-0.17.3.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3.apk)（约 62 MB，正式签名）

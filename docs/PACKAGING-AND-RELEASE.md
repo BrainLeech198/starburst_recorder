@@ -67,8 +67,8 @@
 | --- | --- | --- |
 | 版本 / 标签 | `0.8.0` / `v0.8.0` | `0.8.0-beta.1` / `v0.8.0-beta.1` |
 | GitHub Release | 普通 Release，**会更新 `latest`** | **Pre-release**，不影响 `latest` |
-| Gitee Release | **不发布软件包**；Gitee 仍是源码主仓库 | **不发**，附件也不传 |
-| 官网 `site/` | 同步版本、下载与更新说明 | **不动**，官网只展示最近一个正式版 |
+| Gitee Release | 与正式版同 tag，附当前版 `.apk` 与 `-setup.exe`；旧 Release 条目保留、二进制附件清掉 | **不发**，附件也不传 |
+| 官网 `site/` | 同步版本、下载与更新说明；当前版下载优先 Gitee、GitHub 作备用，历史版只链 GitHub | **不动**，官网只展示最近一个正式版 |
 | Cloudflare Pages PWA | 构建并部署到 `starburst-recorder` 的生产分支 `main` | **不部署生产环境**，避免测试版覆盖正式用户使用的 PWA |
 | 更新说明 | 官网 `notes.zh.md` / Release 正文 | 只用 Release 正文（官网说明还是上一版） |
 | 谁能收到 | 所有用户 | 在「我的 → 版本 → 更新通道」切到测试版的用户 |
@@ -80,7 +80,8 @@
 - 优先级按 SemVer：`0.8.0-beta.2 < 0.8.0-beta.10 < 0.8.0 < 0.8.1-beta.1`。正式版比同号预发布高，测试版用户能在正式版发布后升级过去。
 - 正式版用户永远看不到测试版；测试版通道会同时收正式版与测试版，并取最高者。
 - 通道选择存 `localStorage` 的 `sb_update_channel`，默认 `stable`，切换后立刻按新通道检查一次。
-- 测试版安装包**只放 GitHub**：Gitee 附件配额有限，且规矩是「只保留最新正式版」；应用检查测试版时不拼 Gitee 下载地址。
+- GitHub Release 保留所有正式版与测试版的完整资产历史；Gitee 正式版只保留最新版的一组 `.apk` 与 `-setup.exe`，旧 Release 条目保留但移除其二进制附件。官网最新版本优先使用 Gitee 下载，GitHub 链接作为备用；历史版本统一链接 GitHub。
+- 测试版安装包**只放 GitHub**：Gitee 只承载最新版正式版软件包；应用检查测试版时不拼 Gitee 下载地址。
 - 检查测试版走 GitHub `/releases?per_page=20`，跳过 draft，按 SemVer 排序取最高；正式版仍走 `/releases/latest`，失败再退 Gitee。
 - 桌面主进程（`electron/main.cjs`）与渲染层（`src/core/utils/versionCompare.ts`）各有一份 SemVer 比较与 Release 解析，**改规则必须两边一起改**，否则桌面和安卓会看到不同结果。
 
@@ -175,40 +176,34 @@ npm run desktop:installer
 2. **定版本**：改 `package.json` + `package-lock.json`
 3. **写说明与更新日志**：中文 / 英文更新说明、官网「这一版有什么」和更新日志都要与本版实际改动一致。每版按「版本号与日期 → 一句概述 → 本版新增 / 改进 / 修复 → 下载」组织，先写用户能感知的结果，再补必要边界；只保留可核实、彼此不重复的要点，不照搬提交记录，也不写「上一版的 X 照旧 / 全部内容照旧」这类承接句。中英文逐项对应，版本号、日期、功能范围、限制和下载地址一致。长期有效的已知限制、迁移说明或安全提醒放在统一说明位置，不要在后续版本条目里重复；只有本版确实修复或引入了新的安全问题时，才在本版说明里写清影响范围与用户应采取的动作。发布前并排检查中英文及 Markdown / 官网 HTML 版本，确认没有旧版本内容误贴、重复段落、空章节或下载信息错配。
 4. **出包**：按 §2、§3 打 Android 与 Windows，各自验签 / 验版本
-5. **归档**：两个产物放 `.local/artifacts/`，文件名带版本号；不再往桌面复制，正式版和测试版的软件包都只上传到 GitHub Release（见第 9 步和 §4.2）
+5. **归档**：两个产物放 `.local/artifacts/`，文件名带版本号；不再往桌面复制，正式版上传 GitHub Release，并同步到 Gitee 当前正式版 Release；测试版只上传 GitHub（见第 9 步和 §4.2）
 6. **提交**：只提交源码与文档；`git add` 用具体文件名，不用 `git add -A`
 7. **打标签**：`git tag v<version>`
 8. **推送**：`git push origin main --tags`（origin = Gitee 主仓库，GitHub 由镜像自动同步）
-9. **发 GitHub Release（正式版）**：创建普通 Release，上传同名的 `.apk` 与 `-setup.exe`；替换同名资产时先删旧资产再传。软件包和历史版本下载统一由 GitHub Release 提供。Gitee 只承载源码主仓库，不创建新 Release、不上传软件包；已有 Gitee Release 与附件作为历史记录保留。测试版走 §4.2，也只发 GitHub Pre-release。
+9. **发 GitHub 与 Gitee Release（正式版）**：GitHub 创建普通 Release 并上传同名 `.apk` 与 `-setup.exe`，完整保留全部历史版本及附件。Gitee 创建同 tag 的普通 Release 并上传同一对安装包；确认两个附件已上传且大小正确后，删除上一正式版 Gitee Release 中的二进制附件，保留该 Release 条目、tag 和源码归档。最终 Gitee 只留最新版正式版的一组二进制。官网当前版下载按钮优先指向 Gitee，并提供 GitHub 备用；历史版本只链接 GitHub。测试版走 §4.2，只发 GitHub Pre-release。
 10. **发布 PWA（仅正式版）**：在已推送的正式版提交上运行 `npm run build`，再执行 `npx wrangler pages deploy .local/dist --project-name starburst-recorder --branch main`，将应用部署到 Cloudflare Pages 生产分支。它与 GitHub Pages 的宣传官网是两个不同站点，不能用官网工作流代替。部署目标、构建环境变量与线上验收脚本见 [`docs/PWA-IOS.md`](PWA-IOS.md) §10；不要提交 `.env.local` 或 `.local/dist`。测试版不部署到生产 PWA。
-11. **发布后核验**：确认 GitHub Pages 工作流成功，首页与更新说明显示本版；GitHub Release 的通道、版本和两项资产正确，APK 与 Windows 下载地址可用且 APK 指纹符合 §2.2；Gitee `origin/main` 已推送且 GitHub 源码镜像同步到相同提交。正式版 PWA 的 `https://starburst-recorder.pages.dev` 已切到本次构建号，运行 `.local/verify-online.mjs` 与 `.local/probe-pwa.mjs` 并确认全部通过。最后用已安装的正式版检查「检查更新」能获取本版。把标签、包版本与校验信息、GitHub Pages 工作流、PWA 部署地址 / 构建号 / 探针结果记入本文 §4.1 发版记录和 `docs/PWA-IOS.md` §10。测试版按 §4.2 核验 GitHub Pre-release，不核验或覆盖生产 PWA。
+11. **发布后核验**：确认 GitHub Pages 工作流成功，首页与更新说明显示本版；GitHub Release 有本版资产且旧版本附件均保留，Gitee Release 只有最新正式版的一组二进制、旧 Gitee Release 条目保留且无旧二进制；两端当前版下载地址可用，APK 指纹符合 §2.2。官网当前下载入口优先 Gitee、GitHub 备用，历史版本链接只指向 GitHub。确认 Gitee `origin/main` 已推送且 GitHub 源码镜像同步到相同提交。正式版 PWA 的 `https://starburst-recorder.pages.dev` 已切到本次构建号，运行 `.local/verify-online.mjs` 与 `.local/probe-pwa.mjs` 并确认全部通过。最后用已安装的正式版检查「检查更新」能获取本版。把标签、包版本与校验信息、两边 Release / 附件核验、GitHub Pages 工作流、PWA 部署地址 / 构建号 / 探针结果记入本文 §4.1 发版记录和 `docs/PWA-IOS.md` §10。测试版按 §4.2 核验 GitHub Pre-release，不核验或覆盖生产 PWA。
 
-### 4.1 Gitee 历史发行版附件（旧版本维护）
+### 4.1 Gitee 最新正式版附件
 
-**自 2026-11-11 起，正式版和测试版软件包都只通过 GitHub Release 发布；正式版另部署 Cloudflare Pages PWA。** Gitee 继续作为源码主仓库（`origin`），GitHub 同步源码并托管发行包。不要为新版本创建 Gitee Release 或上传二进制；已有 Gitee Release、源码归档和附件保留为历史记录，除非用户明确要求整理。
-
-以下配额和清理步骤只用于理解、核查旧 Gitee 附件，不再是常规发版步骤：
+**GitHub 保存所有版本的 Release 与安装包；Gitee 的 Release 二进制附件只保留最新版正式版的一组 APK 和 Windows 安装包，便于中国大陆用户下载。** Gitee `origin` 是源码主仓库，GitHub 自动同步源码。Gitee 上旧正式版 Release 条目、tag 与源码归档保留，但旧安装包附件在新包验证完成后删除。官网当前版本优先给出 Gitee 下载，并同时提供 GitHub 备用链接；历史版本下载统一走 GitHub。测试版只发布到 GitHub，不上传 Gitee。
 
 Gitee 免费仓库（社区版）的 Release 附件有**两层限制**，不要混为一谈：
 
 | 限制 | 数值 | 当前状态 |
 | --- | --- | --- |
-| 单个附件大小 | **≤ 100 MB** | exe 约 94.9 MB，**已经贴着上限**；再长过 100 MB 就传不上 Gitee |
-| 仓库附件总量 | **≤ 1 GB** | 每版 `apk + exe` 约 110 MB，约 9 个版本占满 |
+| 单个附件大小 | **≤ 100 MiB**（104,857,600 字节） | 当前 exe 为 100,449,506 字节（95.8 MiB），接近上限；上传前按 Gitee 实际响应核验 |
+| 仓库附件总量 | **≤ 1 GiB** | 每版 `apk + exe` 约 162 MB（155 MiB），约 6 版占满 |
 
-GitHub 没有这两个总量限制（单文件上限远高于此）。这些上限只解释旧版本为何需要控制 Gitee 附件；当前新版本不再上传 Gitee 软件包。
+GitHub 保存完整资产历史，不受 Gitee 的仓库附件总量约束。Gitee 每次发布先上传并验证最新版两项附件，再删除上一正式版的二进制附件，避免清理失败时出现无包窗口。不要删除旧 Release 条目、tag 或源码归档。上传前确认 APK 不超过 100 MB、旧附件清理后仓库总量不超过 1 GB。
 
-**历史规则（2026-10-26，已于 2026-11-11 停用）：Gitee 只保留最新版本的 `apk` 与 `-setup.exe`。**
+Token 在 `.local/keys/gitee-token.txt`：仅本地读取，不要输出、写入命令日志或提交。创建 Release 时按 API 要求在请求体传 token；附件上传按 multipart 请求携带 token；删除旧附件使用 `Authorization: token <token>` 请求头。
 
-- 这条规则曾用于清理旧版附件；现在发新版时不要再删旧 Gitee 附件，也不要上传新包。
-- 旧版本下载统一走 GitHub；官网「历史版本」链接指向 GitHub。
-- 只有用户明确要求整理历史 Gitee 附件时，才检查配额、同名资产和附件大小。
-- Token 在 `.local/keys/gitee-token.txt`：仅历史附件维护时使用；写请求按下方接口说明处理，不要出现在提交信息或日志中。
-
-历史附件维护接口（`access_token` 均放在请求体或查询串，不要提交到 git）：
+Gitee Release 与附件接口：
 
 ```text
 GET    https://gitee.com/api/v5/repos/{owner}/{repo}/releases
+POST   https://gitee.com/api/v5/repos/{owner}/{repo}/releases                  # JSON: access_token + tag_name + name + body
 GET    https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files
 DELETE https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files/{file_id}
 POST   https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files   # multipart: file + access_token
@@ -241,7 +236,7 @@ POST   https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files 
 
 `0.17.3` 正式版：标签 `v0.17.3` 指向 `cb3424b4db0d45748d300a8e192182a463285c27`。APK 为 61,868,453 字节、`versionCode=1703999`、`versionName=0.17.3`、SHA-256 `14162987695DF96F37E74632F9BD6A101A48A181FA388088B9848109F183C0BF`，签名证书 SHA-256 `2eb0978a6abad455b55aa06dc86d2ccd73816aa68059ce6e4289c35533f94b05` 与 §2.2 一致；Windows 安装包为 100,448,389 字节、ProductVersion `0.17.3`、SHA-256 `6E64AA3E337E6342FE1FC96F59B141BA85335F74576E697F2E97854AD0CEAA27`。Gitee 与 GitHub Release 均为正式版，两个附件大小一致；Gitee `v0.17.2` 的两个旧二进制附件已移除，旧 Release 与源码归档保留；两个 `/latest` 均指向 `v0.17.3`。GitHub CI `43027538702` 与 Pages 工作流 `43027538340` 成功，官网首页和更新日志显示 `0.17.3`。PWA 部署地址 `https://e9cd1795.starburst-recorder.pages.dev`，构建号 `mwc5azfd`；正式域名线上验收 10/10、本地探针 20/20，Service Worker 已激活并接管页面，推送中继鉴权与 `/health` 均通过，测试订阅已删除。`npm test`（86 个文件、867 项）、`npm run typecheck`、`npm run lint`、`npm run build`、Android `assembleRelease` 与 Windows 安装包构建均通过。构建有 npm 未识别的镜像配置提示，Vite 有大 chunk 提示，Android 有 Kotlin 元数据版本不一致及 Gradle 9 弃用提示，均不影响构建。发布校验时 GitHub 镜像与 Gitee 主分支均已同步到 `ce56e90`；标签 `v0.17.3` 指向产品提交 `cb3424b`。
 
-`0.17.4` 正式版（按用户明确指定的 patch 更新）：标签 `v0.17.4` 指向 `5dc0eceaacf7ae731d56b11564ccd762f5c691c0`。APK 为 61,870,693 字节、`versionCode=1704999`、`versionName=0.17.4`、SHA-256 `406D58EC4BE4CE46DFA3FF813D67AFC3B386B7B5DCF07F3DF3AFBB9D0452F918`，签名证书 SHA-256 `2eb0978a6abad455b55aa06dc86d2ccd73816aa68059ce6e4289c35533f94b05` 与 §2.2 一致；Windows 安装包为 100,449,506 字节、ProductVersion `0.17.4`、SHA-256 `AA8AB49C354F819B023CEF4DC7EC6FB603B03CA8B986176823218AFC49AB3DE4`。Windows 打包自检在独立用户数据目录通过：`app://starburst`、字体、IndexedDB `readwrite-ok`、SQLite `ok:0/0`、页面渲染正常。GitHub 普通 Release `https://github.com/BrainLeech198/starburst_recorder/releases/tag/v0.17.4` 含 APK 与 Windows 安装包，两项资产 digest 与本地 SHA-256 一致，下载均返回 HTTP 200；Gitee 只推送源码，未新建 Release 或上传软件包。GitHub CI `43052735441` 与 Pages 工作流 `43052734999` 均成功；官网首页、更新日志均返回 HTTP 200 并显示本版。PWA 生产部署地址 `https://9b852719.starburst-recorder.pages.dev`，部署 ID `9b852719-42eb-4138-9409-077a42a1a39b`，构建号 `mwcahr3u`；正式域名线上验收 10/10、本地 PWA 探针 20/20，Service Worker 已激活并接管页面，推送鉴权与 `/health` 通过，测试订阅已删除。`npm test`（86 个文件、875 项）、`npm run typecheck`、`npm run lint`、`npm run build`、Android `assembleRelease` 与 Windows 安装包构建均通过。Android 构建仍有 Kotlin 元数据版本不一致及 Gradle 9 弃用提示；Vite 有超过 500 kB 的 chunk 提示，均未阻断构建。GitHub 镜像与 Gitee 主线及标签均指向 `5dc0ece`。
+`0.17.4` 正式版（按用户明确指定的 patch 更新）：标签 `v0.17.4` 指向 `5dc0eceaacf7ae731d56b11564ccd762f5c691c0`。APK 为 61,870,693 字节、`versionCode=1704999`、`versionName=0.17.4`、SHA-256 `406D58EC4BE4CE46DFA3FF813D67AFC3B386B7B5DCF07F3DF3AFBB9D0452F918`，签名证书 SHA-256 `2eb0978a6abad455b55aa06dc86d2ccd73816aa68059ce6e4289c35533f94b05` 与 §2.2 一致；Windows 安装包为 100,449,506 字节、ProductVersion `0.17.4`、SHA-256 `AA8AB49C354F819B023CEF4DC7EC6FB603B03CA8B986176823218AFC49AB3DE4`。Windows 打包自检在独立用户数据目录通过：`app://starburst`、字体、IndexedDB `readwrite-ok`、SQLite `ok:0/0`、页面渲染正常。GitHub 普通 Release `https://github.com/BrainLeech198/starburst_recorder/releases/tag/v0.17.4` 含 APK 与 Windows 安装包，两项资产 digest 与本地 SHA-256 一致，下载均返回 HTTP 200；Gitee 普通 Release `https://gitee.com/Mr_brainleech/starburst_recorder/releases/tag/v0.17.4`（API ID `1302206`）含同名两项资产，大小分别为 61,870,693 / 100,449,506 字节。从 Gitee 回下载均为 HTTP 200，SHA-256 与本地和 GitHub 附件一致；Gitee `v0.17.3` Release（ID `1298531`）的旧二进制附件已移除，Release、tag 和源码归档保留，Gitee `/latest` 指向 `v0.17.4`。GitHub CI `43052735441` 与 Pages 工作流 `43052734999` 均成功；官网首页、更新日志均返回 HTTP 200 并显示本版。PWA 生产部署地址 `https://9b852719.starburst-recorder.pages.dev`，部署 ID `9b852719-42eb-4138-9409-077a42a1a39b`，构建号 `mwcahr3u`；正式域名线上验收 10/10、本地 PWA 探针 20/20，Service Worker 已激活并接管页面，推送鉴权与 `/health` 通过，测试订阅已删除。`npm test`（86 个文件、875 项）、`npm run typecheck`、`npm run lint`、`npm run build`、Android `assembleRelease` 与 Windows 安装包构建均通过。Android 构建仍有 Kotlin 元数据版本不一致及 Gradle 9 弃用提示；Vite 有超过 500 kB 的 chunk 提示，均未阻断构建。GitHub 镜像与 Gitee 主线及标签均指向 `5dc0ece`。
 
 ## 4.2 测试版发版（GitHub Pre-release）
 
@@ -276,17 +271,17 @@ POST   https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files 
 | 装上新包还是旧界面 | 漏了 `npx cap sync android` |
 | 新包装不上、提示签名冲突 | 换了 keystore，或装的是 debug 包；用 §2.3 验签 |
 | GitHub 资产本地下载报 TLS 吊销错误 | 本机证书链问题，用 `gh release view` 核对资产大小，不代表文件坏了 |
-| Gitee 上传安装包报「文件大小已超出仓库附件配额：1 GB」 | 这是**仓库附件总量**（1 GB）满了，不是单文件；按 §4.1 先删旧版本附件再传，之后坚持「Gitee 只留最新版」 |
-| Gitee 上传单个包被拒（接近或超过 100 MB） | 单附件上限 100 MB；当前 exe 94.9 MB 已接近，超过后 Windows 包只能放 GitHub |
+| 官网 / Gitee 找不到当前版安装包，或 Gitee 有多个版本附件 | 正式版 Gitee 只保留最新版一组附件；先核实当前版 Release 与官网 Gitee 链接，再按 §4.1 上传、验哈希后清除旧版附件。GitHub 保留完整下载历史 |
+| Gitee 上传安装包报附件配额或单文件大小错误 | Gitee 附件总量约 1 GB、单文件上限约 100 MB；按 §4.1 先上传并验证当前包，再清除上一正式版的两个二进制附件，保留旧 Release 条目。不要清理 GitHub 附件 |
 | 发完测试版，正式版用户也收到了 | GitHub Release 没勾 *Pre-release*，`latest` 被顶掉；改成 Pre-release 并确认 `/releases/latest` 回到正式版 |
 | 测试版通道检查不到刚发的包 | 依次查：Release 是否为 draft、是否上传了对应平台附件（apk / exe）、`/releases?per_page=20` 是否能看到、当前安装版本是否已不低于它 |
 | 测试版下载 404 或只有 GitHub 能下 | 正常：测试版只传 GitHub，Gitee 没有对应附件，应用也不会拼 Gitee 地址 |
 | Android `versionCode` 突然变大 | `0.8.0` 起换成「base × 1000 + 通道」公式（§1），新号一律大于旧号，属正常 |
 | Inno Setup 找不到 | 安装 Inno Setup 6，或把 `ISCC.exe` 放进 PATH |
 | Inno Setup 报「系统找不到指定的路径」并中断 | 安卓插件在 `node_modules/@krzysztofkostecki/capacitor-health/android/build` 留下 Gradle 产物，`.transforms` 下的路径超过 260 字符。`package.json` 的 `build.files` 已排除该插件的 `android/**`；出包前也可手动删掉这个 `build` 目录 |
-| Gitee 建 Release 报 `body is invalid` | 说明带 `\r\n` 发过去会被拒。把说明读进来后用 `-replace "\r\n","\n"` 转成 LF 再提交 |
+| 历史 Gitee Release 编辑说明报 `body is invalid` | 旧 Release 的说明若需维护，Gitee 可能拒绝 CRLF；将说明转成 LF。当前正式版 Gitee Release 按 §4.1 维护，测试版不创建 Gitee Release，见 §4.2 |
 | 官网更新了但页面没变 | Pages 工作流只监听 `site/**`；确认提交里确实改了 `site/`，再看 Actions 是否成功 |
-| Gitee 传附件返回 `Unauthorized` | `access_token` 放在 multipart 表单字段里会被拒，必须放在 URL 查询串（`.../attach_files?access_token=...`）；创建 Release 时放 JSON 请求体则正常 |
+| 管理历史 Gitee 附件返回 `Unauthorized` 或 403 | 仅在按要求整理历史附件时适用：写请求需带 `Authorization: token <token>` 头，token 从 `.local/keys/gitee-token.txt` 读取；正式版附件按 §4.1 维护，测试版不上传 Gitee，见 §4.2 |
 | `npx cap sync android` 报 `[safe-delete] 操作失败: ...capacitor-cordova-android-plugins` | 本机 CLI 的安全删除守卫把「删整个插件目录」判成危险操作，`trash` 失败即中止。该目录本来就是每次同步重新生成的，用 `CODEBUDDY_SAFE_DELETE_ENABLED=0 npx cap sync android` 放行即可（只对这条命令生效） |
 | `npm run desktop:installer` 报 `[safe-delete][SAFE_DELETE_BULK_CONFIRM_REQUIRED] ...dist\assets` | vite 的 `emptyOutDir` 一次删上百个文件，被「批量删除」守卫拦下。先 `rm -rf .local/dist` 再构建即可 |
 | `npm run desktop:installer` 报 `win-unpacked\resources: Error during a trash operation` | `build.electronLanguages` 只留 `zh-CN`/`en-US`，electron-builder 要删掉另外 53 个 `locales/*.pak`，同样触发批量删除守卫。做法：用脚本复制一份只含两个语言包的 Electron 发行目录（复制时就不带 `locales/`，全程不删），再 `npx electron-builder --win --dir -c.directories.output=<新目录> -c.electronDist=<精简目录>` |
@@ -294,7 +289,6 @@ POST   https://gitee.com/api/v5/repos/{owner}/{repo}/releases/{id}/attach_files 
 | ISCC 报 `You may not specify more than one script filename.` | 参数里带了含中文的 `/DMyAppName=星芒记录者`，bash 下被拆成多个参数，ISCC 误以为传了多个脚本。中文默认值写在 `.iss` 的 `#define` 里，命令行只传 `"/DMyAppVersion=0.12.1"` 这类纯 ASCII 参数；用 PowerShell 调用更稳 |
 | 推完 Gitee 很久，GitHub 镜像还停在旧提交 | 0.12.1 发版时遇到：Gitee 已有 `fd0b151` 与 `v0.12.1`，GitHub 停在 `c3be48d` 超过 25 分钟（上一版 3 分钟就同步了）。先确认 Gitee 侧确实推成功（`git log origin/main -1`），再直推补齐：`GIT_SSL_NO_VERIFY=1 git push github main --tags`。这是快进，不改写历史，镜像恢复后不会冲突。本机直推 GitHub 会先撞 `schannel: CRYPT_E_NO_REVOCATION_CHECK`，`-c http.schannelCheckRevoke=false` 压不住，只有 `GIT_SSL_NO_VERIFY=1` 能过（本机证书链问题，不是仓库问题） |
 | `npx electron-builder --win --dir` 报 `EBUSY: resource busy or locked, unlink ...\win-unpacked\resources\app.asar` | 旧的免安装目录还被某个进程（杀毒、资源管理器预览、残留的 Electron 子进程）拿着 `app.asar`，删不掉也覆盖不了。换一个输出目录即可：`npx electron-builder --win --dir -c.directories.output=<新目录>`（注意是 `-c.` 前缀，写成 `--config.directories.output` 会被当成配置文件路径报 `ENOENT`）；随后把 `.iss` 的 `Source` 指到新目录，或等占用释放后重建 `win-unpacked` |
-| Gitee 删附件 / 传附件返回 403 | `access_token` 放 JSON 请求体或查询串都会被拒，写请求要带 `Authorization: token <token>` 头（curl `-H "Authorization: token …"`），token 仍只从 `.local/keys/gitee-token.txt` 读，不要进命令行 |
 | 核对 asar 里的 `package.json` 把仓库那份覆盖了 | `npx asar extract-file` 会把文件写到**当前目录**。不要在仓库根跑：先 `cd .local/tmp` 或用 `asar list` / `asar extract` 到临时目录。恢复办法：`git show HEAD:package.json > package.json`，再把版本号改回来 |
 
 ## 7. 相关文件

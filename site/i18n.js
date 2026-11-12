@@ -148,7 +148,7 @@ window.SITE_I18N = {
     'download.android': 'Android APK',
     'download.androidMeta': 'Android 10 以上 · 约 62 MB',
     'download.androidDesc': '侧载安装，需要允许「安装未知来源应用」。手机上是同一套界面，数据留在本机。',
-    'download.note': '安装包由 GitHub Release 提供；Gitee 继续用于同步源码。',
+    'download.note': '当前版安装包优先由 Gitee 提供大陆下载，GitHub 保留完整版本历史并作备用；历史版本请从 GitHub 下载。',
 
     'whatsnew.title': '这一版有什么',
     'whatsnew.item1': '日历 AI 回顾按完整自然月和自然年比较',
@@ -315,7 +315,7 @@ window.SITE_I18N = {
     'download.androidMeta': 'Android 10+ · about 62 MB',
     'download.androidDesc':
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
-    'download.note': 'Installers are provided through GitHub Releases; Gitee remains the source mirror.',
+    'download.note': 'The current installers are available from Gitee for users in mainland China. GitHub keeps the full release history and serves as a fallback; download older versions from GitHub.',
 
     'whatsnew.title': "What's new in 0.17.4",
     'whatsnew.item1': 'Calendar AI reviews compare complete months and years',
