@@ -27,6 +27,19 @@ function niceMaximum(value: number) {
   return niceFraction * power
 }
 
+function compressedTicks(maximum: number, unit: number) {
+  const candidates: number[] = []
+  for (let value = unit; value < maximum; value *= 10) candidates.push(value)
+  const selected =
+    candidates.length <= 3
+      ? candidates
+      : Array.from({ length: 3 }, (_, index) => {
+          const candidateIndex = Math.round((index * (candidates.length - 1)) / 2)
+          return candidates[candidateIndex]
+        })
+  return [maximum, ...selected.reverse(), 0]
+}
+
 export default function FinanceTrendChart({
   points,
   ariaLabel,
@@ -43,26 +56,37 @@ export default function FinanceTrendChart({
   const { t } = useI18n()
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [focusedKey, setFocusedKey] = useState<string | null>(null)
-  const maxValue = Math.max(0, ...points.flatMap((point) => [point.income, point.expense]))
+  const values = points.flatMap((point) => [point.income, point.expense])
+  const maxValue = Math.max(0, ...values)
   const scaleMaximum = niceMaximum(maxValue)
+  const positiveValues = values.filter((value) => value > 0).sort((a, b) => a - b)
+  // 用较低四分位数估算日常金额，避免单个大额把其他点压到零轴附近。
+  const typicalValue = positiveValues[Math.floor((positiveValues.length - 1) / 4)] ?? 0
+  const compressed = positiveValues.length > 1 && maxValue >= typicalValue * 8
+  const compressionUnit = compressed ? niceMaximum(typicalValue / 4) : 1
+  const scaleValue = (value: number) =>
+    compressed ? Math.log1p(value / compressionUnit) : value
+  const plottedMaximum = scaleValue(scaleMaximum)
   const baseline = PLOT_BOTTOM
   const x = (index: number) =>
     points.length === 1
       ? (PLOT_LEFT + PLOT_RIGHT) / 2
       : PLOT_LEFT + (index * (PLOT_RIGHT - PLOT_LEFT)) / (points.length - 1)
   const y = (value: number) =>
-    PLOT_BOTTOM - (value / scaleMaximum) * (PLOT_BOTTOM - PLOT_TOP)
+    PLOT_BOTTOM - (scaleValue(value) / plottedMaximum) * (PLOT_BOTTOM - PLOT_TOP)
   const incomePoints = points.map((point, index) => `${x(index)},${y(point.income)}`).join(' ')
   const expensePoints = points.map((point, index) => `${x(index)},${y(point.expense)}`).join(' ')
   const incomeArea = `${x(0)},${baseline} ${incomePoints} ${x(points.length - 1)},${baseline}`
   const expenseArea = `${x(0)},${baseline} ${expensePoints} ${x(points.length - 1)},${baseline}`
-  const ticks = [scaleMaximum, scaleMaximum / 2, 0]
+  const ticks = compressed
+    ? compressedTicks(scaleMaximum, compressionUnit)
+    : [scaleMaximum, scaleMaximum / 2, 0]
   const selectedIndex = selectedKey ? points.findIndex((point) => point.key === selectedKey) : -1
   const selectedPoint = selectedIndex >= 0 ? points[selectedIndex] : null
   const axisMoney = (value: number) =>
     `${t('finance.currency')}${new Intl.NumberFormat(locale, {
       notation: 'compact',
-      maximumFractionDigits: 1,
+      maximumFractionDigits: 2,
     }).format(value)}`
   const percent = (value: number) => `${(value / HEIGHT) * 100}%`
 
@@ -72,13 +96,18 @@ export default function FinanceTrendChart({
 
   return (
     <div className={className}>
+      {compressed && (
+        <p className="m-0 mb-1 text-right text-[10px] text-muted">
+          {t('finance.compressedScale')}
+        </p>
+      )}
       <div className="relative">
         <svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           width="100%"
           className="block h-auto w-full"
           role="group"
-          aria-label={ariaLabel}
+          aria-label={compressed ? `${ariaLabel} · ${t('finance.compressedScale')}` : ariaLabel}
         >
           {ticks.map((tick) => (
             <line

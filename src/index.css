@@ -574,6 +574,14 @@ html.sb-scroll-locked .sb-scroll {
   overscroll-behavior: contain;
 }
 
+/* 收支录入内容可滚动，标题与保存操作固定在弹窗边缘。 */
+.sb-modal-panel.finance-entry-modal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
 /*
  * 壳层根节点固定一屏高。先给 100vh 兜底，再让 100dvh 覆盖：
  * Android 的 WebView 版本随系统更新，个别偏旧的认不得 dvh，兜底能保证"仍然是一屏高"，

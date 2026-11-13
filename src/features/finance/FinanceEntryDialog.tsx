@@ -139,190 +139,197 @@ export default function FinanceEntryDialog({
   }
 
   return (
-    <Modal size="sm" label={t(entry ? 'finance.editTitle' : 'finance.addTitle')} onClose={onClose}>
-      <h2 className="m-0 text-base font-medium text-fg">
+    <Modal
+      size="sm"
+      label={t(entry ? 'finance.editTitle' : 'finance.addTitle')}
+      onClose={onClose}
+      panelClassName="finance-entry-modal"
+    >
+      <h2 className="m-0 flex-none border-b border-line px-4 pb-3 pt-4 text-base font-medium text-fg">
         {t(entry ? 'finance.editTitle' : 'finance.addTitle')}
       </h2>
 
-      {/* 收支方向：两个并排的格子，选中态跟全站 choiceTile 一致 */}
-      <div className="mt-4 flex gap-2">
-        {(['expense', 'income'] as FinanceKind[]).map((item) => (
-          <button
-            key={item}
-            type="button"
-            aria-pressed={kind === item}
-            onClick={() => switchKind(item)}
-            className={choiceTile(kind === item, 'flex-1 py-2 text-sm')}
-          >
-            {t(item === 'expense' ? 'finance.expense' : 'finance.income')}
-          </button>
-        ))}
-      </div>
-
-      <label className="mt-3 block">
-        <span className="text-xs text-muted">{t('finance.amount')}</span>
-        <div className="mt-1 flex items-baseline gap-1">
-          <span className="text-lg text-muted">{t('finance.currency')}</span>
-          <input
-            autoFocus
-            value={amountText}
-            onChange={(event) => {
-              setAmountText(event.target.value)
-              setError('')
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault()
-                void submit()
-              }
-            }}
-            inputMode="decimal"
-            placeholder="0"
-            aria-label={t('finance.amount')}
-            className={`${INPUT} w-full text-2xl tabular-nums`}
-          />
-        </div>
-      </label>
-
-      <div className="mt-3">
-        <span className="text-xs text-muted">{t('finance.category')}</span>
-        <div className="mt-1 grid grid-cols-3 gap-1.5">
-          {categoriesOf(kind).map((item) => (
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
+        {/* 收支方向：两个并排的格子，选中态跟全站 choiceTile 一致 */}
+        <div className="mt-4 flex gap-2">
+          {(['expense', 'income'] as FinanceKind[]).map((item) => (
             <button
-              key={item.id}
+              key={item}
               type="button"
-              aria-pressed={category === item.id}
-              onClick={() => setCategory(item.id)}
-              className={choiceTile(category === item.id, 'px-1 py-2 text-center text-xs')}
+              aria-pressed={kind === item}
+              onClick={() => switchKind(item)}
+              className={choiceTile(kind === item, 'flex-1 py-2 text-sm')}
             >
-              {t(item.label)}
+              {t(item === 'expense' ? 'finance.expense' : 'finance.income')}
             </button>
           ))}
         </div>
-      </div>
 
-      <label className="mt-3 block">
-        <span className="text-xs text-muted">{t('finance.name')}</span>
-        <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder={t('finance.namePlaceholder')}
-          className={`${INPUT} mt-1 w-full`}
-        />
-      </label>
+        <label className="mt-3 block">
+          <span className="text-xs text-muted">{t('finance.amount')}</span>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="text-lg text-muted">{t('finance.currency')}</span>
+            <input
+              autoFocus
+              value={amountText}
+              onChange={(event) => {
+                setAmountText(event.target.value)
+                setError('')
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  void submit()
+                }
+              }}
+              inputMode="decimal"
+              placeholder="0"
+              aria-label={t('finance.amount')}
+              className={`${INPUT} w-full text-2xl tabular-nums`}
+            />
+          </div>
+        </label>
 
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <label className="block">
-          <span className="text-xs text-muted">{t('finance.date')}</span>
+        <div className="mt-3">
+          <span className="text-xs text-muted">{t('finance.category')}</span>
+          <div className="mt-1 grid grid-cols-3 gap-1.5">
+            {categoriesOf(kind).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={category === item.id}
+                onClick={() => setCategory(item.id)}
+                className={choiceTile(category === item.id, 'px-1 py-2 text-center text-xs')}
+              >
+                {t(item.label)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <label className="mt-3 block">
+          <span className="text-xs text-muted">{t('finance.name')}</span>
           <input
-            type="date"
-            value={dateKey}
-            onChange={(event) => setDateKey(event.target.value)}
-            className={`${INPUT} mt-1 w-full tabular-nums`}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder={t('finance.namePlaceholder')}
+            className={`${INPUT} mt-1 w-full`}
           />
         </label>
-        <label className="block">
-          <span className="text-xs text-muted">{t('finance.time')}</span>
-          <input
-            type="time"
-            step="1"
-            value={normalizeClock(time)}
-            onChange={(event) => setTime(event.target.value)}
-            className={`${INPUT} mt-1 w-full tabular-nums`}
-          />
-        </label>
-      </div>
 
-      {/* 票据照片：按模块图片设置处理后跟着记录保存 */}
-      <div className="mt-3 flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-2.5">
-        {photo ? (
-          <PhotoPreview
-            src={photo}
-            alt={t('finance.photo')}
-            className="h-16 w-16 rounded-lg"
-            wrapperClassName="shrink-0"
-          />
-        ) : (
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-line px-1 text-center text-[11px] text-muted">
-            {t('finance.photo')}
-          </span>
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="m-0 text-[11px] text-muted">{t('finance.photoHint')}</p>
-          <div className="mt-1.5 flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={photoUploading}
-              onClick={() => setPhotoPicking(true)}
-              className={`${OUTLINE_BUTTON} px-2 py-1 text-xs`}
-            >
-              <Icon name="image" />
-              {photoUploading
-                ? t('finance.photoUploading')
-                : photo
-                  ? t('finance.photoReplace')
-                  : t('finance.photoAdd')}
-            </button>
-            {photo && (
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-xs text-muted">{t('finance.date')}</span>
+            <input
+              type="date"
+              value={dateKey}
+              onChange={(event) => setDateKey(event.target.value)}
+              className={`${INPUT} mt-1 w-full tabular-nums`}
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs text-muted">{t('finance.time')}</span>
+            <input
+              type="time"
+              step="1"
+              value={normalizeClock(time)}
+              onChange={(event) => setTime(event.target.value)}
+              className={`${INPUT} mt-1 w-full tabular-nums`}
+            />
+          </label>
+        </div>
+
+        {/* 票据照片：按模块图片设置处理后跟着记录保存 */}
+        <div className="mt-3 flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-2.5">
+          {photo ? (
+            <PhotoPreview
+              src={photo}
+              alt={t('finance.photo')}
+              className="h-16 w-16 rounded-lg"
+              wrapperClassName="shrink-0"
+            />
+          ) : (
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-line px-1 text-center text-[11px] text-muted">
+              {t('finance.photo')}
+            </span>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="m-0 text-[11px] text-muted">{t('finance.photoHint')}</p>
+            <div className="mt-1.5 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => setPhoto(null)}
-                className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-danger"
+                disabled={photoUploading}
+                onClick={() => setPhotoPicking(true)}
+                className={`${OUTLINE_BUTTON} px-2 py-1 text-xs`}
               >
-                {t('finance.photoRemove')}
+                <Icon name="image" />
+                {photoUploading
+                  ? t('finance.photoUploading')
+                  : photo
+                    ? t('finance.photoReplace')
+                    : t('finance.photoAdd')}
               </button>
-            )}
+              {photo && (
+                <button
+                  type="button"
+                  onClick={() => setPhoto(null)}
+                  className="rounded-lg px-2 py-1 text-xs text-muted transition-colors hover:text-danger"
+                >
+                  {t('finance.photoRemove')}
+                </button>
+              )}
+            </div>
+            {photoError !== '' && <ErrorNote>{photoError}</ErrorNote>}
           </div>
-          {photoError !== '' && <ErrorNote>{photoError}</ErrorNote>}
         </div>
+
+        <input
+          ref={photoFileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            event.target.value = ''
+            void uploadPhoto(file)
+          }}
+        />
+        <input
+          ref={photoCameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            event.target.value = ''
+            void uploadPhoto(file)
+          }}
+        />
+        {photoPicking && (
+          <ImageSourceDialog
+            onTakePhoto={() => void takePhoto()}
+            onPickFile={() => {
+              setPhotoPicking(false)
+              photoFileRef.current?.click()
+            }}
+            onClose={() => setPhotoPicking(false)}
+          />
+        )}
+
+        <label className="mt-3 block">
+          <span className="text-xs text-muted">{t('finance.note')}</span>
+          <input
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            className={`${INPUT} mt-1 w-full`}
+          />
+        </label>
+
+        {error !== '' && <p className="m-0 mt-2 text-xs text-danger">{error}</p>}
       </div>
 
-      <input
-        ref={photoFileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(event) => {
-          const file = event.target.files?.[0]
-          event.target.value = ''
-          void uploadPhoto(file)
-        }}
-      />
-      <input
-        ref={photoCameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(event) => {
-          const file = event.target.files?.[0]
-          event.target.value = ''
-          void uploadPhoto(file)
-        }}
-      />
-      {photoPicking && (
-        <ImageSourceDialog
-          onTakePhoto={() => void takePhoto()}
-          onPickFile={() => {
-            setPhotoPicking(false)
-            photoFileRef.current?.click()
-          }}
-          onClose={() => setPhotoPicking(false)}
-        />
-      )}
-
-      <label className="mt-3 block">
-        <span className="text-xs text-muted">{t('finance.note')}</span>
-        <input
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          className={`${INPUT} mt-1 w-full`}
-        />
-      </label>
-
-      {error !== '' && <p className="m-0 mt-2 text-xs text-danger">{error}</p>}
-
-      <div className="mt-5 flex justify-end gap-2">
+      <div className="flex flex-none justify-end gap-2 border-t border-line bg-surface px-4 py-3">
         <button type="button" onClick={onClose} className={GHOST_BUTTON}>
           {t('common.cancel')}
         </button>

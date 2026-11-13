@@ -93,6 +93,14 @@ function weekdayKey(dateKey: string): MessageKey {
   return ('date.weekdayShort' + day) as MessageKey
 }
 
+/** 图表横轴只显示日号；完整日期由时段标题和点选详情提供。 */
+function dayOfMonthLabel(dateKey: string, locale: string) {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  return new Intl.DateTimeFormat(locale, { day: 'numeric' }).format(
+    new Date(year, month - 1, day),
+  )
+}
+
 /** 日 / 周 / 月 / 年四种观察视角 */
 type FinanceView = 'day' | 'week' | 'month' | 'year'
 
@@ -805,7 +813,7 @@ export default function FinancePage() {
               locale={locale}
               money={money}
               points={monthWeeks.map((item) => {
-                const label = formatMonthDay(item.rangeStart, t)
+                const label = dayOfMonthLabel(item.rangeStart, locale)
                 const detailLabel = `${formatMonthDay(item.rangeStart, t)} – ${formatMonthDay(item.rangeEnd, t)}`
                 return {
                   key: item.weekStart,
@@ -845,15 +853,16 @@ export default function FinancePage() {
             locale={locale}
             money={money}
             points={weekDays.map((day) => {
-              const label = formatMonthDay(day.dateKey, t)
+              const label = dayOfMonthLabel(day.dateKey, locale)
+              const detailLabel = formatMonthDay(day.dateKey, t)
               return {
                 key: day.dateKey,
                 label,
-                detailLabel: label,
+                detailLabel,
                 income: day.income,
                 expense: day.expense,
                 ariaLabel: t('finance.chartBucketLabel', {
-                  label,
+                  label: detailLabel,
                   income: money(day.income),
                   expense: money(day.expense),
                 }),
