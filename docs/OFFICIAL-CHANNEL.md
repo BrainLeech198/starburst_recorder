@@ -80,7 +80,7 @@
 
 ## 线上启用前的配置
 
-管理员网站现已发布：`https://brainleech198.github.io/starburst_recorder/admin/`。Pages workflow `41775382671` 成功；Worker `starburst-push` 版本 `17613267-08dd-4503-813a-ba055f7b49c2` 已部署。管理员登录和状态接口均返回 HTTP 200，当前 `emailSendingEnabled=false`。登录凭据保存在本机忽略文件 `.local/keys/admin-credentials.txt`，不要复制到仓库或公开位置。
+管理员网站现已发布：`https://brainleech198.github.io/starburst_recorder/admin/`。Pages workflow `41775382671` 成功；Worker `starburst-push` 最近一次凭据同步部署版本为 `7bd331aa-637d-4a4e-910e-70c272be3c99`。2026-11-11 验证管理员登录、状态和反馈列表 API 均返回 HTTP 200；线上有 3 条反馈，均为无安装标识的旧记录，`canReply=false`。当前 `emailSendingEnabled=false`，缺少 `RESEND_API_KEY`、`EMAIL_FROM` 和 `UNSUBSCRIBE_TOKEN_SECRET`。登录凭据保存在本机忽略文件 `.local/keys/admin-credentials.txt`，不要复制到仓库或公开位置。
 
 2026-11-11 管理员工作台改为运营概览 + 响应式分区布局；登录 401 现在按凭证错误提示。Worker 当前登录密钥已轮换，版本 `c3cffd87-a8c2-4a73-81f5-af090cd8c510`；Cloudflare Pages `0.17.2` 部署地址 `https://0f381498.starburst-recorder.pages.dev`，构建号 `mwc4b9g1`。新后台页面随本次 Gitee 主线提交发布，GitHub Pages workflow `43024549842` 成功。
 
