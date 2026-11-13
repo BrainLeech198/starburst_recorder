@@ -20,6 +20,7 @@ import {
   sleepWakeStats,
 } from '@/features/health/sleepMath'
 import { occurrencesOn, isDoneOn } from '@/features/schedule/scheduleMath'
+import { weekRange } from '@/features/week/weekMath'
 import { explainFailure, pickReply, chat } from './aiClient'
 import type { AiConfig } from './aiConfig'
 import { stripMetaLine } from './aiCompose'
@@ -37,10 +38,16 @@ export interface ReportPeriod {
 
 /** 四种周期的称呼：提示词里所有「本周 / 上周」都从这里取，避免各写一份 */
 const KIND_WORDS: Record<ReportKind, { current: string; previous: string; name: string }> = {
-  day: { current: '今天', previous: '昨天', name: '日报' },
+  day: { current: '所选日期', previous: '前一天', name: '日报' },
   week: { current: '本周', previous: '上周', name: '周报' },
   month: { current: '本月', previous: '上月', name: '月报' },
   year: { current: '今年', previous: '去年', name: '年报' },
+}
+
+/** 日报选定一天；周报以选中的任意一天定位到整周（周一至周日）。 */
+export function reportRangeForDate(kind: 'day' | 'week', dateKey: string) {
+  if (kind === 'day') return { from: dateKey, to: dateKey }
+  return weekRange(dateKey)
 }
 
 const ENTRY_CHARS = 220
@@ -238,6 +245,52 @@ export interface ReportTotals {
   weights: { dateKey: string; kg: number }[]
   scheduleDone: number
   scheduleTotal: number
+}
+
+export interface ReportTrendPoint {
+  /** 日期或月份的起始日 */
+  key: string
+  kcal: number
+  protein: number
+}
+
+/** 给报告图表用：日报展示截至所选日的近七天，其余按所选周期逐日 / 逐月展示。 */
+export function reportTrendPoints(
+  data: AssistantDataSource,
+  period: ReportPeriod,
+): ReportTrendPoint[] {
+  const buckets: { key: string; from: string; to: string }[] = []
+  if (period.kind === 'year') {
+    const year = Number(period.from.slice(0, 4))
+    for (let month = 1; month <= 12; month += 1) {
+      const monthKey = `${year}-${String(month).padStart(2, '0')}`
+      const lastDay = new Date(year, month, 0).getDate()
+      buckets.push({
+        key: `${monthKey}-01`,
+        from: `${monthKey}-01`,
+        to: `${monthKey}-${String(lastDay).padStart(2, '0')}`,
+      })
+    }
+  } else {
+    const from = period.kind === 'day' ? shiftDay(period.to, -6) : period.from
+    for (const dateKey of dateKeysBetween(from, period.to)) {
+      buckets.push({ key: dateKey, from: dateKey, to: dateKey })
+    }
+  }
+
+  return buckets.map((bucket) => {
+    const intakes = data.intakes.filter(
+      (item) =>
+        item.deletedAt === null &&
+        item.dateKey >= bucket.from &&
+        item.dateKey <= bucket.to,
+    )
+    return {
+      key: bucket.key,
+      kcal: intakes.reduce((sum, item) => sum + item.kcal, 0),
+      protein: intakes.reduce((sum, item) => sum + item.protein, 0),
+    }
+  })
 }
 
 function mealBucket(time: string): keyof ReportTotals['mealBuckets'] {
@@ -483,17 +536,17 @@ function buildSystemPrompt(kind: ReportKind): string {
   const words = KIND_WORDS[kind]
   const isDay = kind === 'day'
   const structure = isDay
-    ? `## 今日结论
+    ? `## ${words.current}结论
 ## 能量与三条线
-## 今日摄入与三餐
+## ${words.current}摄入与三餐
 ## 营养结构（供能比 / 蛋白来源）
 ## 餐次与进食窗
 ## 食物结构与加工 / 高钠
 ## 训练与恢复
 ## 睡眠与体感
 ## 体重与身体信号
-## 近 7 天趋势
-## 明天 3 件事`
+## 截至所选日期的近 7 天趋势
+## 下一天 3 件事`
     : `## ${words.current}结论
 ## 和${words.previous}比
 ## 能量收支与三条线
@@ -515,14 +568,14 @@ function buildSystemPrompt(kind: ReportKind): string {
     kind === 'year'
       ? `\n- 年报优先看逐月变化和阶段节奏，不要逐日复述；把这一年拆成几个阶段来讲`
       : ''
-  const action = isDay ? '「明天 3 件事」' : '「下一步」'
+  const action = isDay ? '「下一天 3 件事」' : '「下一步」'
 
   return `你负责把一个人一段时间里的记录，整理成一篇回顾（${words.name}）。
 
 素材只有这些：日记正文、随记、饮食（热量与蛋白/碳水/脂肪、进食时间与餐次、蛋白来源）、睡眠（时长、质量、夜醒、小睡）、体重称重、训练（项目、时长、感受、动作组数）、收支（含大件名目）、日程完成情况，以及${words.current}与${words.previous}的总量和身体档案的目标线（维持线 / 目标线 / 蛋白目标）。
 规矩：
 - 只使用素材里真实出现过的事实，人物、地点、数字都不许编造；素材里没有的就不写，不要用「可能」「大概」去补一个不存在的细节
-- 数字要分清三条线：维持 TDEE、目标额度、当日实际摄入。写「超」或「缺口」时必须写明对比的是哪一条线；目标线没设置的，只报绝对值和日均
+- 数字要分清三条线：维持 TDEE、目标额度、所选日期实际摄入。写「超」或「缺口」时必须写明对比的是哪一条线；目标线没设置的，只报绝对值和日均
 - 营养要算到能执行：蛋白按 g/kg 体重和目标对比，供能比按 4/4/9 千卡折算，餐次和进食窗按素材里的时刻讲
 - 蛋白来源只列素材里出现过的食物名与克数，不要补一个没记过的食物
 - 热量来源按素材里的食物名与千卡列，不要说「可能主要是」去猜
@@ -600,7 +653,7 @@ export function buildReportUserPrompt(
   if (period.kind === 'day') {
     const trendFrom = shiftDay(period.to, -6)
     const trend = reportTotals(data, { kind: 'day', from: trendFrom, to: period.to, label: '' })
-    lines.push('— 近 7 天（含今天，趋势参考）—', ...totalsLines(trend, data.profile), '')
+    lines.push('— 截至所选日期的近 7 天趋势 —', ...totalsLines(trend, data.profile), '')
   }
 
   if (period.kind === 'year') {

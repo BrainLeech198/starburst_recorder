@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 import type { BackupData } from '@/core/db/store'
 import type { DiaryEntry, HealthIntake, ScheduleItem } from '@/core/db/schema'
 import { emptyProfile } from '@/features/health/healthMath'
-import { buildReportUserPrompt, reportTotals } from './aiReport'
+import {
+  buildReportUserPrompt,
+  reportRangeForDate,
+  reportTotals,
+  reportTrendPoints,
+} from './aiReport'
 
 function emptyData(): BackupData {
   return {
@@ -10,6 +15,7 @@ function emptyData(): BackupData {
     stamps: [],
     days: [],
     presets: [],
+    measurements: [],
     profile: null,
     foods: [],
     meals: [],
@@ -124,6 +130,19 @@ describe('reportTotals', () => {
   })
 })
 
+describe('reportRangeForDate', () => {
+  it('日报使用所选日，周报使用所选日期所在的周一至周日', () => {
+    expect(reportRangeForDate('day', '2026-11-13')).toEqual({
+      from: '2026-11-13',
+      to: '2026-11-13',
+    })
+    expect(reportRangeForDate('week', '2026-11-13')).toEqual({
+      from: '2026-11-09',
+      to: '2026-11-15',
+    })
+  })
+})
+
 describe('buildReportUserPrompt', () => {
   it('只把区间内的内容写进提示词', () => {
     const data = emptyData()
@@ -208,7 +227,7 @@ describe('buildReportUserPrompt', () => {
     ]
     const prompt = buildReportUserPrompt(data, DAY)
     expect(prompt).toContain('报告类型：日报')
-    expect(prompt).toContain('— 近 7 天（含今天，趋势参考）—')
+    expect(prompt).toContain('— 截至所选日期的近 7 天趋势 —')
     expect(prompt).toContain('今天写的事')
     // 近 7 天只出总量，不把每天的正文重复塞一遍
     expect(prompt).not.toContain('三天前写的事')
@@ -273,5 +292,25 @@ describe('buildReportUserPrompt', () => {
 
     const prompt = buildReportUserPrompt(data, YEAR)
     expect(prompt).toContain('1 月：记录 4 天；摄入日均 1000 千卡')
+  })
+
+  it('历史日报趋势截至所选日期，且只覆盖之前六天', () => {
+    const data = emptyData()
+    data.intakes = [
+      intake({ id: 'outside', dateKey: '2026-11-06', kcal: 999 }),
+      intake({ id: 'first', dateKey: '2026-11-07', kcal: 100, protein: 5 }),
+      intake({ id: 'selected', dateKey: '2026-11-13', kcal: 500, protein: 25 }),
+      intake({ id: 'deleted', dateKey: '2026-11-13', kcal: 1000, deletedAt: 1 }),
+    ]
+
+    const points = reportTrendPoints(data, {
+      kind: 'day',
+      from: '2026-11-13',
+      to: '2026-11-13',
+      label: '2026-11-13',
+    })
+    expect(points).toHaveLength(7)
+    expect(points[0]).toMatchObject({ key: '2026-11-07', kcal: 100, protein: 5 })
+    expect(points[6]).toMatchObject({ key: '2026-11-13', kcal: 500, protein: 25 })
   })
 })
