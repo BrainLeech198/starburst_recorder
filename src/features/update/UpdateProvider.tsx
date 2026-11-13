@@ -68,7 +68,8 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       const found = await checkForUpdate(locale, nextChannel)
       if (seq !== checkSeq.current) return null
       setChecking(false)
-      if (found) setInfo(found)
+      // 手动检查必须能替换启动时缓存的版本；没有新版时也要清掉过期结果。
+      setInfo(found)
       if (manual) {
         showToast({
           message: found
@@ -118,10 +119,6 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       channel,
       setChannel,
       check: () => {
-        if (info) {
-          openWithCurrentSource()
-          return
-        }
         void runCheck(true)
       },
       open: openWithCurrentSource,
