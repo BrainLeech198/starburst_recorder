@@ -1,3 +1,17 @@
+## 0.18.1 · 2026-11-13
+
+摄入进度条按三大营养素克数占比分色；没有照片时隐藏空缩略图。
+
+### 这一版有什么
+
+- **摄入进度条按克数占比分色**：总条长仍表示摄入热量，颜色段分别表示蛋白质、碳水和脂肪的克数比例。
+- **无照片时不显示空缩略图**：食物与套餐没有照片时，列表不再预留空白图片位置。
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.18.1-setup.exe`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1-setup.exe)（约 96 MB）· [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.18.1.apk`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1.apk)（约 62 MB，正式签名）· [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1.apk)
+
 ## 0.18.0 · 2026-11-13
 
 助手跨会话继续运行，改动可先核对；收支和健康记录也更清楚。

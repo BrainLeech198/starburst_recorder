@@ -1,5 +1,19 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
+## 0.18.1 · 2026-11-13
+
+Intake progress segments now use macro grams; empty photo thumbnails are hidden.
+
+### What's new
+
+- **Intake progress uses gram shares** — the full bar still represents calories, while its colors show the gram proportions of protein, carbs, and fat.
+- **No empty photo thumbnails** — food and meal rows no longer reserve blank image space when no photo is available.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.18.1-setup.exe`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1-setup.exe) (~96 MB) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1-setup.exe)
+- Android 10+: [`starburst-recorder-0.18.1.apk`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1.apk) (~62 MB, release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1.apk)
+
 ## 0.18.0 · 2026-11-13
 
 Assistant runs continue across page and conversation switches, with changes to review; finance and health records are clearer too.
