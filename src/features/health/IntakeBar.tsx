@@ -1,19 +1,17 @@
 import { useI18n } from '@/shared/i18n/context'
 import {
-  KCAL_PER_GRAM,
   MACRO_COLORS,
   MACRO_KEYS,
   barPercent,
   barScale,
   formatNum,
-  macroKcal,
-  macroEnergySharePercent,
+  macroGramSharePercent,
 } from './healthMath'
 import type { Macros } from './healthMath'
 
 /**
  * 今日摄入条：横轴是热量，固定量程到 TDEE×1.35。
- * 条身按三大营养素的热量占比分段上色，超出 TDEE 的部分叠一层红。
+ * 条身按三大营养素的克数占比分段上色，超出 TDEE 的部分叠一层红。
  */
 export default function IntakeBar({
   totals,
@@ -36,7 +34,7 @@ export default function IntakeBar({
   const derivedPct = derived && derived > 0 ? barPercent(derived, scale) : 0
   const tdeePct = barPercent(scale / 1.35, scale)
 
-  const macroTotal = macroKcal(totals.protein, totals.carbs, totals.fat)
+  const macroTotalGrams = MACRO_KEYS.reduce((sum, key) => sum + Math.max(0, totals[key]), 0)
   const overPct = Math.max(0, eatenPct - tdeePct)
 
   return (
@@ -49,17 +47,17 @@ export default function IntakeBar({
       })}
     >
       <div className="relative h-4 overflow-hidden rounded-full bg-line/40">
-        {macroTotal > 0 ? (
+        {macroTotalGrams > 0 ? (
           <div className="flex h-full" style={{ width: `${eatenPct}%` }}>
             {MACRO_KEYS.map((key) => {
-              const kcal = totals[key] * KCAL_PER_GRAM[key]
-              if (kcal <= 0) return null
+              const grams = Math.max(0, totals[key])
+              if (grams <= 0) return null
               return (
                 <span
                   key={key}
                   className="block h-full shrink-0"
                   style={{
-                    width: `${macroEnergySharePercent(kcal, macroTotal)}%`,
+                    width: `${macroGramSharePercent(grams, macroTotalGrams)}%`,
                     background: MACRO_COLORS[key],
                   }}
                 />

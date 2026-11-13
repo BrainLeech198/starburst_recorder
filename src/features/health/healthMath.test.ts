@@ -14,6 +14,7 @@ import {
   mealTotalsFromMap,
   macroKcal,
   macroEnergySharePercent,
+  macroGramSharePercent,
   missingProfileFields,
   remainingKcal,
   suggestProteinForPlan,
@@ -126,6 +127,20 @@ describe('进度条的比例', () => {
   it('宏量营养素颜色段按供能占比分配，不受记录热量口径影响', () => {
     expect(macroEnergySharePercent(160, 400)).toBe(40)
     expect(macroEnergySharePercent(0, 0)).toBe(0)
+  })
+
+  it('摄入条三种颜色按各自克数占比显示', () => {
+    const totalGrams = 88.05 + 184.48 + 122.25
+    const protein = macroGramSharePercent(88.05, totalGrams)
+    const carbs = macroGramSharePercent(184.48, totalGrams)
+    const fat = macroGramSharePercent(122.25, totalGrams)
+
+    expect(protein).toBeCloseTo(22.3, 1)
+    expect(carbs).toBeCloseTo(46.7, 1)
+    expect(fat).toBeCloseTo(31, 0)
+    expect(carbs).toBeGreaterThan(fat)
+    expect(fat).toBeGreaterThan(protein)
+    expect(macroGramSharePercent(-5, 0)).toBe(0)
   })
 })
 

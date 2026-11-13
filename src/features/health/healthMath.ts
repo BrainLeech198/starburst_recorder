@@ -129,6 +129,11 @@ export function macroEnergySharePercent(kcal: number, macroTotalKcal: number) {
   return macroTotalKcal > 0 ? (kcal / macroTotalKcal) * 100 : 0
 }
 
+/** 某一营养素占三大营养素总克数的比例（百分数） */
+export function macroGramSharePercent(grams: number, macroTotalGrams: number) {
+  return macroTotalGrams > 0 ? (Math.max(0, grams) / macroTotalGrams) * 100 : 0
+}
+
 /** 按克数把一条食物换算成这一次实际吃进去的量 */
 export function foodMacros(food: Pick<HealthFood, 'kcal' | 'protein' | 'carbs' | 'fat'>, grams: number): Macros {
   const ratio = Math.max(0, grams) / 100
