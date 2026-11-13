@@ -39,8 +39,12 @@
    [electron/aiRequest.cjs](../electron/aiRequest.cjs) 管理 5 分钟对话 / 20 秒模型列表期限；浏览器侧由
    [aiDeadline.ts](../src/features/ai/aiDeadline.ts) 合并调用方 signal 与兜底期限。2026-11-04 助手请求开始消费
    OpenAI 兼容 SSE：桌面通过 requestId 对应的 IPC 增量回传，浏览器直连边读边显示，已有代理缓冲的 SSE
-   会在完整回包后解析。纯解码逻辑在 [aiStream.ts](../src/features/ai/aiStream.ts)，助手卸载会取消请求，
-   重启后遗留的空助手占位会恢复成可重试状态。**仍有限制**：部署版 PWA 的薄代理会先读完整上游响应再包信封，
+   会在完整回包后解析。纯解码逻辑在 [aiStream.ts](../src/features/ai/aiStream.ts)。2026-11-12 起，请求由
+   [assistantRunManager.ts](../src/features/assistant/assistantRunManager.ts) 按会话托管：离开助手页、切换或新建会话都不取消，
+   每段会话最多一个请求；用户点「停止」才取消。页面回来后可继续看内存中的增量回答，排队消息也跟原会话走。
+   修改类待确认卡片会保存生成时的原值与目标值，供确认前逐项核对；在卡片内微调时同步更新目标值。
+   **仍有限制**：真正退出应用或刷新页面会结束渲染进程里的任务；重开后遗留的空助手占位恢复成可重试状态，不能续接上游请求。
+   部署版 PWA 的薄代理会先读完整上游响应再包信封，
    因此还不能实时显示增量；要让该路径实时显示，需同步更新代理 Worker 的流式响应协议。429 仍只显示提示、不自动重试；
    各家模型的首 token 延迟与 SSE 兼容性仍需结合实际使用观测，不能由客户端保证。
 4. **桌面端两个 IPC 缺纵深防御。** ✅ **已修（本轮）**。守卫集中在

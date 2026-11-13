@@ -74,6 +74,49 @@ describe('compactHistory', () => {
     expect(String(result.messages[0].content).length).toBeLessThan(long.length)
   })
 
+  it('最新用户消息不按旧消息长度截断，保住末尾的明确限制', () => {
+    const body = `${'背景'.repeat(600)}\n最后要求：只改这一条，不要拆成多条。`
+    const result = compactHistory([
+      { role: 'assistant', content: '上一轮的解释'.repeat(220) },
+      { role: 'user', content: body },
+    ], { maxChars: 900 })
+
+    expect(result.messages[0].content).toContain('后文略')
+    expect(result.messages[1].content).toBe(body)
+  })
+
+  it('最新用户消息超长时同时保留开头与结尾', () => {
+    const body = `用户目标：整理记录。${'背景'.repeat(7000)}\n末尾限制：保留原日期，不要删记录。`
+    const result = compactHistory([{ role: 'user', content: body }])
+
+    expect(String(result.messages[0].content)).toContain('用户目标：整理记录。')
+    expect(String(result.messages[0].content)).toContain('…（中间内容略）…')
+    expect(String(result.messages[0].content)).toContain('末尾限制：保留原日期，不要删记录。')
+  })
+
+  it('token 预算充足时不按固定 16 条或 900 字上限压缩', () => {
+    const history = Array.from({ length: 24 }, (_, index) => ({
+      role: index % 2 === 0 ? 'user' as const : 'assistant' as const,
+      content: `${index}: ${'背景'.repeat(700)}`,
+    }))
+    const result = compactHistory(history, { maxTokens: 50_000 })
+
+    expect(result.messages).toEqual(history)
+    expect(result.dropped).toBe(0)
+  })
+
+  it('超过 token 预算时从较早历史开始压缩，保留最近一轮', () => {
+    const history = Array.from({ length: 8 }, (_, index) => ({
+      role: index % 2 === 0 ? 'user' as const : 'assistant' as const,
+      content: `${index}: ${'记录'.repeat(500)}`,
+    }))
+    const result = compactHistory(history, { maxTokens: 2_200 })
+
+    expect(result.dropped).toBeGreaterThan(0)
+    expect(result.messages.at(-1)?.content).toBe(history.at(-1)?.content)
+    expect(result.messages.length).toBeGreaterThan(1)
+  })
+
   it('空正文不计入，图片分段原样保留', () => {
     const result = compactHistory([
       { role: 'assistant', content: '   ' },

@@ -44,6 +44,8 @@ import {
 } from './assistantActionBuild'
 import {
   compactHistory,
+  contextWindow,
+  estimateTokens,
   parseUsage,
   type HistoryMessage,
   type TokenUsage,
@@ -51,10 +53,8 @@ import {
 
 /** 最多来回几轮工具调用；再多的模型基本是在原地打转 */
 const MAX_ROUNDS = 6
-/** 正文里最多带多少条历史，太长的对话只保留最近的 */
-const MAX_HISTORY = 16
-/** 单条历史最多留多少字，避免一条长日记把上下文吃光 */
-const MAX_HISTORY_CHARS = 900
+/** 为工具结果与模型回答留出窗口余量，只有历史超过这部分预算才压缩。 */
+const CONTEXT_RESERVE_RATIO = 0.25
 /**
  * 一轮里最多准备几张卡片。
  * 定成 8 而不是 3：用户一次说「午饭吃了鸡腿、米饭、青菜、西兰花」是同一批事实，
@@ -246,6 +246,13 @@ export function buildSystemPrompt(
 - 一件事有 2–4 个明确选项时，用 ${ASSISTANT_ASK_TOOL.name} 让用户选，不要自己替用户决定
 - 开放问题不要用选择题，直接在正文里问
 - 一次只问一个问题；用户选完会带着答案继续，不要重复问`
+  const taskReviewBlock = `
+
+【复杂任务逐项核对】
+- 用户一次提出多项目标或批量修改时，先从当前请求和保留下来的前文提取对象、范围、每项目标和明确限制；不要只做其中一项，也不要为了省卡片擅自改变记录颗粒度
+- 目标颗粒度、修改范围或日期确实不明确且会改变写入结果时，只问最关键的一项；用户已经说清的直接照做，不重复确认
+- 准备待确认卡片后，逐项对照用户要求检查卡片内容；有遗漏或冲突就先修正，无法确定的字段不要猜
+- 用户拒绝或取消过的具体方案仍视为拒绝；只有用户明确改变主意或要求重做，才重新提出`
   const memoryBlock =
     memories.length > 0
       ? `\n【你记得的事】\n${memories.map((item) => `- ${item}`).join('\n')}\n这些是你以前记住的关于用户的长期信息，可以直接用，但不要再当成新发现去查。`
@@ -300,7 +307,7 @@ ${writeBlock}
 - 用用户的界面语言回答
 - 别写小作文，除非用户明确要总结；几句话说清就行
 - 不要说「根据工具」「我调用了」这类内部话，直接讲记录里的事实
-${photoBlock}${askBlock}${skillBlock}${jsonMode ? JSON_PROTOCOL : ''}${memoryBlock}${noteBlock}${pendingBlock}${resolvedBlock}`
+${photoBlock}${askBlock}${taskReviewBlock}${skillBlock}${jsonMode ? JSON_PROTOCOL : ''}${memoryBlock}${noteBlock}${pendingBlock}${resolvedBlock}`
 }
 
 /** 不支持 tools 的模型走这套：每次只输出一个 JSON 动作，或者直接说话 */
@@ -435,11 +442,8 @@ function toolUnsupported(result: ChatTransportResult) {
   return result.status === 400 || result.status === 404 || result.status === 422
 }
 
-function historyMessages(history: AssistantHistoryMessage[]) {
-  return compactHistory(history, {
-    maxMessages: MAX_HISTORY,
-    maxChars: MAX_HISTORY_CHARS,
-  })
+function historyMessages(history: AssistantHistoryMessage[], maxTokens: number) {
+  return compactHistory(history, { maxTokens })
 }
 
 /** 同样的参数换个键序算同一个查询，去重才认得出来 */
@@ -482,12 +486,6 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
   const actionCtx = { data, today, now: options.now, memories: memoryList }
 
   let mode: 'tools' | 'json' = 'tools'
-  /** 压缩一次就够：换协议重来时还用这同一份历史 */
-  const packed = historyMessages(options.history)
-  const history: ChatMessage[] = packed.messages.map((item) => ({
-    role: item.role,
-    content: item.content,
-  }))
   const latestUser = [...options.history].reverse().find((item) => item.role === 'user')?.content
   const latestUserText = typeof latestUser === 'string'
     ? latestUser
@@ -516,6 +514,21 @@ export async function runAssistant(options: AssistantRunOptions): Promise<Assist
     if (!reasoning) return base
     return `${base}\n\n【深度思考】回答前先把已知信息按顺序过一遍：先想清楚用户真正要什么，再看还缺哪些信息，然后才调用工具。结论先说，依据在后，不要为了想而想。`
   }
+
+  /** 按估算窗口给历史留预算；系统提示和工具定义先计入，剩余 25% 留给工具结果与回答。 */
+  const contextLimit = contextWindow(config.model)
+  const fixedPromptTokens =
+    estimateTokens(systemPrompt(false)) + estimateTokens(JSON.stringify(toolSchemas(tools)))
+  const historyBudget = Math.max(
+    Math.min(1_024, Math.floor(contextLimit * 0.1)),
+    Math.floor(contextLimit * (1 - CONTEXT_RESERVE_RATIO)) - fixedPromptTokens,
+  )
+  /** 未超预算时原样发送全部历史；工具不支持时回退 JSON 协议仍复用这份结果。 */
+  const packed = historyMessages(options.history, historyBudget)
+  const history: ChatMessage[] = packed.messages.map((item) => ({
+    role: item.role,
+    content: item.content,
+  }))
 
   let messages: ChatMessage[] = [
     {

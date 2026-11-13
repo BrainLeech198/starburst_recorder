@@ -51,6 +51,57 @@ function preview(text: string, max = 600) {
   return text.length > max ? `${text.slice(0, max)}…` : text
 }
 
+function changeValue(field: MessageKey, value: string, action: AssistantAction, t: (key: MessageKey) => string) {
+  if (value === '—') return value
+  if (field === 'assistant.change.direction') {
+    return t(value === 'income' ? 'finance.income' : 'finance.expense')
+  }
+  if (field === 'schedule.fieldRemind') {
+    return value === 'true' ? t('schedule.remindOn') : t('assistant.change.disabled')
+  }
+  if (field === 'finance.category') return t(categoryKey(value))
+  if (field === 'schedule.fieldRepeat') {
+    if (value === 'none') return t('schedule.repeatNone')
+    if (value === 'daily') return t('schedule.repeatDaily')
+    if (value === 'weekly') return t('schedule.repeatWeekly')
+  }
+  if (field === 'schedule.fieldWeeklyDays') {
+    return value
+      .split('、')
+      .map(Number)
+      .map((day) => t((`date.weekdayShort${day % 7}`) as MessageKey))
+      .join('、')
+  }
+  if (field === 'profile.sex') {
+    if (value === 'male') return t('profile.male')
+    if (value === 'female') return t('profile.female')
+  }
+  if (field === 'profile.activity') {
+    const activityKeys: Record<string, MessageKey> = {
+      sedentary: 'profile.activitySedentary',
+      light: 'profile.activityLight',
+      moderate: 'profile.activityModerate',
+      high: 'profile.activityHigh',
+    }
+    if (activityKeys[value]) return t(activityKeys[value])
+  }
+  if (field === 'assistant.change.kind') {
+    if (action.kind === 'presetEdit') return t(value === 'person' ? 'presets.person' : 'presets.place')
+    if (action.kind === 'memoryEdit') {
+      const memoryKey = KIND_KEYS[value as AssistantMemoryKind]
+      if (memoryKey) return t(memoryKey)
+    }
+    if (action.kind === 'trainingEdit') {
+      const trainingKeys: Record<string, MessageKey> = {
+        strength: 'training.kind.strength', cardio: 'training.kind.cardio',
+        mobility: 'training.kind.mobility', sport: 'training.kind.sport', other: 'training.kind.other',
+      }
+      if (trainingKeys[value]) return t(trainingKeys[value])
+    }
+  }
+  return value
+}
+
 export default function AssistantActionCard({
   state,
   busy,
@@ -316,6 +367,24 @@ export default function AssistantActionCard({
         </div>
       ) : (
         <p className="mt-1.5 whitespace-pre-wrap break-words text-sm text-fg">{body}</p>
+      )}
+
+      {!editing && state.changes && state.changes.length > 0 && (
+        <div className="mt-2 rounded-lg bg-surface-2 p-2.5">
+          <p className="mb-1 text-[11px] font-medium text-muted">{t('assistant.changes.title')}</p>
+          <dl className="m-0 flex flex-col gap-1.5">
+            {state.changes.map((change, index) => (
+              <div key={`${change.field}-${index}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 text-xs">
+                <dt className="m-0 text-muted">{t(change.field)}</dt>
+                <dd className="m-0 max-h-40 overflow-y-auto break-words whitespace-pre-wrap text-fg">
+                  <span className="text-muted">{changeValue(change.field, change.before, action, t)}</span>
+                  <span className="px-1.5 text-muted">→</span>
+                  <span>{changeValue(change.field, change.after, action, t)}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       )}
 
       {action.kind === 'sleep' && action.overwrite && (

@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import type { ChatMessageRecord } from './assistantChatStore'
 import {
+  assistantContextMessages,
+  assistantTranscriptMessages,
   clearAllChatSessions,
+  getChatMessages,
+  getCurrentSessionId,
   getChatSessions,
   importChatSessions,
+  newChatSession,
   normalizeChatSessions,
+  patchChatMessage,
   resolvedActionNotes,
+  switchChatSession,
   updateChat,
 } from './assistantChatStore'
 
@@ -24,6 +31,19 @@ const MEMORY = {
 }
 
 describe('助手卡片的处理结果', () => {
+  it('空正文的动作卡片仍进状态上下文，但不伪造一条聊天正文', () => {
+    const canceled = message({
+      id: 'action-only',
+      actions: [{ ...MEMORY, status: 'canceled' }],
+    })
+    const emptyPlaceholder = message({ id: 'placeholder', content: '' })
+    const context = assistantContextMessages([canceled, emptyPlaceholder])
+
+    expect(context).toEqual([canceled])
+    expect(assistantTranscriptMessages(context)).toEqual([])
+    expect(resolvedActionNotes(context)).toEqual(['用户拒绝，没有写入：记住「不吃香菜」'])
+  })
+
   it('拒绝、撤销和失败都要交给模型', () => {
     const notes = resolvedActionNotes([
       message({
@@ -70,6 +90,23 @@ describe('全部清空助手对话', () => {
   })
 })
 
+describe('后台生成时按原会话保存', () => {
+  it('切到新会话后仍能更新旧会话的回答', () => {
+    clearAllChatSessions()
+    const firstSession = getCurrentSessionId()
+    updateChat([message({ id: 'background-reply', content: '' })], firstSession)
+
+    const secondSession = newChatSession()
+    updateChat([message({ id: 'new-chat', role: 'user', content: '新问题' })], secondSession)
+    switchChatSession(secondSession)
+
+    patchChatMessage('background-reply', { content: '旧会话的回答' }, true, firstSession)
+
+    expect(getChatMessages(firstSession)[0].content).toBe('旧会话的回答')
+    expect(getChatMessages(secondSession)[0].content).toBe('新问题')
+  })
+})
+
 describe('备份里的对话校验', () => {
   it('空会话不占备份，正常会话保留', () => {
     const sessions = normalizeChatSessions([
@@ -84,6 +121,24 @@ describe('备份里的对话校验', () => {
     ])
     expect(sessions).toHaveLength(1)
     expect(sessions[0].id).toBe('used')
+  })
+
+  it('读回会话时保留卡片的修改前后预览', () => {
+    const sessions = normalizeChatSessions([{
+      id: 'preview', title: '改收支', createdAt: 1, updatedAt: 1,
+      messages: [{
+        id: 'm1', role: 'assistant', content: '', at: 1,
+        actions: [{
+          action: MEMORY.action,
+          status: 'pending',
+          changes: [{ field: 'assistant.edit.content', before: '原内容', after: '新内容' }],
+        }],
+      }],
+    }])
+
+    expect(sessions[0].messages[0].actions?.[0].changes).toEqual([
+      { field: 'assistant.edit.content', before: '原内容', after: '新内容' },
+    ])
   })
 
   it('融合按 id 取较新的一份，替换整组换掉', () => {

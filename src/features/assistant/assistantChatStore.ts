@@ -15,6 +15,12 @@ import type { AssistantQuestion, AssistantStep } from './assistantAgent'
 import { describeAction, type AssistantAction } from './assistantActionBuild'
 import type { TokenUsage } from './assistantContext'
 import { translate } from '@/shared/i18n/context'
+import {
+  clearAssistantPendingMessages,
+  getActiveAssistantSessionIds,
+  stopAllAssistantRuns,
+  stopAssistantRun,
+} from './assistantRunManager'
 
 export type ChatActionStatus = 'pending' | 'done' | 'undone' | 'canceled' | 'failed'
 export type ChatQuestionStatus = 'open' | 'answered' | 'skipped'
@@ -37,6 +43,8 @@ export interface ChatQuestionState extends AssistantQuestion {
 export interface ChatActionState {
   action: AssistantAction
   status: ChatActionStatus
+  /** 生成卡片时从同一记录快照中取得的原值与目标值。 */
+  changes?: import('./assistantActionChanges').AssistantActionChange[]
   /** 写进库以后拿到的记录 id，撤销时用 */
   recordId?: string | null
   /** 覆盖类动作的旧值（睡眠、体重、已存在的记忆） */
@@ -225,9 +233,26 @@ function normalizeAction(raw: unknown): ChatActionState | null {
   const status = STATUSES.has(item.status as ChatActionStatus)
     ? (item.status as ChatActionStatus)
     : 'pending'
+  const changes = Array.isArray(item.changes)
+    ? item.changes.flatMap((rawChange) => {
+        if (!rawChange || typeof rawChange !== 'object') return []
+        const change = rawChange as Record<string, unknown>
+        if (
+          typeof change.field !== 'string' ||
+          typeof change.before !== 'string' ||
+          typeof change.after !== 'string'
+        ) return []
+        return [{
+          field: change.field as import('@/shared/i18n/messages/zh').MessageKey,
+          before: change.before,
+          after: change.after,
+        }]
+      })
+    : undefined
   return {
     action: action as unknown as AssistantAction,
     status,
+    ...(changes && changes.length > 0 ? { changes } : {}),
     recordId: typeof item.recordId === 'string' ? item.recordId : null,
     previous: item.previous,
     error: typeof item.error === 'string' ? item.error : undefined,
@@ -455,7 +480,7 @@ function ensureCurrent() {
 
 function trimSessions(extraKeep: string[] = []) {
   if (sessions.length <= MAX_SESSIONS) return
-  const protectedIds = new Set([currentId, ...extraKeep])
+  const protectedIds = new Set([currentId, ...extraKeep, ...getActiveAssistantSessionIds()])
   const kept = [...sessions].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, MAX_SESSIONS)
   // 当前会话和刚分叉出来的来源无论如何都要留下：挤掉末尾一条没被保护的
   for (const id of protectedIds) {
@@ -491,8 +516,8 @@ function notify() {
 ensureCurrent()
 
 /** 当前会话的消息 */
-export function getChatMessages() {
-  return sessions.find((item) => item.id === currentId)?.messages ?? []
+export function getChatMessages(sessionId = currentId) {
+  return sessions.find((item) => item.id === sessionId)?.messages ?? []
 }
 
 /** 全部会话，按最近使用排在前面 */
@@ -533,6 +558,7 @@ export function importChatSessions(
   if (list.length === 0) return { added: 0, updated: 0, skipped: 0 }
 
   if (mode === 'replace') {
+    stopAllAssistantRuns()
     sessions = list
     currentId = list[0].id
     persist()
@@ -580,9 +606,10 @@ export function subscribeChat(listener: () => void) {
 /** 统一入口：更新后存档并通知所有正在看的界面 */
 export function updateChat(
   updater: ChatMessageRecord[] | ((current: ChatMessageRecord[]) => ChatMessageRecord[]),
+  sessionId = currentId,
 ) {
   ensureCurrent()
-  const session = sessions.find((item) => item.id === currentId)
+  const session = sessions.find((item) => item.id === sessionId)
   if (!session) return
   const current = session.messages
   const next = typeof updater === 'function' ? updater(current) : updater
@@ -607,6 +634,7 @@ export function clearChat() {
 
 /** 清空所有助手会话，并保留一段新的空会话供界面继续使用。 */
 export function clearAllChatSessions() {
+  stopAllAssistantRuns()
   sessions = [newSession()]
   currentId = sessions[0].id
   try {
@@ -650,6 +678,8 @@ export function renameChatSession(id: string, title: string) {
 }
 
 export function deleteChatSession(id: string) {
+  stopAssistantRun(id)
+  clearAssistantPendingMessages(id)
   sessions = sessions.filter((item) => item.id !== id)
   ensureCurrent()
   persist()
@@ -708,6 +738,7 @@ export function patchChatMessage(
   id: string,
   patch: Partial<ChatMessageRecord>,
   syncVariant = true,
+  sessionId = currentId,
 ) {
   updateChat((current) =>
     current.map((item) => {
@@ -715,10 +746,16 @@ export function patchChatMessage(
       const next = { ...item, ...patch }
       return syncVariant ? syncActiveVariant(next) : next
     }),
+    sessionId,
   )
 }
 
-export function patchChatAction(messageId: string, index: number, patch: Partial<ChatActionState>) {
+export function patchChatAction(
+  messageId: string,
+  index: number,
+  patch: Partial<ChatActionState>,
+  sessionId = currentId,
+) {
   updateChat((current) =>
     current.map((item) => {
       if (item.id !== messageId || !item.actions) return item
@@ -730,6 +767,7 @@ export function patchChatAction(messageId: string, index: number, patch: Partial
       }
       return syncActiveVariant(next)
     }),
+    sessionId,
   )
 }
 
@@ -737,7 +775,7 @@ export function patchChatAction(messageId: string, index: number, patch: Partial
  * 重新生成前先把当前回答留成第 1 版，再把画面清空。
  * 清空时不走 syncActiveVariant——否则会把刚留下来的旧版本也擦掉。
  */
-export function beginChatRegeneration(id: string) {
+export function beginChatRegeneration(id: string, sessionId = currentId) {
   updateChat((current) =>
     current.map((item) => {
       if (item.id !== id) return item
@@ -757,11 +795,12 @@ export function beginChatRegeneration(id: string) {
         compacted: undefined,
       }
     }),
+    sessionId,
   )
 }
 
 /** 新回答生成完，追加成一版并切过去 */
-export function appendChatVariant(id: string, snapshot: ChatVariantSnapshot) {
+export function appendChatVariant(id: string, snapshot: ChatVariantSnapshot, sessionId = currentId) {
   updateChat((current) =>
     current.map((item) => {
       if (item.id !== id) return item
@@ -772,11 +811,12 @@ export function appendChatVariant(id: string, snapshot: ChatVariantSnapshot) {
         variantIndex: variants.length - 1,
       }
     }),
+    sessionId,
   )
 }
 
 /** 停止 / 失败时回到生成前那一版，不把空回答留在对话里 */
-export function restoreChatVariant(id: string) {
+export function restoreChatVariant(id: string, sessionId = currentId) {
   updateChat((current) =>
     current.map((item) => {
       if (item.id !== id) return item
@@ -785,6 +825,7 @@ export function restoreChatVariant(id: string) {
       if (!snapshot) return item
       return { ...applySnapshot(item, snapshot), variants: item.variants, variantIndex: index }
     }),
+    sessionId,
   )
 }
 
@@ -914,6 +955,28 @@ export function newChatMessageId() {
 /** 从一条消息创建到现在过了多久；放在这里是因为组件里不能直接调 Date.now */
 export function elapsedSince(at: number) {
   return Date.now() - at
+}
+
+/** Messages that still carry context for the model, including action-only cards with empty prose. */
+export function assistantContextMessages(
+  list: ChatMessageRecord[],
+  excludeId?: string,
+): ChatMessageRecord[] {
+  return list.filter((item) =>
+    item.id !== excludeId &&
+    !item.error &&
+    !item.stopped &&
+    (
+      item.content.trim() !== '' ||
+      (item.attachments?.length ?? 0) > 0 ||
+      (item.actions?.length ?? 0) > 0
+    ),
+  )
+}
+
+/** Only messages with something to say belong in the provider's chat transcript. */
+export function assistantTranscriptMessages(list: ChatMessageRecord[]): ChatMessageRecord[] {
+  return list.filter((item) => item.content.trim() !== '' || (item.attachments?.length ?? 0) > 0)
 }
 
 /** 已经确认写入的动作，拼成下一轮的系统提示 */

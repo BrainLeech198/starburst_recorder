@@ -63,6 +63,13 @@ describe('toolSchemas', () => {
 })
 
 describe('buildSystemPrompt', () => {
+  it('要求复杂任务逐项目标和明确限制，并在生成卡片后复核', () => {
+    const text = buildSystemPrompt('2026-10-28', false)
+    expect(text).toContain('【复杂任务逐项核对】')
+    expect(text).toContain('逐项对照用户要求检查卡片内容')
+    expect(text).toContain('不要为了省卡片擅自改变记录颗粒度')
+  })
+
   it('带上今天、读写工具清单和确认后才写入的约束', () => {
     const text = buildSystemPrompt('2026-10-28', false)
     expect(text).toContain('今天是 2026-10-28')
@@ -102,6 +109,32 @@ describe('buildSystemPrompt', () => {
     )
     expect(text).toContain('用户对之前卡片的处理结果')
     expect(text).toContain('用户拒绝，没有写入')
+  })
+})
+
+describe('history context budget', () => {
+  it('128k 模型的预算充足时保留超过 16 条的长历史', async () => {
+    let sent: { role: string; content: unknown }[] = []
+    const history = Array.from({ length: 20 }, (_, index) => ({
+      role: index % 2 === 0 ? 'user' as const : 'assistant' as const,
+      content: `第 ${index} 条：${'记录'.repeat(550)}`,
+    }))
+
+    const result = await runAssistant({
+      config: CONFIG,
+      history,
+      data: emptyData(),
+      today: '2026-10-28',
+      request: async (request) => {
+        sent = request.messages
+        return transport(body({ content: '已看完前文。' }))
+      },
+    })
+
+    expect(result.ok).toBe(true)
+    expect(sent).toHaveLength(history.length + 1)
+    expect(sent[1].content).toBe(history[0].content)
+    expect(sent.at(-1)?.content).toBe(history.at(-1)?.content)
   })
 })
 

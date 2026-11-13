@@ -30,6 +30,7 @@ import Modal from '@/shared/ui/Modal'
 import Dropdown from '@/shared/ui/Dropdown'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog'
 import { runAssistant } from './assistantAgent'
+import { buildAssistantActionChanges, updateAssistantActionChanges } from './assistantActionChanges'
 import {
   executeAssistantAction,
   undoAssistantAction,
@@ -39,6 +40,23 @@ import { loadMemories, memoryPromptLines } from './assistantMemory'
 import { enabledSkills, loadSkills } from './assistantSkills'
 import { loadPermission, runsWithoutConfirm } from './assistantPermission'
 import { processAssistantActionBatch } from './assistantActionBatch'
+import {
+  addAssistantGuidance,
+  appendAssistantRunContent,
+  clearAssistantPendingMessages,
+  clearAssistantRunContent,
+  enqueueAssistantMessage,
+  finishAssistantRun,
+  getActiveAssistantRuns,
+  getAssistantRuntime,
+  removeAssistantQueuedMessage,
+  setAssistantRunPhase,
+  startAssistantRun,
+  stopAssistantRun,
+  subscribeAssistantRuns,
+  takeAssistantGuidance,
+  takeAssistantQueuedMessage,
+} from './assistantRunManager'
 import type { RecordPhotoKind, RecordPhotoTarget, RecordPhotoRecord } from './assistantRecordPhoto'
 import AssistantQuestionCard from './AssistantQuestionCard'
 import AssistantActionCard from './AssistantActionCard'
@@ -57,6 +75,8 @@ import { contextWindow, formatTokens } from './assistantContext'
 import { requestSuggestions, suggestKeys, summarizeSituation } from './assistantSuggest'
 import {
   appendChatVariant,
+  assistantContextMessages,
+  assistantTranscriptMessages,
   beginChatRegeneration,
   clearChat,
   createChatMessage,
@@ -99,6 +119,45 @@ function whenLabel(at: number) {
   const date = new Date(at)
   const pad = (value: number) => String(value).padStart(2, '0')
   return `${date.getMonth() + 1}-${date.getDate()} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function fileExtension(name: string) {
+  const dot = name.lastIndexOf('.')
+  return dot >= 0 && dot < name.length - 1 ? name.slice(dot + 1).toUpperCase() : ''
+}
+
+function AttachmentButton({
+  file,
+  onClick,
+  className = '',
+}: {
+  file: ChatAttachment
+  onClick: () => void
+  className?: string
+}) {
+  const { t } = useI18n()
+  const extension = fileExtension(file.name)
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={t('assistant.attachmentPreviewTitle', { name: file.name })}
+      title={t('assistant.attachmentPreviewTitle', { name: file.name })}
+      className={`flex min-w-0 max-w-full items-center gap-2 text-left transition-colors hover:border-brand/50 hover:bg-brand/5 ${className}`}
+    >
+      {file.dataUrl ? (
+        <img src={file.dataUrl} alt="" className="h-10 w-10 shrink-0 rounded-md border border-line object-cover" />
+      ) : (
+        <span className="flex h-10 min-w-10 shrink-0 items-center justify-center rounded-md bg-brand/10 px-1 text-[9px] font-semibold text-brand">
+          {extension || 'FILE'}
+        </span>
+      )}
+      <span className="flex min-w-0 flex-col">
+        <span className="max-w-[12rem] truncate text-[11px] text-fg">{file.name}</span>
+        {extension && <span className="text-[9px] text-muted">.{extension}</span>}
+      </span>
+    </button>
+  )
 }
 
 const PLAN_KEY = 'starburst.assistant.plan'
@@ -156,12 +215,6 @@ const MODE_CHIP =
 const MODE_CHIP_ON = 'border-brand/40 bg-brand/10 text-brand'
 const MODE_CHIP_OFF = 'border-line text-muted hover:bg-surface-2 hover:text-fg'
 
-interface QueuedMessage {
-  id: string
-  text: string
-  files: ChatAttachment[]
-}
-
 interface DeleteRequest {
   /** 从这条开始删到末尾 */
   fromId?: string
@@ -214,14 +267,23 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   const messages = useSyncExternalStore(subscribeChat, getChatMessages, getChatMessages)
   const sessions = useSyncExternalStore(subscribeChat, getChatSessions, getChatSessions)
   const currentSessionId = useSyncExternalStore(subscribeChat, getCurrentSessionId, getCurrentSessionId)
+  const runtime = useSyncExternalStore(
+    subscribeAssistantRuns,
+    () => getAssistantRuntime(currentSessionId),
+    () => getAssistantRuntime(currentSessionId),
+  )
+  const activeRuns = useSyncExternalStore(
+    subscribeAssistantRuns,
+    getActiveAssistantRuns,
+    getActiveAssistantRuns,
+  )
   const [input, setInput] = useState('')
-  const [busy, setBusy] = useState(false)
-  /** 当前模型请求已到达的正文片段；只在屏幕暂存，最终消息仍由完整结果写入 */
-  const [streamContent, setStreamContent] = useState('')
+  const busy = runtime.run !== null
+  const pendingId = runtime.run?.messageId ?? null
+  const streamContent = runtime.run?.content ?? ''
+  const queue = runtime.queue
   /** 「清空对话」的红色确认弹窗：一点即清太容易误触 */
   const [clearOpen, setClearOpen] = useState(false)
-  /** 正在等模型回复的那条占位消息 */
-  const [pendingId, setPendingId] = useState<string | null>(null)
   /** 正在写入 / 撤销的卡片："消息id:序号" */
   const [working, setWorking] = useState('')
   /** 当前回复选择了逐条确认时，隐藏整组授权按钮；只在本次页面会话有效。 */
@@ -235,6 +297,8 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   const [planMode, setPlanMode] = useState(readPlanMode)
   /** 还没发出去的附件 */
   const [drafts, setDrafts] = useState<ChatAttachment[]>([])
+  /** 正在预览的已加载附件 */
+  const [attachmentPreview, setAttachmentPreview] = useState<ChatAttachment | null>(null)
   /** 会话列表弹窗 */
   const [sessionOpen, setSessionOpen] = useState(false)
   /** 推荐问默认收起，点标题才展开 */
@@ -257,17 +321,11 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   const [exportIds, setExportIds] = useState<string[] | null>(null)
   /** 删除确认 */
   const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null)
-  /** 生成中排队等待的消息 */
-  const [queue, setQueue] = useState<QueuedMessage[]>([])
-  const queueRef = useRef<QueuedMessage[]>([])
   /** 生成中插话：在下一轮请求前交给模型，不打断当前这轮 */
   const [steerMode, setSteerMode] = useState(false)
-  const guidanceRef = useRef<string[]>([])
   /** 斜杠命令菜单与 @ 引用弹窗 */
   const [slashOpen, setSlashOpen] = useState(false)
   const [refOpen, setRefOpen] = useState(false)
-  /** 当前这一轮的取消句柄 */
-  const abortRef = useRef<AbortController | null>(null)
   const actionWriteLockRef = useRef(false)
   const mountedRef = useRef(false)
   /** 上一轮已经读出来的整库快照，展开推荐问时直接拿来当「当前情况」 */
@@ -279,7 +337,6 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     mountedRef.current = true
     return () => {
       mountedRef.current = false
-      abortRef.current?.abort()
     }
   }, [])
 
@@ -313,8 +370,13 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     bottomRef.current?.scrollIntoView({ block: 'end' })
   }, [messages, pendingId, currentSessionId, compact])
 
-  function patchAction(messageId: string, index: number, patch: Partial<ChatActionState>) {
-    patchChatAction(messageId, index, patch)
+  function patchAction(
+    messageId: string,
+    index: number,
+    patch: Partial<ChatActionState>,
+    sessionId = currentSessionId,
+  ) {
+    patchChatAction(messageId, index, patch, sessionId)
   }
 
   function resetComposer() {
@@ -323,29 +385,22 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     setSelectMode(false)
     setSelected([])
     setSlashOpen(false)
-    queueRef.current = []
-    setQueue([])
-    guidanceRef.current = []
     setSteerMode(false)
   }
 
   function enqueue(text: string, files: ChatAttachment[]) {
     if (text.trim() === '' && files.length === 0) return
-    queueRef.current = [...queueRef.current, { id: newChatMessageId(), text, files }].slice(0, 10)
-    setQueue([...queueRef.current])
+    enqueueAssistantMessage(currentSessionId, { id: newChatMessageId(), text, files })
   }
 
   function removeQueued(id: string) {
-    queueRef.current = queueRef.current.filter((item) => item.id !== id)
-    setQueue([...queueRef.current])
+    removeAssistantQueuedMessage(currentSessionId, id)
   }
 
   /** 停止当前生成，并把还没发出去的排队消息一起取消 */
   function stop() {
-    abortRef.current?.abort()
-    queueRef.current = []
-    setQueue([])
-    guidanceRef.current = []
+    stopAssistantRun(currentSessionId)
+    clearAssistantPendingMessages(currentSessionId)
   }
 
   /**
@@ -357,14 +412,17 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
     appendUser: boolean,
     files: ChatAttachment[] = [],
     targetId?: string,
+    sessionId = getCurrentSessionId(),
   ) {
     const config = loadAiConfig()
     if (files.some((file) => typeof file.dataUrl === 'string') && config.vision === 'no') {
-      showToast({ message: t('assistant.attachVisionUnsupported') })
+      if (mountedRef.current && getCurrentSessionId() === sessionId) {
+        showToast({ message: t('assistant.attachVisionUnsupported') })
+      }
       return
     }
     const ready = isConfigured(config)
-    setConfigured(ready)
+    if (mountedRef.current && getCurrentSessionId() === sessionId) setConfigured(ready)
 
     const attachments = files.slice(0, MAX_ATTACHMENTS)
     const userMessage = appendUser
@@ -374,132 +432,129 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           ...(attachments.length > 0 ? { attachments } : {}),
         })
       : null
-    const existing = getChatMessages()
+    const existing = getChatMessages(sessionId)
     const target = targetId ? existing.find((item) => item.id === targetId) ?? null : null
     const pending = target ?? createChatMessage({ role: 'assistant', content: '' })
 
-    if (target) {
-      beginChatRegeneration(target.id)
-    } else {
-      // 失败气泡先拿掉，重试时不要叠两条
-      updateChat((current) => [
-        ...current.filter((item) => !item.error),
-        ...(userMessage ? [userMessage] : []),
-        pending,
-      ])
-    }
-    setPendingId(pending.id)
-    setStreamContent('')
-    setBusy(true)
-    const controller = new AbortController()
-    abortRef.current = controller
-
-    if (!ready) {
-      if (target) {
-        restoreChatVariant(target.id)
-      } else {
-        patchChatMessage(pending.id, {
-          content: t('assistant.needConfig'),
-          error: true,
-        })
-      }
-      setPendingId(null)
-      setBusy(false)
-      if (abortRef.current === controller) abortRef.current = null
-      // 没配模型时也把排队的消息接下去，别让队列卡在第一条
-      const next = queueRef.current[0]
-      if (next) {
-        queueRef.current = queueRef.current.slice(1)
-        setQueue([...queueRef.current])
-        void run(next.text, true, next.files)
-      }
+    const handle = startAssistantRun(sessionId, pending.id, pending.at)
+    if (!handle) {
+      if (userMessage) enqueueAssistantMessage(sessionId, { id: newChatMessageId(), text, files: attachments })
       return
     }
 
-    const permission = loadPermission()
     try {
+      if (target) {
+        beginChatRegeneration(target.id, sessionId)
+      } else {
+        // 失败气泡先拿掉，重试时不要叠两条
+        updateChat(
+          (current) => [
+            ...current.filter((item) => !item.error),
+            ...(userMessage ? [userMessage] : []),
+            pending,
+          ],
+          sessionId,
+        )
+      }
+
+      const permission = loadPermission()
+      if (!ready) {
+        if (target) {
+          restoreChatVariant(target.id, sessionId)
+        } else {
+          patchChatMessage(pending.id, {
+            content: t('assistant.needConfig'),
+            error: true,
+          }, true, sessionId)
+        }
+        return
+      }
+
       // 每轮都取一份最新快照：刚刚在别的页面记的东西也能查到
       const data = await assistantData()
-      dataRef.current = data
+      if (mountedRef.current && getCurrentSessionId() === sessionId) dataRef.current = data
       // 历史里只放已经说出口的话；正在加载的占位、错误和停止的消息都不算
-      const source = getChatMessages().filter(
-        (item) =>
-          item.id !== pending.id &&
-          !item.error &&
-          !item.stopped &&
-          (item.content.trim() !== '' || (item.attachments?.length ?? 0) > 0),
-      )
-      const lastUserIndex = source.reduce(
+      const source = assistantContextMessages(getChatMessages(sessionId), pending.id)
+      const historySource = assistantTranscriptMessages(source)
+      const lastUserIndex = historySource.reduce(
         (found, item, index) => (item.role === 'user' ? index : found),
         -1,
       )
-      const history = source.map((item, index) => ({
+      const history = historySource.map((item, index) => ({
         role: item.role,
         content: historyContent(item, index === lastUserIndex),
       }))
 
+      const actionMemories = loadMemories()
+      setAssistantRunPhase(sessionId, handle.id, 'generating')
       const result = await runAssistant({
         config,
         history,
         data,
         loadRecordPhoto: loadAssistantRecordPhoto,
         today: todayKey(),
-        memories: memoryPromptLines(loadMemories()),
-        notes: writtenNotes(),
-        pendingNotes: pendingActionNotes(),
-        resolvedNotes: resolvedActionNotes(),
+        memories: memoryPromptLines(actionMemories),
+        notes: writtenNotes(source),
+        pendingNotes: pendingActionNotes(source),
+        resolvedNotes: resolvedActionNotes(source),
         skills: enabledSkills(),
         permission,
         reasoning,
         planMode,
-        signal: controller.signal,
+        signal: handle.signal,
         onRequestStart: () => {
-          if (mountedRef.current) setStreamContent('')
+          clearAssistantRunContent(sessionId, handle.id)
         },
         onContent: (chunk) => {
-          if (mountedRef.current) setStreamContent((current) => current + chunk)
+          appendAssistantRunContent(sessionId, handle.id, chunk)
         },
-        takeGuidance: () => guidanceRef.current.splice(0),
+        takeGuidance: () => takeAssistantGuidance(sessionId),
         onStep: (step) => {
-          updateChat((current) =>
-            current.map((item) =>
-              item.id === pending.id ? { ...item, steps: [...(item.steps ?? []), step] } : item,
-            ),
+          updateChat(
+            (current) =>
+              current.map((item) =>
+                item.id === pending.id ? { ...item, steps: [...(item.steps ?? []), step] } : item,
+              ),
+            sessionId,
           )
         },
       })
 
       if (!result.ok) {
-        setStreamContent('')
+        clearAssistantRunContent(sessionId, handle.id)
         if (result.cancelled) {
           if (target) {
-            restoreChatVariant(target.id)
-            showToast({ message: t('assistant.stopped') })
+            restoreChatVariant(target.id, sessionId)
+            if (mountedRef.current && getCurrentSessionId() === sessionId) {
+              showToast({ message: t('assistant.stopped') })
+            }
           } else {
             patchChatMessage(pending.id, {
               content: t('assistant.stopped'),
               stopped: true,
               error: false,
               ms: elapsedSince(pending.at),
-            })
+            }, true, sessionId)
           }
           return
         }
         if (target) {
-          restoreChatVariant(target.id)
-          showToast({ message: result.error })
+          restoreChatVariant(target.id, sessionId)
+          if (mountedRef.current && getCurrentSessionId() === sessionId) {
+            showToast({ message: result.error })
+          }
         } else {
           patchChatMessage(pending.id, {
             content: result.error,
             error: true,
             ms: elapsedSince(pending.at),
-          })
+          }, true, sessionId)
         }
         return
       }
 
       const base = result.reply || (result.question ? result.question.question : '')
-      setStreamContent('')
+      clearAssistantRunContent(sessionId, handle.id)
       // 卡片没生成时把原因写进正文：模型可能照旧说「卡片来了」，
       // 只有系统自己补这一句，用户才不会被一句空话吊着。
       const content =
@@ -511,6 +566,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
       const actions = result.pending?.map((action) => ({
         action,
         status: 'pending' as const,
+        changes: buildAssistantActionChanges(action, data, actionMemories),
       }))
       const question = result.question
         ? ({ ...result.question, status: 'open' } satisfies ChatQuestionState)
@@ -527,7 +583,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           ...(result.compacted ? { compacted: result.compacted } : {}),
           ms,
           at: pending.at,
-        })
+        }, sessionId)
       } else {
         patchChatMessage(pending.id, {
           content,
@@ -538,7 +594,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           ms,
           ...(result.usage ? { usage: result.usage } : {}),
           ...(result.compacted ? { compacted: result.compacted } : {}),
-        })
+        }, true, sessionId)
       }
 
       // 新增自动保存：只有纯新增动作立刻落库，其余仍留在待确认卡片上
@@ -551,50 +607,37 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
               status: 'done',
               recordId: done.recordId,
               previous: done.previous,
-            })
+            }, sessionId)
           } catch (error) {
             patchAction(pending.id, index, {
               status: 'failed',
               error: (error as Error).message,
-            })
+            }, sessionId)
           }
         }
       }
     } catch (error) {
-      setStreamContent('')
+      clearAssistantRunContent(sessionId, handle.id)
       if (target) {
-        restoreChatVariant(target.id)
-        showToast({ message: (error as Error).message })
+        restoreChatVariant(target.id, sessionId)
+        if (mountedRef.current && getCurrentSessionId() === sessionId) {
+          showToast({ message: (error as Error).message })
+        }
       } else {
         patchChatMessage(pending.id, {
           content: (error as Error).message,
           error: true,
           ms: elapsedSince(pending.at),
-        })
+        }, true, sessionId)
       }
     } finally {
-      if (abortRef.current === controller) abortRef.current = null
-      if (mountedRef.current) {
-        setPendingId(null)
-        setBusy(false)
-        setStreamContent('')
-        // 这一轮已经结束时还没被工具循环取走的插话，转成普通排队消息，别让用户白打
-        const leftover = guidanceRef.current.splice(0, guidanceRef.current.length)
-        if (leftover.length > 0) {
-          queueRef.current = [
-            ...queueRef.current,
-            ...leftover.map((text) => ({ id: newChatMessageId(), text, files: [] })),
-          ]
-          setQueue([...queueRef.current])
-        }
-        // 当前这一轮结束后，自动接下一条排队消息
-        const next = queueRef.current[0]
-        if (next) {
-          queueRef.current = queueRef.current.slice(1)
-          setQueue([...queueRef.current])
-          void run(next.text, true, next.files)
-        }
+      finishAssistantRun(sessionId, handle.id)
+      const leftover = takeAssistantGuidance(sessionId)
+      for (const guidance of leftover) {
+        enqueueAssistantMessage(sessionId, { id: newChatMessageId(), text: guidance, files: [] })
       }
+      const next = takeAssistantQueuedMessage(sessionId)
+      if (next) void run(next.text, true, next.files, undefined, sessionId)
     }
   }
 
@@ -614,9 +657,9 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           : item,
       ),
     )
-    if (busy || abortRef.current !== null) {
+    if (busy) {
       if (steerMode && files.length === 0) {
-        guidanceRef.current.push(text)
+        addAssistantGuidance(currentSessionId, text)
         showToast({ message: t('assistant.steerQueued') })
         return
       }
@@ -878,7 +921,6 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   }
 
   function startNewChat() {
-    if (busy) return
     newChatSession()
     setInput('')
     setDrafts([])
@@ -947,7 +989,6 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
 
   /** 分支之间循环切换；分支共享同一段前缀，各自接着自己的改法往下走 */
   function cycleBranch(delta: number) {
-    if (busy) return
     const siblings = getForkSiblings(currentSessionId)
     if (siblings.length < 2) return
     const index = siblings.findIndex((item) => item.id === currentSessionId)
@@ -1027,7 +1068,10 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             onConfirm={() => void confirmAction(item.id, index, state)}
             onCancel={() => patchAction(item.id, index, { status: 'canceled' })}
             onUndo={() => void undoAction(item.id, index, state)}
-            onEdit={(next) => patchAction(item.id, index, { action: next })}
+            onEdit={(next) => patchAction(item.id, index, {
+              action: next,
+              changes: updateAssistantActionChanges(state.changes ?? [], next),
+            })}
           />
         ))}
       </div>
@@ -1129,7 +1173,6 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
               <button
                 type="button"
                 onClick={() => cycleBranch(1)}
-                disabled={busy}
                 aria-label={t('assistant.next')}
                 className="inline-flex min-h-9 items-center rounded-full bg-surface-2 px-2 py-0.5 text-[10px] text-muted transition-colors hover:text-brand disabled:opacity-40 md:min-h-0"
               >
@@ -1155,7 +1198,6 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         <button
           type="button"
           onClick={startNewChat}
-          disabled={busy}
           aria-label={t('assistant.newChat')}
           title={t('assistant.newChat')}
           className={CHAT_ICON_BRAND}
@@ -1384,21 +1426,12 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                       {(item.attachments ?? []).length > 0 && (
                         <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
                           {(item.attachments ?? []).map((file, index) =>
-                            file.dataUrl ? (
-                              <img
-                                key={`${item.id}-att-${index}`}
-                                src={file.dataUrl}
-                                alt={file.name}
-                                className="h-16 w-16 rounded-lg border border-line object-cover"
-                              />
-                            ) : (
-                              <span
-                                key={`${item.id}-att-${index}`}
-                                className="max-w-[12rem] truncate rounded-lg border border-line bg-surface-2 px-2 py-1 text-[11px] text-muted"
-                              >
-                                {file.name}
-                              </span>
-                            ),
+                            <AttachmentButton
+                              key={`${item.id}-att-${index}`}
+                              file={file}
+                              onClick={() => setAttachmentPreview(file)}
+                              className="rounded-lg border border-line bg-surface-2 px-1.5 py-1"
+                            />,
                           )}
                         </div>
                       )}
@@ -1842,11 +1875,15 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
         {drafts.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-1.5">
             {drafts.map((file, index) => (
-              <span
+              <div
                 key={`${file.name}-${index}`}
-                className="flex max-w-[14rem] items-center gap-1 rounded-lg border border-line bg-surface-2 px-2 py-1 text-[11px] text-muted"
+                className="flex max-w-full items-center gap-1 rounded-lg border border-line bg-surface-2 p-1"
               >
-                <span className="truncate">{file.name}</span>
+                <AttachmentButton
+                  file={file}
+                  onClick={() => setAttachmentPreview(file)}
+                  className="rounded-md px-1"
+                />
                 <button
                   type="button"
                   onClick={() => setDrafts((current) => current.filter((_, at) => at !== index))}
@@ -1855,7 +1892,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                 >
                   ×
                 </button>
-              </span>
+              </div>
             ))}
           </div>
         )}
@@ -2108,12 +2145,10 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                           <button
                             type="button"
                             onClick={() => {
-                              if (busy) return
                               switchChatSession(session.id)
                               resetComposer()
                               setSessionOpen(false)
                             }}
-                            disabled={busy}
                             className={CHAT_ROW}
                           >
                             <span
@@ -2127,6 +2162,12 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                               {t('assistant.sessionMeta', { n: session.messages.length })}
                               <span aria-hidden="true">·</span>
                               {whenLabel(session.updatedAt)}
+                              {activeRuns.some((run) => run.sessionId === session.id) && (
+                                <>
+                                  <span aria-hidden="true">·</span>
+                                  <span className="text-brand">{t('assistant.runningStatus')}</span>
+                                </>
+                              )}
                               {session.forkGroup && (
                                 <>
                                   <span aria-hidden="true">·</span>
@@ -2152,6 +2193,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                             }}
                             aria-label={t('assistant.sessionDelete')}
                             title={t('assistant.sessionDelete')}
+                            disabled={activeRuns.some((run) => run.sessionId === session.id)}
                             className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[12px] text-muted transition-colors hover:bg-danger/10 hover:text-danger md:h-7 md:w-7"
                           >
                             ✕
@@ -2179,6 +2221,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                                 deleteChatSession(session.id)
                                 setDeletingId('')
                               }}
+                              disabled={activeRuns.some((run) => run.sessionId === session.id)}
                               className="inline-flex min-h-11 items-center px-1 font-medium text-danger transition-opacity hover:opacity-80 md:min-h-0"
                             >
                               {t('common.delete')}
@@ -2236,6 +2279,49 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
           }}
           onClose={() => setRefOpen(false)}
         />
+      )}
+
+      {attachmentPreview && (
+        <Modal
+          size="lg"
+          label={t('assistant.attachmentPreviewTitle', { name: attachmentPreview.name })}
+          onClose={() => setAttachmentPreview(null)}
+        >
+          <div className="flex max-h-[78dvh] flex-col gap-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="m-0 break-words text-sm font-medium text-fg">{attachmentPreview.name}</h2>
+                {fileExtension(attachmentPreview.name) && (
+                  <span className="mt-1 inline-block rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">
+                    .{fileExtension(attachmentPreview.name)}
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setAttachmentPreview(null)}
+                aria-label={t('common.close')}
+                title={t('common.close')}
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm text-muted hover:bg-surface-2 hover:text-fg md:h-8 md:w-8"
+              >
+                ✕
+              </button>
+            </div>
+            {attachmentPreview.dataUrl ? (
+              <div className="flex min-h-0 justify-center overflow-auto rounded-lg bg-surface-2 p-2">
+                <img
+                  src={attachmentPreview.dataUrl}
+                  alt={attachmentPreview.name}
+                  className="h-auto max-h-[65dvh] max-w-full object-contain"
+                />
+              </div>
+            ) : (
+              <pre className="m-0 min-h-0 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-surface-2 p-3 text-xs leading-relaxed text-fg">
+                {attachmentPreview.text ?? ''}
+              </pre>
+            )}
+          </div>
+        </Modal>
       )}
     </div>
   )

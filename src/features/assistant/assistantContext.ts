@@ -95,42 +95,154 @@ export function formatTokens(value: number) {
 }
 
 export interface CompactOptions {
+  /** 历史 token 预算；提供时只在超预算后压缩，不启用固定条数 / 字数上限。 */
+  maxTokens?: number
   /** 最多留几条消息 */
   maxMessages?: number
   /** 单条正文最多留多少字，超出的截断 */
   maxChars?: number
+  /** 当前最新用户消息保留的上限；超过时从中间压缩，保住开头和结尾 */
+  maxLatestUserChars?: number
 }
 
 export interface CompactResult {
   messages: HistoryMessage[]
-  /** 这次被省略的较早消息条数，界面用它显示「已压缩」 */
+  /** 被省略或裁短的消息条数，界面用它显示「已压缩」 */
   dropped: number
 }
 
+const ESTIMATED_IMAGE_TOKENS = 1_024
+
+function historyMessageTokens(message: HistoryMessage) {
+  const content: ChatContentPart[] = typeof message.content === 'string'
+    ? [{ type: 'text', text: message.content }]
+    : message.content
+  return 4 + content.reduce(
+    (total, part) => total + (part.type === 'text' ? estimateTokens(part.text) : ESTIMATED_IMAGE_TOKENS),
+    0,
+  )
+}
+
+function textWithinTokenBudget(text: string, budget: number) {
+  if (estimateTokens(text) <= budget) return { text, truncated: false }
+  if (budget <= 0) return { text: '', truncated: true }
+  const marker = '…（中间内容略）…'
+  let low = 0
+  let high = Math.ceil(text.length / 2)
+  let best = ''
+  while (low <= high) {
+    const side = Math.floor((low + high) / 2)
+    const candidate = side === 0 ? text.slice(0, 1) : `${text.slice(0, side)}${marker}${text.slice(-side)}`
+    if (estimateTokens(candidate) <= budget) {
+      best = candidate
+      low = side + 1
+    } else {
+      high = side - 1
+    }
+  }
+  return { text: best || text.slice(0, 1), truncated: true }
+}
+
+/** Keep the newest context intact unless it alone exceeds the available token budget. */
+function compactByTokens(history: HistoryMessage[], maxTokens: number): CompactResult {
+  const available = history.filter((item) => item.content !== '')
+  const total = available.reduce((sum, item) => sum + historyMessageTokens(item), 0)
+  if (total <= maxTokens) return { messages: available, dropped: 0 }
+
+  const messages: HistoryMessage[] = []
+  let used = 0
+  let truncated = 0
+  for (let index = available.length - 1; index >= 0; index--) {
+    const item = available[index]
+    const cost = historyMessageTokens(item)
+    const remaining = maxTokens - used
+    if (cost <= remaining) {
+      messages.unshift(item)
+      used += cost
+      continue
+    }
+    if (remaining > 8) {
+      if (typeof item.content === 'string') {
+        const compacted = textWithinTokenBudget(item.content, remaining - 4)
+        if (compacted.text !== '') {
+          const next = { role: item.role, content: compacted.text }
+          messages.unshift(next)
+          if (compacted.truncated) truncated++
+        }
+      } else {
+        const imageParts = item.content.filter((part) => part.type === 'image_url')
+        const imageCost = imageParts.length * ESTIMATED_IMAGE_TOKENS + 4
+        const textBudget = Math.max(0, remaining - imageCost)
+        const textParts = item.content
+          .filter((part): part is Extract<ChatContentPart, { type: 'text' }> => part.type === 'text')
+          .map((part) => textWithinTokenBudget(part.text, textBudget))
+          .filter((part) => part.text !== '')
+        messages.unshift({
+          role: item.role,
+          content: [
+            ...textParts.map((part) => ({ type: 'text' as const, text: part.text })),
+            ...imageParts,
+          ],
+        })
+        if (textParts.some((part) => part.truncated) || imageCost > remaining) truncated++
+      }
+    } else {
+      truncated++
+    }
+    break
+  }
+
+  return {
+    messages,
+    dropped: Math.max(0, available.length - messages.length) + truncated,
+  }
+}
+
 /**
- * 历史压缩：先按条数截，再把每条正文裁短。
+ * 兼容旧调用方的条数 / 字数压缩；助手主流程会传 token 预算，预算充足就原样保留。
  * 不调用模型做摘要——那是另一笔钱和时间，对一个人的日记对话来说没必要。
  */
 export function compactHistory(
   history: HistoryMessage[],
   options: CompactOptions = {},
 ): CompactResult {
+  if (options.maxTokens !== undefined) {
+    return compactByTokens(history, Math.max(0, options.maxTokens))
+  }
   const maxMessages = options.maxMessages ?? 16
   const maxChars = options.maxChars ?? 900
+  const maxLatestUserChars = options.maxLatestUserChars ?? 12_000
   const kept = history.filter((item) => item.content !== '').slice(-maxMessages)
+  let latestUserIndex = -1
+  for (let index = kept.length - 1; index >= 0; index--) {
+    if (kept[index].role === 'user') {
+      latestUserIndex = index
+      break
+    }
+  }
 
-  const messages = kept.map((item) => {
+  const compactText = (text: string, limit: number, preserveTail: boolean) => {
+    if (text.length <= limit) return text
+    if (!preserveTail) return `${text.slice(0, limit)}…（后文略）`
+    const marker = '…（中间内容略）…'
+    const sideLength = Math.floor((limit - marker.length) / 2)
+    return `${text.slice(0, sideLength)}${marker}${text.slice(-sideLength)}`
+  }
+
+  const messages = kept.map((item, index) => {
+    const limit = index === latestUserIndex ? maxLatestUserChars : maxChars
+    const preserveTail = index === latestUserIndex
     if (typeof item.content === 'string') {
-      const body = item.content
-      return body.length > maxChars
-        ? { role: item.role, content: `${body.slice(0, maxChars)}…（后文略）` }
-        : { role: item.role, content: body }
+      return {
+        role: item.role,
+        content: compactText(item.content, limit, preserveTail),
+      }
     }
     return {
       role: item.role,
       content: item.content.map((part) =>
-        part.type === 'text' && part.text.length > maxChars
-          ? { type: 'text' as const, text: `${part.text.slice(0, maxChars)}…（后文略）` }
+        part.type === 'text'
+          ? { type: 'text' as const, text: compactText(part.text, limit, preserveTail) }
           : part,
       ),
     }
