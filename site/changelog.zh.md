@@ -1,3 +1,16 @@
+## 0.18.2 · 2026-11-13
+
+手动检查更新现在会重新读取发布信息，并替换旧结果。
+
+### 这一版有什么
+
+- **检查更新会刷新结果**：即使启动时已经发现更新，手动检查也会重新请求发布源；没有新版时会清掉过期的更新提示。
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.18.2-setup.exe`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.2/starburst-recorder-0.18.2-setup.exe)（约 96 MB）· [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.2/starburst-recorder-0.18.2-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.18.2.apk`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.2/starburst-recorder-0.18.2.apk)（约 62 MB，正式签名）· [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.2/starburst-recorder-0.18.2.apk)
+
 ## 0.18.1 · 2026-11-13
 
 摄入进度条按三大营养素克数占比分色；没有照片时隐藏空缩略图。
@@ -9,8 +22,8 @@
 
 ### 下载
 
-- Windows 10/11：[`starburst-recorder-0.18.1-setup.exe`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1-setup.exe)（约 96 MB）· [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1-setup.exe)
-- Android 10 以上：[`starburst-recorder-0.18.1.apk`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1.apk)（约 62 MB，正式签名）· [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1.apk)
+- Windows 10/11：[`starburst-recorder-0.18.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1-setup.exe)（约 96 MB）
+- Android 10 以上：[`starburst-recorder-0.18.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1.apk)（约 62 MB，正式签名）
 
 ## 0.18.0 · 2026-11-13
 

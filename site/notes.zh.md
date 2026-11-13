@@ -1,5 +1,9 @@
 本地优先的个人记录工具，内置 AI：随手记一句今天，AI 会把它整理成一篇完整的日记。不用注册、没有云端，每一条记录都留在这台设备上。AI 用的是你自己准备的模型和 Key。
 
+## 0.18.2 · 2026-11-13
+
+修正手动检查更新会重复打开旧结果的问题；现在每次检查都会重新读取发布信息。
+
 ## 0.18.1 · 2026-11-13
 
 摄入进度条按三大营养素克数占比分色；没有照片时隐藏空缩略图。
@@ -11,8 +15,8 @@
 
 ### 下载
 
-- Windows 10/11：[`starburst-recorder-0.18.1-setup.exe`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1-setup.exe)（约 96 MB）· [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1-setup.exe)
-- Android 10 以上：[`starburst-recorder-0.18.1.apk`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1.apk)（约 62 MB，正式签名）· [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1.apk)
+- Windows 10/11：[`starburst-recorder-0.18.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1-setup.exe)（约 96 MB）
+- Android 10 以上：[`starburst-recorder-0.18.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1.apk)（约 62 MB，正式签名）
 
 ## 0.18.0 · 2026-11-13
 

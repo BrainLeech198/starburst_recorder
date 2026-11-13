@@ -1,3 +1,16 @@
+## 0.18.2 · 2026-11-13
+
+Manual update checks now refresh release information and replace stale results.
+
+### What's new
+
+- **Update checks refresh their result** — even after startup found an update, a manual check requests the release source again; if no update exists, the stale prompt is cleared.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.18.2-setup.exe`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.2/starburst-recorder-0.18.2-setup.exe) (~96 MB) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.2/starburst-recorder-0.18.2-setup.exe)
+- Android 10+: [`starburst-recorder-0.18.2.apk`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.2/starburst-recorder-0.18.2.apk) (~62 MB, release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.2/starburst-recorder-0.18.2.apk)
+
 ## 0.18.1 · 2026-11-13
 
 Intake progress segments now use macro grams; empty photo thumbnails are hidden.
@@ -9,8 +22,8 @@ Intake progress segments now use macro grams; empty photo thumbnails are hidden.
 
 ### Downloads
 
-- Windows 10/11: [`starburst-recorder-0.18.1-setup.exe`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1-setup.exe) (~96 MB) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1-setup.exe)
-- Android 10+: [`starburst-recorder-0.18.1.apk`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1.apk) (~62 MB, release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1.apk)
+- Windows 10/11: [`starburst-recorder-0.18.1-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1-setup.exe) (~96 MB)
+- Android 10+: [`starburst-recorder-0.18.1.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.1/starburst-recorder-0.18.1.apk) (~62 MB, release-signed)
 
 ## 0.18.0 · 2026-11-13
 
