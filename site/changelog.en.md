@@ -1,3 +1,20 @@
+## 0.18.0 · 2026-11-13
+
+Assistant runs continue across conversation switches, with changes to review; finance and health records are clearer too.
+
+### What's new
+
+- **Assistant runs are queued per conversation and continue when you switch pages** — up to 10 queued messages per conversation; action cards show before and after values and can be edited before execution. Runs do not resume after closing the app or refreshing the web app.
+- **Long conversations fit the model context window better** — older messages are trimmed first, keeping recent context.
+- **Intake supports serving counts** — enter portions for foods with a saved serving size; linked expenses multiply the unit price by portions. Macro charts use each nutrient's share of macro energy.
+- **Sleep timelines align overnight sleep with the wake date** — colors provide a visual cue based on personal targets and recorded metrics.
+- **Finance trends are easier to compare** — shorter date labels, compressed scale for extreme values, and a separately scrollable entry form on small screens.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.18.0-setup.exe`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.0/starburst-recorder-0.18.0-setup.exe) (~96 MB) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.0/starburst-recorder-0.18.0-setup.exe)
+- Android 10+: [`starburst-recorder-0.18.0.apk`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.0/starburst-recorder-0.18.0.apk) (~62 MB, release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.0/starburst-recorder-0.18.0.apk)
+
 ## 0.17.4 · 2026-11-11
 
 Calendar review fixes, separate AI model backups and finance trends

@@ -133,11 +133,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器与安卓走 IndexedDB。',
-    'open.version': '版本 0.17.4',
+    'open.version': '版本 0.18.0',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.17.4 仍是早期版本，升级前请先导出备份。0.13.1 之前的备份可能含明文模型名称和 API Key；若旧备份曾外传或存到云端、邮件，请撤销旧 Key 并重新生成。',
+    'download.desc': '0.18.0 仍是早期版本，升级前请先导出备份。0.13.1 之前的备份可能含明文模型名称和 API Key；若旧备份曾外传或存到云端、邮件，请撤销旧 Key 并重新生成。',
     'download.web': '网页版',
     'download.webMeta': '浏览器直接使用 · 支持安装为 PWA',
     'download.webDesc': '无需下载安装，打开即可使用；也可以添加到主屏幕，像应用一样启动。',
@@ -151,9 +151,9 @@ window.SITE_I18N = {
     'download.note': '当前版安装包优先由 Gitee 提供大陆下载，GitHub 保留完整版本历史并作备用；历史版本请从 GitHub 下载。',
 
     'whatsnew.title': '这一版有什么',
-    'whatsnew.item1': '日历 AI 回顾按完整自然月和自然年比较',
-    'whatsnew.item2': 'AI 模型配置可单独选择备份与恢复，旧备份自动迁移',
-    'whatsnew.item3': '收支周/月趋势用双折线图展示',
+    'whatsnew.item1': '助手按会话继续运行，动作改动可逐项核对',
+    'whatsnew.item2': '摄入可按份数记录，联动支出按份数计算',
+    'whatsnew.item3': '收支图表可压缩极端金额，健康时间轴更清楚',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -161,7 +161,7 @@ window.SITE_I18N = {
     'changelog.back': '← 回到下载',
     'download.historyLink': '历史版本与更新日志，每版都附下载 →',
 
-    'footer.version': '版本 0.17.4',
+    'footer.version': '版本 0.18.0',
     'footer.tagline': '数据只存在你的设备上',
     'footer.admin': '管理员入口',
   },
@@ -297,12 +297,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser and on Android.',
-    'open.version': 'Version 0.17.4',
+    'open.version': 'Version 0.18.0',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.17.4 is still an early build. Export a backup before upgrading. Backups exported before 0.13.1 may contain model names and API keys in plain text; if you shared one or stored it in cloud storage or email, revoke old keys and generate fresh ones.',
+      '0.18.0 is still an early build. Export a backup before upgrading. Backups exported before 0.13.1 may contain model names and API keys in plain text; if you shared one or stored it in cloud storage or email, revoke old keys and generate fresh ones.',
     'download.web': 'Web app',
     'download.webMeta': 'Use in your browser · Installable as a PWA',
     'download.webDesc': 'No download needed. Open it in your browser, or add it to your home screen like an app.',
@@ -317,10 +317,10 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'The current installers are available from Gitee for users in mainland China. GitHub keeps the full release history and serves as a fallback; download older versions from GitHub.',
 
-    'whatsnew.title': "What's new in 0.17.4",
-    'whatsnew.item1': 'Calendar AI reviews compare complete months and years',
-    'whatsnew.item2': 'Back up and restore AI model settings separately; older backups migrate automatically',
-    'whatsnew.item3': 'Weekly and monthly finance trends use two line series',
+    'whatsnew.title': "What's new in 0.18.0",
+    'whatsnew.item1': 'Assistant runs continue per conversation; action changes are reviewable',
+    'whatsnew.item2': 'Record intake by serving count and calculate linked expenses by portion',
+    'whatsnew.item3': 'Finance charts compress extreme values; health timelines are clearer',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -328,7 +328,7 @@ window.SITE_I18N = {
     'changelog.back': '← Back to downloads',
     'download.historyLink': 'Previous versions and changelog, each with downloads →',
 
-    'footer.version': 'Version 0.17.4',
+    'footer.version': 'Version 0.18.0',
     'footer.tagline': 'Data stays on your device',
     'footer.admin': 'Admin',
   },

@@ -1,3 +1,20 @@
+## 0.18.0 · 2026-11-13
+
+助手跨会话继续运行，改动可先核对；收支和健康记录也更清楚。
+
+### 这一版有什么
+
+- **助手可以按会话排队并在切换页面后继续回答**：每个会话最多排队 10 条；动作卡片列出原值和修改后内容，执行前可再次编辑。关闭应用或刷新网页后，运行中的请求不会恢复。
+- **长对话更好控制上下文**：按模型上下文窗口裁剪较早消息，优先保留最近对话。
+- **摄入记录支持按份数填写**：已设置常用份量的食物可直接输入份数；联动收支按份数乘单份价格计算。营养素图表按三大营养素供能占比显示。
+- **睡眠时间轴按起床日期对齐**：跨午夜的睡眠落在正确日期，并用个人目标和已记录指标提供颜色提示。
+- **收支图表更容易比较**：横轴日期更简洁，极端金额较大时压缩纵轴；记账表单在小屏上可独立滚动。
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.18.0-setup.exe`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.0/starburst-recorder-0.18.0-setup.exe)（约 96 MB）· [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.0/starburst-recorder-0.18.0-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.18.0.apk`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.18.0/starburst-recorder-0.18.0.apk)（约 62 MB，正式签名）· [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.18.0/starburst-recorder-0.18.0.apk)
+
 ## 0.17.4 · 2026-11-11
 
 日历 AI 回顾修正、AI 模型独立备份与收支趋势图
