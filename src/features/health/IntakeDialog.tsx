@@ -24,7 +24,7 @@ import type {
 import type { HealthFoodBrief, HealthMealBrief } from '@/core/db/store'
 import { useLiveQuery } from '@/core/db/live'
 import { newCode, newId } from '@/core/utils/id'
-import { formatClock, todayKey } from '@/core/utils/dateKey'
+import { todayKey } from '@/core/utils/dateKey'
 import { isConfigured, loadAiConfig } from '@/features/ai/aiConfig'
 import { compressImage } from '@/features/ai/aiVision'
 import AiDisclaimer from '@/features/ai/AiDisclaimer'
@@ -53,6 +53,7 @@ import { matchFood, splitPhrase } from './phraseMatch'
 import { normalizeFoodName } from './intakeDraft'
 import { asDraft } from './intakeDraft'
 import type { DraftFood } from './intakeDraft'
+import { buildIntakeBundle } from './intakeBundle'
 import {
   addIntake,
   healthFoodBriefs,
@@ -80,7 +81,7 @@ interface DraftItem {
   name: string
   /** 合计克数：套餐是各成分之和 */
   grams: number
-  /** 这项食物对应的份数，用于按单份价格计算联动支出 */
+  /** 这项食物对应的份数，用于按单份价计算联动支出 */
   servings: number
   source: 'library' | 'manual'
   /** 来自套餐时记下套餐 id，普通食物为空 */
@@ -204,7 +205,7 @@ export default function IntakeDialog({
 
   const [step, setStep] = useState<Step>('list')
   const [items, setItems] = useState<DraftItem[]>([])
-  const [time, setTime] = useState(() => formatClock(Date.now()))
+  const [time, setTime] = useState('')
   /** 顺便记一笔支出：单份价乘以份数；留空就只记饮食 */
   const [costText, setCostText] = useState('')
 
@@ -876,7 +877,7 @@ export default function IntakeDialog({
     showToast({ message: t('intake.storeAsMealSaved') })
   }
 
-  /** 落库：同一笔的几项共用时间，各存一条 */
+  /** 落库：同次弹窗中的多项食物合成一条记录，逐项快照仍保留 */
   async function commit() {
     if (items.length === 0) {
       showToast({ message: t('intake.emptyList') })
@@ -885,28 +886,34 @@ export default function IntakeDialog({
     const now = Date.now()
     // 当天第一笔定下这天的目标线，后面补记沿用同一套数值
     const targets = dayTargets(intakes, profile)
-    for (const item of items) {
-      const macros = itemMacros(item)
-      await addIntake({
-        id: newId(),
-        code: newCode(),
-        dateKey,
-        time,
-        foodId: item.food?.foodId ?? null,
-        name: item.name,
-        grams: item.grams,
-        ...macros,
-        source: item.source,
-        mealId: item.mealId,
-        components: item.components.length > 0 ? item.components : null,
-        tdeeSnapshot: targets.tdee,
-        targetKcalSnapshot: targets.targetKcal,
-        proteinTargetSnapshot: targets.proteinTarget,
-        createdAt: now,
-        updatedAt: now,
-        deletedAt: null,
-      })
-    }
+    const bundle = buildIntakeBundle(items.map((item) => ({
+      foodId: item.food?.foodId ?? null,
+      name: item.name,
+      grams: item.grams,
+      source: item.source,
+      mealId: item.mealId,
+      components: item.components,
+      macros: itemMacros(item),
+    })))
+    await addIntake({
+      id: newId(),
+      code: newCode(),
+      dateKey,
+      time,
+      foodId: bundle.foodId,
+      name: bundle.name,
+      grams: bundle.grams,
+      ...bundle.macros,
+      source: bundle.source,
+      mealId: bundle.mealId,
+      components: bundle.components,
+      tdeeSnapshot: targets.tdee,
+      targetKcalSnapshot: targets.targetKcal,
+      proteinTargetSnapshot: targets.proteinTarget,
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+    })
     showToast({ message: t('intake.saved') })
     // 联动记一笔经济：单份价乘各项份数之和，分类固定「餐饮」
     const cost = Number(costText.replace(/,/g, ''))
@@ -922,7 +929,7 @@ export default function IntakeDialog({
         id: newId(),
         code: newCode(),
         dateKey,
-        time: `${time}:00`,
+        time: time ? `${time}:00` : '',
         kind: 'expense',
         category: 'food',
         name,
@@ -943,7 +950,12 @@ export default function IntakeDialog({
       showToast({ message: t('intake.emptyList') })
       return
     }
-    const names = new Set(intakes.map((item) => item.name.trim().toLowerCase()))
+    const names = new Set(
+      intakes.flatMap((item) => [
+        item.name.trim().toLowerCase(),
+        ...(item.components ?? []).map((part) => part.name.trim().toLowerCase()),
+      ]),
+    )
     const hits = items
       .map((item) => item.name)
       .filter((name) => names.has(name.trim().toLowerCase()))
