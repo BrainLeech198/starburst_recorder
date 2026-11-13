@@ -5,7 +5,7 @@
  * 顶部是主色进度环（本周次数 / 计划天数）+ 一个大数字（当天容量或时长），
  * 记录行用类型色块徽标区分力量、有氧、拉伸、球类。
  */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import type { ChangeEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { HealthTraining, TrainingKind } from '@/core/db/schema'
@@ -53,7 +53,6 @@ import { describeSave, saveTextFile } from '@/platform/saveFile'
 import TrainingForm from './TrainingForm'
 import TrainingDetailDialog from './TrainingDetailDialog'
 import TrainingPlanPanel from './TrainingPlanPanel'
-import { maybeNotifyTraining, syncTrainingReminder } from './trainingNotify'
 
 /** 类型徽标的配色：力量用主色，有氧用绿色，拉伸用黄色，球类用危险色，其它走中性 */
 function kindBadge(kind: TrainingKind) {
@@ -115,23 +114,10 @@ export default function TrainingPage() {
   const rows = dayTrainings ?? []
   const daySummary = summarizeDay(rows)
   const weekSummary = summarizeWeek(fortnight ?? [], range.from, dayKey)
-  const planDays = planOfProfile(profile).weeklyDays.length || 3
-  const ratio = weekSummary.sessions / Math.max(1, planDays)
-  const trainedToday = rows.length > 0
-  const gapDays = weekSummary.gapDays
-
-  // 提醒：计划改动后立刻重排安卓本地通知；前台每 60 秒检查一次（和称重一致）
-  useEffect(() => {
-    void syncTrainingReminder(profile?.trainingPlan)
-  }, [profile?.trainingPlan])
-
-  useEffect(() => {
-    const check = () => maybeNotifyTraining(profile?.trainingPlan, trainedToday, gapDays)
-    check()
-    const timer = window.setInterval(check, 60_000)
-    return () => window.clearInterval(timer)
-  }, [profile?.trainingPlan, trainedToday, gapDays])
-
+  const plan = planOfProfile(profile)
+  const hasWeeklyGoal = plan.enabled && plan.weeklyDays.length > 0
+  const planDays = plan.weeklyDays.length
+  const ratio = hasWeeklyGoal ? weekSummary.sessions / planDays : 0
   function setDay(next: string) {
     if (batch.active) batch.exit()
     setSearchParams({ date: next }, { replace: true })
@@ -216,9 +202,11 @@ export default function TrainingPage() {
   }
 
   const bigValue =
-    daySummary.volumeKg > 0
+    daySummary.volumeSets > 0
       ? formatVolume(daySummary.volumeKg)
-      : formatDuration(daySummary.totalDurationMin, t)
+      : daySummary.totalDurationMin > 0
+        ? formatDuration(daySummary.totalDurationMin, t)
+        : t('training.volumeUnavailable')
 
   return (
     <div
@@ -240,8 +228,8 @@ export default function TrainingPage() {
           }}
           leading={
             <BackButton
-              to="/health"
-              label={t('nav.health')}
+              to="/"
+              label={t('nav.home')}
               icon
               className={`${NAV_BACK_BUTTON} gap-1`}
             />
@@ -253,12 +241,21 @@ export default function TrainingPage() {
       {!batch.active && (
         <section className="mt-2 rounded-2xl border border-line bg-surface p-4">
           <div className="flex items-center gap-4">
-            <div className="relative shrink-0">
-              <Ring ratio={ratio} />
-              <span className="absolute inset-0 flex flex-col items-center justify-center text-xs tabular-nums text-fg">
-                <span className="text-lg font-medium">{weekSummary.sessions}</span>
-                <span className="text-[10px] text-muted">/ {planDays}</span>
-              </span>
+            <div className="relative grid h-20 w-20 shrink-0 place-items-center">
+              {hasWeeklyGoal ? (
+                <>
+                  <Ring ratio={ratio} />
+                  <span className="absolute inset-0 flex flex-col items-center justify-center text-xs tabular-nums text-fg">
+                    <span className="text-lg font-medium">{weekSummary.sessions}</span>
+                    <span className="text-[10px] text-muted">/ {planDays}</span>
+                  </span>
+                </>
+              ) : (
+                <span className="flex h-14 w-14 flex-col items-center justify-center rounded-full bg-surface-2 text-fg">
+                  <span className="text-lg font-medium tabular-nums">{weekSummary.sessions}</span>
+                  <span className="text-[9px] text-muted">{t('training.weekSessions')}</span>
+                </span>
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <p className="m-0 text-[11px] text-muted">
@@ -270,7 +267,7 @@ export default function TrainingPage() {
               <p className="m-0 mt-1 text-[11px] tabular-nums text-muted">
                 {t('training.totalSets')} {daySummary.totalSets} · {t('training.totalReps')}{' '}
                 {daySummary.totalReps} · {t('training.totalDuration')}{' '}
-                {formatDuration(daySummary.totalDurationMin, t)}
+                {daySummary.totalDurationMin > 0 ? formatDuration(daySummary.totalDurationMin, t) : '—'}
               </p>
             </div>
           </div>
@@ -299,13 +296,17 @@ export default function TrainingPage() {
             </div>
             <div>
               <span className="text-muted">{t('training.volume')}</span>
-              <span className="ml-2 tabular-nums text-fg">{formatVolume(weekSummary.volumeKg)}</span>
+              <span className="ml-2 tabular-nums text-fg">
+                {weekSummary.volumeSets > 0
+                  ? formatVolume(weekSummary.volumeKg)
+                  : t('training.volumeUnavailable')}
+              </span>
             </div>
             <div>
               <span className="text-muted">{t('training.weekVsLast')}</span>
               <span className="ml-2 tabular-nums text-fg">
-                {weekSummary.previousVolumeKg <= 0
-                  ? t('training.weekFirst')
+                {weekSummary.previousVolumeSets === 0 || weekSummary.volumeSets === 0
+                  ? t('training.volumeUnavailable')
                   : `${Math.round(
                       ((weekSummary.volumeKg - weekSummary.previousVolumeKg) /
                         weekSummary.previousVolumeKg) *
@@ -338,7 +339,7 @@ export default function TrainingPage() {
               <Icon name="list" />
               {t('training.batch')}
             </button>
-            <Link to="/health/training/trash" className={SOLID_BUTTON}>
+            <Link to="/training/trash" className={SOLID_BUTTON}>
               <Icon name="trash" />
               {t('training.trash')}
             </Link>

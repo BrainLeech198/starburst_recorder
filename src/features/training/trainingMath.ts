@@ -12,6 +12,7 @@ export interface DaySummary {
   sessions: number
   totalSets: number
   totalReps: number
+  volumeSets: number
   volumeKg: number
   totalDurationMin: number
   muscles: string[]
@@ -21,7 +22,9 @@ export interface WeekSummary {
   sessions: number
   days: number
   volumeKg: number
+  volumeSets: number
   previousVolumeKg: number
+  previousVolumeSets: number
   muscleCount: Record<string, number>
   gapDays: number
 }
@@ -46,6 +49,11 @@ export function volumeOf(trainings: HealthTraining[]): number {
     total += set.reps * set.weightKg
   }
   return Math.round(total * 10) / 10
+}
+
+/** 只有次数与外部负重都明确填写的组才算有效容量数据。 */
+export function volumeSetCount(trainings: HealthTraining[]): number {
+  return setsOf(alive(trainings)).filter((set) => set.reps !== null && set.weightKg !== null).length
 }
 
 /** 单次训练的时长：整场 → 各动作时长之和 → 各组秒数换算 */
@@ -79,6 +87,7 @@ export function summarizeDay(trainings: HealthTraining[]): DaySummary {
     sessions: rows.length,
     totalSets: sets.length,
     totalReps: sets.reduce((sum, set) => sum + (set.reps ?? 0), 0),
+    volumeSets: volumeSetCount(rows),
     volumeKg: volumeOf(rows),
     totalDurationMin: rows.reduce((sum, training) => sum + durationOf(training), 0),
     muscles: [...muscles],
@@ -144,7 +153,9 @@ export function summarizeWeek(
     sessions: thisWeek.length,
     days: new Set(thisWeek.map((training) => training.dateKey)).size,
     volumeKg: volumeOf(thisWeek),
+    volumeSets: volumeSetCount(thisWeek),
     previousVolumeKg: volumeOf(lastWeek),
+    previousVolumeSets: volumeSetCount(lastWeek),
     muscleCount,
     gapDays: latest === null ? -1 : daysBetween(latest, today),
   }

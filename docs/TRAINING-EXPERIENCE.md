@@ -33,7 +33,7 @@
 | 提醒 | 固定周几 + 时刻；连续 N 天没练；安卓本地通知 + 网页前台检查 | `trainingPlan.ts` / `trainingNotify.ts` |
 | 助手 | `training_stats`、`training_week_chart`、`add/update/delete_training` | `assistantTools.ts` / `assistantActionBuild.ts` |
 | 全库 AI 报告 | 日报 / 周报 / 月报 / 年报会把训练次数、分钟数、每天练了什么写进素材 | `src/features/ai/aiReport.ts` |
-| 入口 | 健康首页有训练卡，点进 `/health/training` | `HealthPage.tsx`、`router.tsx` |
+| 入口 | 「记录」导航组有独立「训练」入口，路径 `/training`；健康首页不再放训练卡 | `AppShell.tsx`、`router.tsx` |
 
 **已确认的缺口**
 
@@ -44,7 +44,7 @@
 5. 记录时只能复制「单个动作的上次组数」，不能复制整场、不能用模板；不会提示「这个动作上次做了多少」。
 6. 保存后只有一句 toast，没有「和上次比」的即时反馈。
 7. 助手 `add_training` 的 JSON Schema 写着 `required: ['exercises']`，但描述说「只记时长也可以不传 exercises」，两者矛盾；`update_training` 不能改动作和组数。
-8. 训练页没有独立导航入口，只能从健康页进；通知点开也没有深链。
+8. 训练页现在有独立 `/training` 入口；通知点开仍没有深链。
 
 ---
 
@@ -209,7 +209,7 @@ export async function syncTrainingReminder(
 - **alternate**：用 `nextDueDate` 往后算 8 次，`LocalNotifications.schedule` 排成一次性通知（`schedule.at`），不要用 `every: 'week'`。
 - 每次**保存 / 删除 / 恢复训练**、保存计划、应用启动，都重新调一次 `syncTrainingReminder`。目前只有计划变化时同步，这是 alternate 模式会失效的主要原因。
 - 关掉开关或切回 weekly 时，先 `cancel` 所有可能用过的 id（现有 `ALL_IDS` 已覆盖 77130–77136、77140）。
-- 通知 `extra` 带上深链：`{ route: '/health/training?date=<today>&add=1' }`。安卓在应用启动时监听 `localNotificationActionPerformed`，跳转到该路由。网页端点击 `notification.onclick` 时 `window.focus()` 并跳到同一路由。
+- 通知 `extra` 带上深链：`{ route: '/training?date=<today>&add=1' }`。安卓在应用启动时监听 `localNotificationActionPerformed`，跳转到该路由。网页端点击 `notification.onclick` 时 `window.focus()` 并跳到同一路由。
 - `includeLast` 为 true 时，通知正文追加「上次：<标题> · <日期>」，在 `syncTrainingReminder` 内部用 `latestTraining()` 取标题和时间，不要把整条记录塞进通知。
 
 ### 4.4 文案

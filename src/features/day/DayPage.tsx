@@ -169,7 +169,7 @@ export default function DayPage() {
       title: training.title || t(('training.kind.' + training.kind) as MessageKey),
       detail:
         training.durationMin !== null ? `${training.durationMin} min` : undefined,
-      to: `/health/training?date=${dayKey}`,
+      to: `/training?date=${dayKey}`,
     })),
     ...(view.sleep
       ? [

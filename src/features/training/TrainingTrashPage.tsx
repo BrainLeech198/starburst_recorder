@@ -57,7 +57,7 @@ export default function TrainingTrashPage() {
       wide
       title={t('training.trashTitle')}
       description={t('training.trashEmpty')}
-      backTo="/health/training"
+      backTo="/training"
       backLabel={t('training.title')}
       actions={
         <button

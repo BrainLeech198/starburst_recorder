@@ -184,7 +184,7 @@ export default function SearchPage() {
     'search.groupTraining',
     rows.trainings.map((item) => ({
       key: item.id,
-      to: `/health/training?date=${item.dateKey}`,
+      to: `/training?date=${item.dateKey}`,
       meta: `${formatDate(item.dateKey, t)} · ${item.time}`,
       title: item.title || item.exercises.map((exercise) => exercise.name).join(' / '),
       detail: item.note ? snippet(item.note) : undefined,

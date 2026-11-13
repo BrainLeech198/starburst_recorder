@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate, useNavigationType } from 're
 import FloatingAssistant from '@/features/assistant/FloatingAssistant'
 import ScheduleReminderHost from '@/features/schedule/ScheduleReminderHost'
 import PushReminderHost from '@/features/notifications/PushReminderHost'
+import TrainingReminderHost from '@/features/training/TrainingReminderHost'
 import NoticePopup from '@/features/notices/NoticePopup'
 import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
@@ -10,10 +11,11 @@ import { useAndroidBackButton } from '@/app/androidBack'
 import { ballVisible } from '@/app/debugFlags'
 import { nextRecordNavAction } from './recordNav'
 
-/** 「记录」这一组：日记 / 健康 / 经济。它们在导航里不再各自占一格，收进「记录」下面 */
+/** 「记录」这一组：日记 / 健康 / 训练 / 经济。它们在导航里不再各自占一格，收进「记录」下面 */
 const RECORDS: { to: string; labelKey: MessageKey; icon: string }[] = [
   { to: '/diary', labelKey: 'nav.diary', icon: '📖' },
   { to: '/health', labelKey: 'nav.health', icon: '💪' },
+  { to: '/training', labelKey: 'nav.training', icon: '🏋️' },
   { to: '/finance', labelKey: 'nav.finance', icon: '💰' },
 ]
 
@@ -22,7 +24,7 @@ const NAV_ICON =
   'sb-pressable nav-icon text-base leading-none transition-transform duration-200 group-hover:-translate-y-0.5 group-active:scale-90'
 
 /**
- * 「记录」下面的三项。
+ * 「记录」下面的四项。
  * variant = 'bar'：手机底栏展开的那一行，横排、图标在上（跟底栏其他项一致）
  * variant = 'list'：桌面侧栏里缩进的一列
  */
@@ -67,10 +69,10 @@ function itemClass(active: boolean) {
 /**
  * 壳层：固定一屏高，**只有内容区自己滚**（`main` 是唯一的滚动容器）。
  *
- * 导航是「首页 / 记录 / 日历 / 我的」四格。「记录」按钮按日记 → 健康 → 经济 → 收起 → 日历的顺序前进。
- * 「记录」那一组里装着日记、健康、经济——
+ * 导航是「首页 / 记录 / 搜索 / 日历 / 我的」几格。「记录」按钮依次切换日记、健康、训练、经济。
+ * 「记录」那一组里装着日记、健康、训练、经济——
  * 桌面侧栏能真嵌套（缩进挂在「记录」下面），手机底栏没法竖着嵌，
- * 所以手机上点「记录」是在底栏**上方**展开一行（三个子项横排）。
+ * 所以手机上点「记录」是在底栏**上方**展开一行（四个子项横排）。
  */
 export default function AppShell() {
   // 安卓实体返回键（浏览器 / 桌面端不生效）：先关弹窗 → 再回上一级 → 首页再按一次退出
@@ -308,6 +310,7 @@ export default function AppShell() {
       <NoticePopup />
       <ScheduleReminderHost />
       <PushReminderHost />
+      <TrainingReminderHost />
     </div>
   )
 }

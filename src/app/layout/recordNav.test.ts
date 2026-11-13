@@ -7,9 +7,10 @@ describe('nextRecordNavAction', () => {
     expect(nextRecordNavAction('/calendar', false)).toEqual({ type: 'navigate', to: '/diary' })
   })
 
-  it('按日记、健康、经济的顺序切换，也支持板块内子页面', () => {
+  it('按日记、健康、训练、经济的顺序切换，也支持板块内子页面', () => {
     expect(nextRecordNavAction('/diary', true)).toEqual({ type: 'navigate', to: '/health' })
-    expect(nextRecordNavAction('/health/profile', true)).toEqual({ type: 'navigate', to: '/finance' })
+    expect(nextRecordNavAction('/health/profile', true)).toEqual({ type: 'navigate', to: '/training' })
+    expect(nextRecordNavAction('/training/trash', true)).toEqual({ type: 'navigate', to: '/finance' })
   })
 
   it('经济页先收起二级栏，再跳到日历', () => {

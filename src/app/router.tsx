@@ -1,5 +1,5 @@
 import { lazy } from 'react'
-import { createHashRouter, Navigate } from 'react-router'
+import { createHashRouter, Navigate, useLocation } from 'react-router'
 import AppShell from './layout/AppShell'
 import RouteError from './RouteError'
 
@@ -20,6 +20,7 @@ const IntakesPage = lazy(() => import('@/features/health/IntakesPage'))
 const SleepsPage = lazy(() => import('@/features/health/SleepsPage'))
 const WeightsPage = lazy(() => import('@/features/health/WeightsPage'))
 const WeightTrendPage = lazy(() => import('@/features/health/WeightTrendPage'))
+const MeasurementsPage = lazy(() => import('@/features/health/MeasurementsPage'))
 const FoodLibraryPage = lazy(() => import('@/features/health/FoodLibraryPage'))
 const FoodTrashPage = lazy(() => import('@/features/health/FoodTrashPage'))
 const IntakeTrashPage = lazy(() => import('@/features/health/IntakeTrashPage'))
@@ -56,6 +57,12 @@ const SubscribePage = lazy(() => import('@/features/notices/SubscribePage'))
 const FeedbackPage = lazy(() => import('@/features/notices/FeedbackPage'))
 const QuickCapturePage = lazy(() => import('@/features/diary/QuickCapturePage'))
 
+function LegacyTrainingRedirect() {
+  const location = useLocation()
+  const pathname = location.pathname.endsWith('/trash') ? '/training/trash' : '/training'
+  return <Navigate to={{ pathname, search: location.search, hash: location.hash }} replace />
+}
+
 export const router = createHashRouter([
   // 桌面版「快速记一笔」的独立小窗：不套 AppShell，没有导航栏
   { path: '/quick', element: <QuickCapturePage /> },
@@ -82,10 +89,14 @@ export const router = createHashRouter([
       { path: 'health/intakes/trash', element: <IntakeTrashPage /> },
       { path: 'health/sleeps', element: <SleepsPage /> },
       { path: 'health/sleeps/trash', element: <SleepTrashPage /> },
-      { path: 'health/training', element: <TrainingPage /> },
-      { path: 'health/training/trash', element: <TrainingTrashPage /> },
+      { path: 'training', element: <TrainingPage /> },
+      { path: 'training/trash', element: <TrainingTrashPage /> },
+      // 老书签和外部链接继续可用，并保留日期参数。
+      { path: 'health/training', element: <LegacyTrainingRedirect /> },
+      { path: 'health/training/trash', element: <LegacyTrainingRedirect /> },
       { path: 'health/weights', element: <WeightsPage /> },
       { path: 'health/weights/trend', element: <WeightTrendPage /> },
+      { path: 'health/measurements', element: <MeasurementsPage /> },
       { path: 'finance', element: <FinancePage /> },
       { path: 'finance/trash', element: <FinanceTrashPage /> },
       { path: 'assistant', element: <AssistantPage /> },
