@@ -1,3 +1,19 @@
+## 0.19.0 · 2026-11-13
+
+增加腰围记录与趋势、AI 健康报告预览，并改进训练入口和一餐多项摄入记录。
+
+### 这一版有什么
+
+- **记录腰围并查看趋势**：腰围按日期单独保存，纳入健康数据备份与恢复。
+- **训练入口独立**：训练从健康页移至独立入口；未设置周目标或缺少有效负重数据时，不显示虚假的进度与容量。
+- **摄入记录更清楚**：一次添加的多种食物合并为一餐，仍保留每项食物的克数和营养快照；未填写时刻保持为空。
+- **AI 健康报告可预览**：日报和周报可选择日期，生成后可先查看数据预览再编辑。
+
+### 下载
+
+- Windows 10/11：[`starburst-recorder-0.19.0-setup.exe`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.0/starburst-recorder-0.19.0-setup.exe)（约 96 MB）· [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.0/starburst-recorder-0.19.0-setup.exe)
+- Android 10 以上：[`starburst-recorder-0.19.0.apk`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.0/starburst-recorder-0.19.0.apk)（约 62 MB，正式签名）· [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.0/starburst-recorder-0.19.0.apk)
+
 ## 0.18.2 · 2026-11-13
 
 手动检查更新现在会重新读取发布信息，并替换旧结果。

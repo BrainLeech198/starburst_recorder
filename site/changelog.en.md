@@ -1,3 +1,19 @@
+## 0.19.0 · 2026-11-13
+
+Adds waist measurements and trends, AI health report previews, and improvements to training navigation and meal intake records.
+
+### What's new
+
+- **Waist measurements and trends** — records are stored by date and included in health backup and restore.
+- **Dedicated training area** — training has its own entry point; unset weekly goals and missing load data no longer appear as invented progress or volume.
+- **Clearer meal records** — multiple foods added together become one meal while preserving each item's grams and nutrition snapshot; an omitted time stays blank.
+- **AI health report previews** — choose a date for daily or weekly reports and review the data preview before editing.
+
+### Downloads
+
+- Windows 10/11: [`starburst-recorder-0.19.0-setup.exe`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.0/starburst-recorder-0.19.0-setup.exe) (~96 MB) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.0/starburst-recorder-0.19.0-setup.exe)
+- Android 10+: [`starburst-recorder-0.19.0.apk`](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.0/starburst-recorder-0.19.0.apk) (~62 MB, release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.0/starburst-recorder-0.19.0.apk)
+
 ## 0.18.2 · 2026-11-13
 
 Manual update checks now refresh release information and replace stale results.

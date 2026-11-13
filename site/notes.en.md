@@ -1,5 +1,9 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
+## 0.19.0 · 2026-11-13
+
+Adds waist measurements and trends, AI health report previews, and improvements to training navigation and meal intake records.
+
 ## 0.18.2 · 2026-11-13
 
 Manual update checks now refresh release information and replace stale results.
