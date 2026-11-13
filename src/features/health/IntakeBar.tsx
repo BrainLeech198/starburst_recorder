@@ -7,6 +7,7 @@ import {
   barScale,
   formatNum,
   macroKcal,
+  macroEnergySharePercent,
 } from './healthMath'
 import type { Macros } from './healthMath'
 
@@ -49,14 +50,18 @@ export default function IntakeBar({
     >
       <div className="relative h-4 overflow-hidden rounded-full bg-line/40">
         {macroTotal > 0 ? (
-          <div className="flex h-full w-full">
+          <div className="flex h-full" style={{ width: `${eatenPct}%` }}>
             {MACRO_KEYS.map((key) => {
               const kcal = totals[key] * KCAL_PER_GRAM[key]
               if (kcal <= 0) return null
               return (
                 <span
                   key={key}
-                  style={{ width: `${(kcal / scale) * 100}%`, background: MACRO_COLORS[key] }}
+                  className="block h-full shrink-0"
+                  style={{
+                    width: `${macroEnergySharePercent(kcal, macroTotal)}%`,
+                    background: MACRO_COLORS[key],
+                  }}
                 />
               )
             })}

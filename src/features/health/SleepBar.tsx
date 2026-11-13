@@ -1,7 +1,7 @@
 import type { HealthSleep } from '@/core/db/schema'
 import { useI18n } from '@/shared/i18n/context'
-import { sleepBarLayout } from './healthViz'
-import { sleepNapStats, sleepParts } from './sleepMath'
+import { sleepBarColor, sleepBarLayout, sleepBarScore } from './healthViz'
+import { sleepMinutes, sleepNapStats, sleepParts, sleepWakeStats } from './sleepMath'
 
 /**
  * 今日睡眠条：0 点在正中间，左右各 24 小时。
@@ -22,6 +22,17 @@ export default function SleepBar({
   const idealWidth = Math.max(0, bar.idealEndPct - bar.idealStartPct)
   const naps = sleepNapStats(sleep.naps)
   const napParts = sleepParts(naps.minutes)
+  const wake = sleepWakeStats(sleep)
+  const score = sleepBarScore({
+    durationMin: bar.durationMin,
+    idealDurationMin: sleepMinutes(idealBedtime, idealWakeTime),
+    bedtime: sleep.bedtime,
+    idealBedtime,
+    wakeCount: wake.count,
+    wakeMinutes: wake.minutes,
+    quality: sleep.quality,
+  })
+  const barColor = sleepBarColor(score)
 
   return (
     <div className="mt-3">
@@ -34,7 +45,11 @@ export default function SleepBar({
         )}
         <div
           className="absolute inset-y-1.5 rounded bg-brand/70"
-          style={{ left: `${bar.startPct}%`, width: `${barWidth}%` }}
+          style={{
+            left: `${bar.startPct}%`,
+            width: `${barWidth}%`,
+            backgroundColor: barColor,
+          }}
         />
         {/* 零点参考线压在睡眠条上面，谁都能一眼找到 0 点 */}
         <div className="absolute inset-y-0 left-1/2 w-px bg-line" />

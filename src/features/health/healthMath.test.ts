@@ -13,6 +13,7 @@ import {
   mealTotals,
   mealTotalsFromMap,
   macroKcal,
+  macroEnergySharePercent,
   missingProfileFields,
   remainingKcal,
   suggestProteinForPlan,
@@ -120,6 +121,11 @@ describe('进度条的比例', () => {
   it('超出量程时停在 100%', () => {
     expect(barPercent(1586.5, 3173)).toBeCloseTo(50, 5)
     expect(barPercent(5000, 3173)).toBe(100)
+  })
+
+  it('宏量营养素颜色段按供能占比分配，不受记录热量口径影响', () => {
+    expect(macroEnergySharePercent(160, 400)).toBe(40)
+    expect(macroEnergySharePercent(0, 0)).toBe(0)
   })
 })
 

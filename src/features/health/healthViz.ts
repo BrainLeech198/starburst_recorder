@@ -236,26 +236,89 @@ export function sleepBarLayout(
   idealBedtime: string,
   idealWakeTime: string,
 ): SleepBarLayout {
-  let start = offsetFromMidnight(bedtime)
-  let end = offsetFromMidnight(wakeTime)
-  while (end <= start) end += 1440
+  // dateKey belongs to the wake day: when wakeTime is earlier than bedtime,
+  // place bedtime on the previous day. This keeps the full previous-00:00 to
+  // next-00:00 (48-hour) chart window anchored to the recorded day.
+  let start = clockMinutes(bedtime)
+  const end = clockMinutes(wakeTime)
+  if (end < start) start -= 1440
   start = Math.max(-SLEEP_AXIS_MIN, start)
-  end = Math.min(SLEEP_AXIS_MIN, end)
-  if (end <= start) end = Math.min(SLEEP_AXIS_MIN, start + 1)
+  const clippedEnd = Math.min(SLEEP_AXIS_MIN, end)
+  if (clippedEnd <= start) start = Math.max(-SLEEP_AXIS_MIN, clippedEnd - 1)
 
-  let idealStart = offsetFromMidnight(idealBedtime)
-  let idealEnd = offsetFromMidnight(idealWakeTime)
-  while (idealEnd <= idealStart) idealEnd += 1440
+  let idealStart = clockMinutes(idealBedtime)
+  const idealEnd = clockMinutes(idealWakeTime)
+  if (idealEnd < idealStart) idealStart -= 1440
   idealStart = Math.max(-SLEEP_AXIS_MIN, idealStart)
-  idealEnd = Math.min(SLEEP_AXIS_MIN, idealEnd)
+  const clippedIdealEnd = Math.min(SLEEP_AXIS_MIN, idealEnd)
 
   return {
     startPct: midnightPercent(start),
-    endPct: midnightPercent(end),
+    endPct: midnightPercent(clippedEnd),
     idealStartPct: midnightPercent(idealStart),
-    idealEndPct: midnightPercent(idealEnd),
+    idealEndPct: midnightPercent(clippedIdealEnd),
     durationMin: sleepMinutes(bedtime, wakeTime),
   }
+}
+
+function clockMinutes(time: string): number {
+  const [hour, minute] = time.split(':').map(Number)
+  return (Number.isFinite(hour) ? hour : 0) * 60 + (Number.isFinite(minute) ? minute : 0)
+}
+
+/**
+ * Sleep bar score for color only (0 = red, 100 = green).
+ * Duration and ideal-bedtime alignment always contribute; wake data and
+ * subjective quality contribute only when the user has recorded them.
+ */
+export function sleepBarScore(input: {
+  durationMin: number
+  idealDurationMin: number
+  bedtime: string
+  idealBedtime: string
+  wakeCount?: number | null
+  wakeMinutes?: number | null
+  quality?: number | null
+}): number {
+  const durationDelta =
+    input.durationMin < input.idealDurationMin - 60
+      ? input.idealDurationMin - 60 - input.durationMin
+      : input.durationMin > input.idealDurationMin + 60
+        ? input.durationMin - input.idealDurationMin - 60
+        : 0
+  const durationScore = Math.max(0, 100 - durationDelta * 0.45)
+  const bedtimeDelta = Math.abs(clockMinutes(input.bedtime) - clockMinutes(input.idealBedtime))
+  const circularBedtimeDelta = Math.min(bedtimeDelta, 1440 - bedtimeDelta)
+  const bedtimeScore = Math.max(0, 100 - circularBedtimeDelta / 3)
+  const factors: Array<{ score: number; weight: number }> = [
+    { score: durationScore, weight: 0.5 },
+    { score: bedtimeScore, weight: 0.25 },
+  ]
+  const wakeScores: number[] = []
+  if (input.wakeCount !== null && input.wakeCount !== undefined) {
+    wakeScores.push(Math.max(0, 100 - input.wakeCount * 18))
+  }
+  if (input.wakeMinutes !== null && input.wakeMinutes !== undefined) {
+    wakeScores.push(Math.max(0, 100 - input.wakeMinutes * 0.8))
+  }
+  if (wakeScores.length > 0) {
+    factors.push({
+      score: wakeScores.reduce((sum, value) => sum + value, 0) / wakeScores.length,
+      weight: 0.15,
+    })
+  }
+  if (input.quality !== null && input.quality !== undefined) {
+    factors.push({ score: ((input.quality - 1) / 4) * 100, weight: 0.1 })
+  }
+  const weighted = factors.reduce((sum, factor) => sum + factor.score * factor.weight, 0)
+  const totalWeight = factors.reduce((sum, factor) => sum + factor.weight, 0)
+  return Math.round(weighted / totalWeight)
+}
+
+/** Map the composite score from red through amber to green. */
+export function sleepBarColor(score: number): string {
+  const safeScore = Math.max(0, Math.min(100, score))
+  return `hsl(${Math.round(safeScore * 1.2)} 72% 45%)`
 }
 
 /** 今日摄入跟目标比一比：太少吃、正好、超一点、超太多；给了蛋白目标时再看蛋白够不够 */

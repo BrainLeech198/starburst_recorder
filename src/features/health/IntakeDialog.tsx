@@ -80,6 +80,8 @@ interface DraftItem {
   name: string
   /** 合计克数：套餐是各成分之和 */
   grams: number
+  /** 这项食物对应的份数，用于按单份价格计算联动支出 */
+  servings: number
   source: 'library' | 'manual'
   /** 来自套餐时记下套餐 id，普通食物为空 */
   mealId: string | null
@@ -106,6 +108,30 @@ const MEAL_PAGE_SIZE = 20
 function parseGrams(text: string): number | null {
   const value = Number(text)
   return Number.isFinite(value) && value > 0 ? value : null
+}
+
+/** 数量输入无效时保守按一份；有效份数保留两位小数。 */
+function normalizeServings(value: number): number {
+  return Number.isFinite(value) && value > 0 ? round2(value) : 1
+}
+
+function servingsForFood(food: Pick<DraftFood, 'servingGrams'>, grams: number): number {
+  return food.servingGrams && food.servingGrams > 0
+    ? normalizeServings(grams / food.servingGrams)
+    : 1
+}
+
+function servingsForPhrase(
+  item: Pick<PhraseItem, 'count' | 'unit' | 'grams'>,
+  food: Pick<DraftFood, 'servingGrams'>,
+  grams = item.grams,
+): number {
+  const unit = item.unit.trim().toLowerCase()
+  if (['克', '公克', 'g', 'kg', '公斤'].includes(unit)) {
+    return food.servingGrams ? servingsForFood(food, grams) : 1
+  }
+  if (['毫升', 'ml', 'l', '升'].includes(unit)) return 1
+  return normalizeServings(item.count)
 }
 
 
@@ -179,7 +205,7 @@ export default function IntakeDialog({
   const [step, setStep] = useState<Step>('list')
   const [items, setItems] = useState<DraftItem[]>([])
   const [time, setTime] = useState(() => formatClock(Date.now()))
-  /** 顺便记一笔支出：填了正数才写经济账，留空就只记饮食 */
+  /** 顺便记一笔支出：单份价乘以份数；留空就只记饮食 */
   const [costText, setCostText] = useState('')
 
   /** 正在配份量的那一项（普通食物） */
@@ -491,6 +517,7 @@ export default function IntakeDialog({
         food,
         name: food.name,
         grams: amount,
+        servings: servingsForFood(food, amount),
         source: food.foodId ? 'library' : 'manual',
         mealId: null,
         components: [],
@@ -532,6 +559,7 @@ export default function IntakeDialog({
         food: null,
         name: meal.name,
         grams: totalGrams,
+        servings: normalizeServings(mealServingsBase.current),
         source: 'library',
         mealId: meal.id,
         components,
@@ -639,6 +667,7 @@ export default function IntakeDialog({
       food: base,
       name: base.name,
       grams: entry.grams,
+      servings: servingsForPhrase(entry, base),
       source: existing ? 'library' : 'manual',
       mealId: null,
       components: [],
@@ -694,6 +723,7 @@ export default function IntakeDialog({
         food,
         name: food.name,
         grams,
+        servings: servingsForPhrase(item, food, grams),
         source: 'library',
         mealId: null,
         components: [],
@@ -794,6 +824,7 @@ export default function IntakeDialog({
         food: saved,
         name: saved.name,
         grams: amount,
+        servings: servingsForFood(saved, amount),
         source: 'manual',
         mealId: null,
         components: [],
@@ -877,16 +908,16 @@ export default function IntakeDialog({
       })
     }
     showToast({ message: t('intake.saved') })
-    // 联动记一笔经济：金额是正数才写，分类固定「餐饮」
+    // 联动记一笔经济：单份价乘各项份数之和，分类固定「餐饮」
     const cost = Number(costText.replace(/,/g, ''))
     if (costText.trim() !== '' && Number.isFinite(cost) && cost > 0) {
-      const name =
-        items.length === 1
-          ? items[0].name
-          : items
-              .map((item) => item.name)
-              .slice(0, 2)
-              .join('+')
+      const totalServings = round2(items.reduce((total, item) => total + item.servings, 0))
+      const name = items
+        .slice(0, 2)
+        .map((item) =>
+          item.servings === 1 ? item.name : `${item.name} ×${formatNum(item.servings)}`,
+        )
+        .join('+')
       await addFinance({
         id: newId(),
         code: newCode(),
@@ -895,7 +926,7 @@ export default function IntakeDialog({
         kind: 'expense',
         category: 'food',
         name,
-        amount: Math.round(cost * 100) / 100,
+        amount: Math.round(cost * totalServings * 100) / 100,
         photo: null,
         note: '',
         createdAt: now,

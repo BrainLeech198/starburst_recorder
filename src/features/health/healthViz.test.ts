@@ -6,7 +6,9 @@ import {
   intakeReviewKey,
   midnightPercent,
   offsetFromMidnight,
+  sleepBarColor,
   sleepBarLayout,
+  sleepBarScore,
   sleepReviewKey,
   sleepWakeMessage,
   trendPoints,
@@ -137,10 +139,62 @@ describe('睡眠条', () => {
     expect(bar.endPct).toBeCloseTo(68.75, 1)
   })
 
+  it('以起床归属日定位前一日入睡，范围覆盖前日零点到次日零点', () => {
+    const bar = sleepBarLayout('10:00', '07:00', '23:00', '07:00')
+    expect(bar.startPct).toBeCloseTo(20.83, 1)
+    expect(bar.endPct).toBeCloseTo(64.58, 1)
+    expect(bar.durationMin).toBe(21 * 60)
+  })
+
+  it('个人理想作息也按前一日入睡定位', () => {
+    const bar = sleepBarLayout('10:00', '18:00', '10:00', '07:00')
+    expect(bar.idealStartPct).toBeCloseTo(20.83, 1)
+    expect(bar.idealEndPct).toBeCloseTo(64.58, 1)
+  })
+
   it('白天补觉一直睡到下午也不会被截断', () => {
     const bar = sleepBarLayout('10:00', '18:00', '23:00', '07:00')
     expect(bar.startPct).toBeCloseTo(70.83, 1)
     expect(bar.endPct).toBeCloseTo(87.5, 1)
+  })
+})
+
+describe('睡眠条颜色评分', () => {
+  it('作息贴合理想时间且时长充足时偏绿', () => {
+    const score = sleepBarScore({
+      durationMin: 480,
+      idealDurationMin: 480,
+      bedtime: '23:00',
+      idealBedtime: '23:00',
+      wakeCount: 0,
+      wakeMinutes: 0,
+      quality: 5,
+    })
+    expect(score).toBe(100)
+    expect(sleepBarColor(score)).toBe('hsl(120 72% 45%)')
+  })
+
+  it('短睡、偏离理想入睡时间且夜醒较多时偏红', () => {
+    const score = sleepBarScore({
+      durationMin: 240,
+      idealDurationMin: 480,
+      bedtime: '03:00',
+      idealBedtime: '23:00',
+      wakeCount: 4,
+      wakeMinutes: 50,
+      quality: 1,
+    })
+    expect(score).toBeLessThan(25)
+    expect(sleepBarColor(score)).toMatch(/^hsl\([0-2]\d 72% 45%\)$/)
+  })
+
+  it('未提供的自评和夜醒信息不计为差评', () => {
+    expect(sleepBarScore({
+      durationMin: 480,
+      idealDurationMin: 480,
+      bedtime: '23:00',
+      idealBedtime: '23:00',
+    })).toBe(100)
   })
 })
 
