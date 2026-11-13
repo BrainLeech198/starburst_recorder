@@ -69,6 +69,25 @@ describe('备份读写的兼容口径', () => {
     expect(read.payload.stamps[0].code).toBe('d4e5f60')
   })
 
+  it('健康分区的腰围测量可往返，坏记录按条跳过', () => {
+    const payload = sample()
+    payload.measurements = [
+      { dateKey: '2026-11-13', waistCm: 74, createdAt: 1, updatedAt: 2, deletedAt: null },
+    ]
+    const file = buildBackup(payload, '备份', ['health'])
+    const read = readBackup(file.content)
+    expect(read.ok).toBe(true)
+    expect(read.payload.measurements).toEqual(payload.measurements)
+    expect(sectionSize(read.payload, 'health')).toBe(1)
+
+    const broken = JSON.parse(file.content) as { sections: { health: { measurements: unknown[] } } }
+    broken.sections.health.measurements.push({ dateKey: '2026-02-30', waistCm: 74 })
+    const recovered = readBackup(JSON.stringify(broken))
+    expect(recovered.ok).toBe(true)
+    expect(recovered.payload.measurements).toEqual(payload.measurements)
+    expect(recovered.skipped).toBe(1)
+  })
+
   it('AI 对话独立成块往返：消息与动作卡片状态都不丢', () => {
     const payload = sample()
     payload.chats = [

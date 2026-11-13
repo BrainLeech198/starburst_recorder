@@ -55,6 +55,15 @@ export interface WeighIn {
   createdAt: number
 }
 
+/** 身体测量记录：每个日期最多一条；第一阶段只采集腰围，其他围度以后按需扩展。 */
+export interface HealthMeasurement {
+  dateKey: string
+  waistCm: number
+  createdAt: number
+  updatedAt: number
+  deletedAt: number | null
+}
+
 /** 身体档案：整个应用只有一行，id 固定为 'me' */
 export interface HealthProfile {
   id: 'me'

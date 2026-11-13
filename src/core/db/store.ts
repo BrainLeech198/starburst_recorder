@@ -18,6 +18,7 @@ import type {
   HealthFood,
   HealthIntake,
   HealthMeal,
+  HealthMeasurement,
   HealthProfile,
   HealthSleep,
   HealthTraining,
@@ -40,6 +41,7 @@ export interface ImportStats {
   meals: SectionCount
   intakes: SectionCount
   sleeps: SectionCount
+  measurements: SectionCount
   trainings: SectionCount
   finance: SectionCount
   schedules: SectionCount
@@ -60,6 +62,7 @@ export interface TableTotals {
   meals: number
   intakes: number
   sleeps: number
+  measurements: number
   trainings: number
   /** 身体档案里的称重历史条数 */
   weights: number
@@ -87,6 +90,7 @@ export interface BackupData {
   meals: HealthMeal[]
   intakes: HealthIntake[]
   sleeps: HealthSleep[]
+  measurements?: HealthMeasurement[]
   trainings: HealthTraining[]
   finance: FinanceEntry[]
   /** 日程 / 定期任务；旧备份曾放在日记块里 */
@@ -194,6 +198,8 @@ export interface BackupSections {
     /** 旧备份没有这个字段 */
     sleeps: HealthSleep[]
     /** 旧备份没有这个字段 */
+    measurements?: HealthMeasurement[]
+    /** 旧备份没有这个字段 */
     /** 兼容旧调用：新备份使用独立的 training 块 */
     trainings?: HealthTraining[]
   }
@@ -215,6 +221,7 @@ export function zeroStats(): ImportStats {
     meals: zero(),
     intakes: zero(),
     sleeps: zero(),
+    measurements: zero(),
     trainings: zero(),
     finance: zero(),
     schedules: zero(),
@@ -439,6 +446,13 @@ export interface DiaryStore {
   trashedHealthSleeps(): Promise<HealthSleep[]>
   purgeHealthSleep(id: string): Promise<void>
   purgeTrashedHealthSleeps(): Promise<void>
+
+  /** 日期区间内的身体测量，按日期正序；默认只返回未删除记录。 */
+  measurementsBetween(from: string, to: string): Promise<HealthMeasurement[]>
+  /** 某日的身体测量；未记录或已删除时返回 undefined。 */
+  measurementOfDay(dateKey: string): Promise<HealthMeasurement | undefined>
+  /** 按日期新增或覆盖腰围测量。 */
+  saveHealthMeasurement(measurement: HealthMeasurement): Promise<HealthMeasurement>
 
   // ─────────── 训练 ───────────
 

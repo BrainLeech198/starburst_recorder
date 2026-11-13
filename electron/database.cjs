@@ -156,6 +156,16 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_sleeps_day ON healthSleeps(dateKey);
   CREATE INDEX IF NOT EXISTS idx_sleeps_trash ON healthSleeps(deletedAt);
 
+  -- 身体测量：日期为主键，每天记录一条腰围。
+  CREATE TABLE IF NOT EXISTS healthMeasurements (
+    dateKey TEXT PRIMARY KEY,
+    waistCm REAL NOT NULL,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    deletedAt INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_measurements_trash ON healthMeasurements(deletedAt);
+
   -- 训练：一条记录一个完整文档，动作与组都以 JSON 存在 exercises 里
   CREATE TABLE IF NOT EXISTS healthTrainings (
     id TEXT PRIMARY KEY,
@@ -483,6 +493,17 @@ function sleepRow(row) {
     wakeCount: num(row.wakeCount),
     wakeMinutes: num(row.wakeMinutes),
     note: row.note ?? '',
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    deletedAt: row.deletedAt ?? null,
+  }
+}
+
+function measurementRow(row) {
+  if (!row) return undefined
+  return {
+    dateKey: row.dateKey,
+    waistCm: num(row.waistCm) ?? 0,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
@@ -881,6 +902,7 @@ function createDatabase(file) {
     countMeals: db.prepare('SELECT COUNT(*) AS n FROM healthMeals WHERE deletedAt IS NULL'),
     countIntakes: db.prepare('SELECT COUNT(*) AS n FROM healthIntakes WHERE deletedAt IS NULL'),
     countSleeps: db.prepare('SELECT COUNT(*) AS n FROM healthSleeps WHERE deletedAt IS NULL'),
+    countMeasurements: db.prepare('SELECT COUNT(*) AS n FROM healthMeasurements WHERE deletedAt IS NULL'),
     countTrainings: db.prepare('SELECT COUNT(*) AS n FROM healthTrainings WHERE deletedAt IS NULL'),
     countFinance: db.prepare('SELECT COUNT(*) AS n FROM financeEntries WHERE deletedAt IS NULL'),
     allEntryIds: db.prepare('SELECT id FROM diaryEntries'),
@@ -1221,6 +1243,16 @@ function createDatabase(file) {
     ),
     everyIntake: db.prepare('SELECT * FROM healthIntakes'),
     everySleep: db.prepare('SELECT * FROM healthSleeps'),
+    everyMeasurement: db.prepare('SELECT * FROM healthMeasurements'),
+    measurementStoredDay: db.prepare('SELECT * FROM healthMeasurements WHERE dateKey = ? LIMIT 1'),
+    measurementOfDay: db.prepare('SELECT * FROM healthMeasurements WHERE dateKey = ? AND deletedAt IS NULL LIMIT 1'),
+    measurementsBetween: db.prepare('SELECT * FROM healthMeasurements WHERE dateKey >= ? AND dateKey <= ? AND deletedAt IS NULL ORDER BY dateKey ASC'),
+    upsertMeasurement: db.prepare(
+      `INSERT INTO healthMeasurements (dateKey, waistCm, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(dateKey) DO UPDATE SET waistCm = excluded.waistCm,
+         updatedAt = excluded.updatedAt, deletedAt = excluded.deletedAt`,
+    ),
     everyTraining: db.prepare('SELECT * FROM healthTrainings'),
     everyFinance: db.prepare('SELECT * FROM financeEntries'),
     allFoodIds: db.prepare('SELECT id FROM healthFoods'),
@@ -1357,6 +1389,19 @@ function createDatabase(file) {
       num(sleep.deletedAt),
     )
     return sleep
+  }
+
+  function saveMeasurement(measurement) {
+    const existing = q.measurementStoredDay.get(measurement.dateKey)
+    const now = Date.now()
+    q.upsertMeasurement.run(
+      measurement.dateKey,
+      measurement.waistCm,
+      measurement.createdAt ?? existing?.createdAt ?? now,
+      num(measurement.updatedAt) ?? now,
+      num(measurement.deletedAt),
+    )
+    return measurementRow(q.measurementStoredDay.get(measurement.dateKey))
   }
 
   function saveTraining(training) {
@@ -1679,6 +1724,7 @@ function createDatabase(file) {
       meals: q.everyMeal.all().map(mealRow),
       intakes: q.everyIntake.all().map(intakeRow),
       sleeps: q.everySleep.all().map(sleepRow),
+      measurements: q.everyMeasurement.all().map(measurementRow),
       trainings: q.everyTraining.all().map(trainingRow),
       finance: q.everyFinance.all().map(financeRow),
       schedules: q.everySchedule.all().map(scheduleRow),
@@ -1811,6 +1857,7 @@ function createDatabase(file) {
     const meals = Array.isArray(health && health.meals) ? health.meals : []
     const intakes = Array.isArray(health && health.intakes) ? health.intakes : []
     const sleeps = Array.isArray(health && health.sleeps) ? health.sleeps : []
+    const measurements = Array.isArray(health && health.measurements) ? health.measurements : []
     const hasTrainings = Boolean(training) || Boolean(health && Array.isArray(health.trainings))
     const trainings = Array.isArray(training && training.entries)
       ? training.entries
@@ -1829,6 +1876,9 @@ function createDatabase(file) {
     const oldMeals = replace ? new Set() : new Set(q.allMealIds.all().map((row) => row.id))
     const oldIntakes = replace ? new Set() : new Set(q.allIntakeIds.all().map((row) => row.id))
     const oldSleeps = replace ? new Set() : new Set(q.allSleepIds.all().map((row) => row.id))
+    const oldMeasurements = replace
+      ? new Set()
+      : new Set(q.everyMeasurement.all().map((row) => row.dateKey))
     const oldTrainings = replace ? new Set() : new Set(q.allTrainingIds.all().map((row) => row.id))
     const oldFinance = replace ? new Set() : new Set(q.allFinanceIds.all().map((row) => row.id))
     const hadProfile = replace ? false : Boolean(q.healthProfile.get())
@@ -1849,6 +1899,7 @@ function createDatabase(file) {
           db.exec('DELETE FROM healthMeals')
           db.exec('DELETE FROM healthIntakes')
           db.exec('DELETE FROM healthSleeps')
+          db.exec('DELETE FROM healthMeasurements')
         }
         if (hasTrainings) db.exec('DELETE FROM healthTrainings')
         if (finance) db.exec('DELETE FROM financeEntries')
@@ -1896,6 +1947,7 @@ function createDatabase(file) {
         for (const meal of meals) saveMeal(meal)
         for (const intake of intakes) insertIntake(intake)
         for (const sleep of sleeps) saveSleep(sleep)
+        for (const measurement of measurements) saveMeasurement(measurement)
       }
       if (hasTrainings) {
         for (const item of trainings) saveTraining(item)
@@ -1935,6 +1987,7 @@ function createDatabase(file) {
       meals: { total: meals.length, overwritten: meals.filter((item) => oldMeals.has(item.id)).length },
       intakes: { total: intakes.length, overwritten: intakes.filter((item) => oldIntakes.has(item.id)).length },
       sleeps: { total: sleeps.length, overwritten: sleeps.filter((item) => oldSleeps.has(item.id)).length },
+      measurements: { total: measurements.length, overwritten: measurements.filter((item) => oldMeasurements.has(item.dateKey)).length },
       trainings: { total: trainings.length, overwritten: trainings.filter((item) => oldTrainings.has(item.id)).length },
       finance: { total: finances.length, overwritten: finances.filter((item) => oldFinance.has(item.id)).length },
       schedules: { total: schedules.length, overwritten: schedules.filter((item) => oldSchedules.has(item.id)).length },
@@ -2132,6 +2185,7 @@ function createDatabase(file) {
       meals: q.everyMealBrief.all().map(mealBriefRow),
       intakes: q.everyIntake.all().map(intakeRow),
       sleeps: q.everySleep.all().map(sleepRow),
+      measurements: q.everyMeasurement.all().map(measurementRow),
       trainings: q.everyTraining.all().map(trainingRow),
       finance: q.composeFinanceBriefs.all().map(financeBriefRow),
       schedules: q.everySchedule.all().map(scheduleRow),
@@ -2147,6 +2201,7 @@ function createDatabase(file) {
       meals: Number(q.countMeals.get().n),
       intakes: Number(q.countIntakes.get().n),
       sleeps: Number(q.countSleeps.get().n),
+      measurements: Number(q.countMeasurements.get().n),
       trainings: Number(q.countTrainings.get().n),
       weights: (profileRow(q.healthProfile.get())?.weighIns ?? []).length,
       finance: Number(q.countFinance.get().n),
@@ -2209,13 +2264,14 @@ function createDatabase(file) {
         'healthMeals',
         'healthIntakes',
         'healthSleeps',
+        'healthMeasurements',
         'healthTrainings',
       ]),
     clearFinanceData: () => runClear(['financeEntries']),
     trashDiaryData: () =>
       runTrash(['diaryEntries', 'diaryStamps', 'diaryPresets', 'schedules']),
     trashHealthData: () =>
-      runTrash(['healthFoods', 'healthMeals', 'healthIntakes', 'healthSleeps', 'healthTrainings']),
+      runTrash(['healthFoods', 'healthMeals', 'healthIntakes', 'healthSleeps', 'healthMeasurements', 'healthTrainings']),
     trashFinanceData: () => runTrash(['financeEntries']),
 
     // ─────────── 健康 ───────────
@@ -2270,6 +2326,9 @@ function createDatabase(file) {
     },
     sleepOfDay: (dateKey) => sleepRow(q.sleepOfDay.get(dateKey)),
     sleepsBetween: (from, to) => q.sleepsBetween.all(from, to).map(sleepRow),
+    measurementsBetween: (from, to) => q.measurementsBetween.all(from, to).map(measurementRow),
+    measurementOfDay: (dateKey) => measurementRow(q.measurementOfDay.get(dateKey)),
+    saveHealthMeasurement: (measurement) => saveMeasurement(measurement),
     financeOfMonth: (monthKey) => q.financeOfMonth.all(`${monthKey}%`).map(financeRow),
     financeBriefsOfMonth: (monthKey) =>
       q.financeBriefsOfMonth.all(`${monthKey}%`).map(financeBriefRow),

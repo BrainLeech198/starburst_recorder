@@ -17,6 +17,7 @@ import type {
   HealthFood,
   HealthIntake,
   HealthMeal,
+  HealthMeasurement,
   HealthProfile,
   HealthSleep,
   HealthTraining,
@@ -34,6 +35,7 @@ export type ConflictKind =
   | 'meal'
   | 'intake'
   | 'sleep'
+  | 'measurement'
   | 'training'
   | 'profile'
   | 'finance'
@@ -316,6 +318,7 @@ export interface HealthPart {
   meals: HealthMeal[]
   intakes: HealthIntake[]
   sleeps: HealthSleep[]
+  measurements?: HealthMeasurement[]
   trainings: HealthTraining[]
 }
 
@@ -385,6 +388,17 @@ function sleepDiffers(local: HealthSleep, incoming: HealthSleep) {
     (local.wakeCount ?? null) !== (incoming.wakeCount ?? null) ||
     (local.wakeMinutes ?? null) !== (incoming.wakeMinutes ?? null) ||
     local.note !== incoming.note ||
+    tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
+  )
+}
+
+function measurementSummary(item: HealthMeasurement) {
+  return `${item.dateKey} · waist ${item.waistCm} cm`
+}
+
+function measurementDiffers(local: HealthMeasurement, incoming: HealthMeasurement) {
+  return (
+    local.waistCm !== incoming.waistCm ||
     tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
   )
 }
@@ -617,6 +631,25 @@ export function findHealthConflicts(
     })
   }
 
+  const localMeasurements = new Map((local.measurements ?? []).map((item) => [item.dateKey, item]))
+  for (const item of incoming.measurements ?? []) {
+    const mine = localMeasurements.get(item.dateKey)
+    if (!mine || !measurementDiffers(mine, item)) continue
+    conflicts.push({
+      kind: 'measurement',
+      key: item.dateKey,
+      label: item.dateKey,
+      localText: measurementSummary(mine),
+      incomingText: measurementSummary(item),
+      localBody: measurementSummary(mine),
+      incomingBody: measurementSummary(item),
+      localDeleted: isDeleted(mine.deletedAt),
+      incomingDeleted: isDeleted(item.deletedAt),
+      localAt: mine.updatedAt,
+      incomingAt: item.updatedAt,
+    })
+  }
+
   const localTrainings = new Map(local.trainings.map((item) => [item.id, item]))
   for (const item of incoming.trainings) {
     const mine = localTrainings.get(item.id)
@@ -682,6 +715,9 @@ export function pickHealth(
     ),
     sleeps: incoming.sleeps.filter(
       (item) => !keepLocal.has(conflictKey({ kind: 'sleep', key: item.id })),
+    ),
+    measurements: (incoming.measurements ?? []).filter(
+      (item) => !keepLocal.has(conflictKey({ kind: 'measurement', key: item.dateKey })),
     ),
     trainings: incoming.trainings.filter(
       (item) => !keepLocal.has(conflictKey({ kind: 'training', key: item.id })),

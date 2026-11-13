@@ -9,6 +9,7 @@ import {
   pickFood,
   pickSleep,
   pickStamp,
+  pickTraining,
   rows,
 } from './normalize'
 
@@ -34,9 +35,9 @@ describe('行级校验：必填缺失就丢行', () => {
     expect(pickStamp({ id: 'a', dateKey: '2026-02-30', time: '09:30', content: '' })).toBeNull()
   })
 
-  it('随记的时刻写坏时退回 00:00，宁可挪个位置也不丢内容', () => {
+  it('随记的时刻写坏时留空，不伪造记录时刻', () => {
     expect(pickStamp({ id: 'a', dateKey: '2026-10-25', time: '9:3', content: 'x' })?.time).toBe(
-      '00:00',
+      '',
     )
   })
 
@@ -86,6 +87,10 @@ describe('行级校验：可选字段补默认', () => {
     expect(intake!.proteinTargetSnapshot).toBeNull()
     expect('tdeeSnapshot' in intake!).toBe(true)
     expect(intake!.components).toBeNull()
+  })
+
+  it('没有记录摄入时刻时保持为空', () => {
+    expect(pickIntake({ id: 'i1', dateKey: '2026-10-25', name: '午饭' })?.time).toBe('')
   })
 
   it('套餐里认不出的成分直接丢掉，认得出的留下', () => {
@@ -145,12 +150,12 @@ describe('不可信容器', () => {
   })
 })
 
-describe('睡眠行：时刻坏了退回 00:00，评分只认 1–5', () => {
+describe('睡眠行：时刻缺失时保持为空，评分只认 1–5', () => {
   const base = { id: 's1', dateKey: '2026-10-26', bedtime: '23:10', wakeTime: '07:00' }
 
-  it('坏时刻退回 00:00，缺 code 补一个', () => {
+  it('坏时刻保持为空，缺 code 补一个', () => {
     const row = pickSleep({ ...base, bedtime: '25:99', wakeTime: 7 })
-    expect(row).toMatchObject({ bedtime: '00:00', wakeTime: '00:00' })
+    expect(row).toMatchObject({ bedtime: '', wakeTime: '' })
     expect(row?.code).not.toBe('')
   })
 
@@ -220,8 +225,17 @@ describe('收支行：旧数据按支出读，金额收回正数', () => {
 
   it('缺方向、分类、短编号时补默认值', () => {
     const row = pickFinance(base)
-    expect(row).toMatchObject({ kind: 'expense', category: '' })
+    expect(row).toMatchObject({ kind: 'expense', category: '', time: '' })
     expect(row?.code).not.toBe('')
+  })
+
+  it('保留明确时刻，错误时刻不按创建时间补造', () => {
+    expect(pickFinance({ ...base, time: '08:30' })?.time).toBe('08:30:00')
+    expect(pickFinance({ ...base, time: 'bad', createdAt: 1_800_000_000_000 })?.time).toBe('')
+  })
+
+  it('训练没有明确时刻时保持为空', () => {
+    expect(pickTraining({ id: 't1', dateKey: '2026-10-31' })?.time).toBe('')
   })
 
   it('只认 income，其余都算支出；金额统一取绝对值', () => {

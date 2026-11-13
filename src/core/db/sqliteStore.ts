@@ -17,6 +17,7 @@ import type {
   HealthFood,
   HealthIntake,
   HealthMeal,
+  HealthMeasurement,
   HealthProfile,
   HealthSleep,
   HealthTraining,
@@ -304,6 +305,12 @@ export const sqliteStore: DiaryStore = {
   },
   purgeTrashedHealthSleeps: async () => {
     await call('purgeTrashedHealthSleeps')
+  },
+  measurementsBetween: (from, to) => call('measurementsBetween', from, to),
+  measurementOfDay: (dateKey) => call('measurementOfDay', dateKey),
+  saveHealthMeasurement: async (measurement) => {
+    const next: HealthMeasurement = { ...measurement, updatedAt: Date.now(), deletedAt: null }
+    return call('saveHealthMeasurement', next)
   },
 
   // ─────────── 训练 ───────────

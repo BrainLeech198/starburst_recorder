@@ -22,6 +22,7 @@ import type {
   HealthIntake,
   HealthMeal,
   HealthMealItem,
+  HealthMeasurement,
   HealthActivity,
   HealthProfile,
   HealthSex,
@@ -213,8 +214,8 @@ export function pickStamp(raw: unknown): DiaryStamp | null {
     id,
     code: text(item.code) || newCode(),
     dateKey: day,
-    // 时间必须是 HH:MM，坏的就退回 '00:00'，免得一条脏数据废掉整份备份
-    time: /^\d{2}:\d{2}$/.test(time) ? time : '00:00',
+    // 时间必须是合法 HH:MM；坏值留空，不伪造记录时刻
+    time: /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : '',
     content: text(item.content),
     images: pickImages(item.images),
     tags: pickTags(item.tags),
@@ -364,7 +365,7 @@ export function pickTraining(raw: unknown): HealthTraining | null {
     id,
     code: text(item.code) || newCode(),
     dateKey: day,
-    time: /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : '00:00',
+    time: /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : '',
     kind: isTrainingKind(kind) ? kind : 'other',
     title: text(item.title),
     exercises: pickExercises(item.exercises),
@@ -518,7 +519,7 @@ export function pickIntake(raw: unknown): HealthIntake | null {
     id,
     code: text(item.code) || newCode(),
     dateKey: day,
-    time: /^\d{2}:\d{2}$/.test(time) ? time : '00:00',
+    time: /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : '',
     foodId: typeof item.foodId === 'string' ? item.foodId : null,
     name,
     grams: number(item.grams, 0),
@@ -555,9 +556,9 @@ export function pickSleep(raw: unknown): HealthSleep | null {
     id,
     code: text(item.code) || newCode(),
     dateKey: day,
-    // 时刻必须是合法 HH:MM，坏的就退回 '00:00'，免得一条脏数据废掉整份备份
-    bedtime: /^([01]\d|2[0-3]):[0-5]\d$/.test(bedtime) ? bedtime : '00:00',
-    wakeTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(wakeTime) ? wakeTime : '00:00',
+    // 时刻必须是合法 HH:MM；坏值留空，不伪造记录时刻
+    bedtime: /^([01]\d|2[0-3]):[0-5]\d$/.test(bedtime) ? bedtime : '',
+    wakeTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(wakeTime) ? wakeTime : '',
     // 只认 1–5，越界或缺失都算没评
     quality: quality !== null && quality >= 1 && quality <= 5 ? quality : null,
     // 逐条夜醒；旧备份没有这个字段时留空数组，下面再用旧口径兜底
@@ -577,6 +578,23 @@ export function pickSleep(raw: unknown): HealthSleep | null {
   }
 }
 
+/** 身体测量必填日期和有效腰围；错误记录单条丢弃，避免污染整份备份。 */
+export function pickMeasurement(raw: unknown): HealthMeasurement | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  const day = dateKey(item.dateKey)
+  const waist = nullableNumber(item.waistCm)
+  if (day === null || waist === null || waist < 20 || waist > 250) return null
+  const now = Date.now()
+  return {
+    dateKey: day,
+    waistCm: Math.round(waist * 10) / 10,
+    createdAt: number(item.createdAt, now),
+    updatedAt: number(item.updatedAt, now),
+    deletedAt: deletedAt(item.deletedAt),
+  }
+}
+
 export function pickFinance(raw: unknown): FinanceEntry | null {
   if (!raw || typeof raw !== 'object') return null
   const item = raw as Record<string, unknown>
@@ -589,12 +607,12 @@ export function pickFinance(raw: unknown): FinanceEntry | null {
     id,
     code: text(item.code) || newCode(),
     dateKey: day,
-    // 旧备份没有 time：按创建时间补一个带秒的时刻
+    // 没有明确记录时刻就留空，不根据创建时间伪造用户输入
     time: /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(time)
       ? time.length === 5
         ? `${time}:00`
         : time
-      : clockSeconds(createdAt),
+      : '',
     // 旧占位数据没有方向，统一按支出口径读；金额一律收成正数
     kind: item.kind === 'income' ? 'income' : 'expense',
     category: text(item.category),
@@ -607,13 +625,6 @@ export function pickFinance(raw: unknown): FinanceEntry | null {
     updatedAt: number(item.updatedAt, Date.now()),
     deletedAt: deletedAt(item.deletedAt),
   }
-}
-
-/** 把时间戳收成 'HH:MM:SS'，按设备本地时区 */
-function clockSeconds(ms: number) {
-  const date = new Date(ms)
-  const pad = (value: number) => String(value).padStart(2, '0')
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
 const SCHEDULE_REPEATS: ScheduleRepeat[] = ['none', 'daily', 'weekly']

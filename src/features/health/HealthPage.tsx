@@ -25,17 +25,6 @@ import { hasAcknowledgedDisclaimer } from './disclaimerAck'
 import { dayTargets, emptyProfile, formatNum, missingProfileFields, remainingKcal, sumMacros } from './healthMath'
 import { healthProfile, intakeDays, intakesOfDay, saveHealthProfile, sleepDays, sleepOfDay } from './healthRepo'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
-import { trainingOfDay, trainingsBetween, latestTraining } from '@/features/training/trainingRepo'
-import {
-  daysBetween,
-  formatDuration,
-  formatVolume,
-  summarizeDay,
-  summarizeWeek,
-  weekStartOf,
-} from '@/features/training/trainingMath'
-import { maybeNotifyTraining, syncTrainingReminder } from '@/features/training/trainingNotify'
-import TrainingForm from '@/features/training/TrainingForm'
 
 const FIELD_LABELS = {
   sex: 'profile.fieldSex',
@@ -46,7 +35,7 @@ const FIELD_LABELS = {
   targetKcal: 'profile.fieldTarget',
 } as const
 
-/** 健康首页：一条今日摄入进度条 +「记一笔」，其余留白，等训练和体重再接 */
+/** 健康首页：汇总摄入、睡眠与体重等身体记录；训练由独立板块承载。 */
 export default function HealthPage() {
   const { t } = useI18n()
   // 跟日记一样把日期放进 URL：刷新、返回都还停在看的这一天
@@ -70,13 +59,6 @@ export default function HealthPage() {
   const [disclaimerOpen, setDisclaimerOpen] = useState(() => !hasAcknowledgedDisclaimer())
   /** 这一夜的睡眠；null = 没记，undefined = 还在查 */
   const sleep = useLiveQuery(async () => (await sleepOfDay(dayKey)) ?? null, [dayKey])
-  // 训练卡：当天记录 + 本周汇总，点卡片进训练页
-  const trainings = useLiveQuery(() => trainingOfDay(dayKey), [dayKey])
-  const trainingWeekStart = weekStartOf(dayKey)
-  const trainingWeek = useLiveQuery(
-    () => trainingsBetween(trainingWeekStart, shiftDay(trainingWeekStart, 6)),
-    [trainingWeekStart],
-  )
   const derivedTdee = useDerivedTdee(profile)
   // 称重日提醒：应用内横幅由 WeighInCard 负责，这里补系统通知（桌面到点弹、安卓排本地通知）
   useEffect(() => {
@@ -84,8 +66,6 @@ export default function HealthPage() {
     void syncWeighReminder(profile)
   }, [profile])
   const [sleepDialogOpen, setSleepDialogOpen] = useState(false)
-  /** 训练卡上的「记一次」：就地开表单，不跳二级页（训练页仍在「查看记录」里） */
-  const [trainingFormOpen, setTrainingFormOpen] = useState(false)
   /** 手机健康应用导入的弹窗；只在安卓原生端有入口 */
   const [importOpen, setImportOpen] = useState(false)
   /** 理想作息的内联编辑：平时收成一行，点「编辑」展开两个时间框 */
@@ -131,25 +111,6 @@ export default function HealthPage() {
     totals.protein,
     targets.proteinTarget,
   )
-  const dayTrainingSummary = summarizeDay(trainings ?? [])
-  const weekTrainingSummary = summarizeWeek(trainingWeek ?? [], trainingWeekStart, dayKey)
-
-  // 训练提醒：计划改动后排安卓本地通知；前台按「今天」检查计划与断档，和训练页同一套规则
-  const latestTrainingRow = useLiveQuery(() => latestTraining(), [])
-  useEffect(() => {
-    void syncTrainingReminder(profile?.trainingPlan)
-  }, [profile?.trainingPlan])
-  useEffect(() => {
-    const check = () => {
-      const gap = latestTrainingRow
-        ? daysBetween(latestTrainingRow.dateKey, todayKey())
-        : -1
-      maybeNotifyTraining(profile?.trainingPlan, gap === 0, gap)
-    }
-    check()
-    const timer = window.setInterval(check, 60_000)
-    return () => window.clearInterval(timer)
-  }, [profile?.trainingPlan, latestTrainingRow])
   const sleepWakeSummary = sleep ? sleepWakeStats(sleep) : null
   const sleepWakeEvents = sleep ? sortWakeEvents(sleep.wakeEvents ?? [], sleep.bedtime) : []
   const sleepReview =
@@ -190,6 +151,12 @@ export default function HealthPage() {
         trailing={
           <>
             <Link
+              to="/health/measurements"
+              className="inline-flex h-8 items-center rounded-lg px-2 text-sm text-muted transition-colors hover:text-fg"
+            >
+              {t('health.measurementsTitle')}
+            </Link>
+            <Link
               to="/health/foods"
               className="inline-flex h-8 items-center rounded-lg px-2 text-sm text-muted transition-colors hover:text-fg"
             >
@@ -208,6 +175,59 @@ export default function HealthPage() {
         }
       />
 
+      <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
+        {/* 指标卡式头部：小标题 + 右上角记录入口，不再用大标题和分隔线 */}
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="m-0 text-sm font-medium text-fg">{t('records.kindIntake')}</h2>
+          <Link
+            to={`/health/intakes?date=${dayKey}`}
+            className="shrink-0 text-xs tabular-nums text-muted transition-colors hover:text-brand"
+          >
+            {t('health.viewRecords')}
+            {intakes !== undefined && intakes.length > 0
+              ? ` · ${t('health.itemCount', { n: intakes.length })}`
+              : ''}{' '}
+            ›
+          </Link>
+        </div>
+        {intakeReview && (
+          <p className="m-0 mt-2 rounded-lg bg-brand/10 px-2.5 py-1.5 text-xs text-brand">
+            {t(intakeReview)}
+          </p>
+        )}
+        <div className="mt-2 flex items-end justify-between gap-2">
+          <p className="m-0 text-3xl font-medium tabular-nums leading-none text-fg">
+            {formatNum(totals.kcal)}
+            <span className="ml-1 text-xs font-normal text-muted">{t('health.kcalUnit')}</span>
+          </p>
+          {remaining !== null && (
+            <p className={`m-0 text-xs ${remaining >= 0 ? 'text-muted' : 'text-danger'}`}>
+              {remaining >= 0
+                ? t('health.remaining', { value: formatNum(remaining) })
+                : t('health.over', { value: formatNum(Math.abs(remaining)) })}
+            </p>
+          )}
+        </div>
+
+        <IntakeBar
+          totals={totals}
+          tdee={targets.tdee}
+          target={targets.targetKcal}
+          derived={derivedTdee ?? null}
+        />
+        <ProteinBar value={totals.protein} target={targets.proteinTarget} />
+        <HealthEstimateNote interactive className="mt-2" />
+
+        <button
+          type="button"
+          onClick={() => setDialogOpen(true)}
+          className={`${SOLID_BUTTON} mt-3 w-full`}
+        >
+          <Icon name="utensils" />
+          {t('health.addIntake')}
+        </button>
+      </section>
+
       {!ready && (
         <section className="mt-4 rounded-2xl border border-warning/40 bg-warning/10 p-4">
           <p className="m-0 text-sm text-fg">{t('health.setupNeeded')}</p>
@@ -218,61 +238,6 @@ export default function HealthPage() {
             <Icon name="settings" />
             {t('health.setupAction')}
           </Link>
-        </section>
-      )}
-
-      {ready && (
-        <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
-          {/* 指标卡式头部：小标题 + 右上角记录入口，不再用大标题和分隔线 */}
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="m-0 text-sm font-medium text-fg">{t('records.kindIntake')}</h2>
-            <Link
-              to={`/health/intakes?date=${dayKey}`}
-              className="shrink-0 text-xs tabular-nums text-muted transition-colors hover:text-brand"
-            >
-              {t('health.viewRecords')}
-              {intakes !== undefined && intakes.length > 0
-                ? ` · ${t('health.itemCount', { n: intakes.length })}`
-                : ''}{' '}
-              ›
-            </Link>
-          </div>
-          {intakeReview && (
-            <p className="m-0 mt-2 rounded-lg bg-brand/10 px-2.5 py-1.5 text-xs text-brand">
-              {t(intakeReview)}
-            </p>
-          )}
-          <div className="mt-2 flex items-end justify-between gap-2">
-            <p className="m-0 text-3xl font-medium tabular-nums leading-none text-fg">
-              {formatNum(totals.kcal)}
-              <span className="ml-1 text-xs font-normal text-muted">{t('health.kcalUnit')}</span>
-            </p>
-            {remaining !== null && (
-              <p className={`m-0 text-xs ${remaining >= 0 ? 'text-muted' : 'text-danger'}`}>
-                {remaining >= 0
-                  ? t('health.remaining', { value: formatNum(remaining) })
-                  : t('health.over', { value: formatNum(Math.abs(remaining)) })}
-              </p>
-            )}
-          </div>
-
-          <IntakeBar
-            totals={totals}
-            tdee={targets.tdee}
-            target={targets.targetKcal}
-            derived={derivedTdee ?? null}
-          />
-          <ProteinBar value={totals.protein} target={targets.proteinTarget} />
-          <HealthEstimateNote interactive className="mt-2" />
-
-          <button
-            type="button"
-            onClick={() => setDialogOpen(true)}
-            className={`${SOLID_BUTTON} mt-3 w-full`}
-          >
-            <Icon name="utensils" />
-            {t('health.addIntake')}
-          </button>
         </section>
       )}
 
@@ -397,47 +362,6 @@ export default function HealthPage() {
         </div>
       </section>
 
-      {/* 训练卡：今天练了没有 + 本周次数。
-          两个入口分工写清楚（2026-11-02 修）：右上角「查看记录」进训练页（列表、计划、导出都在那儿），
-          底下「记一次」就地开表单——原先两个按钮都跳同一个二级页，点哪个都像点错了 */}
-      <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="m-0 text-sm font-medium text-fg">{t('training.title')}</h2>
-          <Link
-            to={`/health/training?date=${dayKey}`}
-            className="shrink-0 text-xs tabular-nums text-muted transition-colors hover:text-brand"
-          >
-            {t('health.viewRecords')}
-            {trainings !== undefined && trainings.length > 0
-              ? ` · ${t('health.itemCount', { n: trainings.length })}`
-              : ''}{' '}
-            ›
-          </Link>
-        </div>
-        {trainings === undefined ? null : trainings.length === 0 ? (
-          <p className="m-0 mt-2 text-xs text-muted">{t('training.dayEmpty')}</p>
-        ) : (
-          <p className="m-0 mt-2 text-2xl font-medium tabular-nums text-fg">
-            {dayTrainingSummary.volumeKg > 0
-              ? formatVolume(dayTrainingSummary.volumeKg)
-              : formatDuration(dayTrainingSummary.totalDurationMin, t)}
-          </p>
-        )}
-        <p className="m-0 mt-1 text-[11px] tabular-nums text-muted">
-          {t('training.weekSessions')} {weekTrainingSummary.sessions} ·{' '}
-          {t('training.weekDays')} {weekTrainingSummary.days} · {t('training.volume')}{' '}
-          {formatVolume(weekTrainingSummary.volumeKg)}
-        </p>
-        <button
-          type="button"
-          onClick={() => setTrainingFormOpen(true)}
-          className={`${SOLID_BUTTON} mt-3 w-full`}
-        >
-          <Icon name="dumbbell" />
-          {t('training.add')}
-        </button>
-      </section>
-
       {/* 手机健康应用的数据只能从安卓端读，桌面和浏览器不显示这块 */}
       {canImportFromHealthApp() && (
         <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
@@ -471,11 +395,6 @@ export default function HealthPage() {
           sleep={sleep ?? null}
           onClose={() => setSleepDialogOpen(false)}
         />
-      )}
-
-      {/* 记完自动收起；列表靠 live query 自己刷新，不用在这里回读 */}
-      {trainingFormOpen && (
-        <TrainingForm dateKey={dayKey} onClose={() => setTrainingFormOpen(false)} />
       )}
 
       {pickerOpen && (

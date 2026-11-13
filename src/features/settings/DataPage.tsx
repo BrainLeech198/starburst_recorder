@@ -452,6 +452,7 @@ function sectionDetail(
       meals: payload.meals.length,
       intakes: payload.intakes.length,
       sleeps: payload.sleeps.length,
+      measurements: payload.measurements?.length ?? 0,
       profile: payload.profile ? t('data.sectionProfileYes') : t('data.sectionProfileNo'),
     })
   }
@@ -913,6 +914,7 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
         meals: local.meals,
         intakes: local.intakes,
         sleeps: local.sleeps,
+        measurements: local.measurements ?? [],
         trainings: local.trainings,
       }
 
@@ -932,6 +934,7 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
           meals: scoped.meals,
           intakes: scoped.intakes,
           sleeps: scoped.sleeps,
+          measurements: scoped.measurements ?? [],
           trainings: scoped.trainings,
         }
         conflicts.push(...findHealthConflicts(health, localHealth))
@@ -979,6 +982,7 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
             meals: target.payload.meals,
             intakes: target.payload.intakes,
             sleeps: target.payload.sleeps,
+            measurements: target.payload.measurements ?? [],
           }
         }
         if (target.selected.has('training')) {
@@ -1010,6 +1014,7 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
               meals: pickedHealth.meals,
               intakes: pickedHealth.intakes,
               sleeps: pickedHealth.sleeps,
+              measurements: pickedHealth.measurements ?? [],
             }
           }
           if (target.selected.has('training')) {
@@ -1106,6 +1111,7 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
         stats.meals.total +
         stats.intakes.total +
         stats.sleeps.total +
+        stats.measurements.total +
         stats.trainings.total >
       0
     ) {
@@ -1116,6 +1122,9 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
       )
       if (stats.sleeps.total > 0) {
         rows.push({ key: 'sleeps', text: t('data.importSleeps', { added: added(stats.sleeps), overwritten: stats.sleeps.overwritten }) })
+      }
+      if (stats.measurements.total > 0) {
+        rows.push({ key: 'measurements', text: t('data.importMeasurements', { added: added(stats.measurements), overwritten: stats.measurements.overwritten }) })
       }
       if (stats.trainings.total > 0) {
         rows.push({ key: 'trainings', text: t('data.importTrainings', { added: added(stats.trainings), overwritten: stats.trainings.overwritten }) })
@@ -1186,6 +1195,7 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
             { key: 'meals', label: t('data.statMeals'), value: counts?.meals ?? 0 },
             { key: 'intakes', label: t('data.statIntakes'), value: counts?.intakes ?? 0 },
             { key: 'sleeps', label: t('data.statSleeps'), value: counts?.sleeps ?? 0 },
+            { key: 'measurements', label: t('data.statMeasurements'), value: counts?.measurements ?? 0 },
             { key: 'trainings', label: t('data.statTrainings'), value: counts?.trainings ?? 0 },
             { key: 'weights', label: t('data.statWeights'), value: counts?.weights ?? 0 },
           ].map((stat) => (

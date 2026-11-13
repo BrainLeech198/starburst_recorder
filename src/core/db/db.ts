@@ -9,6 +9,7 @@ import type {
   FinanceEntry,
   HealthFood,
   HealthIntake,
+  HealthMeasurement,
   HealthMeal,
   HealthProfile,
   HealthSleep,
@@ -27,6 +28,7 @@ export const db = new Dexie('starburst') as Dexie & {
   healthMeals: EntityTable<HealthMeal, 'id'>
   healthSleeps: EntityTable<HealthSleep, 'id'>
   healthTrainings: EntityTable<HealthTraining, 'id'>
+  healthMeasurements: EntityTable<HealthMeasurement, 'dateKey'>
   financeEntries: EntityTable<FinanceEntry, 'id'>
   schedules: EntityTable<ScheduleItem, 'id'>
 }
@@ -240,3 +242,8 @@ db.version(19)
       })
       .then(() => undefined),
   )
+
+// 身体测量：每个日期最多一条，当前只记录腰围。
+db.version(20).stores({
+  healthMeasurements: 'dateKey, deletedAt',
+})

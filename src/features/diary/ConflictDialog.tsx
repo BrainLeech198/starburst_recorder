@@ -27,6 +27,7 @@ const KIND_LABEL: Record<ConflictKind, MessageKey> = {
   meal: 'data.conflictKindMeal',
   intake: 'data.conflictKindIntake',
   sleep: 'data.conflictKindSleep',
+  measurement: 'data.conflictKindMeasurement',
   training: 'data.conflictKindTraining',
   profile: 'data.conflictKindProfile',
   finance: 'data.conflictKindFinance',

@@ -98,6 +98,7 @@ export const WRITE_METHODS = new Set([
   'restoreHealthSleep',
   'purgeHealthSleep',
   'purgeTrashedHealthSleeps',
+  'saveHealthMeasurement',
   // 训练
   'saveHealthTraining',
   'removeHealthTraining',

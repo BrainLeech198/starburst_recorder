@@ -17,6 +17,7 @@ import type {
   DiaryStamp,
   HealthFood,
   HealthIntake,
+  HealthMeasurement,
   HealthTraining,
   ScheduleItem,
 } from './schema'
@@ -170,6 +171,34 @@ describe('桌面端 SQLite 分块导入', () => {
       kcal: 210,
       carbs: 45,
     })
+  })
+
+  it('替换导入往返保留腰围测量记录', () => {
+    const measurement: HealthMeasurement = {
+      dateKey: '2026-11-13',
+      waistCm: 74,
+      createdAt: 1_794_528_000_000,
+      updatedAt: 1_794_528_000_000,
+      deletedAt: null,
+    }
+    call('saveHealthMeasurement', measurement)
+    const before = call<{ measurements: HealthMeasurement[] }>('exportAllData')
+    expect(before.measurements).toEqual([measurement])
+
+    call('replaceSections', {
+      health: {
+        profile: null,
+        foods: [],
+        meals: [],
+        intakes: [],
+        sleeps: [],
+        measurements: before.measurements,
+        trainings: [],
+      },
+    })
+
+    const after = call<{ measurements: HealthMeasurement[] }>('exportAllData')
+    expect(after.measurements).toEqual(before.measurements)
   })
 
   it('只删除身体档案，保存的快照可恢复称重历史', () => {
@@ -651,6 +680,7 @@ describe('桌面端数据概览与一键清空', () => {
       meals: 1,
       intakes: 1,
       sleeps: 1,
+      measurements: 0,
       trainings: 1,
       weights: 2,
       finance: 1,

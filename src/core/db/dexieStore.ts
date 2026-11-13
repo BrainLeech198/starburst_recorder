@@ -13,6 +13,7 @@ import type {
   HealthFood,
   HealthIntake,
   HealthMeal,
+  HealthMeasurement,
   HealthProfile,
   HealthSleep,
   HealthTraining,
@@ -351,7 +352,7 @@ export const dexieStore: DiaryStore = {
   },
 
   async assistantData(): Promise<AssistantData> {
-    const [entries, stamps, days, presets, profile, foods, meals, intakes, sleeps, trainings, finance, schedules] =
+    const [entries, stamps, days, presets, profile, foods, meals, intakes, sleeps, measurements, trainings, finance, schedules] =
       await Promise.all([
         briefEntryRows(),
         briefStampRows(),
@@ -362,6 +363,7 @@ export const dexieStore: DiaryStore = {
         briefHealthMealRows(true),
         db.healthIntakes.toArray(),
         db.healthSleeps.toArray(),
+        db.healthMeasurements.toArray(),
         db.healthTrainings.toArray(),
         briefFinanceRows(),
         db.schedules.toArray(),
@@ -376,6 +378,7 @@ export const dexieStore: DiaryStore = {
       meals,
       intakes,
       sleeps,
+      measurements,
       trainings,
       finance,
       schedules,
@@ -398,6 +401,7 @@ export const dexieStore: DiaryStore = {
       meals,
       intakes,
       sleeps,
+      measurements,
       trainings,
       finance,
     ] = await Promise.all([
@@ -411,6 +415,7 @@ export const dexieStore: DiaryStore = {
       db.healthMeals.filter((item) => item.deletedAt === null).count(),
       db.healthIntakes.filter((item) => item.deletedAt === null).count(),
       db.healthSleeps.filter((item) => item.deletedAt === null).count(),
+      db.healthMeasurements.filter((item) => item.deletedAt === null).count(),
       db.healthTrainings.filter((item) => item.deletedAt === null).count(),
       db.financeEntries.filter((item) => item.deletedAt === null).count(),
     ])
@@ -424,6 +429,7 @@ export const dexieStore: DiaryStore = {
       meals,
       intakes,
       sleeps,
+      measurements,
       trainings,
       weights: profile?.weighIns?.length ?? 0,
       finance,
@@ -441,6 +447,7 @@ export const dexieStore: DiaryStore = {
       meals,
       intakes,
       sleeps,
+      measurements,
       trainings,
       finance,
       schedules,
@@ -454,6 +461,7 @@ export const dexieStore: DiaryStore = {
       db.healthMeals.toArray(),
       db.healthIntakes.toArray(),
       db.healthSleeps.toArray(),
+      db.healthMeasurements.toArray(),
       db.healthTrainings.toArray(),
       db.financeEntries.toArray(),
       db.schedules.toArray(),
@@ -468,6 +476,7 @@ export const dexieStore: DiaryStore = {
       meals,
       intakes,
       sleeps,
+      measurements,
       trainings,
       finance,
       schedules,
@@ -603,6 +612,7 @@ export const dexieStore: DiaryStore = {
         db.healthMeals,
         db.healthIntakes,
         db.healthSleeps,
+        db.healthMeasurements,
         db.healthTrainings,
       ],
       async () => {
@@ -612,6 +622,7 @@ export const dexieStore: DiaryStore = {
           db.healthMeals.clear(),
           db.healthIntakes.clear(),
           db.healthSleeps.clear(),
+          db.healthMeasurements.clear(),
           db.healthTrainings.clear(),
         ])
       },
@@ -642,13 +653,14 @@ export const dexieStore: DiaryStore = {
     const now = Date.now()
     await db.transaction(
       'rw',
-      [db.healthFoods, db.healthMeals, db.healthIntakes, db.healthSleeps, db.healthTrainings],
+      [db.healthFoods, db.healthMeals, db.healthIntakes, db.healthSleeps, db.healthMeasurements, db.healthTrainings],
       async () => {
         await Promise.all([
           db.healthFoods.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
           db.healthMeals.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
           db.healthIntakes.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
           db.healthSleeps.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
+          db.healthMeasurements.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
           db.healthTrainings.filter((item) => item.deletedAt === null).modify({ deletedAt: now }),
         ])
       },
@@ -981,6 +993,32 @@ export const dexieStore: DiaryStore = {
     await db.healthSleeps.filter((sleep) => sleep.deletedAt !== null).delete()
   },
 
+  async measurementsBetween(from, to) {
+    const rows = await db.healthMeasurements
+      .where('dateKey')
+      .between(from, to, true, true)
+      .filter((item) => item.deletedAt === null)
+      .toArray()
+    return rows.sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+  },
+
+  async measurementOfDay(dateKey) {
+    const item = await db.healthMeasurements.get(dateKey)
+    return item?.deletedAt === null ? item : undefined
+  },
+
+  async saveHealthMeasurement(measurement) {
+    const existing = await db.healthMeasurements.get(measurement.dateKey)
+    const next: HealthMeasurement = {
+      ...measurement,
+      createdAt: existing?.createdAt ?? measurement.createdAt,
+      updatedAt: Date.now(),
+      deletedAt: null,
+    }
+    await db.healthMeasurements.put(next)
+    return next
+  },
+
   // ─────────── 训练 ───────────
 
   async trainingOfDay(dateKey): Promise<HealthTraining[]> {
@@ -1233,6 +1271,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
   const meals = health?.meals ?? []
   const intakes = health?.intakes ?? []
   const sleeps = health?.sleeps ?? []
+  const measurements = health?.measurements ?? []
   const trainings = data.training?.entries ?? health?.trainings ?? []
   const hasTrainings = data.training !== undefined || health?.trainings !== undefined
   const finance = data.finance?.entries ?? []
@@ -1251,6 +1290,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
         health?.profile ? db.healthProfile.get('me') : Promise.resolve(undefined),
         db.diaryPresets.bulkGet(presets.map((item) => item.id)),
         db.healthSleeps.bulkGet(sleeps.map((item) => item.id)),
+        db.healthMeasurements.bulkGet(measurements.map((item) => item.dateKey)),
         db.healthTrainings.bulkGet(trainings.map((item) => item.id)),
         db.schedules.bulkGet(schedules.map((item) => item.id)),
       ])
@@ -1266,6 +1306,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
       db.healthMeals,
       db.healthIntakes,
       db.healthSleeps,
+      db.healthMeasurements,
       db.healthTrainings,
       db.financeEntries,
       db.diaryPresets,
@@ -1289,6 +1330,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
             db.healthMeals.clear(),
             db.healthIntakes.clear(),
             db.healthSleeps.clear(),
+            db.healthMeasurements.clear(),
           ])
         }
         if (hasTrainings) await db.healthTrainings.clear()
@@ -1307,6 +1349,7 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
         await db.healthMeals.bulkPut(meals)
         await db.healthIntakes.bulkPut(intakes)
         await db.healthSleeps.bulkPut(sleeps)
+        await db.healthMeasurements.bulkPut(measurements)
       }
       if (hasTrainings) await db.healthTrainings.bulkPut(trainings)
       if (data.finance) await db.financeEntries.bulkPut(finance)
@@ -1326,7 +1369,8 @@ async function applySections(data: BackupSections, replace = false): Promise<Imp
   stats.meals = { total: meals.length, overwritten: howMany(old?.[4]) }
   stats.intakes = { total: intakes.length, overwritten: howMany(old?.[5]) }
   stats.sleeps = { total: sleeps.length, overwritten: howMany(old?.[9]) }
-  stats.trainings = { total: trainings.length, overwritten: howMany(old?.[10]) }
+  stats.measurements = { total: measurements.length, overwritten: howMany(old?.[10]) }
+  stats.trainings = { total: trainings.length, overwritten: howMany(old?.[11]) }
   stats.finance = { total: finance.length, overwritten: howMany(old?.[6]) }
   stats.schedules = { total: schedules.length, overwritten: howMany(old?.[11]) }
   return stats

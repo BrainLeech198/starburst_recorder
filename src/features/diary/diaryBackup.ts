@@ -22,6 +22,7 @@ import type {
   HealthFood,
   HealthIntake,
   HealthMeal,
+  HealthMeasurement,
   HealthProfile,
   HealthSleep,
   HealthTraining,
@@ -38,6 +39,7 @@ import {
   pickFood,
   pickIntake,
   pickMeal,
+  pickMeasurement,
   pickPreset,
   pickProfile,
   pickSchedule,
@@ -105,6 +107,7 @@ export interface BackupPayload {
   meals: HealthMeal[]
   intakes: HealthIntake[]
   sleeps: HealthSleep[]
+  measurements?: HealthMeasurement[]
   trainings: HealthTraining[]
   finance: FinanceEntry[]
   /** AI 对话存档；旧备份没有这一块 */
@@ -127,6 +130,7 @@ export function emptyPayload(): BackupPayload {
     meals: [],
     intakes: [],
     sleeps: [],
+    measurements: [],
     trainings: [],
     finance: [],
     chats: [],
@@ -149,6 +153,7 @@ export function onlySections(payload: BackupPayload, sections: BackupSection[]):
     meals: keep.has('health') ? payload.meals : [],
     intakes: keep.has('health') ? payload.intakes : [],
     sleeps: keep.has('health') ? payload.sleeps : [],
+    measurements: keep.has('health') ? payload.measurements ?? [] : [],
     trainings: keep.has('training') ? payload.trainings : [],
     finance: keep.has('finance') ? payload.finance : [],
     chats: keep.has('assistant') ? payload.chats ?? [] : [],
@@ -175,6 +180,7 @@ export function sectionSize(payload: BackupPayload, section: BackupSection): num
       payload.meals.length +
       payload.intakes.length +
       payload.sleeps.length
+      + (payload.measurements?.length ?? 0)
     )
   }
   if (section === 'schedule') return payload.schedules.length
@@ -239,6 +245,7 @@ export function buildBackup(
                   meals: data.meals,
                   intakes: data.intakes,
                   sleeps: data.sleeps,
+                  measurements: data.measurements ?? [],
                   trainings: data.trainings,
                 },
               }
@@ -306,6 +313,7 @@ export function readBackup(text: string): BackupReadResult {
   const rawMeals = rows(healthBag.meals)
   const rawIntakes = rows(healthBag.intakes)
   const rawSleeps = rows(healthBag.sleeps)
+  const rawMeasurements = rows(healthBag.measurements)
   const rawTrainings = rows(trainingBag.entries ?? healthBag.trainings)
   const rawFinance = rows(financeBag.entries)
   const rawChats = rows(assistantBag.sessions ?? assistantBag.chats)
@@ -328,6 +336,9 @@ export function readBackup(text: string): BackupReadResult {
   const meals = rawMeals.map(pickMeal).filter((item): item is HealthMeal => item !== null)
   const intakes = rawIntakes.map(pickIntake).filter((item): item is HealthIntake => item !== null)
   const sleeps = rawSleeps.map(pickSleep).filter((item): item is HealthSleep => item !== null)
+  const measurements = rawMeasurements
+    .map(pickMeasurement)
+    .filter((item): item is HealthMeasurement => item !== null)
   const trainings = rawTrainings
     .map(pickTraining)
     .filter((item): item is HealthTraining => item !== null)
@@ -347,6 +358,7 @@ export function readBackup(text: string): BackupReadResult {
     meals,
     intakes,
     sleeps,
+    measurements,
     trainings,
     finance,
     chats,
@@ -369,13 +381,14 @@ export function readBackup(text: string): BackupReadResult {
     rawMeals.length +
     rawIntakes.length +
     rawSleeps.length +
+    rawMeasurements.length +
     rawTrainings.length +
     rawFinance.length +
     rawChats.length +
     new Set([...Object.keys(rawPrefs), ...Object.keys(aiModelsBag)]).size +
     (healthBag.profile ? 1 : 0)
   const keptTotal =
-    entries.length + stamps.length + days.length + presets.length + schedules.length + foods.length + meals.length + intakes.length + sleeps.length + trainings.length + finance.length + chats.length + Object.keys(prefs).length + Object.keys(aiModels).length + (profile ? 1 : 0)
+    entries.length + stamps.length + days.length + presets.length + schedules.length + foods.length + meals.length + intakes.length + sleeps.length + measurements.length + trainings.length + finance.length + chats.length + Object.keys(prefs).length + Object.keys(aiModels).length + (profile ? 1 : 0)
 
   return {
     ok: true,
