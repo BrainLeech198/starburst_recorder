@@ -925,3 +925,19 @@ Choose whether food library edits update intake history
 
 - Windows 10/11: [`starburst-recorder-0.17.3-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3-setup.exe) (~96 MB)
 - Android 10+: [`starburst-recorder-0.17.3.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3.apk) (~62 MB, release-signed)
+## 0.19.1 · 2026-11-13
+
+Health adds multi-point body measurements and a 30-day data summary. Sleep charts span 48 hours and use recorded sleep factors for color. Training becomes a dedicated area with progress, weekly reviews, reusable templates, goals, and user-triggered AI feedback.
+
+### What's new
+
+- **48-hour sleep timeline** — runs from 00:00 the day before through 00:00 after the wake-date record. Color reflects sleep duration and bedtime, plus wake events and subjective quality when recorded.
+- **More body measurements** — record waist, abdomen, chest, limb and neck measurements, or measured body fat, by date. Compare measurement trends alongside weight; waist-to-height ratio is labeled as a screening reference.
+- **A dedicated training area** — review recent exercise trends and weekly coverage, reuse a recent session or save a template, set your own goals, and compare a saved exercise with its history.
+- **Health summaries and AI training feedback** — review derived indicators from the last 30 days. AI feedback runs only when requested and uses only the selected week's training records.
+- **Records stay honest** — missing times, loads, and goals are not turned into defaults or fictional volume. Body measurements and training templates are included in health backup and restore.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.19.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1-setup.exe)
+- Android 10+: [starburst-recorder-0.19.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1.apk)

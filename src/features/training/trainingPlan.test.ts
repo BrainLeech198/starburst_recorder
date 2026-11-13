@@ -54,6 +54,17 @@ describe('断档提醒', () => {
 })
 
 describe('设置兜底', () => {
+  it('规范化提醒计划时保留已备份的模板', () => {
+    const template = {
+      id: 't1', name: '推日', kind: 'strength' as const, title: '推', durationMin: null,
+      exercises: [{
+        id: 'e1', name: '俯卧撑', kind: 'strength' as const, muscle: 'chest',
+        sets: [], durationMin: null, distanceKm: null, note: '',
+      }],
+    }
+    expect(normalizePlan({ ...plan, templates: [template] }).templates).toEqual([template])
+    expect(normalizePlan(undefined).templates).toEqual([])
+  })
   it('旧档案没有计划时给默认值', () => {
     expect(normalizePlan(undefined)).toEqual(DEFAULT_TRAINING_PLAN)
   })
@@ -61,7 +72,7 @@ describe('设置兜底', () => {
   it('坏的周几与时刻被清掉', () => {
     expect(
       normalizePlan({ enabled: true, weeklyDays: [0, 1, 8, 1], time: '25:00', nudgeAfterDays: 99 }),
-    ).toEqual({ enabled: true, weeklyDays: [1], time: '20:00', nudgeAfterDays: 3 })
+    ).toEqual({ enabled: true, weeklyDays: [1], time: '20:00', nudgeAfterDays: 3, templates: [] })
   })
 
   it('Capacitor 的 weekday 从周日算起', () => {

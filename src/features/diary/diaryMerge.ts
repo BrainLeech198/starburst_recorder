@@ -393,12 +393,31 @@ function sleepDiffers(local: HealthSleep, incoming: HealthSleep) {
 }
 
 function measurementSummary(item: HealthMeasurement) {
-  return `${item.dateKey} · waist ${item.waistCm} cm`
+  const values = [
+    ['waist', item.waistCm],
+    ['abdomen', item.abdomenCm],
+    ['chest', item.chestCm],
+    ['upper arm', item.upperArmCm],
+    ['thigh', item.thighCm],
+    ['calf', item.calfCm],
+    ['neck', item.neckCm],
+    ['body fat', item.bodyFatPct],
+  ]
+    .filter((entry): entry is [string, number] => entry[1] !== null && entry[1] !== undefined)
+    .map(([label, value]) => `${label} ${value}${label === 'body fat' ? '%' : ' cm'}`)
+  return `${item.dateKey} · ${values.join(' · ')}`
 }
 
 function measurementDiffers(local: HealthMeasurement, incoming: HealthMeasurement) {
   return (
     local.waistCm !== incoming.waistCm ||
+    local.abdomenCm !== incoming.abdomenCm ||
+    local.chestCm !== incoming.chestCm ||
+    local.upperArmCm !== incoming.upperArmCm ||
+    local.thighCm !== incoming.thighCm ||
+    local.calfCm !== incoming.calfCm ||
+    local.neckCm !== incoming.neckCm ||
+    local.bodyFatPct !== incoming.bodyFatPct ||
     tombstone(local.deletedAt) !== tombstone(incoming.deletedAt)
   )
 }

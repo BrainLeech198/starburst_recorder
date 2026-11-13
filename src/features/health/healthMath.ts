@@ -6,6 +6,7 @@ import type {
   HealthActivity,
   HealthFood,
   HealthIntake,
+  IntakeComponent,
   HealthProfile,
   HealthSex,
 } from '@/core/db/schema'
@@ -73,6 +74,40 @@ export interface Macros {
   protein: number
   carbs: number
   fat: number
+}
+
+/** 一次摄入弹窗里的草稿最小快照；保存成餐次时展开为可追溯成分。 */
+export interface IntakeDraftSnapshot {
+  foodId: string | null
+  name: string
+  grams: number
+  kcal: number
+  protein: number
+  carbs: number
+  fat: number
+  components: IntakeComponent[]
+}
+
+/** 把多项摄入折成一条记录，同时保留每项当时的营养快照。 */
+export function combineIntakeDrafts(items: IntakeDraftSnapshot[]) {
+  const components = items.flatMap((item) =>
+    item.components.length > 0
+      ? item.components
+      : [{
+          foodId: item.foodId,
+          name: item.name,
+          grams: item.grams,
+          kcal: item.kcal,
+          protein: item.protein,
+          carbs: item.carbs,
+          fat: item.fat,
+        }],
+  )
+  return {
+    components,
+    grams: round2(components.reduce((total, part) => total + part.grams, 0)),
+    ...sumMacros(components),
+  }
 }
 
 /** 数值统一保留两位小数：存储、比较、汇总都用它，别再提前取整 */

@@ -8,7 +8,8 @@
 import { useState, useRef } from 'react'
 import type { ChangeEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import type { HealthTraining, TrainingKind } from '@/core/db/schema'
+import type { HealthTraining, TrainingKind, TrainingTemplate } from '@/core/db/schema'
+import { newCode, newId } from '@/core/utils/id'
 import { useLiveQuery } from '@/core/db/live'
 import { isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
@@ -37,6 +38,7 @@ import { planOfProfile } from './trainingPlan'
 import {
   removeHealthTraining,
   restoreHealthTraining,
+  latestTraining,
   trainingDays,
   trainingOfDay,
   trainingsBetween,
@@ -53,6 +55,13 @@ import { describeSave, saveTextFile } from '@/platform/saveFile'
 import TrainingForm from './TrainingForm'
 import TrainingDetailDialog from './TrainingDetailDialog'
 import TrainingPlanPanel from './TrainingPlanPanel'
+import TrainingProgressPanel from './TrainingProgressPanel'
+import TrainingAiReview from './TrainingAiReview'
+import TrainingTemplateDialog from './TrainingTemplateDialog'
+import { emptyProfile } from '@/features/health/healthMath'
+import { saveHealthProfile } from '@/features/health/healthRepo'
+import { templateFromTraining, trainingFromTemplate } from './trainingTemplates'
+import { compareTrainingWithHistory } from './trainingComparison'
 
 /** 类型徽标的配色：力量用主色，有氧用绿色，拉伸用黄色，球类用危险色，其它走中性 */
 function kindBadge(kind: TrainingKind) {
@@ -100,13 +109,18 @@ export default function TrainingPage() {
     () => trainingsBetween(shiftDay(range.from, -7), range.to),
     [range.from, range.to],
   )
+  const monthTrainings = useLiveQuery(
+    () => trainingsBetween(shiftDay(dayKey, -29), dayKey),
+    [dayKey],
+  )
 
-  const [form, setForm] = useState<{ training: HealthTraining | null } | null>(null)
+  const [form, setForm] = useState<{ training: HealthTraining | null; copied?: boolean } | null>(null)
   const [detail, setDetail] = useState<HealthTraining | null>(null)
   const [pendingDelete, setPendingDelete] = useState<HealthTraining | null>(null)
   const [batchDeleting, setBatchDeleting] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [planOpen, setPlanOpen] = useState(false)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
   const [writtenDays, setWrittenDays] = useState<Set<string>>(new Set())
   const batch = useBatchSelect()
   const importInputRef = useRef<HTMLInputElement | null>(null)
@@ -118,6 +132,9 @@ export default function TrainingPage() {
   const hasWeeklyGoal = plan.enabled && plan.weeklyDays.length > 0
   const planDays = plan.weeklyDays.length
   const ratio = hasWeeklyGoal ? weekSummary.sessions / planDays : 0
+  const currentWeekTrainings = (fortnight ?? []).filter(
+    (training) => training.dateKey >= range.from && training.dateKey <= range.to,
+  )
   function setDay(next: string) {
     if (batch.active) batch.exit()
     setSearchParams({ date: next }, { replace: true })
@@ -131,6 +148,91 @@ export default function TrainingPage() {
   async function openPicker() {
     setWrittenDays(new Set(await trainingDays()))
     setPickerOpen(true)
+  }
+
+  async function copyLastSession() {
+    const last = await latestTraining()
+    if (!last) {
+      showToast({ message: t('training.copyWorkoutEmpty') })
+      return
+    }
+    const now = Date.now()
+    setForm({
+      copied: true,
+      training: {
+        ...last,
+        id: newId(),
+        code: newCode(),
+        dateKey: dayKey,
+        time: '',
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+      },
+    })
+  }
+
+  async function handleSaveTemplate(name: string) {
+    if (!detail) return
+    const template = templateFromTraining(detail, name, newId())
+    if (!template) return
+    const base = profile ?? emptyProfile()
+    const plan = planOfProfile(base)
+    const sameName = template.name.toLocaleLowerCase()
+    const existing = plan.templates ?? []
+    const matchIndex = existing.findIndex((item) => item.name.toLocaleLowerCase() === sameName)
+    plan.templates = matchIndex < 0
+      ? [...existing, template].slice(-40)
+      : existing.map((item, index) => index === matchIndex ? { ...template, id: item.id } : item)
+    await saveHealthProfile({ ...base, trainingPlan: plan })
+    showToast({ message: t('training.template.saved') })
+  }
+
+  async function handleDeleteTemplate(template: TrainingTemplate) {
+    const base = profile ?? emptyProfile()
+    const plan = planOfProfile(base)
+    plan.templates = (plan.templates ?? []).filter((item) => item.id !== template.id)
+    await saveHealthProfile({ ...base, trainingPlan: plan })
+  }
+
+  function handleUseTemplate(template: TrainingTemplate) {
+    const now = Date.now()
+    setTemplatesOpen(false)
+    setDetail(null)
+    setForm({
+      copied: true,
+      training: trainingFromTemplate(template, dayKey, newId(), newCode(), now),
+    })
+  }
+
+  function handleTrainingSaved(saved: HealthTraining, updated: boolean) {
+    const comparison = compareTrainingWithHistory(saved, monthTrainings ?? [])[0]
+    const oldReps = comparison?.previousMaxReps
+    const newReps = comparison?.currentMaxReps
+    const oldLoad = comparison?.previousMaxLoadKg
+    const newLoad = comparison?.currentMaxLoadKg
+    const repsDelta = oldReps !== null && oldReps !== undefined && newReps !== null && newReps !== undefined
+      ? newReps - oldReps
+      : null
+    const loadDelta = oldLoad !== null && oldLoad !== undefined && newLoad !== null && newLoad !== undefined
+      ? newLoad - oldLoad
+      : null
+    const changed = repsDelta !== null && repsDelta !== 0
+      ? { before: oldReps, after: newReps, delta: repsDelta, unit: t('training.reps') }
+      : loadDelta !== null && loadDelta !== 0
+        ? { before: oldLoad, after: newLoad, delta: loadDelta, unit: t('training.weightKg') }
+        : null
+    showToast({
+      message: changed && comparison
+        ? t('training.savedCompared', {
+            name: comparison.exerciseName,
+            before: String(changed.before),
+            after: String(changed.after),
+            delta: `${changed.delta > 0 ? '+' : ''}${changed.delta}`,
+            unit: changed.unit,
+          })
+        : t(updated ? 'training.updated' : 'training.saved'),
+    })
   }
 
   async function handleDelete() {
@@ -320,8 +422,11 @@ export default function TrainingPage() {
               {t('training.gapDays', { n: weekSummary.gapDays })}
             </p>
           )}
+          <TrainingAiReview trainings={currentWeekTrainings} from={range.from} to={range.to} />
         </section>
       )}
+
+      {!batch.active && <TrainingProgressPanel trainings={monthTrainings ?? []} />}
 
       {/* 操作条：记一次是主操作，批量与回收站并列 */}
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -334,6 +439,14 @@ export default function TrainingPage() {
             >
               <Icon name="plus" />
               {t('training.add')}
+            </button>
+            <button type="button" onClick={() => void copyLastSession()} className={SOLID_BUTTON}>
+              <Icon name="copy" />
+              {t('training.copyWorkout')}
+            </button>
+            <button type="button" onClick={() => setTemplatesOpen(true)} className={OUTLINE_BUTTON}>
+              <Icon name="copy" />
+              {t('training.template.title')}
             </button>
             <button type="button" onClick={openBatch} className={SOLID_BUTTON}>
               <Icon name="list" />
@@ -471,6 +584,8 @@ export default function TrainingPage() {
         <TrainingForm
           dateKey={dayKey}
           training={form.training}
+          copied={form.copied}
+          onSaved={handleTrainingSaved}
           onClose={() => {
             setForm(null)
             setDetail(null)
@@ -485,6 +600,16 @@ export default function TrainingPage() {
           onEdit={() => setForm({ training: detail })}
           onDelete={() => setPendingDelete(detail)}
           onExport={() => void handleExportTraining(detail)}
+          onSaveTemplate={(name) => void handleSaveTemplate(name)}
+        />
+      )}
+
+      {templatesOpen && (
+        <TrainingTemplateDialog
+          templates={plan.templates ?? []}
+          onUse={handleUseTemplate}
+          onDelete={(template) => void handleDeleteTemplate(template)}
+          onClose={() => setTemplatesOpen(false)}
         />
       )}
 

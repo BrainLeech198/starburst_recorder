@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildBackup, emptyPayload, onlySections, readBackup, sectionSize } from './diaryBackup'
 import type { BackupPayload } from './diaryBackup'
+import { emptyProfile } from '@/features/health/healthMath'
 
 function sample(): BackupPayload {
   return {
@@ -72,7 +73,9 @@ describe('备份读写的兼容口径', () => {
   it('健康分区的腰围测量可往返，坏记录按条跳过', () => {
     const payload = sample()
     payload.measurements = [
-      { dateKey: '2026-11-13', waistCm: 74, createdAt: 1, updatedAt: 2, deletedAt: null },
+      { dateKey: '2026-11-13', waistCm: 74, abdomenCm: null, chestCm: null, upperArmCm: null,
+        thighCm: null, calfCm: null, neckCm: null, bodyFatPct: null,
+        createdAt: 1, updatedAt: 2, deletedAt: null },
     ]
     const file = buildBackup(payload, '备份', ['health'])
     const read = readBackup(file.content)
@@ -88,6 +91,59 @@ describe('备份读写的兼容口径', () => {
     expect(recovered.skipped).toBe(1)
   })
 
+  it('自定义健康目标随健康档案备份往返，坏目标逐条跳过', () => {
+    const payload = sample()
+    payload.profile = {
+      ...emptyProfile(),
+      goals: [{
+        id: 'goal-waist', type: 'waistMax', minValue: null, maxValue: null,
+        targetValue: 80, targetTime: '', exerciseName: '', period: 'week', targetDays: null,
+        enabled: true, createdAt: 1, updatedAt: 2,
+      }],
+    }
+    const file = buildBackup(payload, '备份', ['health'])
+    const read = readBackup(file.content)
+    expect(read.ok).toBe(true)
+    expect(read.payload.profile?.goals).toEqual(payload.profile.goals)
+
+    const broken = JSON.parse(file.content) as { sections: { health: { profile: Record<string, unknown> } } }
+    broken.sections.health.profile.goals = [
+      ...(broken.sections.health.profile.goals as unknown[]),
+      { id: 'bad', type: 'weightRange', minValue: 100, maxValue: 50 },
+    ]
+    const recovered = readBackup(JSON.stringify(broken))
+    expect(recovered.ok).toBe(true)
+    expect(recovered.payload.profile?.goals).toHaveLength(1)
+  })
+
+  it('训练模板随健康档案进入备份并恢复', () => {
+    const payload = sample()
+    payload.profile = {
+      ...emptyProfile(),
+      trainingPlan: {
+        enabled: false, weeklyDays: [], time: '20:00', nudgeAfterDays: 3,
+        templates: [{
+          id: 'template-push', name: '推日', kind: 'strength', title: '推', durationMin: null,
+          exercises: [{
+            id: 'ex1', name: '俯卧撑', kind: 'strength', muscle: 'chest',
+            sets: [{ reps: 10, weightKg: null, durationSec: null, restSec: null, rpe: null }],
+            durationMin: null, distanceKm: null, note: '',
+          }],
+        }],
+      },
+    }
+    const file = buildBackup(payload, '备份', ['health'])
+    const read = readBackup(file.content)
+    expect(read.ok).toBe(true)
+    expect(read.payload.profile?.trainingPlan?.templates).toEqual(payload.profile.trainingPlan?.templates)
+
+    const broken = JSON.parse(file.content) as { sections: { health: { profile: Record<string, unknown> } } }
+    const plan = broken.sections.health.profile.trainingPlan as Record<string, unknown>
+    plan.templates = [...(plan.templates as unknown[]), { id: '', name: 'bad', exercises: [] }]
+    const recovered = readBackup(JSON.stringify(broken))
+    expect(recovered.ok).toBe(true)
+    expect(recovered.payload.profile?.trainingPlan?.templates).toHaveLength(1)
+  })
   it('AI 对话独立成块往返：消息与动作卡片状态都不丢', () => {
     const payload = sample()
     payload.chats = [

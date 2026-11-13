@@ -18,6 +18,8 @@ import type {
   DiaryPreset,
   DiaryStamp,
   FinanceEntry,
+  HealthGoal,
+  HealthGoalType,
   HealthFood,
   HealthIntake,
   HealthMeal,
@@ -37,6 +39,7 @@ import type {
   TrainingKind,
   TrainingPlan,
   TrainingSet,
+  TrainingTemplate,
   WeighIn,
 } from './schema'
 import { newCode } from '@/core/utils/id'
@@ -282,6 +285,71 @@ export function pickWeighIns(raw: unknown): WeighIn[] {
   return deduped.slice(0, 120)
 }
 
+const HEALTH_GOAL_TYPES: HealthGoalType[] = [
+  'weightRange', 'waistMax', 'strengthReps', 'strengthLoad', 'sleepBedtime', 'proteinDays',
+]
+
+/** 目标逐项校验；不合法的目标单独丢弃，不影响档案和其他目标。 */
+export function pickHealthGoals(raw: unknown): HealthGoal[] {
+  if (!Array.isArray(raw)) return []
+  return raw.slice(0, 40).flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') return []
+    const item = entry as Record<string, unknown>
+    const id = text(item.id).trim()
+    const type = item.type as HealthGoalType
+    if (id === '' || !HEALTH_GOAL_TYPES.includes(type)) return []
+    const minValue = nullableNumber(item.minValue)
+    const maxValue = nullableNumber(item.maxValue)
+    const targetValue = nullableNumber(item.targetValue)
+    const period = item.period === 'month' ? 'month' : 'week'
+    const targetDaysValue = nullableNumber(item.targetDays)
+    const maxDays = period === 'week' ? 7 : 31
+    const targetDays = targetDaysValue !== null && targetDaysValue >= 1 && targetDaysValue <= maxDays
+      ? Math.floor(targetDaysValue)
+      : null
+    const exerciseName = text(item.exerciseName).trim().slice(0, 80)
+    const rawTime = text(item.targetTime)
+    const targetTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(rawTime) ? rawTime : ''
+    let valid = false
+    switch (type) {
+      case 'weightRange':
+        valid = minValue !== null && maxValue !== null && minValue > 0 && maxValue <= 500 && minValue < maxValue
+        break
+      case 'waistMax':
+        valid = targetValue !== null && targetValue >= 20 && targetValue <= 250
+        break
+      case 'strengthReps':
+        valid = exerciseName !== '' && targetValue !== null && targetValue >= 1 && targetValue <= 1000
+        break
+      case 'strengthLoad':
+        valid = exerciseName !== '' && targetValue !== null && targetValue >= 0 && targetValue <= 1000
+        break
+      case 'sleepBedtime':
+        valid = targetTime !== '' && targetDays !== null
+        break
+      case 'proteinDays':
+        valid = targetValue !== null && targetValue >= 1 && targetValue <= 500 && targetDays !== null
+        break
+    }
+    if (!valid) return []
+    const now = Date.now()
+    return [{
+      id,
+      type,
+      minValue: type === 'weightRange' ? minValue : null,
+      maxValue: type === 'weightRange' ? maxValue : null,
+      targetValue: type === 'weightRange' ? null : targetValue,
+      targetTime: type === 'sleepBedtime' ? targetTime : '',
+      exerciseName: type === 'strengthReps' || type === 'strengthLoad' ? exerciseName : '',
+      period,
+      targetDays: type === 'sleepBedtime' || type === 'proteinDays' ? targetDays : null,
+      enabled: item.enabled !== false,
+      createdAt: number(item.createdAt, now),
+      updatedAt: number(item.updatedAt, now),
+    }]
+  })
+}
+
 const TRAINING_KINDS: TrainingKind[] = ['strength', 'cardio', 'mobility', 'sport', 'other']
 
 /** 部位键固定英文，界面只在 i18n 里翻译 */
@@ -392,11 +460,34 @@ export function pickTrainingPlan(raw: unknown): TrainingPlan | undefined {
       ].sort((a, b) => a - b)
     : []
   const nudge = nullableNumber(item.nudgeAfterDays)
+  const templates: TrainingTemplate[] = []
+  if (Array.isArray(item.templates)) {
+    for (const rawTemplate of item.templates.slice(0, 40)) {
+      if (!rawTemplate || typeof rawTemplate !== 'object') continue
+      const template = rawTemplate as Record<string, unknown>
+      const id = text(template.id).trim()
+      const name = text(template.name).trim().slice(0, 80)
+      if (id === '' || name === '') continue
+      const exercises = pickExercises(template.exercises)
+      const durationMin = setNumber(template.durationMin, 0, 1440)
+      if (exercises.length === 0 && durationMin === null) continue
+      const kind = text(template.kind)
+      templates.push({
+        id,
+        name,
+        kind: isTrainingKind(kind) ? kind : 'other',
+        title: text(template.title).slice(0, 120),
+        exercises,
+        durationMin,
+      })
+    }
+  }
   return {
     enabled: item.enabled === true,
     weeklyDays,
     time: clockText(item.time, '20:00'),
     nudgeAfterDays: nudge !== null && nudge >= 0 && nudge <= 30 ? Math.floor(nudge) : 3,
+    templates,
   }
 }
 
@@ -425,6 +516,7 @@ export function pickProfile(raw: unknown): HealthProfile | null {
     idealBedtime: clockText(item.idealBedtime, '23:00'),
     idealWakeTime: clockText(item.idealWakeTime, '07:00'),
     weighIns: pickWeighIns(item.weighIns),
+    goals: pickHealthGoals(item.goals),
     trainingPlan: pickTrainingPlan(item.trainingPlan),
     updatedAt: number(item.updatedAt, Date.now()),
   }
@@ -578,17 +670,43 @@ export function pickSleep(raw: unknown): HealthSleep | null {
   }
 }
 
-/** 身体测量必填日期和有效腰围；错误记录单条丢弃，避免污染整份备份。 */
+/** 身体测量必填日期和至少一个有效实测字段；坏字段单独清空。 */
 export function pickMeasurement(raw: unknown): HealthMeasurement | null {
   if (!raw || typeof raw !== 'object') return null
   const item = raw as Record<string, unknown>
   const day = dateKey(item.dateKey)
-  const waist = nullableNumber(item.waistCm)
-  if (day === null || waist === null || waist < 20 || waist > 250) return null
+  if (day === null) return null
+  const centimeters = (value: unknown) => {
+    const numberValue = nullableNumber(value)
+    return numberValue !== null && numberValue >= 20 && numberValue <= 250
+      ? Math.round(numberValue * 10) / 10
+      : null
+  }
+  const waistCm = centimeters(item.waistCm)
+  const abdomenCm = centimeters(item.abdomenCm)
+  const chestCm = centimeters(item.chestCm)
+  const upperArmCm = centimeters(item.upperArmCm)
+  const thighCm = centimeters(item.thighCm)
+  const calfCm = centimeters(item.calfCm)
+  const neckCm = centimeters(item.neckCm)
+  const bodyFat = nullableNumber(item.bodyFatPct)
+  const bodyFatPct = bodyFat !== null && bodyFat >= 1 && bodyFat <= 75
+    ? Math.round(bodyFat * 10) / 10
+    : null
+  if ([waistCm, abdomenCm, chestCm, upperArmCm, thighCm, calfCm, neckCm, bodyFatPct].every((value) => value === null)) {
+    return null
+  }
   const now = Date.now()
   return {
     dateKey: day,
-    waistCm: Math.round(waist * 10) / 10,
+    waistCm,
+    abdomenCm,
+    chestCm,
+    upperArmCm,
+    thighCm,
+    calfCm,
+    neckCm,
+    bodyFatPct,
     createdAt: number(item.createdAt, now),
     updatedAt: number(item.updatedAt, now),
     deletedAt: deletedAt(item.deletedAt),
@@ -608,7 +726,9 @@ export function pickFinance(raw: unknown): FinanceEntry | null {
     code: text(item.code) || newCode(),
     dateKey: day,
     // 没有明确记录时刻就留空，不根据创建时间伪造用户输入
-    time: /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(time)
+    time: time === ''
+      ? ''
+      : /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(time)
       ? time.length === 5
         ? `${time}:00`
         : time

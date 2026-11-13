@@ -4,6 +4,7 @@ import {
   barPercent,
   barScale,
   bmr,
+  combineIntakeDrafts,
   dayTargets,
   derivedTdee,
   derivedTdeeEstimate,
@@ -110,6 +111,45 @@ describe('食物换算与当日汇总', () => {
     expect(remainingKcal(2050, 1600)).toBe(450)
     expect(remainingKcal(2050, 2400)).toBe(-350)
     expect(remainingKcal(null, 2400)).toBeNull()
+  })
+})
+
+describe('餐次合并快照', () => {
+  it('多项食物合成一个餐次时保留逐项快照并重算总量', () => {
+    const result = combineIntakeDrafts([
+      {
+        foodId: 'f1',
+        name: '吐司',
+        grams: 60,
+        kcal: 150,
+        protein: 5,
+        carbs: 27,
+        fat: 2,
+        components: [],
+      },
+      {
+        foodId: 'f2',
+        name: '牛奶',
+        grams: 200,
+        kcal: 122,
+        protein: 6.4,
+        carbs: 9.6,
+        fat: 6.4,
+        components: [],
+      },
+    ])
+
+    expect(result).toEqual({
+      components: [
+        { foodId: 'f1', name: '吐司', grams: 60, kcal: 150, protein: 5, carbs: 27, fat: 2 },
+        { foodId: 'f2', name: '牛奶', grams: 200, kcal: 122, protein: 6.4, carbs: 9.6, fat: 6.4 },
+      ],
+      grams: 260,
+      kcal: 272,
+      protein: 11.4,
+      carbs: 36.6,
+      fat: 8.4,
+    })
   })
 })
 

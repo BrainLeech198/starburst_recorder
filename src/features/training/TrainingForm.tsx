@@ -10,7 +10,6 @@
 import { useState } from 'react'
 import type { HealthTraining, TrainingExercise, TrainingKind, TrainingSet } from '@/core/db/schema'
 import { newCode, newId } from '@/core/utils/id'
-import { formatClock } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import Modal from '@/shared/ui/Modal'
@@ -115,11 +114,16 @@ const NUM_INPUT = `${FIELD} w-full px-1 py-1.5 text-center text-xs tabular-nums`
 export default function TrainingForm({
   dateKey,
   training = null,
+  copied = false,
+  onSaved,
   onClose,
 }: {
   dateKey: string
   /** 传了就是编辑 */
   training?: HealthTraining | null
+  /** 编辑已有数据的克隆副本，保存时按新记录处理 */
+  copied?: boolean
+  onSaved?: (saved: HealthTraining, updated: boolean) => void
   onClose: () => void
 }) {
   const { t } = useI18n()
@@ -128,7 +132,7 @@ export default function TrainingForm({
   const [error, setError] = useState('')
 
   // ── 共用字段 ──
-  const [time, setTime] = useState(() => training?.time ?? formatClock(Date.now()))
+  const [time, setTime] = useState(() => training?.time ?? '')
   const [title, setTitle] = useState(training?.title ?? '')
   const [kind, setKind] = useState<TrainingKind>(training?.kind ?? 'strength')
   const [feeling, setFeeling] = useState<number | null>(training?.feeling ?? null)
@@ -286,7 +290,7 @@ export default function TrainingForm({
         deletedAt: null,
       }
       const name = quickName.trim() || kindName(quickKind)
-      await saveHealthTraining({
+      const saved: HealthTraining = {
         ...base,
         time,
         kind: quickKind,
@@ -306,8 +310,10 @@ export default function TrainingForm({
         durationMin: minutes,
         feeling,
         note,
-      })
-      showToast({ message: t(training ? 'training.updated' : 'training.saved') })
+      }
+      await saveHealthTraining(saved)
+      if (onSaved) onSaved(saved, training !== null && !copied)
+      else showToast({ message: t(training && !copied ? 'training.updated' : 'training.saved') })
       onClose()
       return
     }
@@ -340,7 +346,7 @@ export default function TrainingForm({
       updatedAt: now,
       deletedAt: null,
     }
-    await saveHealthTraining({
+    const saved: HealthTraining = {
       ...base,
       time,
       kind,
@@ -349,8 +355,10 @@ export default function TrainingForm({
       durationMin: minutes,
       feeling,
       note: note.trim(),
-    })
-    showToast({ message: t(training ? 'training.updated' : 'training.saved') })
+    }
+    await saveHealthTraining(saved)
+    if (onSaved) onSaved(saved, training !== null && !copied)
+    else showToast({ message: t(training && !copied ? 'training.updated' : 'training.saved') })
     onClose()
   }
 

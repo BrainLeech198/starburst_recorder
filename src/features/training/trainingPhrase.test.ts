@@ -59,13 +59,13 @@ describe('parseTrainingPhrase', () => {
     expect(result.training?.exercises[0].sets[0].weightKg).toBeNull()
   })
 
-  it('日期非法时回退今天，时刻非法时补当前时刻', () => {
+  it('日期非法时回退今天，时刻非法时保持未记录', () => {
     const result = parseTrainingPhrase(
       '{"dateKey":"2026-13-40","time":"25:99","exercises":[{"name":"跑步","durationMin":20}]}',
       today,
     )
     expect(result.training?.dateKey).toBe(today)
-    expect(result.training?.time).toMatch(/^\d{2}:\d{2}$/)
+    expect(result.training?.time).toBe('')
   })
 
   it('缺少的名字与未知类型都收敛到安全值', () => {

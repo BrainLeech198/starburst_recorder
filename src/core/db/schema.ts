@@ -55,10 +55,41 @@ export interface WeighIn {
   createdAt: number
 }
 
-/** 身体测量记录：每个日期最多一条；第一阶段只采集腰围，其他围度以后按需扩展。 */
+export type HealthGoalType =
+  | 'weightRange'
+  | 'waistMax'
+  | 'strengthReps'
+  | 'strengthLoad'
+  | 'sleepBedtime'
+  | 'proteinDays'
+
+/** 用户自行建立的目标；空值表示该指标没有填写，不提供推荐目标。 */
+export interface HealthGoal {
+  id: string
+  type: HealthGoalType
+  minValue: number | null
+  maxValue: number | null
+  targetValue: number | null
+  targetTime: string
+  exerciseName: string
+  period: 'week' | 'month'
+  targetDays: number | null
+  enabled: boolean
+  createdAt: number
+  updatedAt: number
+}
+
+/** 身体测量记录：每个日期最多一条；只保存用户实测值，没量的字段为 null。 */
 export interface HealthMeasurement {
   dateKey: string
-  waistCm: number
+  waistCm: number | null
+  abdomenCm: number | null
+  chestCm: number | null
+  upperArmCm: number | null
+  thighCm: number | null
+  calfCm: number | null
+  neckCm: number | null
+  bodyFatPct: number | null
   createdAt: number
   updatedAt: number
   deletedAt: number | null
@@ -94,6 +125,8 @@ export interface HealthProfile {
   idealWakeTime: string
   /** 空腹称重历史，新的在前，只留最近 120 条 */
   weighIns: WeighIn[]
+  /** 用户自行设定的多轨目标；旧档案缺省为空 */
+  goals?: HealthGoal[]
   /** 训练提醒设置；旧档案没有这个字段 */
   trainingPlan?: TrainingPlan
   updatedAt: number
@@ -294,6 +327,18 @@ export interface TrainingPlan {
   time: string
   /** 连续多少天没练后提醒；0 表示关闭断档提醒 */
   nudgeAfterDays: number
+  /** 用户从既有训练保存的模板；与计划一同进入健康档案备份 */
+  templates?: TrainingTemplate[]
+}
+
+/** 可复用训练内容，不包含某次训练的日期、时间、感受或备注 */
+export interface TrainingTemplate {
+  id: string
+  name: string
+  kind: TrainingKind
+  title: string
+  exercises: TrainingExercise[]
+  durationMin: number | null
 }
 
 /** 一笔收支的方向：钱进来还是出去 */
@@ -310,7 +355,7 @@ export interface FinanceEntry {
   /** 7 位十六进制短编号，跟日记、食物一样用来指代某一笔 */
   code: string
   dateKey: string
-  /** 发生时刻，'HH:MM:SS'；旧数据缺失时补 '00:00:00' */
+  /** 发生时刻，'HH:MM:SS'；空串表示未记录 */
   time: string
   /** 支出还是收入 */
   kind: FinanceKind

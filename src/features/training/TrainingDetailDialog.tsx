@@ -3,12 +3,14 @@
  *
  * 格式和助手动作卡、列表摘要共用同一套：力量显示「8 次 × 40 kg」，有氧显示「20 分钟 · 5 km」。
  */
+import { useState } from 'react'
 import type { HealthTraining } from '@/core/db/schema'
 import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import Modal from '@/shared/ui/Modal'
 import { GHOST_BUTTON, ROW_DANGER, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
+import { INPUT } from '@/shared/ui/inputStyles'
 import { formatDate } from '@/core/utils/dateKey'
 import { durationOf, formatDuration, formatVolume, summarizeDay, trainingLabel } from './trainingMath'
 
@@ -18,14 +20,17 @@ export default function TrainingDetailDialog({
   onEdit,
   onDelete,
   onExport,
+  onSaveTemplate,
 }: {
   training: HealthTraining
   onClose: () => void
   onEdit: () => void
   onDelete: () => void
   onExport: () => void
+  onSaveTemplate: (name: string) => void
 }) {
   const { t } = useI18n()
+  const [templateName, setTemplateName] = useState(training.title || training.exercises[0]?.name || '')
   const summary = summarizeDay([training])
 
   return (
@@ -88,6 +93,31 @@ export default function TrainingDetailDialog({
 
       {training.note !== '' && (
         <p className="m-0 mt-3 text-xs text-fg">{training.note}</p>
+      )}
+
+      {(training.exercises.length > 0 || training.durationMin !== null) && (
+        <div className="mt-4 rounded-xl border border-line bg-surface-2 p-3">
+          <label className="block text-xs text-muted" htmlFor="training-template-name">
+            {t('training.template.name')}
+          </label>
+          <div className="mt-1 flex gap-2">
+            <input
+              id="training-template-name"
+              value={templateName}
+              maxLength={80}
+              onChange={(event) => setTemplateName(event.target.value)}
+              className={`${INPUT} min-w-0 flex-1`}
+            />
+            <button
+              type="button"
+              disabled={templateName.trim() === ''}
+              onClick={() => onSaveTemplate(templateName)}
+              className={`${GHOST_BUTTON} disabled:opacity-40`}
+            >
+              {t('training.template.save')}
+            </button>
+          </div>
+        </div>
       )}
 
       <div className="mt-5 flex justify-end gap-2">

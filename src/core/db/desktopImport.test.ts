@@ -6,6 +6,7 @@
  * 图片被写成时间戳。这层测试盯的就是「绑定参数与 SQL 列数对不齐」这类毛病。
  */
 import { createRequire } from 'node:module'
+import { DatabaseSync } from 'node:sqlite'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -173,42 +174,106 @@ describe('桌面端 SQLite 分块导入', () => {
     })
   })
 
-  it('替换导入往返保留腰围测量记录', () => {
-    const measurement: HealthMeasurement = {
-      dateKey: '2026-11-13',
-      waistCm: 74,
-      createdAt: 1_794_528_000_000,
-      updatedAt: 1_794_528_000_000,
-      deletedAt: null,
+  it('健康分区腰围测量按日期覆盖并原样恢复', () => {
+    const item: HealthMeasurement = {
+      dateKey: '2026-11-13', waistCm: 74, abdomenCm: null, chestCm: 96,
+      upperArmCm: null, thighCm: null, calfCm: null, neckCm: 36, bodyFatPct: null,
+      createdAt: 1_700_000_000_000,
+      updatedAt: 1_700_000_000_000, deletedAt: null,
     }
-    call('saveHealthMeasurement', measurement)
+    call('saveHealthMeasurement', item)
     const before = call<{ measurements: HealthMeasurement[] }>('exportAllData')
-    expect(before.measurements).toEqual([measurement])
-
-    call('replaceSections', {
-      health: {
-        profile: null,
-        foods: [],
-        meals: [],
-        intakes: [],
-        sleeps: [],
-        measurements: before.measurements,
-        trainings: [],
-      },
-    })
-
+    expect(before.measurements).toHaveLength(1)
+    expect(before.measurements[0]).toMatchObject({ dateKey: item.dateKey, waistCm: item.waistCm })
+    call('replaceSections', { health: { profile: null, foods: [], meals: [], intakes: [], sleeps: [], measurements: before.measurements } })
     const after = call<{ measurements: HealthMeasurement[] }>('exportAllData')
     expect(after.measurements).toEqual(before.measurements)
+  })
+
+  it('将旧腰围表迁移为可选测量字段并保留原记录', () => {
+    db.close()
+    const legacyFile = join(dir, 'legacy.sqlite')
+    const legacy = new DatabaseSync(legacyFile)
+    legacy.exec(`
+      CREATE TABLE healthMeasurements (
+        dateKey TEXT PRIMARY KEY, waistCm REAL NOT NULL,
+        createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL, deletedAt INTEGER
+      );
+      INSERT INTO healthMeasurements VALUES ('2026-11-12', 74, 1, 2, NULL);
+    `)
+    legacy.close()
+    db = createDatabase(legacyFile)
+
+    const migrated = call<HealthMeasurement[]>('measurementsBetween', '2026-11-01', '2026-11-30')
+    expect(migrated).toHaveLength(1)
+    expect(migrated[0]).toMatchObject({ dateKey: '2026-11-12', waistCm: 74, chestCm: null })
+
+    call('saveHealthMeasurement', {
+      dateKey: '2026-11-13', waistCm: null, abdomenCm: null, chestCm: 96,
+      upperArmCm: null, thighCm: null, calfCm: null, neckCm: null, bodyFatPct: null,
+      createdAt: 3, updatedAt: 4, deletedAt: null,
+    })
+    expect(call<HealthMeasurement[]>('measurementsBetween', '2026-11-01', '2026-11-30')[1])
+      .toMatchObject({ dateKey: '2026-11-13', waistCm: null, chestCm: 96 })
+  })
+
+  it('旧健康档案自动补目标与训练计划字段，档案数据仍可读写', () => {
+    db.close()
+    const legacyFile = join(dir, 'legacy-profile.sqlite')
+    const legacy = new DatabaseSync(legacyFile)
+    legacy.exec(`
+      CREATE TABLE healthProfile (
+        id TEXT PRIMARY KEY, sex TEXT, age REAL, heightCm REAL, weightKg REAL,
+        weightAt INTEGER, activity TEXT, tdee REAL, targetKcal REAL, proteinTarget REAL,
+        plan TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '', weighDay INTEGER,
+        weighTime TEXT NOT NULL DEFAULT '07:00', weighIns TEXT NOT NULL DEFAULT '[]',
+        idealBedtime TEXT NOT NULL DEFAULT '23:00', idealWakeTime TEXT NOT NULL DEFAULT '07:00',
+        updatedAt INTEGER NOT NULL
+      );
+      INSERT INTO healthProfile (id, heightCm, weightKg, updatedAt) VALUES ('me', 176, 63, 1);
+    `)
+    legacy.close()
+    db = createDatabase(legacyFile)
+
+    const previous = call<NonNullable<ReturnType<typeof pickProfile>>>('healthProfile')
+    expect(previous).toMatchObject({ heightCm: 176, weightKg: 63, goals: [] })
+    expect(previous.trainingPlan).toBeUndefined()
+    const next = pickProfile({
+      ...previous,
+      goals: [{ id: 'goal-weight', type: 'weightRange', minValue: 60, maxValue: 68 }],
+      trainingPlan: {
+        enabled: false, weeklyDays: [1, 3], time: '20:00', nudgeAfterDays: 3,
+        templates: [{
+          id: 'template-push', name: '推日', kind: 'strength', title: '推', durationMin: null,
+          exercises: [{
+            id: 'ex1', name: '俯卧撑', kind: 'strength', muscle: 'chest',
+            sets: [{ reps: 10, weightKg: null, durationSec: null, restSec: null, rpe: null }],
+            durationMin: null, distanceKm: null, note: '',
+          }],
+        }],
+      },
+    })
+    if (!next) throw new Error('测试档案准备失败')
+    call('saveHealthProfile', next)
+    expect(call<NonNullable<ReturnType<typeof pickProfile>>>('healthProfile')).toMatchObject({
+      goals: [{ id: 'goal-weight' }],
+      trainingPlan: { templates: [{ id: 'template-push', name: '推日' }] },
+  })
   })
 
   it('只删除身体档案，保存的快照可恢复称重历史', () => {
     call('insertEntry', entry)
     const initial = pickProfile({
       weighIns: [{ dateKey: '2026-10-30', weightKg: 70, createdAt: 1 }],
+      goals: [{
+        id: 'goal-waist', type: 'waistMax', targetValue: 80, enabled: true,
+        createdAt: 1, updatedAt: 2,
+      }],
     })
     if (!initial) throw new Error('测试档案准备失败')
     call('saveHealthProfile', initial)
     const previous = call<NonNullable<ReturnType<typeof pickProfile>>>('healthProfile')
+    expect(previous.goals).toHaveLength(1)
     call('deleteHealthProfile')
     expect(call('healthProfile')).toBeUndefined()
     expect(exportAll().entries).toHaveLength(1)

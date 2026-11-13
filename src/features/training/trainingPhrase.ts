@@ -34,11 +34,12 @@ export function buildPhrasePrompt(today: string): { system: string; user: string
 - 「3 组 8/8/6」要拆成三组，reps 分别是 8、8、6
 - 「3 组 12 次 40kg」拆成三组，每组 reps 12、weightKg 40
 - 不确定的数字填 null，不要编造负重
+- 只有用户明确说出训练时刻时才填写 time；否则 time 填空字符串
 - 有氧可以只给 durationMin 和 distanceKm，sets 留空数组
 - 只输出一个 JSON 对象，不要代码块、不要解释、不要开场白
 
 格式：
-{"dateKey":"${today}","time":"19:30","kind":"strength","title":"","exercises":[...],"durationMin":null,"feeling":null,"note":""}`,
+{"dateKey":"${today}","time":"","kind":"strength","title":"","exercises":[...],"durationMin":null,"feeling":null,"note":""}`,
     user: '',
   }
 }
@@ -55,10 +56,6 @@ function nullablePositive(value: unknown, max: number): number | null {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 && value <= max
     ? value
     : null
-}
-
-function clockNow() {
-  return new Date().toTimeString().slice(0, 5)
 }
 
 export function parseTrainingPhrase(reply: string, today = todayKey()): PhraseResult {
@@ -86,7 +83,7 @@ export function parseTrainingPhrase(reply: string, today = todayKey()): PhraseRe
       id: newId(),
       code: newCode(),
       dateKey: isDateKey(rawDate) ? rawDate : today,
-      time: /^([01]\d|2[0-3]):[0-5]\d$/.test(rawTime) ? rawTime : clockNow(),
+      time: /^([01]\d|2[0-3]):[0-5]\d$/.test(rawTime) ? rawTime : '',
       kind,
       title: typeof data.title === 'string' ? data.title.trim() : '',
       exercises,

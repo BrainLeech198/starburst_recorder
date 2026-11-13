@@ -59,8 +59,8 @@ export default function SleepDialog({
   onClose: () => void
 }) {
   const { t } = useI18n()
-  const [bedtime, setBedtime] = useState(sleep?.bedtime ?? '23:00')
-  const [wakeTime, setWakeTime] = useState(sleep?.wakeTime ?? '07:00')
+  const [bedtime, setBedtime] = useState(sleep?.bedtime ?? '')
+  const [wakeTime, setWakeTime] = useState(sleep?.wakeTime ?? '')
   const [quality, setQuality] = useState<number | null>(sleep?.quality ?? null)
   const [wakeDrafts, setWakeDrafts] = useState<WakeDraft[]>(
     (sleep?.wakeEvents ?? []).map((event) => ({

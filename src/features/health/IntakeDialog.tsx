@@ -44,7 +44,14 @@ import type { FoodDraft } from './FoodForm'
 import MealForm from './MealForm'
 import MealParts from './MealParts'
 import IntakeAiReview from './IntakeAiReview'
-import { dayTargets, foodMacros, formatNum, mealTotalsFromMap, round2, sumMacros } from './healthMath'
+import {
+  dayTargets,
+  foodMacros,
+  formatNum,
+  mealTotalsFromMap,
+  round2,
+  sumMacros,
+} from './healthMath'
 import { analyzeFoodPhoto } from './foodVision'
 import { analyzeMealPhrase } from './mealPhrase'
 import type { PhraseItem } from './mealPhrase'

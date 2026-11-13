@@ -74,6 +74,8 @@ const SCHEMA = `
     weighDay INTEGER,
     weighTime TEXT NOT NULL DEFAULT '07:00',
     weighIns TEXT NOT NULL DEFAULT '[]',
+    goals TEXT NOT NULL DEFAULT '[]',
+    trainingPlan TEXT,
     idealBedtime TEXT NOT NULL DEFAULT '23:00',
     idealWakeTime TEXT NOT NULL DEFAULT '07:00',
     updatedAt INTEGER NOT NULL
@@ -156,10 +158,17 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_sleeps_day ON healthSleeps(dateKey);
   CREATE INDEX IF NOT EXISTS idx_sleeps_trash ON healthSleeps(deletedAt);
 
-  -- 身体测量：日期为主键，每天记录一条腰围。
+  -- 身体测量：日期为主键，每天记录一条；未测项目为 NULL。
   CREATE TABLE IF NOT EXISTS healthMeasurements (
     dateKey TEXT PRIMARY KEY,
-    waistCm REAL NOT NULL,
+    waistCm REAL,
+    abdomenCm REAL,
+    chestCm REAL,
+    upperArmCm REAL,
+    thighCm REAL,
+    calfCm REAL,
+    neckCm REAL,
+    bodyFatPct REAL,
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER NOT NULL,
     deletedAt INTEGER
@@ -398,6 +407,8 @@ function profileRow(row) {
     idealBedtime: row.idealBedtime ?? '23:00',
     idealWakeTime: row.idealWakeTime ?? '07:00',
     weighIns: weighInsFromDb(row.weighIns),
+    goals: goalsFromDb(row.goals),
+    trainingPlan: trainingPlanFromDb(row.trainingPlan),
     updatedAt: row.updatedAt,
   }
 }
@@ -423,6 +434,26 @@ function weighInsFromDb(text) {
       .slice(0, 120)
   } catch {
     return []
+  }
+}
+
+function goalsFromDb(text) {
+  if (typeof text !== 'string' || text.trim() === '') return []
+  try {
+    const list = JSON.parse(text)
+    return Array.isArray(list) ? list.slice(0, 40) : []
+  } catch {
+    return []
+  }
+}
+
+function trainingPlanFromDb(text) {
+  if (typeof text !== 'string' || text.trim() === '') return undefined
+  try {
+    const value = JSON.parse(text)
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : undefined
+  } catch {
+    return undefined
   }
 }
 
@@ -503,7 +534,14 @@ function measurementRow(row) {
   if (!row) return undefined
   return {
     dateKey: row.dateKey,
-    waistCm: num(row.waistCm) ?? 0,
+    waistCm: num(row.waistCm),
+    abdomenCm: num(row.abdomenCm),
+    chestCm: num(row.chestCm),
+    upperArmCm: num(row.upperArmCm),
+    thighCm: num(row.thighCm),
+    calfCm: num(row.calfCm),
+    neckCm: num(row.neckCm),
+    bodyFatPct: num(row.bodyFatPct),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
@@ -593,7 +631,7 @@ function trainingRow(row) {
     id: row.id,
     code: row.code ?? '',
     dateKey: row.dateKey,
-    time: row.time ?? '00:00',
+    time: row.time ?? '',
     kind: row.kind ?? 'other',
     title: row.title ?? '',
     exercises: exercisesFromDb(row.exercises),
@@ -667,7 +705,7 @@ function financeRow(row) {
     id: row.id,
     code: row.code ?? '',
     dateKey: row.dateKey,
-    time: row.time ?? '00:00:00',
+    time: row.time ?? '',
     kind: row.kind === 'income' ? 'income' : 'expense',
     category: row.category ?? '',
     name: row.name ?? '',
@@ -750,6 +788,34 @@ function createDatabase(file) {
   db.exec('PRAGMA journal_mode = WAL')
   db.exec('PRAGMA synchronous = NORMAL')
   db.exec(SCHEMA)
+  // 旧版测量表把腰围设为 NOT NULL。重建为可空字段，才能支持只量其他项目。
+  const measurementInfo = db.prepare('PRAGMA table_info(healthMeasurements)').all()
+  const oldWaist = measurementInfo.find((row) => row.name === 'waistCm')
+  if (oldWaist && oldWaist.notnull === 1) {
+    db.exec(`
+      BEGIN;
+      CREATE TABLE healthMeasurements_next (
+        dateKey TEXT PRIMARY KEY,
+        waistCm REAL, abdomenCm REAL, chestCm REAL, upperArmCm REAL,
+        thighCm REAL, calfCm REAL, neckCm REAL, bodyFatPct REAL,
+        createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL, deletedAt INTEGER
+      );
+      INSERT INTO healthMeasurements_next (dateKey, waistCm, createdAt, updatedAt, deletedAt)
+        SELECT dateKey, waistCm, createdAt, updatedAt, deletedAt FROM healthMeasurements;
+      DROP TABLE healthMeasurements;
+      ALTER TABLE healthMeasurements_next RENAME TO healthMeasurements;
+      CREATE INDEX idx_measurements_trash ON healthMeasurements(deletedAt);
+      COMMIT;
+    `)
+  }
+  // 如果数据库来自中间开发版本，只补缺列，不覆盖已有测量值。
+  const measurementColumns = new Set(
+    db.prepare('PRAGMA table_info(healthMeasurements)').all().map((row) => row.name),
+  )
+  for (const column of ['waistCm', 'abdomenCm', 'chestCm', 'upperArmCm', 'thighCm', 'calfCm', 'neckCm', 'bodyFatPct']) {
+    if (!measurementColumns.has(column))
+      db.exec(`ALTER TABLE healthMeasurements ADD COLUMN ${column} REAL`)
+  }
   // 旧库补列：CREATE TABLE IF NOT EXISTS 不会给已经存在的表加列
   const intakeColumns = new Set(
     db.prepare('PRAGMA table_info(healthIntakes)').all().map((row) => row.name),
@@ -770,6 +836,10 @@ function createDatabase(file) {
     db.exec("ALTER TABLE healthProfile ADD COLUMN weighTime TEXT NOT NULL DEFAULT '07:00'")
   if (!profileColumns.has('weighIns'))
     db.exec("ALTER TABLE healthProfile ADD COLUMN weighIns TEXT NOT NULL DEFAULT '[]'")
+  if (!profileColumns.has('goals'))
+    db.exec("ALTER TABLE healthProfile ADD COLUMN goals TEXT NOT NULL DEFAULT '[]'")
+  if (!profileColumns.has('trainingPlan'))
+    db.exec('ALTER TABLE healthProfile ADD COLUMN trainingPlan TEXT')
   if (!profileColumns.has('idealBedtime'))
     db.exec("ALTER TABLE healthProfile ADD COLUMN idealBedtime TEXT NOT NULL DEFAULT '23:00'")
   if (!profileColumns.has('idealWakeTime'))
@@ -965,8 +1035,8 @@ function createDatabase(file) {
     upsertProfile: db.prepare(
       `INSERT INTO healthProfile
          (id, sex, age, heightCm, weightKg, weightAt, activity, tdee, targetKcal, proteinTarget, plan, note,
-          weighDay, weighTime, weighIns, idealBedtime, idealWakeTime, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          weighDay, weighTime, weighIns, goals, trainingPlan, idealBedtime, idealWakeTime, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          sex = excluded.sex,
          age = excluded.age,
@@ -982,6 +1052,8 @@ function createDatabase(file) {
          weighDay = excluded.weighDay,
          weighTime = excluded.weighTime,
          weighIns = excluded.weighIns,
+         goals = excluded.goals,
+         trainingPlan = excluded.trainingPlan,
          idealBedtime = excluded.idealBedtime,
          idealWakeTime = excluded.idealWakeTime,
          updatedAt = excluded.updatedAt`,
@@ -1248,9 +1320,14 @@ function createDatabase(file) {
     measurementOfDay: db.prepare('SELECT * FROM healthMeasurements WHERE dateKey = ? AND deletedAt IS NULL LIMIT 1'),
     measurementsBetween: db.prepare('SELECT * FROM healthMeasurements WHERE dateKey >= ? AND dateKey <= ? AND deletedAt IS NULL ORDER BY dateKey ASC'),
     upsertMeasurement: db.prepare(
-      `INSERT INTO healthMeasurements (dateKey, waistCm, createdAt, updatedAt, deletedAt)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO healthMeasurements
+       (dateKey, waistCm, abdomenCm, chestCm, upperArmCm, thighCm, calfCm, neckCm, bodyFatPct, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(dateKey) DO UPDATE SET waistCm = excluded.waistCm,
+         abdomenCm = excluded.abdomenCm, chestCm = excluded.chestCm,
+         upperArmCm = excluded.upperArmCm, thighCm = excluded.thighCm,
+         calfCm = excluded.calfCm, neckCm = excluded.neckCm,
+         bodyFatPct = excluded.bodyFatPct,
          updatedAt = excluded.updatedAt, deletedAt = excluded.deletedAt`,
     ),
     everyTraining: db.prepare('SELECT * FROM healthTrainings'),
@@ -1344,6 +1421,10 @@ function createDatabase(file) {
       num(profile.weighDay),
       profile.weighTime ?? '07:00',
       JSON.stringify(Array.isArray(profile.weighIns) ? profile.weighIns : []),
+      JSON.stringify(Array.isArray(profile.goals) ? profile.goals : []),
+      profile.trainingPlan && typeof profile.trainingPlan === 'object'
+        ? JSON.stringify(profile.trainingPlan)
+        : null,
       profile.idealBedtime ?? '23:00',
       profile.idealWakeTime ?? '07:00',
       profile.updatedAt ?? Date.now(),
@@ -1397,6 +1478,13 @@ function createDatabase(file) {
     q.upsertMeasurement.run(
       measurement.dateKey,
       measurement.waistCm,
+      measurement.abdomenCm,
+      measurement.chestCm,
+      measurement.upperArmCm,
+      measurement.thighCm,
+      measurement.calfCm,
+      measurement.neckCm,
+      measurement.bodyFatPct,
       measurement.createdAt ?? existing?.createdAt ?? now,
       num(measurement.updatedAt) ?? now,
       num(measurement.deletedAt),
@@ -1409,7 +1497,7 @@ function createDatabase(file) {
       training.id,
       training.code ?? '',
       training.dateKey,
-      training.time ?? '00:00',
+      training.time ?? '',
       training.kind ?? 'other',
       training.title ?? '',
       JSON.stringify(Array.isArray(training.exercises) ? training.exercises : []),
@@ -1428,7 +1516,7 @@ function createDatabase(file) {
       id: entry.id,
       code: entry.code ?? '',
       dateKey: entry.dateKey,
-      time: entry.time ?? '00:00:00',
+      time: entry.time ?? '',
       kind: entry.kind === 'income' ? 'income' : 'expense',
       category: entry.category ?? '',
       name: entry.name ?? '',

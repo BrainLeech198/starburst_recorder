@@ -112,3 +112,6 @@ Storage follows the platform: SQLite on desktop, IndexedDB in browsers and WebVi
 
 Android is sideloaded: allow "install unknown apps". If you previously installed a debug build, uninstall it first (different signature — the upgrade install will fail).
 Storage follows the platform: SQLite on desktop, IndexedDB in browsers and WebViews.
+## 0.19.1 · 2026-11-13
+
+Sleep charts now span 48 hours and reflect recorded sleep factors. Body measurements support multiple dimensions and trends. Training adds a dedicated progress area, weekly reviews, templates, user-set goals, and user-triggered AI feedback.

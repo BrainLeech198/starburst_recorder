@@ -74,7 +74,13 @@ describe('容量与组数', () => {
       totalSets: 3,
       totalReps: 26,
       volumeKg: 640,
+      volumeSets: 2,
     })
+  })
+
+  it('无负重记录时容量组数为零，不把缺失当作零公斤训练量', () => {
+    const rows = [training({ exercises: [exercise({ sets: [set({ reps: 10 })] })] })]
+    expect(summarizeDay(rows)).toMatchObject({ totalReps: 10, volumeKg: 0, volumeSets: 0 })
   })
 
   it('空组不计，回收站里的记录不计', () => {
@@ -165,6 +171,8 @@ describe('周范围与断档', () => {
       days: 2,
       volumeKg: 1100,
       previousVolumeKg: 200,
+      volumeSets: 3,
+      previousVolumeSets: 1,
     })
     expect(summary.muscleCount).toEqual({ chest: 2, back: 1 })
   })

@@ -4,12 +4,15 @@ import {
   pickDay,
   pickEntry,
   pickFinance,
+  pickHealthGoals,
   pickIntake,
   pickMeal,
   pickFood,
+  pickMeasurement,
   pickSleep,
   pickStamp,
   pickTraining,
+  pickTrainingPlan,
   rows,
 } from './normalize'
 
@@ -58,6 +61,27 @@ describe('行级校验：必填缺失就丢行', () => {
   it('食物没有名字就丢', () => {
     expect(pickEntry({ id: 'a', dateKey: '2026-10-25', content: 'x' })).not.toBeNull()
     expect(pickMeal({ id: 'a', name: '鸡腿饭', items: [] })).not.toBeNull()
+  })
+})
+
+describe('训练计划档案', () => {
+  it('模板只收有效名称与内容，逐条过滤坏数据并限制数量', () => {
+    const plan = pickTrainingPlan({
+      enabled: true,
+      weeklyDays: [1],
+      time: '20:00',
+      nudgeAfterDays: 3,
+      templates: [
+        { id: 't1', name: ' 推日 ', kind: 'strength', exercises: [{ id: 'e1', name: '俯卧撑' }] },
+        { id: 't2', name: '空模板', exercises: [] },
+        { id: '', name: '无 id', exercises: [{ id: 'e2', name: '深蹲' }] },
+      ],
+    })
+    expect(plan?.templates).toHaveLength(1)
+    expect(plan?.templates?.[0]).toMatchObject({ id: 't1', name: '推日', kind: 'strength' })
+    expect(pickTrainingPlan({ enabled: false, weeklyDays: [], templates: [{ id: 't3', name: '短跑', durationMin: 20 }] })?.templates).toMatchObject([
+      { id: 't3', name: '短跑', durationMin: 20 },
+    ])
   })
 })
 
@@ -132,6 +156,41 @@ describe('行级校验：多出来的字段不管', () => {
     })
     expect(entry).not.toBeNull()
     expect('someFutureField' in (entry as object)).toBe(false)
+  })
+})
+
+describe('身体测量行：可部分记录，坏字段单独忽略', () => {
+  it('兼容旧版只含腰围的记录', () => {
+    expect(pickMeasurement({ dateKey: '2026-11-13', waistCm: 74 })).toMatchObject({
+      waistCm: 74,
+      abdomenCm: null,
+      chestCm: null,
+      bodyFatPct: null,
+    })
+  })
+
+  it('保留有效部分，忽略越界围度和体脂率', () => {
+    expect(
+      pickMeasurement({ dateKey: '2026-11-13', waistCm: 74, chestCm: 500, bodyFatPct: 90 }),
+    ).toMatchObject({ waistCm: 74, chestCm: null, bodyFatPct: null })
+  })
+
+  it('日期无效或没有任何有效测量时丢弃这一行', () => {
+    expect(pickMeasurement({ dateKey: '2026-02-30', waistCm: 74 })).toBeNull()
+    expect(pickMeasurement({ dateKey: '2026-11-13', waistCm: 500 })).toBeNull()
+  })
+})
+
+describe('健康目标：目标由用户输入且坏项目逐条丢弃', () => {
+  it('保留合法目标，忽略无效范围、缺少动作名和坏时刻', () => {
+    const goals = pickHealthGoals([
+      { id: 'weight', type: 'weightRange', minValue: 60, maxValue: 68 },
+      { id: 'range', type: 'weightRange', minValue: 70, maxValue: 60 },
+      { id: 'lift', type: 'strengthReps', targetValue: 10 },
+      { id: 'sleep', type: 'sleepBedtime', targetTime: '25:99', targetDays: 5 },
+    ])
+    expect(goals).toHaveLength(1)
+    expect(goals[0]).toMatchObject({ id: 'weight', minValue: 60, maxValue: 68, enabled: true })
   })
 })
 

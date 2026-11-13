@@ -5,6 +5,7 @@
  * 于是「周几命中」「今天已练就不催」这些规则能单独测。
  */
 import type { HealthProfile, TrainingPlan } from '@/core/db/schema'
+import { pickTrainingPlan } from '@/core/db/normalize'
 import { weekdayOf } from './trainingMath'
 
 export const DEFAULT_TRAINING_PLAN: TrainingPlan = {
@@ -12,22 +13,25 @@ export const DEFAULT_TRAINING_PLAN: TrainingPlan = {
   weeklyDays: [1, 3, 5],
   time: '20:00',
   nudgeAfterDays: 3,
+  templates: [],
 }
 
 /** 旧档案没有 trainingPlan：补一份默认值，并挡住坏字段 */
 export function normalizePlan(plan: TrainingPlan | undefined): TrainingPlan {
-  if (!plan) return { ...DEFAULT_TRAINING_PLAN, weeklyDays: [...DEFAULT_TRAINING_PLAN.weeklyDays] }
-  const days = [...new Set((plan.weeklyDays ?? []).filter((day) => day >= 1 && day <= 7))].sort(
+  if (!plan) return { ...DEFAULT_TRAINING_PLAN, weeklyDays: [...DEFAULT_TRAINING_PLAN.weeklyDays], templates: [] }
+  const safe = pickTrainingPlan(plan) ?? DEFAULT_TRAINING_PLAN
+  const days = [...new Set(safe.weeklyDays.filter((day) => day >= 1 && day <= 7))].sort(
     (a, b) => a - b,
   )
   return {
-    enabled: plan.enabled === true,
+    enabled: safe.enabled,
     weeklyDays: days,
-    time: /^([01]\d|2[0-3]):[0-5]\d$/.test(plan.time) ? plan.time : DEFAULT_TRAINING_PLAN.time,
+    time: safe.time,
     nudgeAfterDays:
-      Number.isInteger(plan.nudgeAfterDays) && plan.nudgeAfterDays >= 0 && plan.nudgeAfterDays <= 30
-        ? plan.nudgeAfterDays
+      Number.isInteger(safe.nudgeAfterDays) && safe.nudgeAfterDays >= 0 && safe.nudgeAfterDays <= 30
+        ? safe.nudgeAfterDays
         : DEFAULT_TRAINING_PLAN.nudgeAfterDays,
+    templates: safe.templates ?? [],
   }
 }
 

@@ -21,6 +21,8 @@ const SleepsPage = lazy(() => import('@/features/health/SleepsPage'))
 const WeightsPage = lazy(() => import('@/features/health/WeightsPage'))
 const WeightTrendPage = lazy(() => import('@/features/health/WeightTrendPage'))
 const MeasurementsPage = lazy(() => import('@/features/health/MeasurementsPage'))
+const GoalsPage = lazy(() => import('@/features/health/GoalsPage'))
+const InsightsPage = lazy(() => import('@/features/health/InsightsPage'))
 const FoodLibraryPage = lazy(() => import('@/features/health/FoodLibraryPage'))
 const FoodTrashPage = lazy(() => import('@/features/health/FoodTrashPage'))
 const IntakeTrashPage = lazy(() => import('@/features/health/IntakeTrashPage'))
@@ -97,6 +99,8 @@ export const router = createHashRouter([
       { path: 'health/weights', element: <WeightsPage /> },
       { path: 'health/weights/trend', element: <WeightTrendPage /> },
       { path: 'health/measurements', element: <MeasurementsPage /> },
+      { path: 'health/goals', element: <GoalsPage /> },
+      { path: 'health/insights', element: <InsightsPage /> },
       { path: 'finance', element: <FinancePage /> },
       { path: 'finance/trash', element: <FinanceTrashPage /> },
       { path: 'assistant', element: <AssistantPage /> },
