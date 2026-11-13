@@ -486,3 +486,5 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
 - **2026-11-13 v0.18.1**：标签 `v0.18.1`（提交 `378196b`）已部署到生产 Pages，地址 `https://b299b56e.starburst-recorder.pages.dev`，部署 ID `b299b56e-5a2a-4bec-a342-1881f4291887`，构建号 `mwex8o7z`；正式域名线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并接管页面，推送鉴权与 `/health` 通过，测试订阅已删除。
 - **2026-11-13 v0.18.2**：标签 `v0.18.2`（提交 `6005cc6`）已部署到生产 Pages，地址 `https://8eb38e31.starburst-recorder.pages.dev`，部署 ID `8eb38e31-c5e0-4484-a757-45f967a9f603`，构建号 `mwexpu9e`；正式域名线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并接管页面，推送鉴权与 `/health` 通过，测试订阅已删除。
 - **2026-11-13 v0.19.0**：标签 `v0.19.0`（提交 `e89d35a`）已部署到生产 Pages，地址 `https://bf3f5e1f.starburst-recorder.pages.dev`，部署 ID `bf3f5e1f-e575-422a-bbee-f3e2660488b0`，构建号 `mwf1yz2t`；正式域名线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并接管页面，推送鉴权与 `/health` 通过，测试订阅已删除。
+
+- **2026-11-13 v0.19.1**：产品提交与正式 Release 已发布；生产 Pages 部署未完成。Wrangler 查询项目时连续收到 HTTP 503（`no healthy upstream` / `connection termination`），未返回部署 ID；线上仍运行 v0.19.0。待 Pages API 可用后用本提交重新部署并运行线上探针。
