@@ -20,10 +20,9 @@ import RowCheckbox from '@/shared/ui/RowCheckbox'
 import BatchActions from '@/shared/ui/BatchActions'
 import { useBatchSelect } from '@/shared/ui/useBatchSelect'
 import DayNav from '@/shared/ui/DayNav'
-import BackButton from '@/shared/ui/BackButton'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import EmptyState from '@/shared/ui/EmptyState'
-import { NAV_BACK_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
+import { OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
 import {
@@ -328,15 +327,81 @@ export default function TrainingPage() {
             pick: t('health.pickDate'),
             today: t('health.backToToday'),
           }}
-          leading={
-            <BackButton
-              to="/"
-              label={t('nav.home')}
-              icon
-              className={`${NAV_BACK_BUTTON} gap-1`}
-            />
-          }
         />
+      )}
+
+      {/* 常用动作放在页面上方；主要记录与辅助工具分组，避免埋在进度卡片下面 */}
+      {!batch.active && (
+        <div className="mt-2 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setForm({ training: null })}
+              className={`${SOLID_BUTTON} w-full`}
+            >
+              <Icon name="plus" />
+              {t('training.add')}
+            </button>
+            <button
+              type="button"
+              onClick={() => void copyLastSession()}
+              className={`${OUTLINE_BUTTON} w-full`}
+            >
+              <Icon name="copy" />
+              {t('training.copyWorkout')}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => setTemplatesOpen(true)}
+              className="sb-pressable flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-lg border border-line bg-surface px-1 py-1 text-center text-[10px] leading-tight text-muted transition-colors hover:border-brand hover:text-fg"
+            >
+              <Icon name="copy" />
+              {t('training.template.title')}
+            </button>
+            <button
+              type="button"
+              onClick={openBatch}
+              className="sb-pressable flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-lg border border-line bg-surface px-1 py-1 text-center text-[10px] leading-tight text-muted transition-colors hover:border-brand hover:text-fg"
+            >
+              <Icon name="list" />
+              {t('training.batch')}
+            </button>
+            <Link
+              to="/training/trash"
+              className="sb-pressable flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-lg border border-line bg-surface px-1 py-1 text-center text-[10px] leading-tight text-muted transition-colors hover:border-brand hover:text-fg"
+            >
+              <Icon name="trash" />
+              {t('training.trash')}
+            </Link>
+            <button
+              type="button"
+              onClick={() => setPlanOpen(true)}
+              className="sb-pressable flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-lg border border-line bg-surface px-1 py-1 text-center text-[10px] leading-tight text-muted transition-colors hover:border-brand hover:text-fg"
+            >
+              <Icon name="calendar" />
+              {t('training.plan.title')}
+            </button>
+            <button
+              type="button"
+              onClick={() => importInputRef.current?.click()}
+              className="sb-pressable flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-lg border border-line bg-surface px-1 py-1 text-center text-[10px] leading-tight text-muted transition-colors hover:border-brand hover:text-fg"
+            >
+              <Icon name="import" />
+              {t('records.import')}
+            </button>
+            {/* 记录级 JSON 导入的隐藏文件框 */}
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={(event) => void handleImportFile(event)}
+            />
+          </div>
+        </div>
       )}
 
       {/* 当天小结 + 本周进度环 */}
@@ -428,58 +493,6 @@ export default function TrainingPage() {
 
       {!batch.active && <TrainingProgressPanel trainings={monthTrainings ?? []} />}
 
-      {/* 操作条：记一次是主操作，批量与回收站并列 */}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {!batch.active && (
-          <>
-            <button
-              type="button"
-              onClick={() => setForm({ training: null })}
-              className={SOLID_BUTTON}
-            >
-              <Icon name="plus" />
-              {t('training.add')}
-            </button>
-            <button type="button" onClick={() => void copyLastSession()} className={SOLID_BUTTON}>
-              <Icon name="copy" />
-              {t('training.copyWorkout')}
-            </button>
-            <button type="button" onClick={() => setTemplatesOpen(true)} className={OUTLINE_BUTTON}>
-              <Icon name="copy" />
-              {t('training.template.title')}
-            </button>
-            <button type="button" onClick={openBatch} className={SOLID_BUTTON}>
-              <Icon name="list" />
-              {t('training.batch')}
-            </button>
-            <Link to="/training/trash" className={SOLID_BUTTON}>
-              <Icon name="trash" />
-              {t('training.trash')}
-            </Link>
-            <button type="button" onClick={() => setPlanOpen(true)} className={OUTLINE_BUTTON}>
-              <Icon name="calendar" />
-              {t('training.plan.title')}
-            </button>
-            <button
-              type="button"
-              onClick={() => importInputRef.current?.click()}
-              className={OUTLINE_BUTTON}
-            >
-              <Icon name="import" />
-              {t('records.import')}
-            </button>
-            {/* 记录级 JSON 导入的隐藏文件框 */}
-            <input
-              ref={importInputRef}
-              type="file"
-              accept=".json,application/json"
-              className="hidden"
-              onChange={(event) => void handleImportFile(event)}
-            />
-          </>
-        )}
-      </div>
-
       {batch.active ? (
         <>
           <section className="mt-4 overflow-hidden rounded-2xl border border-line bg-surface">
@@ -523,14 +536,6 @@ export default function TrainingPage() {
       ) : dayTrainings === undefined ? null : rows.length === 0 ? (
         <div className="mt-4">
           <EmptyState icon="🏋️" text={t('training.empty')} />
-          <button
-            type="button"
-            onClick={() => setForm({ training: null })}
-            className={`${SOLID_BUTTON} mt-3 w-full`}
-          >
-            <Icon name="plus" />
-            {t('training.first')}
-          </button>
         </div>
       ) : (
         <ul className="m-0 mt-4 list-none space-y-2 p-0">

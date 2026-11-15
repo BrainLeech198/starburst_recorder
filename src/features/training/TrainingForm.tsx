@@ -591,12 +591,15 @@ export default function TrainingForm({
               {exercises.map((item, index) => (
                 <li key={item.id} className="rounded-xl border border-line bg-surface-2 p-2.5">
                   <div className="flex items-center gap-2">
-                    <input
-                      value={item.name}
-                      aria-label={t('training.addExercise')}
-                      onChange={(event) => updateExercise(index, { name: event.target.value })}
-                      className={`${INPUT} min-w-0 flex-1 text-sm`}
-                    />
+                    <label className="block min-w-0 flex-1">
+                      <span className="text-[10px] text-muted">{t('training.exerciseName')}</span>
+                      <input
+                        value={item.name}
+                        aria-label={t('training.exerciseName')}
+                        onChange={(event) => updateExercise(index, { name: event.target.value })}
+                        className={`${INPUT} mt-1 w-full text-sm`}
+                      />
+                    </label>
                     <button
                       type="button"
                       aria-label={t('training.removeExercise')}
@@ -609,74 +612,95 @@ export default function TrainingForm({
                     </button>
                   </div>
 
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    <select
-                      value={item.kind}
-                      aria-label={t('training.exerciseType')}
-                      onChange={(event) =>
-                        updateExercise(index, { kind: event.target.value as TrainingKind })
-                      }
-                      className={`${FIELD} px-1.5 py-1 text-xs`}
-                    >
-                      {KINDS.map((value) => (
-                        <option key={value} value={value}>
-                          {kindName(value)}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={item.muscle}
-                      aria-label={t('training.targetArea')}
-                      onChange={(event) => updateExercise(index, { muscle: event.target.value })}
-                      className={`${FIELD} px-1.5 py-1 text-xs`}
-                    >
-                      {MUSCLES.map((value) => (
-                        <option key={value} value={value}>
-                          {muscleName(value)}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      value={item.durationMin}
-                      inputMode="decimal"
-                      aria-label={t('training.durationMin')}
-                      placeholder={t('training.durationMin')}
-                      onChange={(event) =>
-                        updateExercise(index, { durationMin: event.target.value })
-                      }
-                      className={`${FIELD} w-20 px-1.5 py-1 text-xs tabular-nums`}
-                    />
-                    <input
-                      value={item.distanceKm}
-                      inputMode="decimal"
-                      aria-label={t('training.distanceKm')}
-                      placeholder="km"
-                      onChange={(event) =>
-                        updateExercise(index, { distanceKm: event.target.value })
-                      }
-                      className={`${FIELD} w-16 px-1.5 py-1 text-xs tabular-nums`}
-                    />
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <label className="block min-w-0">
+                      <span className="text-[10px] text-muted">{t('training.exerciseType')}</span>
+                      <select
+                        value={item.kind}
+                        aria-label={t('training.exerciseType')}
+                        onChange={(event) =>
+                          updateExercise(index, { kind: event.target.value as TrainingKind })
+                        }
+                        className={`${FIELD} mt-1 w-full px-1.5 py-1 text-xs`}
+                      >
+                        {KINDS.map((value) => (
+                          <option key={value} value={value}>
+                            {kindName(value)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="block min-w-0">
+                      <span className="text-[10px] text-muted">{t('training.targetArea')}</span>
+                      <select
+                        value={item.muscle}
+                        aria-label={t('training.targetArea')}
+                        onChange={(event) => updateExercise(index, { muscle: event.target.value })}
+                        className={`${FIELD} mt-1 w-full px-1.5 py-1 text-xs`}
+                      >
+                        {MUSCLES.map((value) => (
+                          <option key={value} value={value}>
+                            {muscleName(value)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
 
-                  {item.sets.length > 0 && (
-                    <div className="mt-2 grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-1 text-[10px] text-muted">
-                      <span className="text-center">{t('training.reps')}</span>
-                      <span className="text-center">{t('training.weightKg')}</span>
-                      <span className="text-center">{t('training.restSec')}</span>
-                      <span className="text-center">{t('training.rpe')}</span>
-                      <span className="w-7" />
+                  {(item.kind !== 'strength' || item.durationMin !== '' || item.distanceKm !== '') && (
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <label className="block min-w-0">
+                        <span className="text-[10px] text-muted">{t('training.totalDuration')}</span>
+                        <input
+                          value={item.durationMin}
+                          inputMode="decimal"
+                          aria-label={t('training.durationMin')}
+                          placeholder={t('training.durationMin')}
+                          onChange={(event) =>
+                            updateExercise(index, { durationMin: event.target.value })
+                          }
+                          className={`${FIELD} mt-1 w-full px-1.5 py-1 text-xs tabular-nums`}
+                        />
+                      </label>
+                      <label className="block min-w-0">
+                        <span className="text-[10px] text-muted">{t('training.distanceKm')}</span>
+                        <input
+                          value={item.distanceKm}
+                          inputMode="decimal"
+                          aria-label={t('training.distanceKm')}
+                          placeholder="km"
+                          onChange={(event) =>
+                            updateExercise(index, { distanceKm: event.target.value })
+                          }
+                          className={`${FIELD} mt-1 w-full px-1.5 py-1 text-xs tabular-nums`}
+                        />
+                      </label>
                     </div>
                   )}
+
+                  <div className="mt-3 rounded-lg border border-line/70 bg-bg/30 p-2">
+                    <div className="space-y-1">
+                      <span className="block text-xs font-medium text-fg">{t('training.sets')}</span>
+                      <span className="block text-[11px] leading-4 text-muted">
+                        {t('training.setEntryHelp')}
+                      </span>
+                    </div>
+                    <div className="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_1.75rem] gap-1 text-[10px] text-muted">
+                      <span className="text-center">{t('training.reps')}</span>
+                      <span className="text-center">{t('training.loadLabel')}</span>
+                      <span />
+                    </div>
                   <ul className="m-0 mt-1 flex list-none flex-col gap-1 p-0">
                     {item.sets.map((set, setIndex) => (
                       <li
                         key={setIndex}
-                        className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] items-center gap-1"
+                        className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_1.75rem] items-center gap-1"
                       >
                         <input
                           value={set.reps}
                           inputMode="numeric"
                           aria-label={t('training.reps')}
+                          placeholder="10"
                           onChange={(event) =>
                             updateSet(index, setIndex, { reps: event.target.value })
                           }
@@ -685,27 +709,10 @@ export default function TrainingForm({
                         <input
                           value={set.weightKg}
                           inputMode="decimal"
-                          aria-label={t('training.weightKg')}
+                          aria-label={t('training.loadLabel')}
+                          placeholder="0"
                           onChange={(event) =>
                             updateSet(index, setIndex, { weightKg: event.target.value })
-                          }
-                          className={NUM_INPUT}
-                        />
-                        <input
-                          value={set.restSec}
-                          inputMode="numeric"
-                          aria-label={t('training.durationMin')}
-                          onChange={(event) =>
-                            updateSet(index, setIndex, { restSec: event.target.value })
-                          }
-                          className={NUM_INPUT}
-                        />
-                        <input
-                          value={set.rpe}
-                          inputMode="numeric"
-                          aria-label={t('training.rpe')}
-                          onChange={(event) =>
-                            updateSet(index, setIndex, { rpe: event.target.value })
                           }
                           className={NUM_INPUT}
                         />
@@ -717,6 +724,43 @@ export default function TrainingForm({
                         >
                           ×
                         </button>
+                        <details
+                          className="col-span-3"
+                          open={set.restSec !== '' || set.rpe !== ''}
+                        >
+                          <summary className="flex min-h-8 w-fit cursor-pointer list-none items-center gap-1 text-[11px] text-muted transition-colors hover:text-brand [&::-webkit-details-marker]:hidden">
+                            <span aria-hidden="true">＋</span>
+                            {t('training.optionalSetFields')}
+                          </summary>
+                          <div className="mt-1 grid grid-cols-2 gap-2">
+                            <label className="block min-w-0">
+                              <span className="text-[10px] text-muted">{t('training.restSec')}</span>
+                              <input
+                                value={set.restSec}
+                                inputMode="numeric"
+                                aria-label={t('training.restSec')}
+                                placeholder="60"
+                                onChange={(event) =>
+                                  updateSet(index, setIndex, { restSec: event.target.value })
+                                }
+                                className={`${NUM_INPUT} mt-1`}
+                              />
+                            </label>
+                            <label className="block min-w-0">
+                              <span className="text-[10px] text-muted">{t('training.rpe')}</span>
+                              <input
+                                value={set.rpe}
+                                inputMode="numeric"
+                                aria-label={t('training.rpe')}
+                                placeholder="1–10"
+                                onChange={(event) =>
+                                  updateSet(index, setIndex, { rpe: event.target.value })
+                                }
+                                className={`${NUM_INPUT} mt-1`}
+                              />
+                            </label>
+                          </div>
+                        </details>
                       </li>
                     ))}
                   </ul>
@@ -738,6 +782,7 @@ export default function TrainingForm({
                       <Icon name="copy" />
                       {t('training.copyLast')}
                     </button>
+                  </div>
                   </div>
                 </li>
               ))}

@@ -27,7 +27,7 @@ export default function InstallHint() {
   if (hidden) return null
 
   return (
-    <div className="mt-8 flex w-full items-start gap-3 rounded-xl border border-line bg-surface p-4">
+    <div className="mt-4 flex w-full items-start gap-3 rounded-xl border border-line bg-surface p-3 sm:mt-8 sm:p-4">
       <p className="min-w-0 flex-1 text-xs leading-relaxed text-muted">{t('home.installHint')}</p>
       <button
         type="button"
