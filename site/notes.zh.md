@@ -1,5 +1,24 @@
 本地优先的个人记录工具，内置 AI：随手记一句今天，AI 会把它整理成一篇完整的日记。不用注册、没有云端，每一条记录都留在这台设备上。AI 用的是你自己准备的模型和 Key。
 
+## 0.19.2 · 2026-11-15
+
+首页新增训练入口，训练记录页操作更集中，训练组表单在手机上更紧凑。
+
+### 这一版有什么
+
+- **首页可直接进入训练**：训练卡片加入首页，并适配窄屏布局。
+- **训练常用操作移到页首**：新增、复制、模板、批量、回收站、计划和导入更容易找到。
+- **训练组表单更精简**：次数与负重保持在主区域；休息时长和 RPE 收入可展开的可选字段。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.19.2-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2-setup.exe)
+- Android 10 以上：[starburst-recorder-0.19.2.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2.apk)
+
+## 0.19.1 · 2026-11-13
+
+睡眠时间轴扩展为 48 小时并综合记录着色；身体测量新增多围度和趋势；训练加入独立进度、周回顾、模板、自设目标与手动 AI 点评。
+
 ## 0.19.0 · 2026-11-13
 
 新增腰围记录与趋势、AI 健康报告预览，并改进训练入口和一餐多项摄入记录。
@@ -103,6 +122,3 @@ MIT 许可。镜像仓库：https://github.com/BrainLeech198/starburst_recorder
 
 安卓为侧载安装，需要允许「安装未知来源应用」。之前装过 debug 测试包的，要先卸载再装这一版（签名不同，覆盖安装会失败）。
 存储跟着平台走：桌面是 SQLite，浏览器与 WebView 里是 IndexedDB。
-## 0.19.1 · 2026-11-13
-
-睡眠时间轴扩展为 48 小时并综合记录着色；身体测量新增多围度和趋势；训练加入独立进度、周回顾、模板、自设目标与手动 AI 点评。

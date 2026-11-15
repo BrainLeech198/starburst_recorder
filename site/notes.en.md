@@ -1,5 +1,24 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
+## 0.19.2 · 2026-11-15
+
+Open training directly from home, find common workout actions sooner, and use a more compact training form on phones.
+
+### What's new
+
+- **Open training from home** — the training card is now on the home page and adapts to narrow screens.
+- **Common training actions are at the top** — add, copy, templates, batch actions, trash, plans, and import are easier to find.
+- **A simpler set form** — reps and load stay in the main area; rest time and RPE are grouped under expandable optional fields.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.19.2-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2-setup.exe)
+- Android 10+: [starburst-recorder-0.19.2.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2.apk)
+
+## 0.19.1 · 2026-11-13
+
+Sleep charts now span 48 hours and reflect recorded sleep factors. Body measurements support multiple dimensions and trends. Training adds a dedicated progress area, weekly reviews, templates, user-set goals, and user-triggered AI feedback.
+
 ## 0.19.0 · 2026-11-13
 
 Adds waist measurements and trends, AI health report previews, and improvements to training navigation and meal intake records.
@@ -112,6 +131,3 @@ Storage follows the platform: SQLite on desktop, IndexedDB in browsers and WebVi
 
 Android is sideloaded: allow "install unknown apps". If you previously installed a debug build, uninstall it first (different signature — the upgrade install will fail).
 Storage follows the platform: SQLite on desktop, IndexedDB in browsers and WebViews.
-## 0.19.1 · 2026-11-13
-
-Sleep charts now span 48 hours and reflect recorded sleep factors. Body measurements support multiple dimensions and trends. Training adds a dedicated progress area, weekly reviews, templates, user-set goals, and user-triggered AI feedback.

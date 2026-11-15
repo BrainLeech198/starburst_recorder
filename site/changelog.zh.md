@@ -1,3 +1,35 @@
+## 0.19.2 · 2026-11-15
+
+首页加入训练入口，并调整训练记录页和表单布局。
+
+### 这一版有什么
+
+- **首页可直接进入训练**：训练卡片加入首页，并适配窄屏布局。
+- **训练常用操作移到页首**：新增、复制、模板、批量、回收站、计划和导入更容易找到。
+- **训练组表单更精简**：次数与负重保持在主区域；休息时长和 RPE 收入可展开的可选字段。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.19.2-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2-setup.exe)
+- Android 10 以上：[starburst-recorder-0.19.2.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2.apk)
+
+## 0.19.1 · 2026-11-13
+
+健康记录新增多项身体测量和近 30 天数据摘要；睡眠时间轴扩展为 48 小时并按多项实际记录着色；训练升级为独立板块，提供动作进度、周回顾、可复用模板、目标和手动 AI 点评。
+
+### 这一版有什么
+
+- **睡眠时间轴覆盖 48 小时**：从前一日 00:00 显示到记录归属日后的 00:00；颜色参考睡眠时长、入睡时刻，以及用户填写的夜醒与睡眠质量。
+- **身体测量支持多围度**：可按日期单独记录腰围、腹围、胸围、四肢围度、颈围和实测体脂率；与体重趋势并列查看，并提供标注为筛查参考的腰高比。
+- **训练成为独立的主动模块**：可查看动作近期趋势和周训练覆盖，复用最近一次训练或保存模板；可自行设置目标，保存训练后对比同名动作历史。
+- **健康数据摘要与 AI 训练点评**：查看近 30 天的记录派生指标；训练点评仅在用户手动触发时发送选定周的训练记录，不自动调用。
+- **记录保持真实**：缺失的时刻、负重或目标不再显示成默认值或虚假容量；新增身体测量与训练模板随健康数据备份恢复。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.19.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1-setup.exe)
+- Android 10 以上：[starburst-recorder-0.19.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1.apk)
+
 ## 0.19.0 · 2026-11-13
 
 增加腰围记录与趋势、AI 健康报告预览，并改进训练入口和一餐多项摄入记录。
@@ -934,19 +966,3 @@ AI 整理能挑素材，也能翻旧账
 
 - Windows 10/11：[`starburst-recorder-0.17.3-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3-setup.exe)（约 96 MB）
 - Android 10 以上：[`starburst-recorder-0.17.3.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3.apk)（约 62 MB，正式签名）
-## 0.19.1 · 2026-11-13
-
-健康记录新增多项身体测量和近 30 天数据摘要；睡眠时间轴扩展为 48 小时并按多项实际记录着色；训练升级为独立板块，提供动作进度、周回顾、可复用模板、目标和手动 AI 点评。
-
-### 这一版有什么
-
-- **睡眠时间轴覆盖 48 小时**：从前一日 00:00 显示到记录归属日后的 00:00；颜色参考睡眠时长、入睡时刻，以及用户填写的夜醒与睡眠质量。
-- **身体测量支持多围度**：可按日期单独记录腰围、腹围、胸围、四肢围度、颈围和实测体脂率；与体重趋势并列查看，并提供标注为筛查参考的腰高比。
-- **训练成为独立的主动模块**：可查看动作近期趋势和周训练覆盖，复用最近一次训练或保存模板；可自行设置目标，保存训练后对比同名动作历史。
-- **健康数据摘要与 AI 训练点评**：查看近 30 天的记录派生指标；训练点评仅在用户手动触发时发送选定周的训练记录，不自动调用。
-- **记录保持真实**：缺失的时刻、负重或目标不再显示成默认值或虚假容量；新增身体测量与训练模板随健康数据备份恢复。
-
-### 下载
-
-- Windows 10/11：[starburst-recorder-0.19.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1-setup.exe)
-- Android 10 以上：[starburst-recorder-0.19.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1.apk)
