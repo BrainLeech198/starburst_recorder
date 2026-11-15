@@ -1,3 +1,17 @@
+## 0.19.3 · 2026-11-15
+
+Intake entries now start with the current local time. Food and meal selectors also show built-in thumbnails when no custom photo is set.
+
+### What's new
+
+- **Current time is prefilled** — opening the intake form uses the device's local time, which you can still edit.
+- **Food and meal images stay visible** — built-in images appear when there is no custom photo; real photos remain tappable for viewing.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.19.3-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.3/starburst-recorder-0.19.3-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.3/starburst-recorder-0.19.3-setup.exe)
+- Android 10+: [starburst-recorder-0.19.3.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.3/starburst-recorder-0.19.3.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.3/starburst-recorder-0.19.3.apk)
+
 ## 0.19.2 · 2026-11-15
 
 Add direct training navigation from home and simplify the workout page and set form.

@@ -1,3 +1,17 @@
+## 0.19.3 · 2026-11-15
+
+记录摄入时自动填入当前本地时间；食物和套餐选择列表在没有自定义照片时也会显示默认缩略图。
+
+### 这一版有什么
+
+- **摄入时间自动填写**：打开“记一笔摄入”时带入当前本地时间，仍可手动修改。
+- **食物和套餐始终显示图片**：无自定义照片时显示对应的内置默认图；真实照片仍可点开查看。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.19.3-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.3/starburst-recorder-0.19.3-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.3/starburst-recorder-0.19.3-setup.exe)
+- Android 10 以上：[starburst-recorder-0.19.3.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.3/starburst-recorder-0.19.3.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.3/starburst-recorder-0.19.3.apk)
+
 ## 0.19.2 · 2026-11-15
 
 首页加入训练入口，并调整训练记录页和表单布局。
