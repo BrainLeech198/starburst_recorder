@@ -112,6 +112,12 @@ type Step = 'list' | 'source' | 'picker' | 'newFood' | 'newMeal' | 'image' | 'me
 const FOOD_PAGE_SIZE = 40
 const MEAL_PAGE_SIZE = 20
 
+/** Local wall-clock time for a newly opened intake form. */
+function currentLocalTime() {
+  const now = new Date()
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+}
+
 /** 只接受大于 0 的克数；空串和不认识的字都算没填 */
 function parseGrams(text: string): number | null {
   const value = Number(text)
@@ -212,7 +218,7 @@ export default function IntakeDialog({
 
   const [step, setStep] = useState<Step>('list')
   const [items, setItems] = useState<DraftItem[]>([])
-  const [time, setTime] = useState('')
+  const [time, setTime] = useState(currentLocalTime)
   /** 顺便记一笔支出：单份价乘以份数；留空就只记饮食 */
   const [costText, setCostText] = useState('')
 
@@ -1081,11 +1087,11 @@ export default function IntakeDialog({
                       key={item.key}
                       className="flex items-start gap-2 rounded-lg border border-line/70 bg-surface px-2 py-2"
                     >
-                      {hasPhoto && itemPhotoKind && (
+                      {itemPhotoKind && (
                         <FoodPhotoThumbnail
                           kind={itemPhotoKind}
                           id={itemPhotoId}
-                          hasPhoto
+                          hasPhoto={hasPhoto}
                           refreshKey={itemFood?.updatedAt ?? itemMeal?.updatedAt}
                           className="h-10 w-10 rounded-md border border-line/60"
                           wrapperClassName="shrink-0"
@@ -1499,16 +1505,14 @@ export default function IntakeDialog({
                             pickedMealId === item.id ? 'border-brand' : 'border-line hover:border-brand/50'
                           }`}
                         >
-                          {hasPhoto && (
-                            <FoodPhotoThumbnail
-                              kind="meal"
-                              id={item.id}
-                              hasPhoto
-                              refreshKey={item.updatedAt}
-                              className="h-10 w-10 rounded-md border border-line"
-                              wrapperClassName="shrink-0"
-                            />
-                          )}
+                          <FoodPhotoThumbnail
+                            kind="meal"
+                            id={item.id}
+                            hasPhoto={hasPhoto}
+                            refreshKey={item.updatedAt}
+                            className="h-10 w-10 rounded-md border border-line"
+                            wrapperClassName="shrink-0"
+                          />
                           <span className="min-w-0 flex-1">
                             <span className="flex items-center gap-2">
                               <span className="min-w-0 flex-1 truncate text-sm text-fg">
@@ -1568,22 +1572,20 @@ export default function IntakeDialog({
                         pickedId === item.id ? 'border-brand' : 'border-line hover:border-brand/50'
                       }`}
                     >
-                      {item.hasPhoto && (
-                        <FoodPhotoThumbnail
-                          kind="food"
-                          id={item.id}
-                          hasPhoto
-                          refreshKey={item.updatedAt}
-                          onClick={() =>
+                      <FoodPhotoThumbnail
+                        kind="food"
+                        id={item.id}
+                        hasPhoto={item.hasPhoto}
+                        refreshKey={item.updatedAt}
+                        onClick={item.hasPhoto ? () =>
                             void openFoodPhotoGallery(
                               photoFoods.map((entry) => entry.id),
                               item.id,
                             )
-                          }
-                          className="h-10 w-10 object-contain"
-                          wrapperClassName="shrink-0"
-                        />
-                      )}
+                          : undefined}
+                        className="h-10 w-10 object-contain"
+                        wrapperClassName="shrink-0"
+                      />
                       <button
                         type="button"
                         onClick={() => {
@@ -1731,23 +1733,21 @@ export default function IntakeDialog({
                       className="rounded-lg border border-line px-2 py-1.5"
                     >
                       <div className="flex items-center gap-2">
-                        {found.hasPhoto && (
-                          <FoodPhotoThumbnail
-                            kind="food"
-                            id={found.id}
-                            hasPhoto
-                            refreshKey={found.updatedAt}
-                            onClick={() =>
+                        <FoodPhotoThumbnail
+                          kind="food"
+                          id={found.id}
+                          hasPhoto={found.hasPhoto}
+                          refreshKey={found.updatedAt}
+                          onClick={found.hasPhoto ? () =>
                               void openFoodPhotoGallery(
                                 mealFound.flatMap((each) =>
                                   each.food?.hasPhoto ? [each.food.id] : [],
                                 ),
                                 found.id,
                               )
-                            }
-                            className="h-8 w-8 object-contain"
-                          />
-                        )}
+                            : undefined}
+                          className="h-8 w-8 object-contain"
+                        />
                         <span className="min-w-0 flex-1 truncate text-sm text-fg">
                           {found.name}
                         </span>
