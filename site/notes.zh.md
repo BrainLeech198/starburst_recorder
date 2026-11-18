@@ -1,18 +1,19 @@
 本地优先的个人记录工具，内置 AI：随手记一句今天，AI 会把它整理成一篇完整的日记。不用注册、没有云端，每一条记录都留在这台设备上。AI 用的是你自己准备的模型和 Key。
 
-## 0.19.3 · 2026-11-15
+## 0.20.0 · 2026-11-18
 
-记录摄入时自动填入当前本地时间；食物和套餐选择列表在没有自定义照片时也会显示默认缩略图。
+备份支持按分区选择加密，也可以单独分享 AI 模型配置。
 
 ### 这一版有什么
 
-- **摄入时间自动填写**：打开“记一笔摄入”时带入当前本地时间，仍可手动修改。
-- **食物和套餐始终显示图片**：无自定义照片时显示对应的内置默认图；真实照片仍可点开查看。
+- **备份分区可选加密**：AI 模型密钥与其他用户数据分别选择；也可以保持明文。导入时跳过口令，未加密分区仍可恢复。加密内容忘记口令后无法恢复。
+- **AI 模型仍可单独备份**：API Key 可独立选择加密；跳过口令时可继续导入其他未加密分区。
+- **分享单个 AI 模型**：生成二维码、复制分享码或保存分享文件；API Key 可选择加密，接收方预览后可将配置添加到模型列表。
 
 ### 下载
 
-- Windows 10/11：[starburst-recorder-0.19.3-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.3/starburst-recorder-0.19.3-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.3/starburst-recorder-0.19.3-setup.exe)
-- Android 10 以上：[starburst-recorder-0.19.3.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.3/starburst-recorder-0.19.3.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.3/starburst-recorder-0.19.3.apk)
+- Windows 10/11：[starburst-recorder-0.20.0-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.20.0/starburst-recorder-0.20.0-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.0/starburst-recorder-0.20.0-setup.exe)
+- Android 10 以上：[starburst-recorder-0.20.0.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.20.0/starburst-recorder-0.20.0.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.0/starburst-recorder-0.20.0.apk)
 
 ## 0.19.2 · 2026-11-15
 

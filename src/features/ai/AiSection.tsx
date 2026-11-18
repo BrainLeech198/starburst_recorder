@@ -44,6 +44,7 @@ import type { AiModel } from './aiConfig'
 import { testConnection } from './aiClient'
 import type { DiagnoseResult } from './aiClient'
 import ModelForm from './ModelForm'
+import AiModelShareDialog from './AiModelShareDialog'
 import type { ModelDraft } from './ModelForm'
 
 /** 条目底部的小文字按钮 */
@@ -99,6 +100,7 @@ export default function AiSection() {
   /** 新增表单展开在按钮下面；编辑走弹窗 */
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<AiModel | null>(null)
+  const [sharing, setSharing] = useState<AiModel | null>(null)
   /** 待确认删除：active 表示里面有正在启用的那条 */
   const [pendingDelete, setPendingDelete] = useState<{ ids: string[]; active: boolean } | null>(
     null,
@@ -416,6 +418,14 @@ export default function AiSection() {
                     )}
                     <button
                       type="button"
+                      onClick={() => setSharing(model)}
+                      className={`${SLIP_BUTTON} text-muted hover:text-fg`}
+                    >
+                      <Icon name="share" />
+                      {t('share.action')}
+                    </button>
+                    <button
+                      type="button"
                       disabled={!canTest(model) || busy}
                       onClick={() => void handleTestOne(model)}
                       className={`${SLIP_BUTTON} text-muted hover:text-fg disabled:opacity-40`}
@@ -510,6 +520,8 @@ export default function AiSection() {
           />
         </Modal>
       )}
+
+      {sharing && <AiModelShareDialog model={sharing} onClose={() => setSharing(null)} />}
 
       {/* 删的是正在启用的那条：先把风险说清楚，再给硬删的出口 */}
       {pendingDelete && pendingDelete.active && (

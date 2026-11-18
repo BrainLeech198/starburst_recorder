@@ -70,6 +70,29 @@ describe('备份读写的兼容口径', () => {
     expect(read.payload.stamps[0].code).toBe('d4e5f60')
   })
 
+  it('加密分区保留可选择状态，解锁后仍走原有行校验', () => {
+    const file = buildBackup(sample(), '备份', ['diary', 'finance'])
+    const root = JSON.parse(file.content) as {
+      sections: Record<string, unknown>
+      encryptedSections?: Record<string, string>
+    }
+    const diary = root.sections.diary
+    delete root.sections.diary
+    root.encryptedSections = { diary: 'enc:v1:encrypted-payload' }
+
+    const locked = readBackup(JSON.stringify(root))
+    expect(locked.ok).toBe(true)
+    expect(locked.sections).toContain('diary')
+    expect(locked.payload.entries).toHaveLength(0)
+    expect(locked.payload.encryptedSections?.diary).toBe('enc:v1:encrypted-payload')
+
+    const unlocked = readBackup(JSON.stringify(root), { diary })
+    expect(unlocked.ok).toBe(true)
+    expect(unlocked.sections).toContain('diary')
+    expect(unlocked.payload.entries).toEqual(sample().entries)
+    expect(unlocked.payload.encryptedSections?.diary).toBeUndefined()
+  })
+
   it('健康分区的腰围测量可往返，坏记录按条跳过', () => {
     const payload = sample()
     payload.measurements = [

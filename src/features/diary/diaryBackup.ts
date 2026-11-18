@@ -8,6 +8,7 @@
  *   - 备份要把回收站里的东西也带上（deletedAt 原样保留），删掉的东西也是你的数据。
  *
  * v2 起按 sections 分块；日程与训练后来独立成块，读入时仍兼容旧文件的归属。
+ * 可选 encryptedSections 按分区保存密文；解锁后的数据仍经过同一套宽容行校验。
  * v1 是扁平结构（只有日记），读到时自动当成 diary 一块，老备份仍能恢复。
  *
  * 校验刻意宽容：坏条目单独剔掉并报数，而不是整份拒绝——
@@ -116,6 +117,8 @@ export interface BackupPayload {
   prefs?: PrefSnapshot
   /** AI 模型设置；旧版备份把这些键放在 prefs 里 */
   aiModels?: PrefSnapshot
+  /** 按分区加密的用户数据。未解锁的分区只保留密文，不参与恢复。 */
+  encryptedSections?: Partial<Record<BackupSection, string>>
 }
 
 export function emptyPayload(): BackupPayload {
@@ -161,6 +164,15 @@ export function onlySections(payload: BackupPayload, sections: BackupSection[]):
     aiModels: keep.has('aiModels')
       ? readPrefs({ ...payload.prefs, ...payload.aiModels }, 'aiModels')
       : {},
+    ...(payload.encryptedSections && Object.keys(payload.encryptedSections).length > 0
+      ? {
+          encryptedSections: Object.fromEntries(
+            Object.entries(payload.encryptedSections).filter(([section]) =>
+              keep.has(section as BackupSection),
+            ),
+          ),
+        }
+      : {}),
   }
 }
 
@@ -195,7 +207,11 @@ export function sectionSize(payload: BackupPayload, section: BackupSection): num
 
 /** 文件里实际有内容的块 */
 export function sectionsOf(payload: BackupPayload): BackupSection[] {
-  return ALL_SECTIONS.filter((section) => sectionSize(payload, section) > 0)
+  return ALL_SECTIONS.filter(
+    (section) =>
+      sectionSize(payload, section) > 0 ||
+      typeof payload.encryptedSections?.[section] === 'string',
+  )
 }
 
 function pad(value: number) {
@@ -281,7 +297,10 @@ function fail(error: string): BackupReadResult {
 }
 
 /** 读一份备份文本，校验并挑出可用的数据 */
-export function readBackup(text: string): BackupReadResult {
+export function readBackup(
+  text: string,
+  unlockedSections: Partial<Record<BackupSection, unknown>> = {},
+): BackupReadResult {
   let raw: unknown
   try {
     raw = JSON.parse(text)
@@ -294,8 +313,22 @@ export function readBackup(text: string): BackupReadResult {
 
   const root = raw as Record<string, unknown>
   // v1 是扁平的（entries / stamps / days），v2 起都在 sections 里
-  const sectionsBag = bag(root.sections)
-  const legacy = Object.keys(sectionsBag).length === 0
+  const rootSections = bag(root.sections)
+  const encryptedBag = bag(root.encryptedSections)
+  const legacy = Object.keys(rootSections).length === 0 && Object.keys(encryptedBag).length === 0
+  const sectionsBag = { ...rootSections, ...unlockedSections }
+  const encryptedSections: Partial<Record<BackupSection, string>> = {}
+  for (const section of ALL_SECTIONS) {
+    const value = encryptedBag[section]
+    if (
+      section !== 'aiModels' &&
+      !Object.prototype.hasOwnProperty.call(unlockedSections, section) &&
+      typeof value === 'string' &&
+      value.startsWith('enc:v1:')
+    ) {
+      encryptedSections[section] = value
+    }
+  }
   const diaryBag = legacy ? root : bag(sectionsBag.diary)
   const healthBag = legacy ? {} : bag(sectionsBag.health)
   const financeBag = legacy ? {} : bag(sectionsBag.finance)
@@ -364,6 +397,7 @@ export function readBackup(text: string): BackupReadResult {
     chats,
     prefs,
     aiModels,
+    ...(Object.keys(encryptedSections).length > 0 ? { encryptedSections } : {}),
   }
 
   const present = sectionsOf(payload)

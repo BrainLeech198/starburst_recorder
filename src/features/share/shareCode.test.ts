@@ -89,6 +89,27 @@ describe('shareCode', () => {
     await expect(decodeShare(text)).resolves.toEqual(doc)
   })
 
+  it('模型分享往返保留配置与加密标记，不要求本机模型状态', async () => {
+    const doc: ShareDoc = {
+      app: SHARE_APP,
+      v: SHARE_VERSION,
+      kind: 'aiModel',
+      title: 'gpt-4o-mini',
+      createdAt: 3,
+      data: {
+        providerId: 'openai',
+        providerName: 'OpenAI',
+        baseUrl: 'https://api.openai.com/v1',
+        model: 'gpt-4o-mini',
+        apiKey: 'enc:v1:salt:iv:cipher',
+        apiKeyEncrypted: true,
+        vision: 'yes',
+      },
+    }
+    const code = await encodeShare(doc)
+    await expect(decodeShare(code)).resolves.toEqual(doc)
+  })
+
   it('也接受直接粘贴的 JSON', async () => {
     const doc = foodDoc()
     await expect(decodeShare(JSON.stringify(doc))).resolves.toEqual(doc)

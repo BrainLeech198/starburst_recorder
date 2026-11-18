@@ -1,10 +1,9 @@
 /**
- * 用口令加密备份文件里的 AI 密钥。
+ * 用口令加密备份文件里的 AI 密钥和可选的其他数据分区。
  *
- * 只加密一样东西：`sb_ai_models` 里每个模型的 `apiKey`。别的（日记、体重、收支、
- * 外观偏好）一律明文——它们不可再生，而密钥随时能从厂商后台再复制一份。
- * 为了一个可再生的字段给整份备份上口令，一旦忘记口令赔进去的是不可再生的数据，
- * 风险收益是反的。
+ * `sb_ai_models` 里的每个 `apiKey` 独立加密；用户也可以选择把其他备份分区分别加密。
+ * 分区名和备份格式信息保持可见，因此导入时仍能选择恢复范围；用户可以不加密导出，
+ * 也可以在导入时跳过忘记口令的分区，其他明文数据照常恢复。
  *
  * 加解密用浏览器原生的 WebCrypto，不引第三方库：
  *   - 口令 → PBKDF2-SHA256（15 万次迭代，随机 16 字节盐）→ 256 位密钥
@@ -13,7 +12,7 @@
  * 密文格式：`enc:v1:<salt>:<iv>:<ciphertext>`，三段都是 base64url。
  * 带版本号是为了以后换算法时能识别老数据。
  *
- * **加密只保护「文件在路上的安全」**。导入后明文照样回到 localStorage——
+ * **加密只保护「文件在路上的安全」**。导入后明文照样回到本地存储——
  * 本地存储本来就没有加密，这条不在本次范围内。
  */
 import type { PrefSnapshot } from './userPrefs'
@@ -88,6 +87,56 @@ export async function decryptText(payload: string, passphrase: string): Promise<
     fromB64url(bodyPart),
   )
   return new TextDecoder().decode(plain)
+}
+
+/** 逐块解锁其他用户数据；损坏或口令不匹配只记为失败，不影响其它分区。 */
+export async function decryptBackupSections(
+  encryptedSections: Record<string, string>,
+  passphrase: string,
+): Promise<{ unlocked: Record<string, unknown>; failed: string[] }> {
+  const unlocked: Record<string, unknown> = {}
+  const failed: string[] = []
+  for (const [section, ciphertext] of Object.entries(encryptedSections)) {
+    try {
+      const value: unknown = JSON.parse(await decryptText(ciphertext, passphrase))
+      if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+        failed.push(section)
+        continue
+      }
+      unlocked[section] = value
+    } catch {
+      failed.push(section)
+    }
+  }
+  return { unlocked, failed }
+}
+
+/** 将备份中选中的非 AI 分区移入独立密文信封；AI 模型分区保持单独处理。 */
+export async function encryptBackupSections(
+  content: string,
+  sections: string[],
+  passphrase: string,
+): Promise<string> {
+  const root: unknown = JSON.parse(content)
+  if (root === null || typeof root !== 'object' || Array.isArray(root)) {
+    throw new Error('备份内容格式不正确')
+  }
+  const record = root as Record<string, unknown>
+  const rawSections = record.sections
+  if (rawSections === null || typeof rawSections !== 'object' || Array.isArray(rawSections)) {
+    throw new Error('备份分区格式不正确')
+  }
+  const sectionData = rawSections as Record<string, unknown>
+  const encryptedSections: Record<string, string> = {}
+  for (const section of sections) {
+    if (section === 'aiModels' || !Object.prototype.hasOwnProperty.call(sectionData, section)) continue
+    const serialized = JSON.stringify(sectionData[section])
+    if (serialized === undefined) continue
+    encryptedSections[section] = await encryptText(serialized, passphrase)
+    delete sectionData[section]
+  }
+  record.encryptedSections = encryptedSections
+  return JSON.stringify(record, null, 2)
 }
 
 export function isEncrypted(value: unknown): boolean {

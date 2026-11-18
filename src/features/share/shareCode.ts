@@ -18,7 +18,7 @@ const MAX_SHARE_TEXT = 2_000_000
 /** 手机对着屏幕扫，超过这个长度就开始难扫；宁可提示改用文件 */
 export const SHARE_QR_MAX_CHARS = 1200
 
-export type ShareKind = 'food' | 'meal' | 'diary' | 'stamp' | 'intake' | 'finance'
+export type ShareKind = 'food' | 'meal' | 'diary' | 'stamp' | 'intake' | 'finance' | 'aiModel'
 
 /** 记录型分享只含用户内容；本机 id、code 和删除状态不进入协议。 */
 export interface ShareImage { dataUrl: string; width: number; height: number }
@@ -33,6 +33,17 @@ export interface ShareIntakeData {
 export interface ShareFinanceData {
   dateKey: string; time: string; kind: 'expense' | 'income'; category: string
   name: string; amount: number; photo: string | null; note: string
+}
+
+/** 分享模型只包含可迁移的配置，不含本机 id 或联通测试历史。 */
+export interface ShareAiModelData {
+  providerId: string
+  providerName: string
+  baseUrl: string
+  model: string
+  apiKey: string
+  apiKeyEncrypted: boolean
+  vision: 'yes' | 'no' | 'unknown'
 }
 
 export interface ShareFoodConfig {
@@ -81,8 +92,9 @@ export interface ShareDiaryDoc extends ShareDocBase { kind: 'diary'; data: Share
 export interface ShareStampDoc extends ShareDocBase { kind: 'stamp'; data: ShareStampData }
 export interface ShareIntakeDoc extends ShareDocBase { kind: 'intake'; data: ShareIntakeData }
 export interface ShareFinanceDoc extends ShareDocBase { kind: 'finance'; data: ShareFinanceData }
+export interface ShareAiModelDoc extends ShareDocBase { kind: 'aiModel'; data: ShareAiModelData }
 
-export type ShareDoc = ShareFoodDoc | ShareMealDoc | ShareDiaryDoc | ShareStampDoc | ShareIntakeDoc | ShareFinanceDoc
+export type ShareDoc = ShareFoodDoc | ShareMealDoc | ShareDiaryDoc | ShareStampDoc | ShareIntakeDoc | ShareFinanceDoc | ShareAiModelDoc
 
 /** 解析失败时只暴露一句人话，调用方不用关心是压缩坏了还是字段不对 */
 export class ShareParseError extends Error {
@@ -166,6 +178,20 @@ function parseMealConfig(value: unknown): ShareMealConfig | null {
   }
 }
 
+function parseAiModelConfig(value: unknown): ShareAiModelData | null {
+  if (!isRecord(value)) return null
+  const providerId = typeof value.providerId === 'string' ? value.providerId.slice(0, 80) : ''
+  const providerName = typeof value.providerName === 'string' ? value.providerName.slice(0, 120) : ''
+  const baseUrl = text(value.baseUrl, 2_048)
+  const model = text(value.model, 160)
+  const apiKey = typeof value.apiKey === 'string' && value.apiKey.length <= 16_384 ? value.apiKey : null
+  const vision = value.vision === 'yes' || value.vision === 'no' ? value.vision : 'unknown'
+  const apiKeyEncrypted = value.apiKeyEncrypted === true
+  if (!baseUrl || !model || apiKey === null || typeof value.apiKeyEncrypted !== 'boolean') return null
+  if (apiKeyEncrypted && !apiKey.startsWith('enc:v1:')) return null
+  return { providerId, providerName, baseUrl, model, apiKey, apiKeyEncrypted, vision }
+}
+
 function validDate(value: unknown): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
 }
@@ -233,6 +259,11 @@ function parseDoc(value: unknown): ShareDoc {
     const data = parseMealConfig(value.data)
     if (!data) throw new ShareParseError()
     return { app: SHARE_APP, v: SHARE_VERSION, kind: 'meal', title: title ?? data.name, createdAt, data }
+  }
+  if (value.kind === 'aiModel') {
+    const data = parseAiModelConfig(value.data)
+    if (!data) throw new ShareParseError()
+    return { app: SHARE_APP, v: SHARE_VERSION, kind: 'aiModel', title: title ?? data.model, createdAt, data }
   }
   if (['diary', 'stamp', 'intake', 'finance'].includes(String(value.kind))) {
     const kind = value.kind as 'diary' | 'stamp' | 'intake' | 'finance'

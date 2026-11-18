@@ -15,6 +15,7 @@ import { useI18n } from '@/shared/i18n/context'
 import { scanShareCode } from '@/platform/scanCode'
 import { decodeShare, type ShareDoc } from './shareCode'
 import { getShareAdapter } from './shareAdapters'
+import { decryptText } from '@/features/settings/secretBox'
 
 export default function ShareReceiveDialog({
   onClose,
@@ -30,6 +31,7 @@ export default function ShareReceiveDialog({
   const [error, setError] = useState('')
   const [parsing, setParsing] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [modelPassphrase, setModelPassphrase] = useState('')
 
   async function handleImage(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -65,6 +67,7 @@ export default function ShareReceiveDialog({
     setError('')
     try {
       setDoc(await decodeShare(raw))
+      setModelPassphrase('')
     } catch {
       setDoc(null)
       setError(t('share.invalid'))
@@ -86,7 +89,21 @@ export default function ShareReceiveDialog({
     if (!doc) return
     setImporting(true)
     try {
-      const message = await getShareAdapter(doc).import(doc, t)
+      let readyDoc: ShareDoc = doc
+      if (doc.kind === 'aiModel' && doc.data.apiKeyEncrypted) {
+        if (!modelPassphrase.trim()) {
+          setError(t('share.aiModelPassRequired'))
+          return
+        }
+        try {
+          const apiKey = await decryptText(doc.data.apiKey, modelPassphrase.trim())
+          readyDoc = { ...doc, data: { ...doc.data, apiKey, apiKeyEncrypted: false } }
+        } catch {
+          setError(t('share.aiModelWrongPassword'))
+          return
+        }
+      }
+      const message = await getShareAdapter(readyDoc).import(readyDoc, t)
       showToast({ message })
       onImported?.()
       onClose()
@@ -154,6 +171,19 @@ export default function ShareReceiveDialog({
               </li>
             ))}
           </ul>
+          {doc.kind === 'aiModel' && doc.data.apiKeyEncrypted && (
+            <label className="mt-3 block text-xs text-muted" htmlFor="share-model-passphrase">
+              {t('share.aiModelPassphrase')}
+              <input
+                id="share-model-passphrase"
+                type="password"
+                autoComplete="current-password"
+                value={modelPassphrase}
+                onChange={(event) => setModelPassphrase(event.target.value)}
+                className={`${INPUT} mt-1`}
+              />
+            </label>
+          )}
           <button
             type="button"
             onClick={() => void handleImport()}

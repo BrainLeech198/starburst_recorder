@@ -14,7 +14,7 @@
  */
 import ErrorNote from '@/shared/ui/ErrorNote'
 import { useEffect, useRef, useState } from 'react'
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, ReactNode } from 'react'
 import { useLiveQuery } from '@/core/db/live'
 import { countRecords } from '@/core/db/store'
 import { useToast } from '@/app/providers/ToastProvider'
@@ -32,6 +32,7 @@ import { db } from '@/core/db/db'
 import {
   ALL_SECTIONS,
   buildBackup,
+  emptyPayload,
   onlySections,
   readBackup,
   sectionSize,
@@ -93,7 +94,9 @@ import { RECORD_KINDS } from '@/features/records/recordExport'
 import { clearAllChatSessions, exportChatSessions, importChatSessions } from '@/features/assistant/assistantChatStore'
 import { applyPrefs, exportPrefs, prefsContainSecrets, prefsCount, splitPrefs } from './userPrefs'
 import {
+  decryptBackupSections,
   decryptPrefSecrets,
+  encryptBackupSections,
   encryptPrefSecrets,
   hasEncryptedSecrets,
 } from './secretBox'
@@ -106,6 +109,8 @@ type ClearSection = Extract<BackupSection, 'diary' | 'health' | 'finance'>
 /** 选好但还没确认的一份备份 */
 interface Pending {
   name: string
+  /** 原始文件文本：解锁分区后重新经过同一套宽容校验。 */
+  backupText: string
   payload: BackupPayload
   skipped: number
   mode: ImportMode
@@ -307,6 +312,7 @@ function SectionPicker({
   onConfirm,
   confirmLabel,
   hint,
+  footer,
 }: {
   title: string
   description: string
@@ -317,6 +323,7 @@ function SectionPicker({
   onConfirm: () => void
   confirmLabel: string
   hint?: string
+  footer?: ReactNode
 }) {
   const { t } = useI18n()
   const rows: { section: BackupSection; label: string; detail: string }[] = [
@@ -373,7 +380,8 @@ function SectionPicker({
 
       <div className="mt-3 space-y-2">
         {rows.map((row) => {
-          const empty = sectionSize(payload, row.section) === 0
+          const encrypted = typeof payload.encryptedSections?.[row.section] === 'string'
+          const empty = sectionSize(payload, row.section) === 0 && !encrypted
           const checked = selected.has(row.section)
           return (
             <button
@@ -409,6 +417,8 @@ function SectionPicker({
         })}
       </div>
 
+      {footer}
+
       {hint && <p className="m-0 mt-2 text-xs text-danger">{hint}</p>}
 
       <div className="mt-3 flex gap-2">
@@ -438,6 +448,7 @@ function sectionDetail(
   section: BackupSection,
   t: I18nValue['t'],
 ): string {
+  if (payload.encryptedSections?.[section]) return t('data.sectionEncrypted')
   if (section === 'diary') {
     return t('data.sectionDiaryDetail', {
       entries: payload.entries.length,
@@ -599,6 +610,8 @@ export default function DataPage() {
   const counts = useLiveQuery(() => totals(), [])
   const [exportData, setExportData] = useState<BackupPayload | null>(null)
   const [exportSelected, setExportSelected] = useState<Set<BackupSection>>(new Set(ALL_SECTIONS))
+  const [exportEncryptAiKeys, setExportEncryptAiKeys] = useState(true)
+  const [exportEncryptOtherData, setExportEncryptOtherData] = useState(false)
   /** 「挑选记录导出」用的整库数据；非 null 就打开勾选弹窗 */
   const [recordData, setRecordData] = useState<BackupData | null>(null)
   const [pending, setPending] = useState<Pending | null>(null)
@@ -609,9 +622,9 @@ export default function DataPage() {
 const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: boolean } | null>(null)
   /** 上次成功导出的时间戳；用来在导出按钮下面提示「多久没备份了」 */
   const [backupAt, setBackupAt] = useState<number | null>(lastBackupAt)
-  /** 口令弹窗：导出时问「要不要加密密钥」，导入时问「口令是多少」 */
+  /** 导出时加密选中的范围，导入时只解锁用户勾选的加密分区。 */
   const [secretMode, setSecretMode] = useState<'encrypt' | 'decrypt' | null>(null)
-  /** 分区选择后，只有选了加密的 AI 模型才会暂存并询问口令 */
+  /** 分区选择后，选中加密数据或加密 AI 密钥时暂存并询问口令 */
   const pendingImportRef = useRef<Pending | null>(null)
 
   const backupDays = backupAt === null ? null : daysSince(backupAt)
@@ -666,6 +679,8 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
       const payload = asPayload(await exportAllData())
       setExportData(payload)
       setExportSelected(new Set(sectionsOf(payload)))
+      setExportEncryptAiKeys(prefsContainSecrets(payload.aiModels))
+      setExportEncryptOtherData(false)
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught))
     } finally {
@@ -674,12 +689,18 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
   }
 
   /**
-   * 点「导出」：勾了 AI 模型且里面真有明文密钥，就先问口令；否则直接走。
-   * 问口令这一步是可选的——留空就是明文导出，按钮文案会跟着变。
+   * AI 密钥和其他用户数据分别勾选加密；任一项启用时才询问口令。
+   * 口令弹窗仍提供明文导出选项，防止忘记口令后丢失备份。
    */
   function handleExportConfirm() {
     if (!exportData || exportSelected.size === 0) return
-    if (exportSelected.has('aiModels') && prefsContainSecrets(exportData.aiModels)) {
+    const encryptAiKeys =
+      exportEncryptAiKeys &&
+      exportSelected.has('aiModels') &&
+      prefsContainSecrets(exportData.aiModels)
+    const encryptOtherData =
+      exportEncryptOtherData && [...exportSelected].some((section) => section !== 'aiModels')
+    if (encryptAiKeys || encryptOtherData) {
       setSecretMode('encrypt')
       return
     }
@@ -691,7 +712,13 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
     setSecretMode(null)
     const sections = ALL_SECTIONS.filter((section) => exportSelected.has(section))
     let payload = exportData
-    if (passphrase) {
+    const encryptAiKeys =
+      exportEncryptAiKeys &&
+      exportSelected.has('aiModels') &&
+      prefsContainSecrets(exportData.aiModels)
+    const encryptOtherData =
+      exportEncryptOtherData && sections.some((section) => section !== 'aiModels')
+    if (passphrase && encryptAiKeys) {
       try {
         payload = {
           ...exportData,
@@ -702,7 +729,18 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
         return
       }
     }
-    const file = buildBackup(payload, t('data.backupFileBase'), sections)
+    let file = buildBackup(payload, t('data.backupFileBase'), sections)
+    if (passphrase && encryptOtherData) {
+      try {
+        file = {
+          ...file,
+          content: await encryptBackupSections(file.content, sections, passphrase),
+        }
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : String(caught))
+        return
+      }
+    }
     setExportData(null)
     // 安卓上这一步会把文件交给系统分享面板，用户不点保存就什么都没留下，
     // 所以提示条要按实际结果说话（见 describeSave）
@@ -825,18 +863,20 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
     }
 
     // 先选要恢复的分区；只有选中加密的 AI 模型时才询问口令
-    stageImport(file.name, result.payload, result.skipped, result.sections)
+    stageImport(file.name, text, result.payload, result.skipped, result.sections)
   }
 
   /** 把一份解析好的备份摆到「挑块」弹窗上；解密与不解密都汇到这儿 */
   function stageImport(
     name: string,
+    backupText: string,
     payload: BackupPayload,
     skipped: number,
     present: BackupSection[],
   ) {
     setPending({
       name,
+      backupText,
       payload,
       skipped,
       mode: pickModeRef.current,
@@ -862,18 +902,54 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
     setSecretMode(null)
     if (!waiting) return
 
-    // 口令留空（点了「跳过」）也走这里：解不开的密钥会被清空，
-    // 绝不能把 `enc:v1:…` 原样写进 localStorage——那会让 AI 配置直接坏掉
+    // 留空或口令错误时，跳过无法解开的用户数据分区；明文分区仍照常导入。
+    // AI 密钥单独清空，绝不把 `enc:v1:…` 原样写进本地配置。
     setBusy(true)
     try {
-      const { prefs: aiModels, failed } = await decryptPrefSecrets(
-        waiting.payload.aiModels ?? {},
+      const encryptedSections = ALL_SECTIONS.filter(
+        (section) =>
+          section !== 'aiModels' &&
+          waiting.selected.has(section) &&
+          typeof waiting.payload.encryptedSections?.[section] === 'string',
+      )
+      const encryptedPayload = Object.fromEntries(
+        encryptedSections.map((section) => [section, waiting.payload.encryptedSections?.[section] ?? '']),
+      )
+      const { unlocked, failed: failedSections } = await decryptBackupSections(
+        encryptedPayload,
         passphrase,
       )
-      const next = { ...waiting, payload: { ...waiting.payload, aiModels } }
-      setPending(next)
-      await continueRangeConfirm(next)
-      if (failed > 0) showToast({ message: t('data.secretFailed', { count: failed }) })
+      const unlockedRead = readBackup(waiting.backupText, unlocked)
+      const unlockedPayload = unlockedRead.ok ? unlockedRead.payload : emptyPayload()
+      const { prefs: aiModels, failed } = waiting.selected.has('aiModels')
+        ? await decryptPrefSecrets(unlockedPayload.aiModels ?? {}, passphrase)
+        : { prefs: unlockedPayload.aiModels ?? {}, failed: 0 }
+      const selected = new Set(waiting.selected)
+      for (const section of encryptedSections) {
+        if (!Object.prototype.hasOwnProperty.call(unlocked, section)) selected.delete(section)
+      }
+      const present = unlockedRead.ok ? unlockedRead.sections : []
+      for (const section of selected) {
+        if (!present.includes(section)) selected.delete(section)
+      }
+      const next = {
+        ...waiting,
+        payload: { ...unlockedPayload, aiModels },
+        present,
+        selected,
+      }
+      if (selected.size > 0) {
+        setPending(next)
+        await continueRangeConfirm(next)
+      } else {
+        setPending({ ...next, stage: 'range' })
+      }
+      const warnings: string[] = []
+      if (failedSections.length > 0) {
+        warnings.push(t('data.encryptedSkipped', { count: failedSections.length }))
+      }
+      if (failed > 0) warnings.push(t('data.secretFailed', { count: failed }))
+      if (warnings.length > 0) showToast({ message: warnings.join('；') })
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught))
     } finally {
@@ -885,7 +961,13 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
   async function handleRangeConfirm() {
     if (!pending || pending.selected.size === 0) return
     const target = pending
-    if (target.selected.has('aiModels') && hasEncryptedSecrets(target.payload.aiModels)) {
+    const hasEncryptedData = [...target.selected].some(
+      (section) => typeof target.payload.encryptedSections?.[section] === 'string',
+    )
+    if (
+      hasEncryptedData ||
+      (target.selected.has('aiModels') && hasEncryptedSecrets(target.payload.aiModels))
+    ) {
       pendingImportRef.current = target
       setSecretMode('decrypt')
       return
@@ -1411,6 +1493,35 @@ const [clearing, setClearing] = useState<{ section: ClearSection | 'all'; safe: 
           onCancel={() => setExportData(null)}
           onConfirm={() => void handleExportConfirm()}
           confirmLabel={t('data.exportRangeConfirm')}
+          footer={
+            (exportSelected.has('aiModels') && prefsContainSecrets(exportData.aiModels) ||
+              [...exportSelected].some((section) => section !== 'aiModels')) && (
+              <div className="mt-3 space-y-2 rounded-lg border border-line p-2">
+                {exportSelected.has('aiModels') && prefsContainSecrets(exportData.aiModels) && (
+                  <label className="flex items-start gap-2 text-xs text-fg">
+                    <input
+                      type="checkbox"
+                      checked={exportEncryptAiKeys}
+                      onChange={(event) => setExportEncryptAiKeys(event.target.checked)}
+                      className="mt-0.5 accent-brand"
+                    />
+                    <span>{t('data.encryptAiKeys')}</span>
+                  </label>
+                )}
+                {[...exportSelected].some((section) => section !== 'aiModels') && (
+                  <label className="flex items-start gap-2 text-xs text-fg">
+                    <input
+                      type="checkbox"
+                      checked={exportEncryptOtherData}
+                      onChange={(event) => setExportEncryptOtherData(event.target.checked)}
+                      className="mt-0.5 accent-brand"
+                    />
+                    <span>{t('data.encryptOtherData')}</span>
+                  </label>
+                )}
+              </div>
+            )
+          }
           hint={
             exportSelected.has('aiModels') && prefsContainSecrets(exportData.aiModels)
               ? t('data.exportHasKeys')

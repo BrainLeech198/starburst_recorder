@@ -8,6 +8,8 @@
 import type { Translate } from '@/shared/i18n/context'
 import { importSharedDoc } from '@/features/health/foodShare'
 import { importSharedDiary, importSharedFinance, importSharedIntake, importSharedStamp } from './recordShare'
+import { loadModels, newModelId, saveModels } from '@/features/ai/aiConfig'
+import type { AiModel } from '@/features/ai/aiConfig'
 import type { ShareDoc, ShareKind } from './shareCode'
 
 export interface ShareAdapter {
@@ -82,6 +84,39 @@ const financeAdapter: ShareAdapter = {
   },
 }
 
+const aiModelAdapter: ShareAdapter = {
+  preview(doc, t) {
+    if (doc.kind !== 'aiModel') return []
+    const provider = doc.data.providerName || doc.data.providerId || doc.data.baseUrl
+    return [
+      `${provider} · ${doc.data.baseUrl}`,
+      t(
+        doc.data.apiKeyEncrypted
+          ? 'share.aiModelKeyEncrypted'
+          : doc.data.apiKey
+            ? 'share.aiModelKeyPlain'
+            : 'share.aiModelNoKey',
+      ),
+    ]
+  },
+  async import(doc, t) {
+    if (doc.kind !== 'aiModel' || doc.data.apiKeyEncrypted || doc.data.apiKey.startsWith('enc:v1:')) {
+      throw new Error('AI model share must be unlocked before import')
+    }
+    const model: AiModel = {
+      id: newModelId(),
+      providerId: doc.data.providerId,
+      providerName: doc.data.providerName,
+      baseUrl: doc.data.baseUrl,
+      model: doc.data.model,
+      apiKey: doc.data.apiKey,
+      vision: doc.data.vision,
+    }
+    saveModels([...loadModels(), model])
+    return t('share.aiModelImported', { name: model.model })
+  },
+}
+
 const ADAPTERS: Partial<Record<ShareKind, ShareAdapter>> = {
   food: foodAdapter,
   meal: mealAdapter,
@@ -89,6 +124,7 @@ const ADAPTERS: Partial<Record<ShareKind, ShareAdapter>> = {
   stamp: stampAdapter,
   intake: intakeAdapter,
   finance: financeAdapter,
+  aiModel: aiModelAdapter,
 }
 
 export function getShareAdapter(doc: ShareDoc): ShareAdapter {

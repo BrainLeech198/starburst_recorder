@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  decryptBackupSections,
   decryptPrefSecrets,
   decryptText,
+  encryptBackupSections,
   encryptPrefSecrets,
   encryptText,
   hasEncryptedSecrets,
@@ -55,6 +57,48 @@ describe('encryptText / decryptText', () => {
     const a = await encryptText('same', 'pass')
     const b = await encryptText('same', 'pass')
     expect(a).not.toBe(b)
+  })
+})
+
+describe('其他备份分区的加密恢复', () => {
+  it('只把请求加密的非 AI 分区移入密文，保留模型分区边界', async () => {
+    const source = JSON.stringify({
+      app: 'starburst-recorder',
+      version: 2,
+      sections: {
+        diary: { entries: [{ content: 'private diary text' }] },
+        aiModels: { sb_ai_models: '[{"apiKey":"model-secret"}]' },
+      },
+    })
+    const encrypted = await encryptBackupSections(source, ['diary', 'aiModels'], 'pass')
+    const parsed = JSON.parse(encrypted) as {
+      sections: Record<string, unknown>
+      encryptedSections: Record<string, string>
+    }
+
+    expect(encrypted).not.toContain('private diary text')
+    expect(parsed.sections.diary).toBeUndefined()
+    expect(parsed.sections.aiModels).toEqual({ sb_ai_models: '[{"apiKey":"model-secret"}]' })
+    expect(parsed.encryptedSections.diary.startsWith('enc:v1:')).toBe(true)
+  })
+
+  it('分区分别解锁；坏密文只跳过对应分区', async () => {
+    const diary = await encryptText(JSON.stringify({ entries: [{ content: 'private' }] }), 'pass')
+    const result = await decryptBackupSections(
+      { diary, finance: 'enc:v1:damaged' },
+      'pass',
+    )
+
+    expect(result.unlocked.diary).toEqual({ entries: [{ content: 'private' }] })
+    expect(result.failed).toEqual(['finance'])
+  })
+
+  it('跳过口令时不解锁密文，调用方可继续处理明文分区', async () => {
+    const diary = await encryptText(JSON.stringify({ entries: [{ content: 'private' }] }), 'pass')
+    const result = await decryptBackupSections({ diary }, '')
+
+    expect(result.unlocked).toEqual({})
+    expect(result.failed).toEqual(['diary'])
   })
 })
 
