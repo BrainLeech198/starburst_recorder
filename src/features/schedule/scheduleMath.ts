@@ -4,7 +4,7 @@
  * 不碰存储也不碰通知：页面和提醒各自拿这里的结果去用，
  * 「周几命中」「昨天的勾不影响今天」这些规则才有单测兜着。
  */
-import type { ScheduleItem } from '@/core/db/schema'
+import type { ScheduleCheckIn, ScheduleItem } from '@/core/db/schema'
 
 /** 某个月的日期键列表（含首尾），日历补位时用不到，只用来遍历当月 */
 export function dateKeysOfMonth(monthKey: string): string[] {
@@ -25,6 +25,7 @@ export function occursOn(item: ScheduleItem, dateKey: string): boolean {
   if (item.deletedAt !== null) return false
   if (dateKey < item.dateKey) return false
   if (item.repeat === 'none') return dateKey === item.dateKey
+  if (item.endDate && dateKey > item.endDate) return false
   if (item.repeat === 'daily') return true
   return item.weeklyDays.includes(weekdayOf(dateKey))
 }
@@ -69,6 +70,23 @@ export function donePatch(
     // 只留最近 400 天，长期用的任务不会越攒越长
     doneDays: [...days].sort().slice(-400),
   }
+}
+
+/** 打卡补充内容以「任务 + 日期」唯一定位，更新时保留其它日期的历史。 */
+export function checkInFor(item: ScheduleItem, dateKey: string): ScheduleCheckIn | null {
+  return (item.checkIns ?? []).find((checkIn) => checkIn.dateKey === dateKey) ?? null
+}
+
+export function checkInPatch(
+  item: ScheduleItem,
+  dateKey: string,
+  value: Pick<ScheduleCheckIn, 'note' | 'photo'> | null,
+): Pick<ScheduleItem, 'checkIns'> {
+  const remaining = (item.checkIns ?? []).filter((checkIn) => checkIn.dateKey !== dateKey)
+  if (value && (value.note.trim() !== '' || value.photo !== null)) {
+    remaining.push({ ...value, dateKey, note: value.note.trim().slice(0, 500), recordedAt: Date.now() })
+  }
+  return { checkIns: remaining.sort((a, b) => a.dateKey.localeCompare(b.dateKey)).slice(-400) }
 }
 
 /** 到点没有：全天（空串）永远算「已经到了」，只在当天提醒时用 */

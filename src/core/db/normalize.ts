@@ -777,11 +777,33 @@ export function pickSchedule(raw: unknown): ScheduleItem | null {
         .sort()
         .slice(-400)
     : []
+  const pickedCheckIns = Array.isArray(item.checkIns)
+    ? item.checkIns
+        .map((rawCheckIn) => {
+          if (!rawCheckIn || typeof rawCheckIn !== 'object') return null
+          const checkIn = rawCheckIn as Record<string, unknown>
+          const checkInDate = dateKey(checkIn.dateKey)
+          if (!checkInDate) return null
+          const photos = checkIn.photo ? pickImages([checkIn.photo]) : []
+          return {
+            dateKey: checkInDate,
+            note: text(checkIn.note).slice(0, 500),
+            photo: photos[0] ?? null,
+            recordedAt: number(checkIn.recordedAt, Date.now()),
+          }
+        })
+        .filter((checkIn): checkIn is NonNullable<typeof checkIn> => checkIn !== null)
+    : []
+  const checkIns = [...new Map(pickedCheckIns.map((checkIn) => [checkIn.dateKey, checkIn])).values()]
+    .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+    .slice(-400)
   const time = text(item.time)
+  const endDate = dateKey(item.endDate)
   return {
     id,
     code: text(item.code) || newCode(),
     dateKey: day,
+    endDate: repeat === 'none' ? null : endDate,
     time: /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : '',
     title,
     note: text(item.note),
@@ -790,6 +812,7 @@ export function pickSchedule(raw: unknown): ScheduleItem | null {
     remind: item.remind === true,
     doneAt: deletedAt(item.doneAt),
     doneDays,
+    checkIns,
     createdAt: number(item.createdAt, Date.now()),
     updatedAt: number(item.updatedAt, Date.now()),
     deletedAt: deletedAt(item.deletedAt),

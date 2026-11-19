@@ -343,6 +343,7 @@ const ASSISTANT_WRITE_TOOLS: AssistantToolSpec[] = [
       type: 'object',
       properties: {
         date: { type: 'string', description: '开始日期 YYYY-MM-DD；不填为今天，可填未来日期' },
+        endDate: { type: 'string', description: '重复任务必填的截止日期 YYYY-MM-DD，截止当天仍有效；一次性日程不需要' },
         time: { type: 'string', description: '时刻 HH:MM；空串为全天，默认 09:00' },
         title: { type: 'string', description: '日程标题' },
         note: { type: 'string', description: '备注，可不填' },
@@ -361,6 +362,7 @@ const ASSISTANT_WRITE_TOOLS: AssistantToolSpec[] = [
       properties: {
         code: { type: 'string', description: '日程短编号 [code]' },
         date: { type: 'string', description: '新的开始日期 YYYY-MM-DD，可不填' },
+        endDate: { type: 'string', description: '重复任务的截止日期 YYYY-MM-DD；旧任务没有截止日期时，编辑前必须补充' },
         time: { type: 'string', description: '新的时刻 HH:MM；空串表示全天，可不填' },
         title: { type: 'string', description: '新的标题，可不填' },
         note: { type: 'string', description: '新的备注；空串表示清空，可不填' },
@@ -981,7 +983,8 @@ function stampLine(item: DiaryStamp | DiaryStampBrief) {
 function scheduleLine(item: ScheduleItem, dateKey: string) {
   const time = item.time || '全天'
   const done = isDoneOn(item, dateKey) ? '已完成' : '未完成'
-  return `${formatDateCn(dateKey)} ${time} ${item.title}（${done}）${item.note.trim() ? `，备注：${clip(item.note, 80)}` : ''} [${item.code}]`
+  const until = item.repeat !== 'none' && item.endDate ? `（截止 ${item.endDate}）` : ''
+  return `${formatDateCn(dateKey)} ${time} ${item.title}（${done}）${until}${item.note.trim() ? `，备注：${clip(item.note, 80)}` : ''} [${item.code}]`
 }
 
 function searchSchedules(from: string, to: string, keyword: string, data: AssistantDataSource) {

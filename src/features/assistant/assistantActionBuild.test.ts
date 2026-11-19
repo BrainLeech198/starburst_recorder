@@ -63,15 +63,16 @@ describe('身体档案创建和删除', () => {
 })
 
 describe('add_schedule', () => {
-  it('允许未来每周任务，并在预览中显示重复和提醒', () => {
+  it('允许未来每周任务，并在预览中显示重复、截止日和提醒', () => {
     const result = buildAssistantAction('add_schedule', {
-      date: '2026-11-02', time: '09:30', title: ' 周会 ', repeat: 'weekly',
+      date: '2026-11-02', endDate: '2026-12-31', time: '09:30', title: ' 周会 ', repeat: 'weekly',
       weeklyDays: [3, 1, 1], remind: true,
     }, CTX)
     expect(result.ok).toBe(true)
     if (result.ok && result.action.kind === 'scheduleCreate') {
       expect(result.action).toMatchObject({ dateKey: '2026-11-02', title: '周会', weeklyDays: [1, 3] })
       expect(describeAction(result.action)).toContain('每周 1、3')
+      expect(describeAction(result.action)).toContain('截止 2026-12-31')
       expect(describeAction(result.action)).toContain('到点提醒')
     }
   })
@@ -81,12 +82,23 @@ describe('add_schedule', () => {
     expect(buildAssistantAction('add_schedule', { title: '会', time: '25:99' }, CTX).ok).toBe(false)
     expect(buildAssistantAction('add_schedule', { title: '会', repeat: 'weekly' }, CTX).ok).toBe(false)
   })
+
+  it('重复任务必须有不早于开始日的截止日期', () => {
+    expect(buildAssistantAction('add_schedule', { title: '背单词', repeat: 'daily' }, CTX).ok).toBe(false)
+    expect(buildAssistantAction('add_schedule', {
+      title: '背单词', repeat: 'daily', endDate: '2026-10-27',
+    }, CTX).ok).toBe(false)
+    expect(buildAssistantAction('add_schedule', {
+      title: '背单词', repeat: 'daily', endDate: '2026-11-30',
+    }, CTX).ok).toBe(true)
+  })
 })
 
 describe('update_schedule / delete_schedule', () => {
   const existing: ScheduleItem = {
     id: 'schedule-1', code: 'd000001', dateKey: '2026-11-02', time: '09:00',
     title: '周会', note: '带周报', repeat: 'weekly', weeklyDays: [1], remind: true,
+    endDate: '2026-12-31',
     doneAt: null, doneDays: ['2026-11-02'], createdAt: 1, updatedAt: 1, deletedAt: null,
   }
   const data = emptyData()
@@ -109,6 +121,16 @@ describe('update_schedule / delete_schedule', () => {
     expect(buildAssistantAction('update_schedule', { code: 'd000001', weeklyDays: [8] }, ctx).ok).toBe(false)
     expect(buildAssistantAction('update_schedule', { code: 'd000001', weeklyDays: [] }, ctx).ok).toBe(false)
     expect(buildAssistantAction('delete_schedule', { code: 'missing' }, ctx).ok).toBe(false)
+  })
+
+  it('编辑旧重复任务时要求补截止日', () => {
+    const legacyData = emptyData()
+    legacyData.schedules.push({ ...existing, endDate: null })
+    const legacyCtx = { data: legacyData, today: '2026-11-02' }
+    expect(buildAssistantAction('update_schedule', { code: 'd000001', time: '10:00' }, legacyCtx).ok).toBe(false)
+    expect(buildAssistantAction('update_schedule', {
+      code: 'd000001', time: '10:00', endDate: '2026-12-31',
+    }, legacyCtx).ok).toBe(true)
   })
 
   it('删除卡片显示目标，实际删除留给确认后的执行层', () => {

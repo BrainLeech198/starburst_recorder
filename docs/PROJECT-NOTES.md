@@ -169,6 +169,11 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 | `diaryEntries` | 一条普通日记 | `id` 主键；另有 `code`（7 位短编号，用来拼 URL）、`dateKey`、`createdAt`、`deletedAt`、`images`（内联图，JSON 文本） |
 | `diaryDays` | 某天的信息（**一天一行**） | `dateKey` 主键；存天气 |
 | `diaryStamps` | 随记的一笔 | `id` 主键；`dateKey` + `time`（'HH:MM'）+ `content` + `images`（内联图，JSON 文本）+ `deletedAt` |
+| `schedules` | 一次性日程或重复任务 | `dateKey` 是开始日；重复任务的 `endDate` 是含当天的截止日；完成日期在 `doneDays`，逐日补充文字与可选照片在 `checkIns`；旧数据缺字段时读为空数组 |
+
+日程是否在某天发生统一由 `features/schedule/scheduleMath.ts` 的 `occursOn` 判断：首页、日历、日程页和回顾共用这条规则。安卓重复提醒由 `ScheduleReminderPlugin` 每次只排下一次闹钟，通知后再算下一次；到截止日后停止排程，并在设备重启或时区变更后恢复。旧备份缺少 `endDate` 时读为 `null`，继续沿用原重复范围。
+
+每日打卡除了 `doneDays` 完成状态，还可在 `checkIns` 按日期保存一句记录和一张内联压缩照片；取消完成会保留补充内容，方便误点后恢复。首页和历史日程页共用打卡窗；明信片按选中日期从已完成日程即时生成 PNG，不额外存一份摘要，图片随日程分区备份。
 
 ### 四个关键设计决定
 
@@ -222,6 +227,13 @@ AI 模型是独立备份分区。导出时可分别选择「加密模型 API Key
   `src/features/settings/DataPage.tsx`、`src/features/ai/AiModelShareDialog.tsx` 与
   `src/features/share/shareCode.ts` / `shareAdapters.ts`。
   弹框是 `SecretDialog.tsx`，两种模式共用一个组件。
+
+### 成就明信片（2026-11-19）
+
+- 日程历史按日期从已完成任务即时生成明信片；打卡说明与照片来自对应日程的 `checkIns`，不另存重复摘要。
+- 日记、随记、食物、套餐、摄入与收支沿用原有分享码 / 导入协议；保存的 PNG 使用各自主题，记录带照片时优先显示照片封面，并在分享弹窗内预览。
+- 训练详情与月度回顾使用 `AchievementPostcardDialog`，从已有汇总数据本机绘制 PNG，不写入数据库。训练卡只带类型、时长、组数、动作与训练感受，不带训练备注；月度回顾的睡眠与收支字段默认隐藏，用户勾选后才进入图片。
+- 首页品牌区可点星芒收起；状态存在 `sb_home_brand_hidden`，作为普通外观偏好进入 `userPrefs.PREF_GROUPS`，备份与导入会带上它。收起后只影响首页的品牌展示，不影响功能入口和任何记录。
 
 **这条只保护「备份文件在别人手里」这一种情况**，保护不了本机：应用自己要用密钥，
 存在 `localStorage` / SQLite 里的仍是明文。要防本机得让用户每次启动输口令，

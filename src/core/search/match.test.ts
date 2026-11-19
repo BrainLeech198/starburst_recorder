@@ -173,6 +173,7 @@ function schedule(over: Partial<ScheduleItem> = {}): ScheduleItem {
     id: 'c1',
     code: 'C000001',
     dateKey: '2026-10-01',
+    endDate: null,
     time: '',
     title: '',
     note: '',

@@ -20,6 +20,7 @@ export default function TrainingDetailDialog({
   onEdit,
   onDelete,
   onExport,
+  onSharePostcard,
   onSaveTemplate,
 }: {
   training: HealthTraining
@@ -27,6 +28,7 @@ export default function TrainingDetailDialog({
   onEdit: () => void
   onDelete: () => void
   onExport: () => void
+  onSharePostcard: () => void
   onSaveTemplate: (name: string) => void
 }) {
   const { t } = useI18n()
@@ -120,13 +122,17 @@ export default function TrainingDetailDialog({
         </div>
       )}
 
-      <div className="mt-5 flex justify-end gap-2">
+      <div className="mt-5 flex flex-wrap justify-end gap-2">
         <button type="button" onClick={onClose} className={GHOST_BUTTON}>
           {t('common.close')}
         </button>
         <button type="button" onClick={onExport} title={t('records.export')} className={GHOST_BUTTON}>
           JSON
           <span className="sr-only">{t('records.export')}</span>
+        </button>
+        <button type="button" onClick={onSharePostcard} className={GHOST_BUTTON}>
+          <Icon name="share" />
+          {t('share.action')}
         </button>
         <button type="button" onClick={onDelete} className={ROW_DANGER}>
           {t('common.delete')}

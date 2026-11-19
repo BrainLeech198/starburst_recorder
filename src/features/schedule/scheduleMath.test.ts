@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { ScheduleItem } from '@/core/db/schema'
 import {
   countByDay,
+  checkInFor,
+  checkInPatch,
   dateKeysOfMonth,
   donePatch,
   dueOn,
@@ -17,6 +19,7 @@ function item(patch: Partial<ScheduleItem> = {}): ScheduleItem {
     id: 's1',
     code: 'abc1234',
     dateKey: '2026-11-01',
+    endDate: null,
     time: '09:00',
     title: '测试',
     note: '',
@@ -52,6 +55,17 @@ describe('occursOn', () => {
     expect(occursOn(row, '2026-11-04')).toBe(false)
     expect(occursOn(row, '2026-11-05')).toBe(true)
     expect(occursOn(row, '2026-12-31')).toBe(true)
+  })
+
+  it('重复任务在截止日当天有效，之后停止', () => {
+    const row = item({ repeat: 'daily', endDate: '2026-11-05' })
+    expect(occursOn(row, '2026-11-05')).toBe(true)
+    expect(occursOn(row, '2026-11-06')).toBe(false)
+  })
+
+  it('旧任务没有截止日时继续按原规则重复', () => {
+    const row = item({ repeat: 'daily', endDate: null })
+    expect(occursOn(row, '2027-11-01')).toBe(true)
   })
 
   it('每周任务只看选中的那几天', () => {
@@ -115,6 +129,32 @@ describe('完成状态', () => {
     const many = Array.from({ length: 400 }, (_, index) => `2026-${String((index % 12) + 1).padStart(2, '0')}-01`)
     const row = item({ repeat: 'daily', doneDays: many })
     expect(donePatch(row, '2026-12-31', true).doneDays.length).toBeLessThanOrEqual(400)
+  })
+})
+
+describe('打卡补充记录', () => {
+  it('按任务日期更新文字照片，并保留其它日期的记录', () => {
+    const firstPhoto = { id: 'p1', dataUrl: 'data:image/jpeg;base64,AA', width: 8, height: 6 }
+    const secondPhoto = { id: 'p2', dataUrl: 'data:image/jpeg;base64,BB', width: 8, height: 6 }
+    const row = item({
+      repeat: 'daily',
+      checkIns: [
+        { dateKey: '2026-11-02', note: '昨天', photo: firstPhoto, recordedAt: 1 },
+      ],
+    })
+    const updated = { ...row, ...checkInPatch(row, '2026-11-03', { note: ' 复习 35 个词 ', photo: secondPhoto }) }
+    expect(checkInFor(updated, '2026-11-02')?.note).toBe('昨天')
+    expect(checkInFor(updated, '2026-11-03')).toMatchObject({ note: '复习 35 个词', photo: secondPhoto })
+  })
+
+  it('清空选中日期的内容时不动其它日期', () => {
+    const row = item({ repeat: 'daily', checkIns: [
+      { dateKey: '2026-11-02', note: '保留', photo: null, recordedAt: 1 },
+      { dateKey: '2026-11-03', note: '清掉', photo: null, recordedAt: 2 },
+    ] })
+    expect(checkInPatch(row, '2026-11-03', null).checkIns).toEqual([
+      { dateKey: '2026-11-02', note: '保留', photo: null, recordedAt: 1 },
+    ])
   })
 })
 

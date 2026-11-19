@@ -349,6 +349,7 @@ describe('search_schedules', () => {
     const monday: ScheduleItem = {
       id: 'schedule-1', code: 'd000001', dateKey: '2026-11-02', time: '09:00',
       title: '周会', note: '带周报', repeat: 'weekly', weeklyDays: [1], remind: false,
+      endDate: null,
       doneAt: null, doneDays: ['2026-11-02'], createdAt: 0, updatedAt: 0, deletedAt: null,
     }
     data.schedules.push(monday, { ...monday, id: 'schedule-2', code: 'd000002', title: '已删除', deletedAt: 1 })
@@ -370,6 +371,7 @@ describe('search_schedules', () => {
     data.schedules.push({
       id: 'future-1', code: 'd000009', dateKey: '2026-12-01', time: '',
       title: '复诊', note: '', repeat: 'none', weeklyDays: [], remind: false,
+      endDate: null,
       doneAt: null, doneDays: [], createdAt: 0, updatedAt: 0, deletedAt: null,
     })
     const text = runAssistantTool('search_schedules',

@@ -104,9 +104,10 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
   if (action.kind === 'scheduleCreate') {
     const item: ScheduleItem = {
       id: newId(), code: newCode(), dateKey: action.dateKey, time: action.time,
+      endDate: action.repeat === 'none' ? null : action.endDate,
       title: action.title, note: action.note, repeat: action.repeat,
       weeklyDays: action.weeklyDays, remind: action.remind,
-      doneAt: null, doneDays: [], createdAt: now, updatedAt: now, deletedAt: null,
+      doneAt: null, doneDays: [], checkIns: [], createdAt: now, updatedAt: now, deletedAt: null,
     }
     await saveSchedule(item)
     return { recordId: item.id }
@@ -121,6 +122,7 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
     await saveSchedule({
       ...item,
       dateKey: action.newDateKey ?? item.dateKey,
+      endDate: repeat === 'none' ? null : action.endDate ?? item.endDate ?? null,
       time: action.time ?? item.time,
       title: action.newTitle ?? item.title,
       note: action.note ?? item.note,

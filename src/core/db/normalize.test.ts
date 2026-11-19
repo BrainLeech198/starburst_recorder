@@ -10,6 +10,7 @@ import {
   pickFood,
   pickMeasurement,
   pickSleep,
+  pickSchedule,
   pickStamp,
   pickTraining,
   pickTrainingPlan,
@@ -42,6 +43,22 @@ describe('行级校验：必填缺失就丢行', () => {
     expect(pickStamp({ id: 'a', dateKey: '2026-10-25', time: '9:3', content: 'x' })?.time).toBe(
       '',
     )
+  })
+
+  it('日程打卡逐条过滤坏日期与坏照片，不丢其它记录', () => {
+    const schedule = pickSchedule({
+      id: 'schedule-1', dateKey: '2026-11-02', title: '背单词', repeat: 'daily',
+      checkIns: [
+        { dateKey: '2026-11-02', note: ' 复习 35 个词 ', photo: { id: 'p1', dataUrl: 'data:image/jpeg;base64,AA', width: 8, height: 6 }, recordedAt: 10 },
+        { dateKey: '2026-11-02', note: '补充了复习结果', photo: null, recordedAt: 11 },
+        { dateKey: '2026-02-30', note: '坏日期', photo: null },
+        { dateKey: '2026-11-03', note: '坏图保留文字', photo: { id: '', dataUrl: 'x', width: 0, height: 0 } },
+      ],
+    })
+    expect(schedule?.checkIns).toEqual([
+      { dateKey: '2026-11-02', note: '补充了复习结果', photo: null, recordedAt: 11 },
+      { dateKey: '2026-11-03', note: '坏图保留文字', photo: null, recordedAt: expect.any(Number) },
+    ])
   })
 
   it('随记的短编号缺失时现场补一个 7 位十六进制，已有的原样保留', () => {

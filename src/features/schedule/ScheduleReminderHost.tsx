@@ -23,8 +23,9 @@ export default function ScheduleReminderHost() {
   }, [items])
 
   useEffect(() => {
+    if (rows === undefined) return
     void syncScheduleReminders(items)
-  }, [items])
+  }, [items, rows])
 
   return null
 }

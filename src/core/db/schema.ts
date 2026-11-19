@@ -416,6 +416,14 @@ export interface DiaryPreset {
 /** 日程的重复方式：一次性 / 每天 / 每周的某几天 */
 export type ScheduleRepeat = 'none' | 'daily' | 'weekly'
 
+/** 一次任务在某天的补充打卡；照片内联保存，随日程备份。 */
+export interface ScheduleCheckIn {
+  dateKey: string
+  note: string
+  photo: DiaryImage | null
+  recordedAt: number
+}
+
 /**
  * 一条日程或定期任务。
  *
@@ -430,6 +438,8 @@ export interface ScheduleItem {
   code: string
   /** 一次性日程：那一天；定期任务：从这一天起生效 */
   dateKey: string
+  /** 重复任务的最后生效日期（含当天）；一次性日程或旧任务可为 null */
+  endDate: string | null
   /** 'HH:MM'；空串表示全天，不参与时刻比较 */
   time: string
   title: string
@@ -443,6 +453,9 @@ export interface ScheduleItem {
   doneAt: number | null
   /** 定期任务的完成记录：'YYYY-MM-DD'，只留最近 400 天 */
   doneDays: string[]
+  /** 每次打卡的文字与可选照片；只留最近 400 天 */
+  /** 老版内存记录可能没有此字段；数据库与备份读入时都会补成 []。 */
+  checkIns?: ScheduleCheckIn[]
   createdAt: number
   updatedAt: number
   deletedAt: number | null

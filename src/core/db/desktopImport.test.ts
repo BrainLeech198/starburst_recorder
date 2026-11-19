@@ -519,6 +519,7 @@ describe('桌面端 SQLite 分块导入', () => {
       id: 'sc1',
       code: 'C000001',
       dateKey: '2026-11-02',
+      endDate: '2026-12-31',
       time: '20:00',
       title: '练腿',
       note: '深蹲三组',
@@ -527,6 +528,7 @@ describe('桌面端 SQLite 分块导入', () => {
       remind: true,
       doneAt: null,
       doneDays: ['2026-11-02', '2026-11-04'],
+      checkIns: [{ dateKey: '2026-11-02', note: '深蹲三组', photo: image, recordedAt: 1_700_000_000_000 }],
       createdAt: 1_700_000_000_000,
       updatedAt: 1_700_000_000_000,
       deletedAt: null,
@@ -534,6 +536,7 @@ describe('桌面端 SQLite 分块导入', () => {
     call('saveSchedule', item)
     const before = call<{ schedules: ScheduleItem[] }>('exportAllData')
     expect(before.schedules[0].weeklyDays).toEqual([1, 3, 5])
+    expect(before.schedules[0].endDate).toBe('2026-12-31')
 
     call('replaceSections', {
       diary: {
@@ -550,6 +553,7 @@ describe('桌面端 SQLite 分块导入', () => {
     expect(after.schedules[0]).toEqual(before.schedules[0])
     expect(after.schedules[0].remind).toBe(true)
     expect(after.schedules[0].doneDays).toEqual(['2026-11-02', '2026-11-04'])
+    expect(after.schedules[0].checkIns).toEqual(item.checkIns)
   })
 
   it('训练软删除后进回收站，恢复与彻底删除都能用', () => {
@@ -606,6 +610,7 @@ describe('桌面端数据概览与一键清空', () => {
       id: 'sc1',
       code: 'C000001',
       dateKey: '2026-11-02',
+      endDate: null,
       time: '20:00',
       title: '练腿',
       note: '',

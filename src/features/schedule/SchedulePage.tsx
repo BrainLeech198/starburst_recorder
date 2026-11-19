@@ -7,6 +7,7 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { ScheduleItem } from '@/core/db/schema'
+import type { DiaryImage } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
 import { formatDate, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
@@ -22,10 +23,15 @@ import DatePickerDialog from '@/features/diary/DatePickerDialog'
 import ViewTabs from '@/features/calendar/ViewTabs'
 import ScheduleDialog from './ScheduleDialog'
 import {
+  checkInFor,
+  checkInPatch,
   donePatch,
   isDoneOn,
   occurrencesOn,
 } from './scheduleMath'
+import ScheduleCheckInDialog from './ScheduleCheckInDialog'
+import SchedulePostcardDialog from './SchedulePostcardDialog'
+import { buildDailyPostcardData } from './schedulePostcard'
 import {
   removeSchedule,
   saveSchedule,
@@ -49,6 +55,8 @@ export default function SchedulePage() {
   const [dialog, setDialog] = useState<{ value: ScheduleItem | null } | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<ScheduleItem | null>(null)
+  const [checkInItem, setCheckInItem] = useState<ScheduleItem | null>(null)
+  const [postcardOpen, setPostcardOpen] = useState(false)
 
   const today = occurrencesOn(items, dayKey)
   const recurring = items.filter((item) => item.repeat !== 'none')
@@ -75,8 +83,18 @@ export default function SchedulePage() {
     return t('schedule.onlyOnce')
   }
 
-  async function toggleDone(item: ScheduleItem) {
-    await saveSchedule({ ...item, ...donePatch(item, dayKey, !isDoneOn(item, dayKey)) })
+  async function saveCheckIn(note: string, photo: DiaryImage | null) {
+    if (!checkInItem) return
+    await saveSchedule({
+      ...checkInItem,
+      ...donePatch(checkInItem, dayKey, true),
+      ...checkInPatch(checkInItem, dayKey, { note, photo }),
+    })
+  }
+
+  async function undoCheckIn() {
+    if (!checkInItem) return
+    await saveSchedule({ ...checkInItem, ...donePatch(checkInItem, dayKey, false) })
   }
 
   async function confirmDelete() {
@@ -89,6 +107,8 @@ export default function SchedulePage() {
   function isTodayRow(item: ScheduleItem) {
     return isDoneOn(item, dayKey)
   }
+
+  const postcardData = buildDailyPostcardData(items, dayKey)
 
   return (
     <div
@@ -136,12 +156,24 @@ export default function SchedulePage() {
         }}
       />
 
-      <h2 className="mb-2 mt-3 flex items-center gap-2 text-xs font-medium text-muted">
-        <span>{t('schedule.daySection', { date: formatDate(dayKey, t) })}</span>
-        <span className="rounded-full bg-surface px-1.5 py-0.5 text-[11px] leading-none">
-          {today.length}
-        </span>
-      </h2>
+      <div className="mb-2 mt-3 flex flex-wrap items-center gap-2">
+        <h2 className="m-0 flex items-center gap-2 text-xs font-medium text-muted">
+          <span>{t('schedule.daySection', { date: formatDate(dayKey, t) })}</span>
+          <span className="rounded-full bg-surface px-1.5 py-0.5 text-[11px] leading-none">
+            {today.length}
+          </span>
+        </h2>
+        {postcardData.done > 0 && (
+          <button
+            type="button"
+            onClick={() => setPostcardOpen(true)}
+            className="ml-auto inline-flex items-center gap-1 rounded-lg border border-brand/30 px-2.5 py-1 text-xs font-medium text-brand transition-colors hover:bg-brand/10"
+          >
+            <Icon name="share" className="h-3.5 w-3.5" />
+            {t('schedule.postcard.create')}
+          </button>
+        )}
+      </div>
 
       {loading ? (
         <div aria-hidden="true" className="rounded-2xl border border-line bg-surface px-3 py-4">
@@ -158,9 +190,9 @@ export default function SchedulePage() {
               <li key={item.id} className="flex items-start gap-2 px-3 py-2">
                 <button
                   type="button"
-                  onClick={() => void toggleDone(item)}
+                  onClick={() => setCheckInItem(item)}
                   aria-pressed={done}
-                  aria-label={done ? t('schedule.markUndone') : t('schedule.markDone')}
+                  aria-label={done ? t('schedule.checkIn.open') : t('schedule.markDone')}
                   className={[
                     'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors',
                     done ? 'border-brand bg-brand text-on-brand' : 'border-line text-transparent',
@@ -178,6 +210,17 @@ export default function SchedulePage() {
                     {item.remind && ` · ${t('schedule.remindOn')}`}
                     {item.note && ` · ${item.note}`}
                   </div>
+                  {checkInFor(item, dayKey)?.note && (
+                    <p className="m-0 mt-1 line-clamp-2 text-xs text-brand">
+                      {checkInFor(item, dayKey)?.note}
+                    </p>
+                  )}
+                  {checkInFor(item, dayKey)?.photo && (
+                    <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted">
+                      <Icon name="image" className="h-3 w-3" />
+                      {t('schedule.checkIn.photoAdded')}
+                    </span>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -230,6 +273,9 @@ export default function SchedulePage() {
                 </div>
                 <div className="mt-0.5 text-[11px] text-muted">
                   {repeatLabel(item)}
+                  {item.endDate
+                    ? ` · ${t('schedule.untilDate', { date: formatDate(item.endDate, t) })}`
+                    : ` · ${t('schedule.endDateUnset')}`}
                   {item.remind && ` · ${t('schedule.remindOn')}`}
                 </div>
               </div>
@@ -258,6 +304,26 @@ export default function SchedulePage() {
             setDialog(null)
             showToast({ message: t('schedule.saved') })
           }}
+        />
+      )}
+
+      {checkInItem && (
+        <ScheduleCheckInDialog
+          title={checkInItem.title}
+          dateKey={dayKey}
+          existing={checkInFor(checkInItem, dayKey)}
+          completed={isDoneOn(checkInItem, dayKey)}
+          onClose={() => setCheckInItem(null)}
+          onSave={saveCheckIn}
+          onUndo={undoCheckIn}
+        />
+      )}
+
+      {postcardOpen && (
+        <SchedulePostcardDialog
+          items={today}
+          dateKey={dayKey}
+          onClose={() => setPostcardOpen(false)}
         />
       )}
 

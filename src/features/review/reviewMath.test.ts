@@ -82,6 +82,7 @@ function schedule(patch: Partial<ScheduleItem> = {}): ScheduleItem {
     id: 's1',
     code: 'c000001',
     dateKey: '2026-11-01',
+    endDate: null,
     time: '09:00',
     title: '任务',
     note: '',

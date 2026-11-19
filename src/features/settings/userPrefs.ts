@@ -22,7 +22,7 @@
 /** 分组的唯一作用是给界面一句人话的说明，不参与校验 */
 export const PREF_GROUPS = {
   /** 外观与语言 */
-  appearance: ['starburst.theme', 'starburst.accent', 'sb_locale', 'starburst.care'],
+  appearance: ['starburst.theme', 'starburst.accent', 'sb_locale', 'starburst.care', 'sb_home_brand_hidden'],
   /** AI 模型：配置（含密钥）、启用项与推理设置 */
   aiModels: ['sb_ai_models', 'sb_ai_active', 'sb_ai_reasoning_v1'],
   /** 助手：计划模式、长期记忆、技能、权限 */

@@ -5,13 +5,13 @@
  * 顶部是主色进度环（本周次数 / 计划天数）+ 一个大数字（当天容量或时长），
  * 记录行用类型色块徽标区分力量、有氧、拉伸、球类。
  */
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import type { ChangeEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { HealthTraining, TrainingKind, TrainingTemplate } from '@/core/db/schema'
 import { newCode, newId } from '@/core/utils/id'
 import { useLiveQuery } from '@/core/db/live'
-import { isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
+import { formatDate, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
@@ -53,6 +53,7 @@ import {
 import { describeSave, saveTextFile } from '@/platform/saveFile'
 import TrainingForm from './TrainingForm'
 import TrainingDetailDialog from './TrainingDetailDialog'
+import AchievementPostcardDialog from '@/features/share/AchievementPostcardDialog'
 import TrainingPlanPanel from './TrainingPlanPanel'
 import TrainingProgressPanel from './TrainingProgressPanel'
 import TrainingAiReview from './TrainingAiReview'
@@ -61,6 +62,7 @@ import { emptyProfile } from '@/features/health/healthMath'
 import { saveHealthProfile } from '@/features/health/healthRepo'
 import { templateFromTraining, trainingFromTemplate } from './trainingTemplates'
 import { compareTrainingWithHistory } from './trainingComparison'
+import { trainingPostcardFacts } from './trainingPostcard'
 
 /** 类型徽标的配色：力量用主色，有氧用绿色，拉伸用黄色，球类用危险色，其它走中性 */
 function kindBadge(kind: TrainingKind) {
@@ -115,6 +117,7 @@ export default function TrainingPage() {
 
   const [form, setForm] = useState<{ training: HealthTraining | null; copied?: boolean } | null>(null)
   const [detail, setDetail] = useState<HealthTraining | null>(null)
+  const [postcardTraining, setPostcardTraining] = useState<HealthTraining | null>(null)
   const [pendingDelete, setPendingDelete] = useState<HealthTraining | null>(null)
   const [batchDeleting, setBatchDeleting] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -133,6 +136,10 @@ export default function TrainingPage() {
   const ratio = hasWeeklyGoal ? weekSummary.sessions / planDays : 0
   const currentWeekTrainings = (fortnight ?? []).filter(
     (training) => training.dateKey >= range.from && training.dateKey <= range.to,
+  )
+  const postcardFacts = useMemo(
+    () => postcardTraining ? trainingPostcardFacts(postcardTraining, t) : [],
+    [postcardTraining, t],
   )
   function setDay(next: string) {
     if (batch.active) batch.exit()
@@ -605,7 +612,21 @@ export default function TrainingPage() {
           onEdit={() => setForm({ training: detail })}
           onDelete={() => setPendingDelete(detail)}
           onExport={() => void handleExportTraining(detail)}
+          onSharePostcard={() => {
+            setPostcardTraining(detail)
+            setDetail(null)
+          }}
           onSaveTemplate={(name) => void handleSaveTemplate(name)}
+        />
+      )}
+
+      {postcardTraining && (
+        <AchievementPostcardDialog
+          title={trainingLabel(postcardTraining) || t(`training.kind.${postcardTraining.kind}` as MessageKey)}
+          dateLabel={formatDate(postcardTraining.dateKey, t)}
+          facts={postcardFacts}
+          tone="training"
+          onClose={() => setPostcardTraining(null)}
         />
       )}
 

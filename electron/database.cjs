@@ -213,11 +213,12 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_finance_day ON financeEntries(dateKey);
   CREATE INDEX IF NOT EXISTS idx_finance_trash ON financeEntries(deletedAt);
 
-  -- 日程 / 定期任务：weeklyDays 与 doneDays 都以 JSON 数组存
+  -- 日程 / 定期任务：周几、完成日期与逐日打卡记录都以 JSON 存
   CREATE TABLE IF NOT EXISTS schedules (
     id TEXT PRIMARY KEY,
     code TEXT NOT NULL DEFAULT '',
     dateKey TEXT NOT NULL,
+    endDate TEXT,
     time TEXT NOT NULL DEFAULT '',
     title TEXT NOT NULL,
     note TEXT NOT NULL DEFAULT '',
@@ -226,6 +227,7 @@ const SCHEMA = `
     remind INTEGER NOT NULL DEFAULT 0,
     doneAt INTEGER,
     doneDays TEXT NOT NULL DEFAULT '[]',
+    checkIns TEXT NOT NULL DEFAULT '[]',
     createdAt INTEGER NOT NULL,
     updatedAt INTEGER NOT NULL,
     deletedAt INTEGER
@@ -735,6 +737,7 @@ function scheduleRow(row) {
     id: row.id,
     code: row.code ?? '',
     dateKey: row.dateKey,
+    endDate: row.endDate ?? null,
     time: row.time ?? '',
     title: row.title ?? '',
     note: row.note ?? '',
@@ -743,9 +746,49 @@ function scheduleRow(row) {
     remind: row.remind === 1 || row.remind === true,
     doneAt: num(row.doneAt),
     doneDays: doneDaysFromDb(row.doneDays),
+    checkIns: scheduleCheckInsFromDb(row.checkIns),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
+  }
+}
+
+function scheduleCheckInsFromDb(value) {
+  if (typeof value !== 'string' || value.trim() === '') return []
+  try {
+    const list = JSON.parse(value)
+    if (!Array.isArray(list)) return []
+    const picked = list
+      .map((raw) => {
+        if (!raw || typeof raw !== 'object') return null
+        const dateKey = typeof raw.dateKey === 'string' ? raw.dateKey : ''
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return null
+        const [year, month, day] = dateKey.split('-').map(Number)
+        const date = new Date(year, month - 1, day)
+        if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null
+        const candidate = raw.photo && typeof raw.photo === 'object' ? raw.photo : null
+        const id = typeof candidate?.id === 'string' ? candidate.id : ''
+        const dataUrl = typeof candidate?.dataUrl === 'string' ? candidate.dataUrl : ''
+        const width = Number(candidate?.width)
+        const height = Number(candidate?.height)
+        const photo = id && dataUrl.startsWith('data:image/') && width > 0 && height > 0
+          ? { id, dataUrl, width, height }
+          : null
+        return {
+          dateKey,
+          note: typeof raw.note === 'string' ? raw.note.slice(0, 500) : '',
+          photo,
+          recordedAt: num(raw.recordedAt) ?? Date.now(),
+        }
+      })
+      .filter(Boolean)
+    const unique = new Map()
+    for (const checkIn of picked) unique.set(checkIn.dateKey, checkIn)
+    return [...unique.values()]
+      .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+      .slice(-400)
+  } catch {
+    return []
   }
 }
 
@@ -820,6 +863,12 @@ function createDatabase(file) {
   const intakeColumns = new Set(
     db.prepare('PRAGMA table_info(healthIntakes)').all().map((row) => row.name),
   )
+  const scheduleColumns = new Set(
+    db.prepare('PRAGMA table_info(schedules)').all().map((row) => row.name),
+  )
+  if (!scheduleColumns.has('endDate')) db.exec('ALTER TABLE schedules ADD COLUMN endDate TEXT')
+  if (!scheduleColumns.has('checkIns'))
+    db.exec("ALTER TABLE schedules ADD COLUMN checkIns TEXT NOT NULL DEFAULT '[]'")
   if (!intakeColumns.has('mealId')) db.exec('ALTER TABLE healthIntakes ADD COLUMN mealId TEXT')
   if (!intakeColumns.has('components')) db.exec('ALTER TABLE healthIntakes ADD COLUMN components TEXT')
   if (!intakeColumns.has('tdeeSnapshot')) db.exec('ALTER TABLE healthIntakes ADD COLUMN tdeeSnapshot REAL')
@@ -1186,11 +1235,12 @@ function createDatabase(file) {
     ),
     upsertSchedule: db.prepare(
       `INSERT INTO schedules
-         (id, code, dateKey, time, title, note, repeat, weeklyDays, remind, doneAt, doneDays, createdAt, updatedAt, deletedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (id, code, dateKey, endDate, time, title, note, repeat, weeklyDays, remind, doneAt, doneDays, checkIns, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          code = excluded.code,
          dateKey = excluded.dateKey,
+         endDate = excluded.endDate,
          time = excluded.time,
          title = excluded.title,
          note = excluded.note,
@@ -1199,6 +1249,7 @@ function createDatabase(file) {
          remind = excluded.remind,
          doneAt = excluded.doneAt,
          doneDays = excluded.doneDays,
+         checkIns = excluded.checkIns,
          createdAt = excluded.createdAt,
          updatedAt = excluded.updatedAt,
          deletedAt = excluded.deletedAt`,
@@ -1551,6 +1602,7 @@ function createDatabase(file) {
       id: item.id,
       code: item.code ?? '',
       dateKey: item.dateKey,
+      endDate: typeof item.endDate === 'string' ? item.endDate : null,
       time: typeof item.time === 'string' ? item.time : '',
       title: item.title ?? '',
       note: item.note ?? '',
@@ -1569,6 +1621,9 @@ function createDatabase(file) {
           ? [...new Set(item.doneDays.filter((day) => typeof day === 'string'))].sort().slice(-400)
           : [],
       ),
+      checkIns: JSON.stringify(
+        scheduleCheckInsFromDb(JSON.stringify(Array.isArray(item.checkIns) ? item.checkIns : [])),
+      ),
       createdAt: num(item.createdAt) ?? Date.now(),
       updatedAt: num(item.updatedAt) ?? Date.now(),
       deletedAt: num(item.deletedAt),
@@ -1577,6 +1632,7 @@ function createDatabase(file) {
       next.id,
       next.code,
       next.dateKey,
+      next.endDate,
       next.time,
       next.title,
       next.note,
@@ -1585,6 +1641,7 @@ function createDatabase(file) {
       next.remind,
       next.doneAt,
       next.doneDays,
+      next.checkIns,
       next.createdAt,
       next.updatedAt,
       next.deletedAt,

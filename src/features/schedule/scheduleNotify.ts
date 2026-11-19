@@ -3,11 +3,12 @@
  *
  * 分两层，和称重提醒一致：
  *   - 桌面 / 网页版：应用打开时检查一次，之后每分钟查一次，到点弹一条通知（见 @/platform/notify）
- *   - 安卓：走 @capacitor/local-notifications 预排通知，应用没开着也会弹
+ *   - 安卓：一次性走 Capacitor；重复任务由原生层逐次重排，截止日后停止
  *
  * 每天每条只提醒一次（localStorage 里按「日期 + id」记），免得开一次弹一次。
  */
 import type { ScheduleItem } from '@/core/db/schema'
+import { registerPlugin } from '@capacitor/core'
 import { todayKey } from '@/core/utils/dateKey'
 import { translate } from '@/shared/i18n/context'
 import { notifyNow } from '@/platform/notify'
@@ -18,6 +19,15 @@ const NOTIFIED_KEY = 'starburst.scheduleNotified'
 /** 安卓本地通知占用的 id 段；重排时先把这个段整体取消 */
 const BASE_ID = 78000
 const MAX_NOTIFICATIONS = 40
+
+interface NativeScheduleReminderPlugin {
+  sync(options: {
+    title: string
+    items: Pick<ScheduleItem, 'id' | 'dateKey' | 'endDate' | 'time' | 'title' | 'repeat' | 'weeklyDays'>[]
+  }): Promise<void>
+}
+
+const NativeScheduleReminder = registerPlugin<NativeScheduleReminderPlugin>('ScheduleReminder')
 
 interface NotifiedState {
   date: string
@@ -86,13 +96,15 @@ function hourMinute(time: string): { hour: number; minute: number } | null {
 }
 
 /**
- * 安卓：按「每天 / 每周」预排系统通知；一次性日程排到具体时刻。
+ * 安卓：重复任务由原生层逐次排下一条提醒；一次性日程排到具体时刻。
  * 桌面 / 浏览器没有这个插件，这里直接不动。
  */
 export async function syncScheduleReminders(items: ScheduleItem[]): Promise<void> {
+  let isAndroid = false
   try {
     const { Capacitor } = await import('@capacitor/core')
     if (!Capacitor.isNativePlatform()) return
+    isAndroid = Capacitor.getPlatform() === 'android'
     const { LocalNotifications } = await import('@capacitor/local-notifications')
     await LocalNotifications.requestPermissions()
 
@@ -114,6 +126,7 @@ export async function syncScheduleReminders(items: ScheduleItem[]): Promise<void
       const clock = hourMinute(item.time) ?? { hour: 9, minute: 0 }
 
       if (item.repeat === 'weekly') {
+        if (isAndroid) continue
         for (const day of item.weeklyDays) {
           if (notifications.length >= MAX_NOTIFICATIONS) break
           notifications.push({
@@ -124,6 +137,7 @@ export async function syncScheduleReminders(items: ScheduleItem[]): Promise<void
           })
         }
       } else if (item.repeat === 'daily') {
+        if (isAndroid) continue
         notifications.push({
           id: nextId++,
           title,
@@ -141,5 +155,28 @@ export async function syncScheduleReminders(items: ScheduleItem[]): Promise<void
     if (notifications.length > 0) await LocalNotifications.schedule({ notifications })
   } catch {
     // 插件不可用（没装、模拟器不支持）就静默：应用内列表还在
+  }
+
+  if (isAndroid) {
+    try {
+      const title = translate('schedule.notifyTitle')
+      await NativeScheduleReminder.sync({
+        title,
+        items: items
+          .filter((item) => item.remind && item.deletedAt === null && item.repeat !== 'none')
+          .slice(0, MAX_NOTIFICATIONS)
+          .map(({ id, dateKey, endDate, time, title: itemTitle, repeat, weeklyDays }) => ({
+            id,
+            dateKey,
+            endDate: endDate ?? null,
+            time,
+            title: itemTitle,
+            repeat,
+            weeklyDays,
+          })),
+      })
+    } catch {
+      // 原生排程器不可用时，日程本身仍可在应用内查看与打卡。
+    }
   }
 }

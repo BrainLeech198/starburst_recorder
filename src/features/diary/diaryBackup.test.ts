@@ -217,13 +217,14 @@ describe('备份读写的兼容口径', () => {
     expect(read.payload.chats).toEqual([])
   })
 
-  it('日程独立成块往返：重复规则与完成记录都不丢', () => {
+  it('日程独立成块往返：重复规则、完成记录与打卡照片都不丢', () => {
     const payload = sample()
     payload.schedules = [
       {
         id: 'sc1',
         code: 'c0ffee1',
         dateKey: '2026-11-02',
+        endDate: '2026-12-31',
         time: '20:00',
         title: '练腿',
         note: '',
@@ -232,6 +233,12 @@ describe('备份读写的兼容口径', () => {
         remind: true,
         doneAt: null,
         doneDays: ['2026-11-02'],
+        checkIns: [{
+          dateKey: '2026-11-02',
+          note: '复习了 35 个单词',
+          photo: { id: 'checkin-photo', dataUrl: 'data:image/jpeg;base64,AA', width: 8, height: 6 },
+          recordedAt: 123,
+        }],
         createdAt: 1,
         updatedAt: 1,
         deletedAt: null,
@@ -252,26 +259,37 @@ describe('备份读写的兼容口径', () => {
     expect(read.ok).toBe(true)
     expect(read.payload.schedules).toHaveLength(1)
     expect(read.payload.schedules[0].weeklyDays).toEqual([1, 3])
+    expect(read.payload.schedules[0].endDate).toBe('2026-12-31')
     expect(read.payload.schedules[0].remind).toBe(true)
     expect(read.payload.schedules[0].doneDays).toEqual(['2026-11-02'])
+    expect(read.payload.schedules[0].checkIns).toEqual([
+      {
+        dateKey: '2026-11-02',
+        note: '复习了 35 个单词',
+        photo: { id: 'checkin-photo', dataUrl: 'data:image/jpeg;base64,AA', width: 8, height: 6 },
+        recordedAt: 123,
+      },
+    ])
   })
 
   it('旧备份里归在日记块的日程仍能读回并显示为独立块', () => {
     const payload = sample()
     payload.schedules = [{
       id: 'sc-old', code: 'c0ffee1', dateKey: '2026-11-02', time: '20:00', title: '旧日程',
-      note: '', repeat: 'none', weeklyDays: [], remind: false, doneAt: null, doneDays: [],
+      endDate: null, note: '', repeat: 'none', weeklyDays: [], remind: false, doneAt: null, doneDays: [],
       createdAt: 1, updatedAt: 1, deletedAt: null,
     }]
     const raw = JSON.parse(buildBackup(payload).content) as {
       sections: { diary: Record<string, unknown>; schedule?: Record<string, unknown> }
     }
     raw.sections.diary.schedules = (raw.sections.schedule as { items: unknown[] }).items
+    delete (raw.sections.diary.schedules as Record<string, unknown>[])[0].endDate
     delete raw.sections.schedule
 
     const read = readBackup(JSON.stringify(raw))
     expect(read.ok).toBe(true)
     expect(read.payload.schedules).toHaveLength(1)
+    expect(read.payload.schedules[0].endDate).toBeNull()
     expect(read.sections).toContain('schedule')
   })
 
@@ -346,6 +364,7 @@ describe('备份读写的兼容口径', () => {
         title: '练腿',
         note: '',
         repeat: 'none',
+        endDate: null,
         weeklyDays: [],
         remind: false,
         doneAt: null,

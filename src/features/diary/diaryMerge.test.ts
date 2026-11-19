@@ -68,6 +68,7 @@ const schedule = (id: string, extra: Partial<ScheduleItem> = {}): ScheduleItem =
   id,
   code: id.padEnd(7, '0'),
   dateKey: '2026-10-23',
+  endDate: null,
   time: '20:00',
   title: '练腿',
   note: '',

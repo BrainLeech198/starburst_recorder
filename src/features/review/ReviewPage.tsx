@@ -5,12 +5,14 @@
  * 哪些定期任务坚持住了」，用数字卡片和一条小格子最直接。
  */
 import { Link, useSearchParams } from 'react-router'
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useLiveQuery } from '@/core/db/live'
 import { formatDate, formatMonthDay, todayKey } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import EmptyState from '@/shared/ui/EmptyState'
 import { Icon } from '@/shared/ui/icons'
+import { OUTLINE_BUTTON } from '@/shared/ui/buttonStyles'
+import AchievementPostcardDialog from '@/features/share/AchievementPostcardDialog'
 import AiReportDialog from '@/features/ai/AiReportDialog'
 import type { ReportKind, ReportPeriod } from '@/features/ai/aiReport'
 import ViewTabs from '@/features/calendar/ViewTabs'
@@ -29,11 +31,15 @@ import {
   scheduleProgress,
   summarizeMonth,
 } from './reviewMath'
+import { reviewPostcardFacts } from './reviewPostcard'
+
+const EMPTY_ROWS: never[] = []
 
 export default function ReviewPage() {
   const { t, locale } = useI18n()
   const [params, setParams] = useSearchParams()
   const [report, setReport] = useState<ReportPeriod | null>(null)
+  const [postcardOpen, setPostcardOpen] = useState(false)
 
   const currentMonth = todayKey().slice(0, 7)
   const monthParam = params.get('month')
@@ -50,15 +56,18 @@ export default function ReviewPage() {
   const scheduleResult = useLiveQuery(() => schedules(), [])
   const loading = [activityResult, financeResult, sleepResult, trainingResult, scheduleResult]
     .some((result) => result === undefined)
-  const activities = activityResult ?? []
-  const finance = financeResult ?? []
-  const sleeps = sleepResult ?? []
-  const trainings = trainingResult ?? []
-  const items = scheduleResult ?? []
+  const activities = activityResult ?? EMPTY_ROWS
+  const finance = financeResult ?? EMPTY_ROWS
+  const sleeps = sleepResult ?? EMPTY_ROWS
+  const trainings = trainingResult ?? EMPTY_ROWS
+  const items = scheduleResult ?? EMPTY_ROWS
 
-  const summary = summarizeMonth({ activities, finance, sleeps, trainings })
+  const summary = useMemo(
+    () => summarizeMonth({ activities, finance, sleeps, trainings }),
+    [activities, finance, sleeps, trainings],
+  )
   const avgSleep = averageSleepMinutes(summary)
-  const progress = scheduleProgress(items, monthKey, today)
+  const progress = useMemo(() => scheduleProgress(items, monthKey, today), [items, monthKey, today])
   const days = dateKeysOfMonth(monthKey)
   const activityByDay = new Map(activities.map((item) => [item.dateKey, item]))
   // 定期任务的链接落在本月（看当月就落到今天，看旧月份落到 1 号）
@@ -67,14 +76,20 @@ export default function ReviewPage() {
   // 7 列小格：按当月 1 号是周几补空位，和月历一样周一开头
   const offset = (new Date(year, month - 1, 1).getDay() + 6) % 7
 
-  const money = (value: number) =>
-    `${t('finance.currency')}${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value)}`
+  const money = useCallback(
+    (value: number) => `${t('finance.currency')}${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value)}`,
+    [locale, t],
+  )
 
   function goMonth(next: string) {
     setParams(next === currentMonth ? {} : { month: next }, { replace: true })
   }
 
   const empty = summary.daysWithRecords === 0 && progress.length === 0
+  const postcardFacts = useMemo(
+    () => reviewPostcardFacts(summary, progress, monthKey, today, t, money),
+    [summary, progress, monthKey, today, t, money],
+  )
 
   /** 报告入口只留在这里：日报 / 周报按今天，月报 / 年报跟着正在看的月份 */
   function reportPeriod(kind: ReportKind): ReportPeriod {
@@ -118,6 +133,16 @@ export default function ReviewPage() {
           <Icon name="chart" className="h-4 w-4 shrink-0" />
           {t('review.title')}
         </h1>
+        {!loading && !empty && monthKey <= currentMonth && (
+          <button
+            type="button"
+            onClick={() => setPostcardOpen(true)}
+            className={`${OUTLINE_BUTTON} min-h-9 px-2.5 text-xs`}
+          >
+            <Icon name="share" />
+            {t('share.action')}
+          </button>
+        )}
       </header>
 
       <ViewTabs active="review" dayKey={scheduleAnchor} />
@@ -341,6 +366,15 @@ export default function ReviewPage() {
       )}
 
       {report && <AiReportDialog period={report} onClose={() => setReport(null)} />}
+      {postcardOpen && (
+        <AchievementPostcardDialog
+          title={t('review.title')}
+          dateLabel={t('calendar.month', { year, month })}
+          facts={postcardFacts}
+          tone="review"
+          onClose={() => setPostcardOpen(false)}
+        />
+      )}
     </div>
   )
 }

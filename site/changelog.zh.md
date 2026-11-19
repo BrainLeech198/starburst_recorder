@@ -1,15 +1,18 @@
-## 0.20.1 · 2026-11-19
+## 0.21.0 · 2026-11-19
 
-日记编辑时纸张横线随文字一起滚动，不再停留在屏幕上。
+把每天完成的事汇成清单与明信片，并让训练和月度回顾也能生成可分享的卡片。
 
 ### 这一版有什么
 
-- **日记横线随文字滚动**：编辑较长的日记时，纸张横线会贴着文字行上下移动，不再钉在屏幕上不动（安卓上尤其明显）。
+- **重复日程设截止日期**：截止当天仍可打卡；到期后不再出现或提醒，安卓会停止重排提醒。
+- **首页今日清单**：直接查看和完成当天任务，可补充文字与照片；历史日期可回看并生成每日明信片。
+- **更多记录可做成明信片**：训练记录、月度回顾、日记、随记、食物、套餐、摄入和收支都可预览并保存主题卡片；月度睡眠与收支默认不放进图片，需手动勾选。
+- **首页品牌区可收起**：点一次星芒图标即可隐藏品牌区，清单和功能入口仍保留；收起偏好可随设置备份。
 
 ### 下载
 
-- Windows 10/11：[starburst-recorder-0.20.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1-setup.exe)
-- Android 10 以上：[starburst-recorder-0.20.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1.apk)
+- Windows 10/11：[starburst-recorder-0.21.0-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0-setup.exe)
+- Android 10 以上：[starburst-recorder-0.21.0.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0.apk)
 
 ## 0.20.0 · 2026-11-18
 

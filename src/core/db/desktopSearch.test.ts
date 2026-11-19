@@ -195,6 +195,7 @@ function fill(call: <T>(method: string, ...args: unknown[]) => T) {
     id: 'c1',
     code: 'C000001',
     dateKey: '2026-10-06',
+    endDate: null,
     time: '18:00',
     title: '买鸡胸肉',
     note: '',

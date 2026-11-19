@@ -19,6 +19,7 @@ function itemOf(over: Partial<ScheduleItem> = {}): ScheduleItem {
     id: 'item-1',
     code: 'aaaaaaa',
     dateKey: TODAY,
+    endDate: null,
     time: '09:00',
     title: '看牙医',
     note: '',

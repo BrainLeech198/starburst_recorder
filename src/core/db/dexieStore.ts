@@ -1176,6 +1176,11 @@ export const dexieStore: DiaryStore = {
 
   async schedules(): Promise<ScheduleItem[]> {
     const rows = await db.schedules.filter((item) => item.deletedAt === null).toArray()
+    // 兼容早于截止日字段的 IndexedDB 记录；null 表示按旧规则继续重复。
+    for (const item of rows) {
+      item.endDate ??= null
+      item.checkIns ??= []
+    }
     // 和 SQLite 版本同一口径：起始日期、时刻、创建时间都参与排序
     return rows.sort(
       (a, b) =>
@@ -1187,6 +1192,10 @@ export const dexieStore: DiaryStore = {
 
   async trashedSchedules(): Promise<ScheduleItem[]> {
     const rows = await db.schedules.filter((item) => item.deletedAt !== null).toArray()
+    for (const item of rows) {
+      item.endDate ??= null
+      item.checkIns ??= []
+    }
     return rows.sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0))
   },
 

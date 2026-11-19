@@ -23,7 +23,7 @@ import { renderRecordCardImage } from './recordCardImage'
 
 type QrState = { kind: 'ready'; svg: string } | { kind: 'tooLarge' } | null
 type RecordImageState =
-  | { doc: ShareDoc; kind: 'ready'; bytes: Uint8Array }
+  | { doc: ShareDoc; kind: 'ready'; bytes: Uint8Array; url: string }
   | { doc: ShareDoc; kind: 'error' }
 
 async function svgToPng(svg: string): Promise<Uint8Array> {
@@ -120,15 +120,19 @@ export default function ShareDialog({ doc, onClose }: { doc: ShareDoc; onClose: 
   // 先在弹窗打开时生成卡片；点击保存时可以立即调用系统分享面板，保留 iOS 用户手势。
   useEffect(() => {
     let cancelled = false
+    let imageUrl: string | null = null
     void renderRecordCardImage(doc, t)
       .then((bytes) => {
-        if (!cancelled) setRecordImageState({ doc, kind: 'ready', bytes })
+        if (cancelled) return
+        imageUrl = URL.createObjectURL(new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer], { type: 'image/png' }))
+        setRecordImageState({ doc, kind: 'ready', bytes, url: imageUrl })
       })
       .catch(() => {
         if (!cancelled) setRecordImageState({ doc, kind: 'error' })
       })
     return () => {
       cancelled = true
+      if (imageUrl) URL.revokeObjectURL(imageUrl)
     }
   }, [doc, t])
 
@@ -186,6 +190,16 @@ export default function ShareDialog({ doc, onClose }: { doc: ShareDoc; onClose: 
   return (
     <Modal size="sm" label={t('share.title', { name: doc.title })} onClose={onClose}>
       <h2 className="m-0 text-base font-medium text-fg">{t('share.title', { name: doc.title })}</h2>
+
+      {recordImageState?.doc === doc && recordImageState.kind === 'ready' && (
+        <div className="mt-3 overflow-hidden rounded-xl border border-line bg-surface-2 p-2">
+          <img
+            src={recordImageState.url}
+            alt={t('share.postcard.previewAlt')}
+            className="mx-auto block max-h-[40vh] w-auto max-w-full rounded-lg object-contain"
+          />
+        </div>
+      )}
 
       <div className="mt-4 flex min-h-40 items-center justify-center">
         {qr === null ? null : qr.kind === 'tooLarge' ? (

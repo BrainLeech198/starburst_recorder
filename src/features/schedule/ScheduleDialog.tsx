@@ -46,6 +46,7 @@ export default function ScheduleDialog({
   const { t } = useI18n()
   const [title, setTitle] = useState(value?.title ?? '')
   const [dateKey, setDateKey] = useState(value?.dateKey ?? defaultDate)
+  const [endDate, setEndDate] = useState(value?.endDate ?? '')
   const [time, setTime] = useState(value?.time ?? '09:00')
   const [repeat, setRepeat] = useState<ScheduleRepeat>(value?.repeat ?? 'none')
   const [weeklyDays, setWeeklyDays] = useState<number[]>(value?.weeklyDays ?? [1])
@@ -55,8 +56,9 @@ export default function ScheduleDialog({
 
   const titleOk = title.trim() !== ''
   const dateOk = isDateKey(dateKey)
+  const endDateOk = repeat === 'none' || (isDateKey(endDate) && endDate >= dateKey)
   const daysOk = repeat !== 'weekly' || weeklyDays.length > 0
-  const valid = titleOk && dateOk && daysOk
+  const valid = titleOk && dateOk && endDateOk && daysOk
 
   function toggleDay(day: number) {
     setWeeklyDays((current) =>
@@ -72,6 +74,7 @@ export default function ScheduleDialog({
       id: value?.id ?? newId(),
       code: value?.code ?? newCode(),
       dateKey,
+      endDate: repeat === 'none' ? null : endDate,
       time: time.trim(),
       title: title.trim(),
       note,
@@ -80,6 +83,7 @@ export default function ScheduleDialog({
       remind,
       doneAt: value?.doneAt ?? null,
       doneDays: value?.doneDays ?? [],
+      checkIns: value?.checkIns ?? [],
       createdAt: value?.createdAt ?? now,
       updatedAt: now,
       deletedAt: null,
@@ -172,6 +176,29 @@ export default function ScheduleDialog({
         </div>
       )}
       {touched && !daysOk && <p className="mt-1 text-xs text-danger">{t('schedule.daysRequired')}</p>}
+
+      {repeat !== 'none' && (
+        <div className="mt-3">
+          <label className="block text-xs text-muted" htmlFor="schedule-end-date">
+            {t('schedule.fieldEndDate')}
+          </label>
+          <input
+            id="schedule-end-date"
+            type="date"
+            value={endDate}
+            min={dateKey || undefined}
+            onChange={(event) => setEndDate(event.target.value)}
+            className={`mt-1 ${INPUT}`}
+          />
+          <p className="mt-1 text-[11px] text-muted">{t('schedule.endDateHint')}</p>
+          {touched && !isDateKey(endDate) && (
+            <p className="mt-1 text-xs text-danger">{t('schedule.endDateRequired')}</p>
+          )}
+          {touched && isDateKey(endDate) && endDate < dateKey && (
+            <p className="mt-1 text-xs text-danger">{t('schedule.endDateBeforeStart')}</p>
+          )}
+        </div>
+      )}
 
       <label className="mt-3 flex items-center gap-2 text-sm text-fg">
         <input

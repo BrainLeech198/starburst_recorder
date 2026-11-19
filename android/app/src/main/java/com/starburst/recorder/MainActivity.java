@@ -10,6 +10,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(SaveFilePlugin.class);
         registerPlugin(UpdatePlugin.class);
         registerPlugin(CachePlugin.class);
+        registerPlugin(ScheduleReminderPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

@@ -1,17 +1,20 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
-## 0.20.1 · 2026-11-19
+## 0.21.0 · 2026-11-19
 
-When editing a diary, the paper ruling lines scroll with the text instead of staying fixed on screen.
+Gather daily accomplishments into a checklist and postcard, and make shareable cards for training and monthly reviews too.
 
 ### What's new
 
-- **Ruled lines scroll with the text** — while editing a long diary, the paper ruling lines move up and down with each line of text instead of staying pinned to the screen (most noticeable on Android).
+- **Set end dates for recurring schedules** — the end date remains active for check-ins; reminders stop afterward, and Android stops rescheduling them.
+- **Today’s home checklist** — see and complete today’s tasks, add a note or photo, revisit past dates, and create a daily postcard.
+- **Postcards for more records** — preview and save themed cards for training, monthly reviews, diaries, moments, foods, meals, intake, and finance. Monthly sleep and finance details stay off the image until selected.
+- **Dismiss the home brand area** — tap the Starburst mark once to hide the masthead while keeping the checklist and feature links. This preference is included in settings backups.
 
 ### Downloads
 
-- Windows 10/11: [starburst-recorder-0.20.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1-setup.exe)
-- Android 10+: [starburst-recorder-0.20.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1.apk)
+- Windows 10/11: [starburst-recorder-0.21.0-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0-setup.exe)
+- Android 10+: [starburst-recorder-0.21.0.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0.apk)
 
 ## 0.20.0 · 2026-11-18
 

@@ -46,17 +46,31 @@ describe('exportPrefs', () => {
     install(
       fakeStorage({
         'starburst.theme': 'paper',
+        'sb_home_brand_hidden': '1',
         'sb_locale': 'ja',
         'starburst.debug.ball': '0',
         'sb_assistant_sessions_v1': '[]',
       }) as Storage,
     )
-    expect(exportPrefs()).toEqual({ 'starburst.theme': 'paper', sb_locale: 'ja' })
+    expect(exportPrefs()).toEqual({
+      'starburst.theme': 'paper',
+      sb_locale: 'ja',
+      sb_home_brand_hidden: '1',
+    })
   })
 
   it('没有 localStorage（隐私模式 / 服务端）时给空快照，不抛错', () => {
     install(undefined)
     expect(exportPrefs()).toEqual({})
+  })
+
+  it('首页品牌区收起状态可随偏好设置导出并恢复', () => {
+    const store = fakeStorage({ sb_home_brand_hidden: '1' })
+    install(store)
+    const snapshot = readPrefs(exportPrefs())
+    store.clear()
+    expect(applyPrefs(snapshot, 'merge')).toBe(1)
+    expect(store.dump()).toEqual({ sb_home_brand_hidden: '1' })
   })
 })
 
@@ -90,6 +104,7 @@ describe('readPrefs', () => {
     expect(PREF_KEYS).toContain('sb_image_quality_diary')
     expect(PREF_KEYS).toContain('sb_image_quality_health')
     expect(PREF_KEYS).toContain('sb_image_quality_finance')
+    expect(PREF_KEYS).toContain('sb_home_brand_hidden')
     expect(new Set(PREF_KEYS).size).toBe(PREF_KEYS.length)
   })
 
