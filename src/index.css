@@ -539,6 +539,26 @@
   background-repeat: repeat;
 }
 
+/* 编辑态：横线直接画在 textarea 身上，而不是外层 .ruled 上。
+   背景：安卓 WebView 的 Chromium 版本常不支持 field-sizing，textarea 会退回
+   rows={16} 的内部滚动；横线若仍画在父容器 .ruled 上，父容器高度不被撑高、
+   横线就"钉在屏上不动"，文字在框内从横线间滑过。画到 textarea 自身后，
+   background 默认 scroll 跟随内容一起滚，行线永远贴着文字行，不再依赖
+   field-sizing 新特性，全引擎通用。padding 归零 + line-height 严格等于
+   --ruled-lh，保证第一条横线与第一行文字对齐。 */
+.ruled-textarea {
+  line-height: var(--ruled-lh, 2rem);
+  padding: 0;
+  background-image: linear-gradient(
+    to bottom,
+    transparent calc(var(--ruled-lh, 2rem) - 1px),
+    var(--color-rule) calc(var(--ruled-lh, 2rem) - 1px),
+    var(--color-rule) var(--ruled-lh, 2rem)
+  );
+  background-size: 100% var(--ruled-lh, 2rem);
+  background-repeat: repeat;
+}
+
 html,
 body {
   background-color: var(--color-bg);
