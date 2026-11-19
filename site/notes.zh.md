@@ -1,5 +1,18 @@
 本地优先的个人记录工具，内置 AI：随手记一句今天，AI 会把它整理成一篇完整的日记。不用注册、没有云端，每一条记录都留在这台设备上。AI 用的是你自己准备的模型和 Key。
 
+## 0.20.1 · 2026-11-19
+
+日记编辑时，纸张横线会跟着文字一起滚动，不再停留在屏幕上。
+
+### 这一版有什么
+
+- **日记横线随文字滚动**：编辑较长的日记时，纸张横线会贴着文字行上下移动，不再钉在屏幕上不动（安卓上尤其明显）。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.20.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1-setup.exe)
+- Android 10 以上：[starburst-recorder-0.20.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1.apk)
+
 ## 0.20.0 · 2026-11-18
 
 备份支持按分区选择加密，也可以单独分享 AI 模型配置。

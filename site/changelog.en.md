@@ -1,3 +1,16 @@
+## 0.20.1 · 2026-11-19
+
+When editing a diary, the paper ruling lines scroll with the text instead of staying fixed on screen.
+
+### What's new
+
+- **Ruled lines scroll with the text** — while editing a long diary, the paper ruling lines move up and down with each line of text instead of staying pinned to the screen (most noticeable on Android).
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.20.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1-setup.exe)
+- Android 10+: [starburst-recorder-0.20.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.1/starburst-recorder-0.20.1.apk)
+
 ## 0.20.0 · 2026-11-18
 
 Backups can encrypt selected sections, and individual AI model configurations can be shared.

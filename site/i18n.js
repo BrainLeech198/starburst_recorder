@@ -133,11 +133,11 @@ window.SITE_I18N = {
     'open.title': '源码一直是公开的',
     'open.desc':
       '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器与安卓走 IndexedDB。',
-    'open.version': '版本 0.20.0',
+    'open.version': '版本 0.20.1',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.20.0 仍是早期版本，升级前请先导出备份。0.13.1 之前的备份可能含明文模型名称和 API Key；若旧备份曾外传或存到云端、邮件，请撤销旧 Key 并重新生成。',
+    'download.desc': '0.20.1 仍是早期版本，升级前请先导出备份。0.13.1 之前的备份可能含明文模型名称和 API Key；若旧备份曾外传或存到云端、邮件，请撤销旧 Key 并重新生成。',
     'download.web': '网页版',
     'download.webMeta': '浏览器直接使用 · 支持安装为 PWA',
     'download.webDesc': '无需下载安装，打开即可使用；也可以添加到主屏幕，像应用一样启动。',
@@ -151,9 +151,9 @@ window.SITE_I18N = {
     'download.note': '当前版安装包优先由 Gitee 提供大陆下载，GitHub 保留完整版本历史并作备用；历史版本请从 GitHub 下载。',
 
     'whatsnew.title': '这一版有什么',
-    'whatsnew.item1': '备份可按分区选择加密，并保留不加密选项',
-    'whatsnew.item2': '跳过口令时，未加密的备份分区仍可恢复',
-    'whatsnew.item3': '可用二维码或分享码分享单个 AI 模型',
+    'whatsnew.item1': '日记编辑时，纸张横线随文字一起滚动',
+    'whatsnew.item2': '不依赖较新的浏览器特性，各平台表现一致',
+    'whatsnew.item3': '阅读时横线保持原样，不受影响',
     'whatsnew.more': '完整更新日志',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
@@ -161,7 +161,7 @@ window.SITE_I18N = {
     'changelog.back': '← 回到下载',
     'download.historyLink': '历史版本与更新日志，每版都附下载 →',
 
-    'footer.version': '版本 0.20.0',
+    'footer.version': '版本 0.20.1',
     'footer.tagline': '数据只存在你的设备上',
     'footer.admin': '管理员入口',
   },
@@ -297,12 +297,12 @@ window.SITE_I18N = {
     'open.title': 'The source has always been public',
     'open.desc':
       'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser and on Android.',
-    'open.version': 'Version 0.20.0',
+    'open.version': 'Version 0.20.1',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.20.0 is still an early build. Export a backup before upgrading. Backups exported before 0.13.1 may contain model names and API keys in plain text; if you shared one or stored it in cloud storage or email, revoke old keys and generate fresh ones.',
+      '0.20.1 is still an early build. Export a backup before upgrading. Backups exported before 0.13.1 may contain model names and API keys in plain text; if you shared one or stored it in cloud storage or email, revoke old keys and generate fresh ones.',
     'download.web': 'Web app',
     'download.webMeta': 'Use in your browser · Installable as a PWA',
     'download.webDesc': 'No download needed. Open it in your browser, or add it to your home screen like an app.',
@@ -317,10 +317,10 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'The current installers are available from Gitee for users in mainland China. GitHub keeps the full release history and serves as a fallback; download older versions from GitHub.',
 
-    'whatsnew.title': "What's new in 0.20.0",
-    'whatsnew.item1': 'Choose backup encryption by section and keep plaintext export available',
-    'whatsnew.item2': 'Skipping a passphrase still restores unencrypted backup sections',
-    'whatsnew.item3': 'Share an AI model with a QR code or share code',
+    'whatsnew.title': "What's new in 0.20.1",
+    'whatsnew.item1': 'While editing a diary, the paper ruling lines scroll with the text',
+    'whatsnew.item2': 'No reliance on newer browser features, so behavior is consistent across platforms',
+    'whatsnew.item3': 'Ruling lines are unchanged when reading',
     'whatsnew.more': 'Full release notes',
     'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
@@ -328,7 +328,7 @@ window.SITE_I18N = {
     'changelog.back': '← Back to downloads',
     'download.historyLink': 'Previous versions and changelog, each with downloads →',
 
-    'footer.version': 'Version 0.20.0',
+    'footer.version': 'Version 0.20.1',
     'footer.tagline': 'Data stays on your device',
     'footer.admin': 'Admin',
   },
