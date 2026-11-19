@@ -346,3 +346,11 @@ GitHub 普通 Release [v0.21.0](https://github.com/BrainLeech198/starburst_recor
 GitHub 普通 Release [v0.21.1](https://github.com/BrainLeech198/starburst_recorder/releases/tag/v0.21.1) 与 Gitee Release（API ID `1328580`）均有两项本版安装包，大小与本地一致；GitHub asset digest、Gitee 回下载哈希均与本地一致。Gitee `v0.21.0` Release（ID `1328316`）的 APK / EXE 附件已在新版核验后移除，Release、tag 与源码归档保留；Gitee 与 GitHub `/latest` 均指向 `v0.21.1`。Gitee `origin/main`、GitHub 镜像 `main` 与标签均指向 `f087de9`。GitHub CI `44514170361` 与 Pages 工作流 `44514170436` 均成功，官网首页和 `notes.zh.md` 均 HTTP 200 并显示本版。
 
 `npm test`（99 个文件、950 项）、`npm run typecheck`、`npm run lint`、`npm run build`、`npx cap sync android`、Android `assembleRelease` 与 Windows 安装包构建均通过。Cloudflare Pages 正式部署地址 `https://70dcc309.starburst-recorder.pages.dev`，部署 ID `70dcc309-51c5-47e5-81e9-d9728dbb3f83`，构建号 `mwngek0h`；正式域名线上验收 10/10、本地 PWA 探针 20/20，Service Worker 已激活并接管页面，推送鉴权与 `/health` 通过，测试订阅已删除。构建提示包括 Vite 大 chunk、Android 第三方 Kotlin 元数据版本差异、Gradle 9 弃用和 npm 镜像配置项未来将不再支持，均未阻断构建。
+
+`0.21.2` 正式版：标签 `v0.21.2` 指向提交 `9e93ba886667916f49e9634580e4033d16edfd82`。本版首页今日清单默认显示前三项，可展开 / 收起；首页右上角三点菜单集中提供扫码与导入分享码。
+
+APK 为 61,957,877 字节、`versionCode=2102999`、`versionName=0.21.2`、SHA-256 `13EABC04908D7393B9DAA3489A69CDAA000D882954AA4DD3DEBCFAE96FD5D03B`；签名证书 SHA-256 `2eb0978a6abad455b55aa06dc86d2ccd73816aa68059ce6e4289c35533f94b05` 与 §2.2 一致。Windows 安装包为 97,799,320 字节、ProductVersion `0.21.2`、SHA-256 `F3DED2B41D276321EA51336E66DD01349C58471DF30B0E4D10C4C7EA5817C09C`，低于 Gitee 单附件 100 MiB 限制。
+
+GitHub 普通 Release [v0.21.2](https://github.com/BrainLeech198/starburst_recorder/releases/tag/v0.21.2) 与 Gitee Release（API ID `1328726`）都有同名 APK / EXE；GitHub asset digest、Gitee 回下载 SHA-256 均与本地一致。Gitee 上一正式版 `v0.21.1` Release（ID `1328580`）的两个二进制附件在新版验证后删除（HTTP 204），Release 与 tag 保留；GitHub 历史附件保留。Gitee 共 65 个 Release，只有 `v0.21.2` 留有二进制附件（共 159,757,197 字节，小于 1 GiB）。四个 Gitee / GitHub 下载地址均 HTTP 200；官网首页、中文 / 英文说明与更新日志均 HTTP 200 并显示本版。Gitee `origin/main`、GitHub 镜像 `main` 与标签均指向 `9e93ba8`。GitHub 主线 CI `44520743353`、tag CI `44520744224` 与 Pages 工作流 `44520743548` 均成功。
+
+`npm test`（99 个文件、950 项）、`npm run typecheck`、`npm run lint`、`npm run build`、`npx cap sync android`、Android `assembleRelease` 与 Windows 安装包构建均通过。首次 Android 构建遇到 Kotlin 守护进程共享缓存冲突，使用单次 Gradle 进程、进程内 Kotlin 编译后通过；仍有第三方 Kotlin 元数据版本及 Gradle 9 弃用提示，未阻断出包。PWA 部署与线上验收记录见 `docs/PWA-IOS.md`。
