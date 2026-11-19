@@ -1920,6 +1920,8 @@ export const fr: Record<MessageKey, string> = {
   'diaryEdit.saveTitle': 'Enregistrer cette entrée',
   'diaryEdit.saveHint': "« Enregistrer » écrit dans l'entrée de l'éditeur ; « Enregistrer sous » choisit un autre jour et crée une nouvelle entrée.",
   'diaryEdit.neverSaved': "Ce brouillon n'appartient encore à aucun jour, choisissez un jour avec « Enregistrer sous ».",
+  'diaryEdit.quickDayHint': 'Enregistrez cette entrée pour ce jour et revenez à ses notes.',
+  'diaryEdit.quickDaySave': 'Enregistrer et revenir au jour',
   'diaryEdit.saved': 'Enregistré',
   'diaryEdit.savedAs': 'Enregistré comme entrée du {date}',
   'diaryEdit.statusSaved': 'Identique au contenu sur le disque',
@@ -2382,6 +2384,8 @@ export const fr: Record<MessageKey, string> = {
   // ─────────── Entraînement ───────────
   'training.title': 'Entraînement',
   'training.empty': 'Aucun entraînement enregistré ce jour',
+  'training.pickNeedsContent': 'Ajoutez un exercice, indiquez une durée ou écrivez une note avant d’enregistrer.',
+  'training.quickNeedsDurationOrDistance': 'Indiquez une durée ou une distance avant d’enregistrer.',
   'training.first': 'Enregistrer le premier',
   'training.add': 'Enregistrer une séance',
   'training.trash': 'Corbeille',

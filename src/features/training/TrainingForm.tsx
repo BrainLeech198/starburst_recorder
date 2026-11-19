@@ -277,7 +277,7 @@ export default function TrainingForm({
       const minutes = numberOrNull(quickDuration, 0, 1440)
       const distance = numberOrNull(quickDistance, 0, 1000)
       if (quickKind === 'cardio' && minutes === null && distance === null) {
-        setError(t('training.empty'))
+        setError(t('training.quickNeedsDurationOrDistance'))
         return
       }
       const now = Date.now()
@@ -333,7 +333,7 @@ export default function TrainingForm({
     // 只记了时长、只记了动作名、只记了备注都算合法记录；完全空白才拦
     const minutes = numberOrNull(durationText, 0, 1440)
     if (filled.length === 0 && minutes === null && note.trim() === '') {
-      setError(t('training.empty'))
+      setError(t('training.pickNeedsContent'))
       return
     }
 
@@ -417,7 +417,7 @@ export default function TrainingForm({
             placeholder={t('training.phraseHint')}
             className={`${INPUT} w-full resize-none`}
           />
-          {phraseError !== '' && <p className="m-0 text-xs text-danger">{phraseError}</p>}
+          {phraseError !== '' && <p role="alert" className="m-0 text-xs text-danger">{phraseError}</p>}
           <button
             type="button"
             disabled={phraseBusy || phrase.trim() === ''}
@@ -803,7 +803,7 @@ export default function TrainingForm({
         </div>
       )}
 
-      {error !== '' && <p className="m-0 mt-3 text-xs text-danger">{error}</p>}
+      {error !== '' && <p role="alert" className="m-0 mt-3 text-xs text-danger">{error}</p>}
 
       {mode !== 'mode' && mode !== 'phrase' && (
         <div className="mt-5 flex justify-end gap-2">

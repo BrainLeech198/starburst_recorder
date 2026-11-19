@@ -1927,6 +1927,8 @@ export const ja: Record<MessageKey, string> = {
   'diaryEdit.saveTitle': 'この日記を保存',
   'diaryEdit.saveHint': '「保存」は編集画面が指す日記に書き戻します。「別名で保存」は別の日を選んで新しく保存します。',
   'diaryEdit.neverSaved': 'この下書きはまだどの日にも保存されていません。先に日を選んで「別名で保存」してください。',
+  'diaryEdit.quickDayHint': '選択した日に保存し、その日の記録に戻ります。',
+  'diaryEdit.quickDaySave': '保存して当日に戻る',
   'diaryEdit.saved': '保存しました',
   'diaryEdit.savedAs': '{date} の日記として別名で保存しました',
   'diaryEdit.statusSaved': 'ディスク上の内容と一致',
@@ -2406,6 +2408,8 @@ export const ja: Record<MessageKey, string> = {
   // ─────────── トレーニング ───────────
   'training.title': 'トレーニング',
   'training.empty': 'この日のトレーニング記録はありません',
+  'training.pickNeedsContent': '保存する前に、種目・時間・メモのいずれかを入力してください。',
+  'training.quickNeedsDurationOrDistance': '保存する前に時間または距離を入力してください。',
   'training.first': '初めて記録する',
   'training.add': '記録する',
   'training.trash': 'ゴミ箱',

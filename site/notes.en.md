@@ -1,5 +1,19 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
+## 0.21.5 · 2026-11-20
+
+Diary drafts created from a day view save to that date and return there; empty workout forms now say what to add.
+
+### Improvements
+
+- **Save a day-view diary directly** — save the draft to the selected date and return to that day. The dialog and success message make the destination clear; regular “Save as” still lets you choose a date.
+- **Make workout validation specific** — pick mode asks for an exercise, duration, or note; quick cardio asks for duration or distance. Screen readers announce dynamic errors.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.21.5-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5-setup.exe)
+- Android 10+: [starburst-recorder-0.21.5.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5.apk)
+
 ## 0.21.4 · 2026-11-20
 
 Open check-ins and their history from anywhere on a schedule card. Postcards now preserve each photo's full proportions, and recurring plans show their start and end dates.
@@ -13,8 +27,8 @@ Open check-ins and their history from anywhere on a schedule card. Postcards now
 
 ### Downloads
 
-- Windows 10/11: [starburst-recorder-0.21.4-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe)
-- Android 10+: [starburst-recorder-0.21.4.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk)
+- Windows 10/11: [starburst-recorder-0.21.4-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe)
+- Android 10+: [starburst-recorder-0.21.4.apk](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk) (release-signed)
 
 ## 0.21.3 · 2026-11-19
 

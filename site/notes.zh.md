@@ -1,5 +1,19 @@
 本地优先的个人记录工具，内置 AI：随手记一句今天，AI 会把它整理成一篇完整的日记。不用注册、没有云端，每一条记录都留在这台设备上。AI 用的是你自己准备的模型和 Key。
 
+## 0.21.5 · 2026-11-20
+
+当天页新建日记可直接保存并回到原日期；训练空表单会说明需要补充什么。
+
+### 改进
+
+- **当天日记直接保存**：从当天页新建的日记会存到所选日期并返回当天；保存弹窗和成功提示会说明结果。普通日记的「另存为」仍可自行选择日期。
+- **训练提示更具体**：点选记提示添加动作、填写时长或写备注；快速有氧提示填写时长或距离。动态错误会由屏幕阅读器播报。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.21.5-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5-setup.exe)
+- Android 10 以上：[starburst-recorder-0.21.5.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5.apk)
+
 ## 0.21.4 · 2026-11-20
 
 日程卡片可直接打开打卡和历史记录；明信片完整保留照片比例，重复计划清楚显示起止日期。
@@ -13,8 +27,8 @@
 
 ### 下载
 
-- Windows 10/11：[starburst-recorder-0.21.4-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe)
-- Android 10 以上：[starburst-recorder-0.21.4.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk)
+- Windows 10/11：[starburst-recorder-0.21.4-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe)
+- Android 10 以上：[starburst-recorder-0.21.4.apk](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk)（正式签名）
 
 ## 0.21.3 · 2026-11-19
 

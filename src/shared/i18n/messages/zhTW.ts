@@ -1926,6 +1926,8 @@ export const zhTW: Record<MessageKey, string> = {
   'diaryEdit.saveTitle': '儲存這則日記',
   'diaryEdit.saveHint': '「儲存」會寫回編輯區指向的這則；「另存新檔」挑另一天，新存一則。',
   'diaryEdit.neverSaved': '這份草稿還沒存到任何一天，先選一天「另存新檔」。',
+  'diaryEdit.quickDayHint': '儲存到這一天並返回當天記錄。',
+  'diaryEdit.quickDaySave': '儲存並返回當天',
   'diaryEdit.saved': '已儲存',
   'diaryEdit.savedAs': '已另存為 {date} 的日記',
   'diaryEdit.statusSaved': '和磁碟上的內容一致',
@@ -2395,6 +2397,8 @@ export const zhTW: Record<MessageKey, string> = {
   // ─────────── 訓練 ───────────
   'training.title': '訓練',
   'training.empty': '這天還沒有訓練紀錄',
+  'training.pickNeedsContent': '請新增一個訓練動作、填寫時長或寫下備註後再儲存。',
+  'training.quickNeedsDurationOrDistance': '請填寫訓練時長或距離後再儲存。',
   'training.first': '記第一次',
   'training.add': '記一次',
   'training.trash': '回收站',

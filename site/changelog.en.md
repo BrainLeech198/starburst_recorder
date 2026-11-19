@@ -1,3 +1,33 @@
+## 0.21.5 · 2026-11-20
+
+Diary drafts created from a day view save to that date and return there; empty workout forms now say what to add.
+
+### What's new
+
+- **Save a day-view diary directly** — save the draft to the selected date and return to that day. The dialog and success message make the destination clear; regular “Save as” still lets you choose a date.
+- **Make workout validation specific** — pick mode asks for an exercise, duration, or note; quick cardio asks for duration or distance. Screen readers announce dynamic errors.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.21.5-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5-setup.exe)
+- Android 10+: [starburst-recorder-0.21.5.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5.apk)
+
+## 0.21.4 · 2026-11-20
+
+Open check-ins and their history from anywhere on a schedule card. Postcards preserve each photo's full proportions, and recurring plans show their start and end dates.
+
+### What's new
+
+- **Tap anywhere on a schedule card to check in** — the card body and checkbox open the same record form, with daily history and exact times.
+- **Keep precise check-in times** — new check-ins save Unix millisecond timestamps, and editing does not reset the original time. Older records without a real timestamp are marked as unavailable.
+- **Show recurring schedule dates** — the form labels the start date, and the management list hides plans after their end date. The end date itself remains active; older plans without an end date keep their existing behavior.
+- **Keep postcard photos uncropped** — photos retain their original aspect ratio, and the postcard canvas grows to fit their height.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.21.4-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe)
+- Android 10+: [starburst-recorder-0.21.4.apk](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk) (release-signed)
+
 ## 0.21.3 · 2026-11-19
 
 Workout duration fields now clearly state that values are in minutes.
@@ -1017,30 +1047,3 @@ The first release: diary, notes, AI drafting and health logging
 
 - Windows 10/11: [`starburst-recorder-0.1.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.1.0/starburst-recorder-0.1.0-setup.exe) (~95 MB)
 - Android 10+: [`starburst-recorder-0.1.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.1.0/starburst-recorder-0.1.0.apk) (~16 MB, release-signed)
-## 0.17.3 · 2026-11-11
-
-Choose whether food library edits update intake history
-
-### What's new
-
-- **Choose the scope when editing a food** — update the library only, or also sync historical intakes that reference it. Meal intake snapshots recalculate the matching component and totals using their original grams.
-
-### Downloads
-
-- Windows 10/11: [`starburst-recorder-0.17.3-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3-setup.exe) (~96 MB)
-- Android 10+: [`starburst-recorder-0.17.3.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3.apk) (~62 MB, release-signed)
-## 0.21.4 · 2026-11-20
-
-Open check-ins and their history from anywhere on a schedule card. Postcards now preserve each photo's full proportions, and recurring plans show their start and end dates.
-
-### Improvements
-
-- **Tap anywhere on a schedule card to check in** — the card body and checkbox both open the same record form, with daily history and exact times.
-- **Keep precise check-in times** — new check-ins save Unix millisecond timestamps, and editing does not reset the original time. Older records without a real timestamp are marked as unavailable.
-- **Show recurring schedule dates** — the form labels the start date, and the management list hides plans after their end date. The end date itself remains active; older plans without an end date keep their existing behavior.
-- **Keep postcard photos uncropped** — photos retain their original aspect ratio, and the postcard canvas grows to fit their height.
-
-### Downloads
-
-- Windows 10/11: [starburst-recorder-0.21.4-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe)
-- Android 10+: [starburst-recorder-0.21.4.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk)

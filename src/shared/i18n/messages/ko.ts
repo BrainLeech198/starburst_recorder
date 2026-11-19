@@ -1930,6 +1930,8 @@ export const ko: Record<MessageKey, string> = {
   'diaryEdit.saveTitle': '이 일기 저장',
   'diaryEdit.saveHint': '「저장」은 편집기가 가리키는 일기에 다시 쓰고, 「다른 날짜로 저장」은 다른 날을 골라 새로 저장해요.',
   'diaryEdit.neverSaved': '이 초안은 아직 어느 날에도 저장되지 않았어요. 「다른 날짜로 저장」으로 날짜를 먼저 고르세요.',
+  'diaryEdit.quickDayHint': '선택한 날짜에 저장하고 해당 날짜 기록으로 돌아갑니다.',
+  'diaryEdit.quickDaySave': '저장하고 해당 날짜로 돌아가기',
   'diaryEdit.saved': '저장했어요',
   'diaryEdit.savedAs': '{date} 일기로 저장했어요',
   'diaryEdit.statusSaved': '디스크 내용과 같아요',
@@ -2401,6 +2403,8 @@ export const ko: Record<MessageKey, string> = {
   // ─────────── 운동 ───────────
   'training.title': '운동',
   'training.empty': '이 날은 운동 기록이 없어요',
+  'training.pickNeedsContent': '저장하기 전에 운동 종목, 시간 또는 메모를 입력하세요.',
+  'training.quickNeedsDurationOrDistance': '저장하기 전에 운동 시간 또는 거리를 입력하세요.',
   'training.first': '처음 기록하기',
   'training.add': '기록하기',
   'training.trash': '휴지통',

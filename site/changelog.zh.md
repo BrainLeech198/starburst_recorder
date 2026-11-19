@@ -1,3 +1,33 @@
+## 0.21.5 · 2026-11-20
+
+当天页新建日记可直接保存并回到原日期；训练空表单会说明需要补充什么。
+
+### 这一版有什么
+
+- **当天日记直接保存**：从当天页新建的日记会存到所选日期并返回当天；保存弹窗和成功提示会说明结果。普通日记的「另存为」仍可自行选择日期。
+- **训练提示更具体**：点选记提示添加动作、填写时长或写备注；快速有氧提示填写时长或距离。动态错误会由屏幕阅读器播报。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.21.5-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5-setup.exe)
+- Android 10 以上：[starburst-recorder-0.21.5.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5.apk)
+
+## 0.21.4 · 2026-11-20
+
+日程卡片可直接打开打卡和历史记录；明信片完整保留照片比例，重复计划清楚显示起止日期。
+
+### 这一版有什么
+
+- **整张日程卡片可打卡**：点击卡片或勾选框都会打开记录窗；可查看逐日打卡历史和具体时间。
+- **记录准确的打卡时间**：新打卡保存 Unix 毫秒时间戳，编辑记录不刷新原时间；旧数据缺少真实时间时会明确标出未记录。
+- **重复日程显示起止范围**：表单明确标注开始日期；管理列表隐藏已过截止日的计划，截止当天仍有效。没有截止日的旧任务继续沿用原规则。
+- **明信片照片不再裁切**：图片按原始比例完整展示，并按照片高度扩展明信片画布。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.21.4-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe)
+- Android 10 以上：[starburst-recorder-0.21.4.apk](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk)（正式签名）
+
 ## 0.21.3 · 2026-11-19
 
 训练时长输入现在会明确标出单位是分钟。
@@ -1026,30 +1056,3 @@ AI 整理能挑素材，也能翻旧账
 
 - Windows 10/11：[`starburst-recorder-0.1.0-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.1.0/starburst-recorder-0.1.0-setup.exe)（约 95 MB）
 - Android 10 以上：[`starburst-recorder-0.1.0.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.1.0/starburst-recorder-0.1.0.apk)（约 16 MB，正式签名）
-## 0.17.3 · 2026-11-11
-
-食物库编辑可选择是否同步更新历史摄入
-
-### 这一版有什么
-
-- **食物库编辑先选同步范围**：可以只改食物库，也可以同步更新引用该食物的历史摄入；套餐摄入会按原克数重算对应成分和营养合计。
-
-### 下载
-
-- Windows 10/11：[`starburst-recorder-0.17.3-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3-setup.exe)（约 96 MB）
-- Android 10 以上：[`starburst-recorder-0.17.3.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3.apk)（约 62 MB，正式签名）
-## 0.21.4 · 2026-11-20
-
-日程卡片可直接打开打卡和历史记录；明信片完整保留照片比例，重复计划清楚显示起止日期。
-
-### 改进
-
-- **整张日程卡片可打卡**：点击卡片或勾选框都会打开记录窗；可查看逐日打卡历史和具体时间。
-- **记录准确的打卡时间**：新打卡保存 Unix 毫秒时间戳，编辑记录不刷新原时间；旧数据缺少真实时间时会明确标出未记录。
-- **重复日程显示起止范围**：表单明确标注开始日期；管理列表隐藏已过截止日的计划，截止当天仍有效。没有截止日的旧任务继续沿用原规则。
-- **明信片照片不再裁切**：图片按原始比例完整展示，并按照片高度扩展明信片画布。
-
-### 下载
-
-- Windows 10/11：[starburst-recorder-0.21.4-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe)
-- Android 10 以上：[starburst-recorder-0.21.4.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk)

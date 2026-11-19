@@ -1932,6 +1932,8 @@ export const zh = {
   'diaryEdit.saveTitle': '保存这篇日记',
   'diaryEdit.saveHint': '「保存」写回编辑区指向的这篇；「另存为」挑另一天，新存一条。',
   'diaryEdit.neverSaved': '这份草稿还没存到任何一天，先选一天「另存为」。',
+  'diaryEdit.quickDayHint': '保存到这一天并返回当天记录。',
+  'diaryEdit.quickDaySave': '保存并返回当天',
   'diaryEdit.saved': '已保存',
   'diaryEdit.savedAs': '已另存为 {date} 的日记',
   'diaryEdit.statusSaved': '和磁盘上的内容一致',
@@ -2401,6 +2403,8 @@ export const zh = {
   // ─────────── 训练 ───────────
   'training.title': '训练',
   'training.empty': '这天还没有训练记录',
+  'training.pickNeedsContent': '请添加一个训练动作、填写时长或写下备注后再保存。',
+  'training.quickNeedsDurationOrDistance': '请填写训练时长或距离后再保存。',
   'training.first': '记第一次',
   'training.add': '记一次',
   'training.trash': '回收站',

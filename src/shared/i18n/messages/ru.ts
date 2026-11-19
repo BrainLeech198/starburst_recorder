@@ -1918,6 +1918,8 @@ export const ru: Record<MessageKey, string> = {
   'diaryEdit.saveTitle': 'Сохранить запись',
   'diaryEdit.saveHint': '«Сохранить» вернёт изменения в запись, которую открыл редактор; «Сохранить как» выберет другой день и создаст новую.',
   'diaryEdit.neverSaved': 'Черновик ещё ни к какому дню не привязан — выберите день через «Сохранить как».',
+  'diaryEdit.quickDayHint': 'Запись сохранится за этот день, после чего вы вернётесь к его записям.',
+  'diaryEdit.quickDaySave': 'Сохранить и вернуться к дню',
   'diaryEdit.saved': 'Сохранено',
   'diaryEdit.savedAs': 'Сохранено как запись за {date}',
   'diaryEdit.statusSaved': 'Совпадает с содержимым на диске',
@@ -2380,6 +2382,8 @@ export const ru: Record<MessageKey, string> = {
   // ─────────── Тренировки ───────────
   'training.title': 'Тренировки',
   'training.empty': 'За этот день тренировок нет',
+  'training.pickNeedsContent': 'Перед сохранением добавьте упражнение, укажите длительность или напишите заметку.',
+  'training.quickNeedsDurationOrDistance': 'Перед сохранением укажите длительность или расстояние.',
   'training.first': 'Записать первую',
   'training.add': 'Записать тренировку',
   'training.trash': 'Корзина',

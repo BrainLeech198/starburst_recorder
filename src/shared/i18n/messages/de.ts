@@ -1917,6 +1917,8 @@ export const de: Record<MessageKey, string> = {
   'diaryEdit.saveTitle': 'Diesen Eintrag speichern',
   'diaryEdit.saveHint': '„Speichern“ schreibt in den Eintrag, den der Editor anzeigt; „Speichern unter“ wählt einen anderen Tag und legt einen neuen an.',
   'diaryEdit.neverSaved': 'Dieser Entwurf gehört noch zu keinem Tag, wähle zuerst einen Tag mit „Speichern unter“.',
+  'diaryEdit.quickDayHint': 'Speichere den Eintrag für diesen Tag und kehre zu seinen Aufzeichnungen zurück.',
+  'diaryEdit.quickDaySave': 'Speichern und zum Tag zurückkehren',
   'diaryEdit.saved': 'Gespeichert',
   'diaryEdit.savedAs': 'Als Eintrag für {date} gespeichert',
   'diaryEdit.statusSaved': 'Entspricht dem Inhalt auf der Festplatte',
@@ -2380,6 +2382,8 @@ export const de: Record<MessageKey, string> = {
   // ─────────── Training ───────────
   'training.title': 'Training',
   'training.empty': 'Für diesen Tag ist kein Training erfasst',
+  'training.pickNeedsContent': 'Füge eine Übung hinzu, gib eine Dauer ein oder schreibe eine Notiz, bevor du speicherst.',
+  'training.quickNeedsDurationOrDistance': 'Gib vor dem Speichern eine Dauer oder Distanz ein.',
   'training.first': 'Erstes Training erfassen',
   'training.add': 'Einheit erfassen',
   'training.trash': 'Papierkorb',

@@ -1944,6 +1944,8 @@ export const es: Record<MessageKey, string> = {
   'diaryEdit.saveTitle': 'Guardar esta entrada',
   'diaryEdit.saveHint': '«Guardar» escribe en la entrada que abre el editor; «Guardar como» elige otro día y crea una nueva.',
   'diaryEdit.neverSaved': 'Este borrador aún no pertenece a ningún día; primero elige un día con «Guardar como».',
+  'diaryEdit.quickDayHint': 'Guarda esta entrada en este día y vuelve a sus registros.',
+  'diaryEdit.quickDaySave': 'Guardar y volver al día',
   'diaryEdit.saved': 'Guardado',
   'diaryEdit.savedAs': 'Guardado como entrada del {date}',
   'diaryEdit.statusSaved': 'Coincide con el contenido en disco',
@@ -2427,6 +2429,8 @@ export const es: Record<MessageKey, string> = {
   // ─────────── Entrenamiento ───────────
   'training.title': 'Entrenamiento',
   'training.empty': 'No hay entrenamientos este día',
+  'training.pickNeedsContent': 'Añade un ejercicio, indica la duración o escribe una nota antes de guardar.',
+  'training.quickNeedsDurationOrDistance': 'Indica la duración o la distancia antes de guardar.',
   'training.first': 'Registrar el primero',
   'training.add': 'Registrar una sesión',
   'training.trash': 'Papelera',

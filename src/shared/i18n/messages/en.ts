@@ -1987,6 +1987,8 @@ export const en: Record<MessageKey, string> = {
   'diaryEdit.saveHint':
     '"Save" writes back to the entry this editor points to; "Save as" picks another day and creates a new one.',
   'diaryEdit.neverSaved': 'This draft belongs to no day yet — pick a day with "Save as" first.',
+  'diaryEdit.quickDayHint': 'Save this entry to the selected day and return to that day’s records.',
+  'diaryEdit.quickDaySave': 'Save and return to day',
   'diaryEdit.saved': 'Saved',
   'diaryEdit.savedAs': 'Saved as an entry for {date}',
   'diaryEdit.statusSaved': 'Matches the content on disk',
@@ -2478,6 +2480,8 @@ export const en: Record<MessageKey, string> = {
   // ─────────── Training ───────────
   'training.title': 'Training',
   'training.empty': 'No training recorded for this day',
+  'training.pickNeedsContent': 'Add an exercise, enter a duration, or write a note before saving.',
+  'training.quickNeedsDurationOrDistance': 'Enter a duration or distance before saving.',
   'training.first': 'Log the first one',
   'training.add': 'Log a session',
   'training.trash': 'Trash',

@@ -214,6 +214,10 @@ export default function DiaryEditPage() {
 
   const shownDate = isNew ? draftDate : (entry?.dateKey ?? draftDate)
   const hasDiskEntry = !isNew && entry != null
+  const quickDayDraftDate =
+    isNew && navState.returnToDay === true && isDateKey(navState.dateKey)
+      ? navState.dateKey
+      : null
   const changed =
     value !== baseContent ||
     weatherValue !== baseWeather ||
@@ -319,7 +323,11 @@ export default function DiaryEditPage() {
   }
 
   /** 另存为：挑一天，新开一条，再把编辑区指过去（不覆盖那天已有的日记） */
-  async function saveAs(dateKey: string) {
+  async function saveAs(
+    dateKey: string,
+    options: { leaveAfter?: boolean; quickDaySave?: boolean } = {},
+  ) {
+    const { leaveAfter = saveAsLeave, quickDaySave = false } = options
     if (busy) return
     setBusy(true)
     try {
@@ -328,8 +336,12 @@ export default function DiaryEditPage() {
       await setEntryTags(created.id, tagsValue)
       if (weatherValue !== '') await setWeather(dateKey, weatherValue)
       setSaved({ content: value, weather: weatherValue, images: imagesValue, tags: tagsValue })
-      showToast({ message: t('diaryEdit.savedAs', { date: formatDate(dateKey, t) }) })
-      if (saveAsLeave) {
+      showToast({
+        message: quickDaySave
+          ? t('diaryEdit.saved')
+          : t('diaryEdit.savedAs', { date: formatDate(dateKey, t) }),
+      })
+      if (leaveAfter) {
         const target = proceedTarget()
         if (navState.returnToDay && isDateKey(navState.dateKey)) {
           go(`/day/${navState.dateKey}`)
@@ -643,6 +655,10 @@ export default function DiaryEditPage() {
   }
 
   async function handleLeaveSave() {
+    if (quickDayDraftDate !== null) {
+      await saveAs(quickDayDraftDate, { leaveAfter: true, quickDaySave: true })
+      return
+    }
     if (!hasDiskEntry || busy) return
     setBusy(true)
     try {
@@ -823,20 +839,26 @@ export default function DiaryEditPage() {
         <Modal size="xs" label={t('diaryEdit.saveTitle')} onClose={() => setSaveOpen(false)}>
           <div className="text-sm font-medium">{t('diaryEdit.saveTitle')}</div>
           <p className="mt-2 text-xs text-muted">
-            {hasDiskEntry ? t('diaryEdit.saveHint') : t('diaryEdit.neverSaved')}
+            {quickDayDraftDate !== null
+              ? t('diaryEdit.quickDayHint')
+              : hasDiskEntry
+                ? t('diaryEdit.saveHint')
+                : t('diaryEdit.neverSaved')}
           </p>
           <div className="mt-4 flex flex-col gap-2">
             <button
               type="button"
-              disabled={!hasDiskEntry || busy}
+              disabled={(!hasDiskEntry && !(quickDayDraftDate !== null && hasUnsaved)) || busy}
               onClick={() => {
                 setSaveOpen(false)
-                void handleSave()
+                if (quickDayDraftDate !== null) {
+                  void saveAs(quickDayDraftDate, { leaveAfter: true, quickDaySave: true })
+                } else void handleSave()
               }}
               className={`${SOLID_BUTTON} w-full disabled:opacity-40`}
             >
               <Icon name="check" />
-              {t('diaryEdit.save')}
+              {t(quickDayDraftDate !== null ? 'diaryEdit.quickDaySave' : 'diaryEdit.save')}
             </button>
             <button
               type="button"
@@ -864,12 +886,12 @@ export default function DiaryEditPage() {
           <div className="mt-4 flex flex-col gap-2">
             <button
               type="button"
-              disabled={!hasDiskEntry || busy}
+              disabled={(!hasDiskEntry && quickDayDraftDate === null) || busy}
               onClick={() => void handleLeaveSave()}
               className={`${SOLID_BUTTON} w-full disabled:opacity-40`}
             >
               <Icon name="check" />
-              {t('diaryEdit.save')}
+              {t(quickDayDraftDate !== null ? 'diaryEdit.quickDaySave' : 'diaryEdit.save')}
             </button>
             <button
               type="button"
