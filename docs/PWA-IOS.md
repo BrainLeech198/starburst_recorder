@@ -495,3 +495,5 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
 - **2026-11-18 v0.20.0**：标签 `v0.20.0`（提交 `4ad7437`）已部署到生产 Pages，地址 `https://28851363.starburst-recorder.pages.dev`，部署 ID `28851363-9c9c-4f59-b0c8-5288aa411d6d`，构建号 `mwlt6484`；正式域名线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并接管页面，推送鉴权与 `/health` 通过，测试订阅已删除。
 
 - **2026-11-19 v0.21.0**：标签 `v0.21.0`（产品提交 `c1801ce`）已部署到生产 Pages，地址 `https://ccf04cef.starburst-recorder.pages.dev`，部署 ID `ccf04cef-2de1-42fc-bee0-603203298d24`，构建号 `mwndpvyr`；正式域名线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并接管页面，推送鉴权与 `/health` 通过，测试订阅已删除。
+
+- **2026-11-19 v0.21.1**：标签 `v0.21.1`（提交 `f087de9`）已部署到生产 Pages，地址 `https://70dcc309.starburst-recorder.pages.dev`，部署 ID `70dcc309-51c5-47e5-81e9-d9728dbb3f83`，构建号 `mwngek0h`；正式域名线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并接管页面，推送鉴权与 `/health` 通过，测试订阅已删除。
