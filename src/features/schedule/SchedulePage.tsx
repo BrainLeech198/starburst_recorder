@@ -23,11 +23,14 @@ import DatePickerDialog from '@/features/diary/DatePickerDialog'
 import ViewTabs from '@/features/calendar/ViewTabs'
 import ScheduleDialog from './ScheduleDialog'
 import {
+  checkInHistory,
   checkInFor,
   checkInPatch,
   donePatch,
   isDoneOn,
   occurrencesOn,
+  recordedAtForCheckIn,
+  undoCheckInPatch,
 } from './scheduleMath'
 import ScheduleCheckInDialog from './ScheduleCheckInDialog'
 import SchedulePostcardDialog from './SchedulePostcardDialog'
@@ -62,7 +65,9 @@ export default function SchedulePage() {
   const [postcardOpen, setPostcardOpen] = useState(false)
 
   const today = occurrencesOn(items, dayKey)
-  const recurring = items.filter((item) => item.repeat !== 'none')
+  const recurring = items.filter(
+    (item) => item.repeat !== 'none' && (!item.endDate || item.endDate >= dayKey),
+  )
 
   /** 换天把日期写进地址栏：从日历 / 一天一页跳进来都停在同一处 */
   function goDay(next: string) {
@@ -88,16 +93,21 @@ export default function SchedulePage() {
 
   async function saveCheckIn(note: string, photo: DiaryImage | null) {
     if (!checkInItem) return
+    const recordedAt = recordedAtForCheckIn(checkInItem, dayKey)
     await saveSchedule({
       ...checkInItem,
-      ...donePatch(checkInItem, dayKey, true),
-      ...checkInPatch(checkInItem, dayKey, { note, photo }),
+      ...donePatch(checkInItem, dayKey, true, recordedAt ?? Date.now()),
+      ...checkInPatch(checkInItem, dayKey, { note, photo }, recordedAt),
     })
   }
 
   async function undoCheckIn() {
     if (!checkInItem) return
-    await saveSchedule({ ...checkInItem, ...donePatch(checkInItem, dayKey, false) })
+    await saveSchedule({
+      ...checkInItem,
+      ...donePatch(checkInItem, dayKey, false),
+      ...undoCheckInPatch(checkInItem, dayKey),
+    })
   }
 
   async function confirmDelete() {
@@ -196,27 +206,31 @@ export default function SchedulePage() {
                   onClick={() => setCheckInItem(item)}
                   aria-pressed={done}
                   aria-label={done ? t('schedule.checkIn.open') : t('schedule.markDone')}
-                  className={[
-                    'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors',
-                    done ? 'border-brand bg-brand text-on-brand' : 'border-line text-transparent',
-                  ].join(' ')}
+                  className="flex min-w-0 flex-1 items-start gap-2 rounded-lg px-1 py-0.5 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 >
-                  <Icon name="check" className="h-3 w-3" />
-                </button>
-                <div className="min-w-0 flex-1">
-                  <div className={done ? 'text-sm text-muted line-through' : 'text-sm text-fg'}>
+                  <span
+                    aria-hidden="true"
+                    className={[
+                      'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors',
+                      done ? 'border-brand bg-brand text-on-brand' : 'border-line text-transparent',
+                    ].join(' ')}
+                  >
+                    <Icon name="check" className="h-3 w-3" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className={done ? 'block text-sm text-muted line-through' : 'block text-sm text-fg'}>
                     {item.time && <span className="mr-1.5 text-muted">{item.time}</span>}
                     {item.title}
-                  </div>
-                  <div className="mt-0.5 text-[11px] text-muted">
+                    </span>
+                    <span className="mt-0.5 block text-[11px] text-muted">
                     {repeatLabel(item)}
                     {item.remind && ` · ${t('schedule.remindOn')}`}
                     {item.note && ` · ${item.note}`}
-                  </div>
+                    </span>
                   {checkInFor(item, dayKey)?.note && (
-                    <p className="m-0 mt-1 line-clamp-2 text-xs text-brand">
+                    <span className="mt-1 block line-clamp-2 text-xs text-brand">
                       {checkInFor(item, dayKey)?.note}
-                    </p>
+                    </span>
                   )}
                   {checkInFor(item, dayKey)?.photo && (
                     <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted">
@@ -224,7 +238,8 @@ export default function SchedulePage() {
                       {t('schedule.checkIn.photoAdded')}
                     </span>
                   )}
-                </div>
+                  </span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setDialog({ value: item })}
@@ -276,6 +291,7 @@ export default function SchedulePage() {
                 </div>
                 <div className="mt-0.5 text-[11px] text-muted">
                   {repeatLabel(item)}
+                  {' · '}{t('schedule.fromDate', { date: formatDate(item.dateKey, t) })}
                   {item.endDate
                     ? ` · ${t('schedule.untilDate', { date: formatDate(item.endDate, t) })}`
                     : ` · ${t('schedule.endDateUnset')}`}
@@ -316,6 +332,7 @@ export default function SchedulePage() {
           title={checkInItem.title}
           dateKey={dayKey}
           existing={checkInFor(checkInItem, dayKey)}
+          history={checkInHistory(checkInItem)}
           completed={isDoneOn(checkInItem, dayKey)}
           onClose={() => setCheckInItem(null)}
           onSave={saveCheckIn}

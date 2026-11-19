@@ -15,6 +15,23 @@ export interface DailyPostcardData {
   entries: DailyPostcardEntry[]
 }
 
+const POSTCARD_PHOTO_WIDTH = 872
+const POSTCARD_PHOTO_MAX_HEIGHT = 1000
+
+export interface PostcardPhotoSize {
+  width: number
+  height: number
+}
+
+/** 保持原图比例，并限制单张图片在明信片里的最大尺寸。 */
+export function fitPostcardPhoto(naturalWidth: number, naturalHeight: number): PostcardPhotoSize {
+  const scale = Math.min(
+    POSTCARD_PHOTO_WIDTH / naturalWidth,
+    POSTCARD_PHOTO_MAX_HEIGHT / naturalHeight,
+  )
+  return { width: naturalWidth * scale, height: naturalHeight * scale }
+}
+
 /** 从所选日期的日程中汇总已完成任务，明信片不另存一份派生数据。 */
 export function buildDailyPostcardData(items: ScheduleItem[], dateKey: string): DailyPostcardData {
   const dailyItems = occurrencesOn(items, dateKey)
@@ -90,10 +107,16 @@ export async function renderDailyPostcard(data: DailyPostcardData, dateLabel: st
     title: entry.title,
     image: await loadImage(entry.photoDataUrl!),
   })))).filter((photo): photo is { title: string; image: HTMLImageElement } => photo.image !== null)
-  const photoRows = Math.ceil(photos.length / 2)
+  const photoLayouts = photos.map((photo) => ({
+    ...photo,
+    ...fitPostcardPhoto(photo.image.naturalWidth, photo.image.naturalHeight),
+  }))
   const hiddenPhotoCount = Math.max(0, data.entries.filter((entry) => entry.photoDataUrl).length - photos.length)
-  const photoHeight = photos.length > 0 ? photoRows * 202 + 78 : 0
-  const height = 600 + visibleEntries.length * 150 + photoHeight + (data.entries.length > 8 ? 72 : 0)
+  const photoHeight = photoLayouts.reduce((total, photo) => total + Math.ceil(photo.height) + 84, 0)
+  const hiddenPhotoHeight = photoLayouts.length > 0 && hiddenPhotoCount > 0 ? 48 : 0
+  const height = Math.ceil(
+    600 + visibleEntries.length * 150 + photoHeight + hiddenPhotoHeight + (data.entries.length > 8 ? 72 : 0),
+  )
   const canvas = document.createElement('canvas')
   canvas.width = 1080
   canvas.height = height
@@ -171,31 +194,30 @@ export async function renderDailyPostcard(data: DailyPostcardData, dateLabel: st
     y += 52
   }
 
-  if (photos.length > 0) {
-    const photoTop = y + 12
-    for (const [index, photo] of photos.entries()) {
-      const column = index % 2
-      const row = Math.floor(index / 2)
-      const x = 104 + column * 444
-      const tileY = photoTop + row * 202
-      const tileWidth = 428
-      const imageHeight = 152
-      roundedRect(context, x, tileY, tileWidth, imageHeight, 20)
-      context.save()
-      context.clip()
-      const scale = Math.max(tileWidth / photo.image.naturalWidth, imageHeight / photo.image.naturalHeight)
-      const width = photo.image.naturalWidth * scale
-      const renderedHeight = photo.image.naturalHeight * scale
-      context.drawImage(photo.image, x + (tileWidth - width) / 2, tileY + (imageHeight - renderedHeight) / 2, width, renderedHeight)
-      context.restore()
+  if (photoLayouts.length > 0) {
+    let photoY = y + 12
+    for (const photo of photoLayouts) {
+      const photoHeight = Math.ceil(photo.height)
+      const tileHeight = photoHeight + 64
+      roundedRect(context, 104, photoY, POSTCARD_PHOTO_WIDTH, tileHeight, 20)
+      context.fillStyle = '#f5f4fa'
+      context.fill()
+      context.drawImage(
+        photo.image,
+        104 + (POSTCARD_PHOTO_WIDTH - photo.width) / 2,
+        photoY + 10,
+        photo.width,
+        photo.height,
+      )
       context.fillStyle = '#737181'
       context.font = '500 20px system-ui, sans-serif'
-      context.fillText(photo.title, x + 4, tileY + 162, tileWidth - 8)
+      context.fillText(photo.title, 120, photoY + photoHeight + 34, POSTCARD_PHOTO_WIDTH - 32)
+      photoY += tileHeight + 20
     }
     if (hiddenPhotoCount > 0) {
       context.fillStyle = '#777486'
       context.font = '500 20px system-ui, sans-serif'
-      context.fillText(t('schedule.postcard.photosMore', { count: hiddenPhotoCount }), 104, photoTop + photoRows * 202)
+      context.fillText(t('schedule.postcard.photosMore', { count: hiddenPhotoCount }), 104, photoY - 8, POSTCARD_PHOTO_WIDTH)
     }
   }
 

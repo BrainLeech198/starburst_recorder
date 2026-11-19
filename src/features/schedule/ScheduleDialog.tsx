@@ -112,7 +112,7 @@ export default function ScheduleDialog({
       <div className="mt-3 grid grid-cols-2 gap-2">
         <div>
           <label className="block text-xs text-muted" htmlFor="schedule-date">
-            {t('schedule.fieldDate')}
+            {t(repeat === 'none' ? 'schedule.fieldDate' : 'schedule.fieldStartDate')}
           </label>
           <input
             id="schedule-date"

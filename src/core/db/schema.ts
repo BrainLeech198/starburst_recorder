@@ -416,12 +416,13 @@ export interface DiaryPreset {
 /** 日程的重复方式：一次性 / 每天 / 每周的某几天 */
 export type ScheduleRepeat = 'none' | 'daily' | 'weekly'
 
-/** 一次任务在某天的补充打卡；照片内联保存，随日程备份。 */
+/** 一次任务在某天的打卡记录；照片内联保存，随日程备份。 */
 export interface ScheduleCheckIn {
   dateKey: string
   note: string
   photo: DiaryImage | null
-  recordedAt: number
+  /** 完成打卡时的 Unix 毫秒时间戳；撤销打卡时可清空，但保留文字与照片。 */
+  recordedAt: number | null
 }
 
 /**

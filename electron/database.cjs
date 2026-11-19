@@ -778,7 +778,7 @@ function scheduleCheckInsFromDb(value) {
           dateKey,
           note: typeof raw.note === 'string' ? raw.note.slice(0, 500) : '',
           photo,
-          recordedAt: num(raw.recordedAt) ?? Date.now(),
+          recordedAt: raw.recordedAt === null ? null : num(raw.recordedAt) ?? null,
         }
       })
       .filter(Boolean)

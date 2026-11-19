@@ -169,11 +169,11 @@ $env:STARBURST_SELFCHECK='1'; & "release\win-unpacked\星芒记录者.exe"
 | `diaryEntries` | 一条普通日记 | `id` 主键；另有 `code`（7 位短编号，用来拼 URL）、`dateKey`、`createdAt`、`deletedAt`、`images`（内联图，JSON 文本） |
 | `diaryDays` | 某天的信息（**一天一行**） | `dateKey` 主键；存天气 |
 | `diaryStamps` | 随记的一笔 | `id` 主键；`dateKey` + `time`（'HH:MM'）+ `content` + `images`（内联图，JSON 文本）+ `deletedAt` |
-| `schedules` | 一次性日程或重复任务 | `dateKey` 是开始日；重复任务的 `endDate` 是含当天的截止日；完成日期在 `doneDays`，逐日补充文字与可选照片在 `checkIns`；旧数据缺字段时读为空数组 |
+| `schedules` | 一次性日程或重复任务 | `dateKey` 是开始日；重复任务的 `endDate` 是含当天的截止日；完成日期在 `doneDays`，逐日打卡文字、可选照片与 Unix 毫秒时间戳在 `checkIns`；旧数据缺字段时读为空数组，缺少真实时间时保留为 `null` |
 
 日程是否在某天发生统一由 `features/schedule/scheduleMath.ts` 的 `occursOn` 判断：首页、日历、日程页和回顾共用这条规则。安卓重复提醒由 `ScheduleReminderPlugin` 每次只排下一次闹钟，通知后再算下一次；到截止日后停止排程，并在设备重启或时区变更后恢复。旧备份缺少 `endDate` 时读为 `null`，继续沿用原重复范围。
 
-每日打卡除了 `doneDays` 完成状态，还可在 `checkIns` 按日期保存一句记录和一张内联压缩照片；取消完成会保留补充内容，方便误点后恢复。首页和历史日程页共用打卡窗；明信片按选中日期从已完成日程即时生成 PNG，不额外存一份摘要，图片随日程分区备份。
+每日打卡除了 `doneDays` 完成状态，还可在 `checkIns` 按日期保存文字、一张内联压缩照片和完成时的 Unix 毫秒时间戳；编辑记录不改时间，撤销完成会保留文字与照片并清空时间。历史记录按日期倒序展示；没有历史打卡时间的旧数据明确显示未记录，不用当前时间补造。首页和历史日程页的任务卡片共用打卡窗；明信片按原图比例完整排布，按照片高度扩展画布，不额外存一份摘要，图片随日程分区备份。
 
 ### 四个关键设计决定
 

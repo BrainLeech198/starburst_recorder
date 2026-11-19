@@ -58,9 +58,10 @@ export function donePatch(
   item: ScheduleItem,
   dateKey: string,
   done: boolean,
+  recordedAt = Date.now(),
 ): Pick<ScheduleItem, 'doneAt' | 'doneDays'> {
   if (item.repeat === 'none') {
-    return { doneAt: done ? Date.now() : null, doneDays: item.doneDays }
+    return { doneAt: done ? recordedAt : null, doneDays: item.doneDays }
   }
   const days = new Set(item.doneDays)
   if (done) days.add(dateKey)
@@ -72,21 +73,70 @@ export function donePatch(
   }
 }
 
-/** 打卡补充内容以「任务 + 日期」唯一定位，更新时保留其它日期的历史。 */
+/** 每日打卡记录以「任务 + 日期」唯一定位，更新内容时保留原时间和其它日期的历史。 */
 export function checkInFor(item: ScheduleItem, dateKey: string): ScheduleCheckIn | null {
   return (item.checkIns ?? []).find((checkIn) => checkIn.dateKey === dateKey) ?? null
+}
+
+/** 新打卡取当前时刻；编辑已完成的记录保留原时间，旧的逐日记录不伪造时间。 */
+export function recordedAtForCheckIn(item: ScheduleItem, dateKey: string, now = Date.now()): number | null {
+  const existing = checkInFor(item, dateKey)
+  if (isDoneOn(item, dateKey)) {
+    if (existing && existing.recordedAt !== null) return existing.recordedAt
+    return item.repeat === 'none' ? item.doneAt : null
+  }
+  return now
+}
+
+/** 只列已完成日期；重复任务从 doneDays 取日期，一次性日程从 doneAt 取时间。 */
+export function checkInHistory(item: ScheduleItem): ScheduleCheckIn[] {
+  const dates = item.repeat === 'none'
+    ? item.doneAt === null ? [] : [item.dateKey]
+    : item.doneDays
+  const byDate = new Map((item.checkIns ?? []).map((checkIn) => [checkIn.dateKey, checkIn]))
+
+  return dates
+    .map((dateKey) => {
+      const existing = byDate.get(dateKey)
+      return {
+        dateKey,
+        note: existing?.note ?? '',
+        photo: existing?.photo ?? null,
+        recordedAt: existing?.recordedAt ?? (item.repeat === 'none' ? item.doneAt : null),
+      }
+    })
+    .sort((a, b) => b.dateKey.localeCompare(a.dateKey))
 }
 
 export function checkInPatch(
   item: ScheduleItem,
   dateKey: string,
   value: Pick<ScheduleCheckIn, 'note' | 'photo'> | null,
+  recordedAt?: number | null,
 ): Pick<ScheduleItem, 'checkIns'> {
+  const existing = checkInFor(item, dateKey)
   const remaining = (item.checkIns ?? []).filter((checkIn) => checkIn.dateKey !== dateKey)
-  if (value && (value.note.trim() !== '' || value.photo !== null)) {
-    remaining.push({ ...value, dateKey, note: value.note.trim().slice(0, 500), recordedAt: Date.now() })
+  const timestamp = recordedAt === undefined ? existing?.recordedAt ?? Date.now() : recordedAt
+  if (value && (value.note.trim() !== '' || value.photo !== null || timestamp !== null)) {
+    remaining.push({
+      ...value,
+      dateKey,
+      note: value.note.trim().slice(0, 500),
+      recordedAt: timestamp,
+    })
   }
   return { checkIns: remaining.sort((a, b) => a.dateKey.localeCompare(b.dateKey)).slice(-400) }
+}
+
+/** 撤销完成状态时清空打卡时间，但保留已有文字 / 照片以便恢复。 */
+export function undoCheckInPatch(item: ScheduleItem, dateKey: string): Pick<ScheduleItem, 'checkIns'> {
+  const existing = checkInFor(item, dateKey)
+  return checkInPatch(
+    item,
+    dateKey,
+    existing ? { note: existing.note, photo: existing.photo } : { note: '', photo: null },
+    null,
+  )
 }
 
 /** 到点没有：全天（空串）永远算「已经到了」，只在当天提醒时用 */

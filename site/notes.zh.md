@@ -1,5 +1,21 @@
 本地优先的个人记录工具，内置 AI：随手记一句今天，AI 会把它整理成一篇完整的日记。不用注册、没有云端，每一条记录都留在这台设备上。AI 用的是你自己准备的模型和 Key。
 
+## 0.21.4 · 2026-11-20
+
+日程卡片可直接打开打卡和历史记录；明信片完整保留照片比例，重复计划清楚显示起止日期。
+
+### 改进
+
+- **整张日程卡片可打卡**：点击卡片或勾选框都会打开记录窗；可查看逐日打卡历史和具体时间。
+- **记录准确的打卡时间**：新打卡保存 Unix 毫秒时间戳，编辑记录不刷新原时间；旧数据缺少真实时间时会明确标出未记录。
+- **重复日程显示起止范围**：表单明确标注开始日期；管理列表隐藏已过截止日的计划，截止当天仍有效。没有截止日的旧任务继续沿用原规则。
+- **明信片照片不再裁切**：图片按原始比例完整展示，并按照片高度扩展明信片画布。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.21.4-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe)
+- Android 10 以上：[starburst-recorder-0.21.4.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk)
+
 ## 0.21.3 · 2026-11-19
 
 训练时长输入现在会明确标出单位是分钟。
@@ -10,8 +26,8 @@
 
 ### 下载
 
-- Windows 10/11：[starburst-recorder-0.21.3-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3-setup.exe)
-- Android 10 以上：[starburst-recorder-0.21.3.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3.apk)
+- Windows 10/11：[starburst-recorder-0.21.3-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3-setup.exe)
+- Android 10 以上：[starburst-recorder-0.21.3.apk](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3.apk)（正式签名）
 
 ## 0.21.2 · 2026-11-19
 
@@ -24,8 +40,8 @@
 
 ### 下载
 
-- Windows 10/11：[starburst-recorder-0.21.2-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2-setup.exe)
-- Android 10 以上：[starburst-recorder-0.21.2.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2.apk)
+- Windows 10/11：[starburst-recorder-0.21.2-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2-setup.exe)
+- Android 10 以上：[starburst-recorder-0.21.2.apk](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2.apk)（正式签名）
 
 ## 0.21.1 · 2026-11-19
 
@@ -38,8 +54,8 @@
 
 ### 下载
 
-- Windows 10/11：[starburst-recorder-0.21.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1-setup.exe)
-- Android 10 以上：[starburst-recorder-0.21.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1.apk)
+- Windows 10/11：[starburst-recorder-0.21.1-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1-setup.exe)
+- Android 10 以上：[starburst-recorder-0.21.1.apk](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1.apk)（正式签名）
 
 ## 0.21.0 · 2026-11-19
 
@@ -54,7 +70,7 @@
 
 ### 下载
 
-- Windows 10/11：[starburst-recorder-0.21.0-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0-setup.exe)
+- Windows 10/11：[starburst-recorder-0.21.0-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0-setup.exe)
 - Android 10 以上：[starburst-recorder-0.21.0.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0.apk)
 
 ## 0.20.0 · 2026-11-18
@@ -69,7 +85,7 @@
 
 ### 下载
 
-- Windows 10/11：[starburst-recorder-0.20.0-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.20.0/starburst-recorder-0.20.0-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.0/starburst-recorder-0.20.0-setup.exe)
+- Windows 10/11：[starburst-recorder-0.20.0-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.0/starburst-recorder-0.20.0-setup.exe)
 - Android 10 以上：[starburst-recorder-0.20.0.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.20.0/starburst-recorder-0.20.0.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.0/starburst-recorder-0.20.0.apk)
 
 ## 0.19.2 · 2026-11-15
@@ -84,7 +100,7 @@
 
 ### 下载
 
-- Windows 10/11：[starburst-recorder-0.19.2-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2-setup.exe)
+- Windows 10/11：[starburst-recorder-0.19.2-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2-setup.exe)
 - Android 10 以上：[starburst-recorder-0.19.2.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2.apk)
 
 ## 0.19.1 · 2026-11-13

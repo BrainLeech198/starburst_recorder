@@ -76,7 +76,7 @@ export default function SchedulePostcardDialog({
         </span>
       </div>
 
-      <div className="mt-4 flex max-h-[60vh] min-h-48 items-center justify-center overflow-auto rounded-2xl bg-surface-2 p-2">
+      <div className="mt-4 flex max-h-[60vh] min-h-48 items-start justify-center overflow-auto rounded-2xl bg-surface-2 p-2">
         {currentRender ? (
           <img src={currentRender.url} alt={t('schedule.postcard.previewAlt')} className="h-auto w-full rounded-xl shadow-sm" />
         ) : failed ? (

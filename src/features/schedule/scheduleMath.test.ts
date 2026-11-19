@@ -3,6 +3,7 @@ import type { ScheduleItem } from '@/core/db/schema'
 import {
   countByDay,
   checkInFor,
+  checkInHistory,
   checkInPatch,
   dateKeysOfMonth,
   donePatch,
@@ -11,6 +12,8 @@ import {
   isRemindableLater,
   occursOn,
   occurrencesOn,
+  recordedAtForCheckIn,
+  undoCheckInPatch,
   weekdayOf,
 } from './scheduleMath'
 
@@ -112,6 +115,11 @@ describe('完成状态', () => {
     expect(isDoneOn({ ...row, doneAt: 1 }, '2026-11-01')).toBe(true)
   })
 
+  it('一次性日程使用传入的打卡时间戳', () => {
+    const row = item()
+    expect(donePatch(row, '2026-11-01', true, 1_795_000_123_456).doneAt).toBe(1_795_000_123_456)
+  })
+
   it('定期任务按天记，昨天的勾不影响今天', () => {
     const row = item({ repeat: 'daily' })
     const patched = { ...row, ...donePatch(row, '2026-11-03', true) }
@@ -142,9 +150,65 @@ describe('打卡补充记录', () => {
         { dateKey: '2026-11-02', note: '昨天', photo: firstPhoto, recordedAt: 1 },
       ],
     })
-    const updated = { ...row, ...checkInPatch(row, '2026-11-03', { note: ' 复习 35 个词 ', photo: secondPhoto }) }
+    const updated = {
+      ...row,
+      ...checkInPatch(row, '2026-11-03', { note: ' 复习 35 个词 ', photo: secondPhoto }, 1234),
+    }
     expect(checkInFor(updated, '2026-11-02')?.note).toBe('昨天')
-    expect(checkInFor(updated, '2026-11-03')).toMatchObject({ note: '复习 35 个词', photo: secondPhoto })
+    expect(checkInFor(updated, '2026-11-03')).toEqual({
+      dateKey: '2026-11-03', note: '复习 35 个词', photo: secondPhoto, recordedAt: 1234,
+    })
+  })
+
+  it('完成时保存毫秒时间戳，编辑已完成记录不会刷新时间', () => {
+    const row = item({ repeat: 'daily' })
+    expect(recordedAtForCheckIn(row, '2026-11-03', 1234)).toBe(1234)
+    const checkedIn = {
+      ...row,
+      doneDays: ['2026-11-03'],
+      ...checkInPatch(row, '2026-11-03', { note: '', photo: null }, 1234),
+    }
+    expect(recordedAtForCheckIn(checkedIn, '2026-11-03', 5678)).toBe(1234)
+  })
+
+  it('查看历史按日期倒序排列，缺少真实时间的旧记录保持为空', () => {
+    const row = item({
+      repeat: 'daily',
+      doneDays: ['2026-11-02', '2026-11-04', '2026-11-03'],
+      checkIns: [
+        { dateKey: '2026-11-02', note: '第二天', photo: null, recordedAt: 1234 },
+      ],
+    })
+    expect(checkInHistory(row)).toEqual([
+      { dateKey: '2026-11-04', note: '', photo: null, recordedAt: null },
+      { dateKey: '2026-11-03', note: '', photo: null, recordedAt: null },
+      { dateKey: '2026-11-02', note: '第二天', photo: null, recordedAt: 1234 },
+    ])
+  })
+
+  it('撤销打卡清除时间但保留文字和照片', () => {
+    const photo = { id: 'p1', dataUrl: 'data:image/jpeg;base64,AA', width: 8, height: 6 }
+    const row = item({
+      repeat: 'daily',
+      doneDays: ['2026-11-02'],
+      checkIns: [{ dateKey: '2026-11-02', note: '保留内容', photo, recordedAt: 1234 }],
+    })
+    const undone = {
+      ...row,
+      ...donePatch(row, '2026-11-02', false),
+      ...undoCheckInPatch(row, '2026-11-02'),
+    }
+    expect(checkInFor(undone, '2026-11-02')).toEqual({
+      dateKey: '2026-11-02', note: '保留内容', photo, recordedAt: null,
+    })
+    expect(checkInHistory(undone)).toEqual([])
+  })
+
+  it('一次性日程的历史使用完成时间戳', () => {
+    const row = item({ doneAt: 1234 })
+    expect(checkInHistory(row)).toEqual([
+      { dateKey: '2026-11-01', note: '', photo: null, recordedAt: 1234 },
+    ])
   })
 
   it('清空选中日期的内容时不动其它日期', () => {

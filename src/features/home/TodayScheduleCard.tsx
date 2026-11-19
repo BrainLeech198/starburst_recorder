@@ -6,7 +6,16 @@ import type { DiaryImage, ScheduleItem } from '@/core/db/schema'
 import { todayKey } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import { Icon } from '@/shared/ui/icons'
-import { checkInFor, checkInPatch, donePatch, isDoneOn, occurrencesOn } from '@/features/schedule/scheduleMath'
+import {
+  checkInFor,
+  checkInHistory,
+  checkInPatch,
+  donePatch,
+  isDoneOn,
+  occurrencesOn,
+  recordedAtForCheckIn,
+  undoCheckInPatch,
+} from '@/features/schedule/scheduleMath'
 import { saveSchedule, schedules } from '@/features/schedule/scheduleRepo'
 import ScheduleCheckInDialog from '@/features/schedule/ScheduleCheckInDialog'
 
@@ -31,10 +40,11 @@ export default function TodayScheduleCard() {
 
   async function saveCheckIn(note: string, photo: DiaryImage | null) {
     if (!checkInItem) return
+    const recordedAt = recordedAtForCheckIn(checkInItem, dayKey)
     await saveSchedule({
       ...checkInItem,
-      ...donePatch(checkInItem, dayKey, true),
-      ...checkInPatch(checkInItem, dayKey, { note, photo }),
+      ...donePatch(checkInItem, dayKey, true, recordedAt ?? Date.now()),
+      ...checkInPatch(checkInItem, dayKey, { note, photo }, recordedAt),
     })
   }
 
@@ -43,6 +53,7 @@ export default function TodayScheduleCard() {
     await saveSchedule({
       ...checkInItem,
       ...donePatch(checkInItem, dayKey, false),
+      ...undoCheckInPatch(checkInItem, dayKey),
     })
   }
 
@@ -108,7 +119,7 @@ export default function TodayScheduleCard() {
               {visibleItems.map((item) => {
                 const done = isDoneOn(item, dayKey)
                 return (
-                  <li key={item.id} className="flex items-start gap-2 py-2">
+                  <li key={item.id} className="py-1">
                     <button
                       type="button"
                       onClick={() => setCheckInItem(item)}
@@ -119,23 +130,27 @@ export default function TodayScheduleCard() {
                           : 'home.todayChecklist.markDone',
                         { name: item.title },
                       )}
-                      className={[
-                        'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors',
-                        done ? 'border-brand bg-brand text-on-brand' : 'border-line text-transparent',
-                      ].join(' ')}
+                      className="flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                     >
-                      <Icon name="check" className="h-3 w-3" />
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <div className={done ? 'text-sm text-muted line-through' : 'text-sm text-fg'}>
+                      <span
+                        aria-hidden="true"
+                        className={[
+                          'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors',
+                          done ? 'border-brand bg-brand text-on-brand' : 'border-line text-transparent',
+                        ].join(' ')}
+                      >
+                        <Icon name="check" className="h-3 w-3" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className={done ? 'block text-sm text-muted line-through' : 'block text-sm text-fg'}>
                         {item.time && <span className="mr-1.5 text-muted">{item.time}</span>}
                         {item.title}
-                      </div>
-                      {item.note && <p className="m-0 mt-0.5 text-xs text-muted">{item.note}</p>}
+                        </span>
+                        {item.note && <span className="mt-0.5 block text-xs text-muted">{item.note}</span>}
                       {checkInFor(item, dayKey)?.note && (
-                        <p className="m-0 mt-0.5 line-clamp-2 text-xs text-brand">
+                        <span className="mt-0.5 block line-clamp-2 text-xs text-brand">
                           {checkInFor(item, dayKey)?.note}
-                        </p>
+                        </span>
                       )}
                       {checkInFor(item, dayKey)?.photo && (
                         <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted">
@@ -143,7 +158,8 @@ export default function TodayScheduleCard() {
                           {t('schedule.checkIn.photoAdded')}
                         </span>
                       )}
-                    </div>
+                      </span>
+                    </button>
                   </li>
                 )
               })}
@@ -176,6 +192,7 @@ export default function TodayScheduleCard() {
           title={checkInItem.title}
           dateKey={dayKey}
           existing={checkInFor(checkInItem, dayKey)}
+          history={checkInHistory(checkInItem)}
           completed={isDoneOn(checkInItem, dayKey)}
           onClose={() => setCheckInItem(null)}
           onSave={saveCheckIn}

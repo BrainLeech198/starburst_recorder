@@ -8,8 +8,8 @@ Workout duration fields now clearly state that values are in minutes.
 
 ### Downloads
 
-- Windows 10/11: [starburst-recorder-0.21.3-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3-setup.exe)
-- Android 10+: [starburst-recorder-0.21.3.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3.apk)
+- Windows 10/11: [starburst-recorder-0.21.3-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3-setup.exe)
+- Android 10+: [starburst-recorder-0.21.3.apk](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3.apk) (release-signed)
 
 ## 0.21.2 · 2026-11-19
 
@@ -22,8 +22,8 @@ Keep the home checklist compact and put scan and share-code import in one top-ri
 
 ### Downloads
 
-- Windows 10/11: [starburst-recorder-0.21.2-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2-setup.exe)
-- Android 10+: [starburst-recorder-0.21.2.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2.apk)
+- Windows 10/11: [starburst-recorder-0.21.2-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2-setup.exe)
+- Android 10+: [starburst-recorder-0.21.2.apk](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2.apk) (release-signed)
 
 ## 0.21.1 · 2026-11-19
 
@@ -36,8 +36,8 @@ Save a new record from a day page and return to the date you were viewing.
 
 ### Downloads
 
-- Windows 10/11: [starburst-recorder-0.21.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1-setup.exe)
-- Android 10+: [starburst-recorder-0.21.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1.apk)
+- Windows 10/11: [starburst-recorder-0.21.1-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1-setup.exe)
+- Android 10+: [starburst-recorder-0.21.1.apk](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1.apk) (release-signed)
 
 ## 0.21.0 · 2026-11-19
 
@@ -52,7 +52,7 @@ Gather daily accomplishments into a checklist and postcard, and make shareable c
 
 ### Downloads
 
-- Windows 10/11: [starburst-recorder-0.21.0-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0-setup.exe)
+- Windows 10/11: [starburst-recorder-0.21.0-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0-setup.exe)
 - Android 10+: [starburst-recorder-0.21.0.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.0/starburst-recorder-0.21.0.apk)
 
 ## 0.20.0 · 2026-11-18
@@ -67,7 +67,7 @@ Backups can encrypt selected sections, and individual AI model configurations ca
 
 ### Downloads
 
-- Windows 10/11: [starburst-recorder-0.20.0-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.20.0/starburst-recorder-0.20.0-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.0/starburst-recorder-0.20.0-setup.exe)
+- Windows 10/11: [starburst-recorder-0.20.0-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.0/starburst-recorder-0.20.0-setup.exe)
 - Android 10+: [starburst-recorder-0.20.0.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.20.0/starburst-recorder-0.20.0.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.20.0/starburst-recorder-0.20.0.apk)
 
 ## 0.19.2 · 2026-11-15
@@ -82,7 +82,7 @@ Add direct training navigation from home and simplify the workout page and set f
 
 ### Downloads
 
-- Windows 10/11: [starburst-recorder-0.19.2-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2-setup.exe)
+- Windows 10/11: [starburst-recorder-0.19.2-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2-setup.exe)
 - Android 10+: [starburst-recorder-0.19.2.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.2/starburst-recorder-0.19.2.apk)
 
 ## 0.19.1 · 2026-11-13
@@ -99,7 +99,7 @@ Health adds multi-point body measurements and a 30-day data summary. Sleep chart
 
 ### Downloads
 
-- Windows 10/11: [starburst-recorder-0.19.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1-setup.exe)
+- Windows 10/11: [starburst-recorder-0.19.1-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1-setup.exe)
 - Android 10+: [starburst-recorder-0.19.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.19.1/starburst-recorder-0.19.1.apk)
 
 ## 0.19.0 · 2026-11-13
@@ -1029,3 +1029,18 @@ Choose whether food library edits update intake history
 
 - Windows 10/11: [`starburst-recorder-0.17.3-setup.exe`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3-setup.exe) (~96 MB)
 - Android 10+: [`starburst-recorder-0.17.3.apk`](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.17.3/starburst-recorder-0.17.3.apk) (~62 MB, release-signed)
+## 0.21.4 · 2026-11-20
+
+Open check-ins and their history from anywhere on a schedule card. Postcards now preserve each photo's full proportions, and recurring plans show their start and end dates.
+
+### Improvements
+
+- **Tap anywhere on a schedule card to check in** — the card body and checkbox both open the same record form, with daily history and exact times.
+- **Keep precise check-in times** — new check-ins save Unix millisecond timestamps, and editing does not reset the original time. Older records without a real timestamp are marked as unavailable.
+- **Show recurring schedule dates** — the form labels the start date, and the management list hides plans after their end date. The end date itself remains active; older plans without an end date keep their existing behavior.
+- **Keep postcard photos uncropped** — photos retain their original aspect ratio, and the postcard canvas grows to fit their height.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.21.4-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4-setup.exe)
+- Android 10+: [starburst-recorder-0.21.4.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.4/starburst-recorder-0.21.4.apk)

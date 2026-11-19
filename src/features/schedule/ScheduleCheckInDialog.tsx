@@ -13,6 +13,7 @@ export default function ScheduleCheckInDialog({
   title,
   dateKey,
   existing,
+  history,
   completed,
   onClose,
   onSave,
@@ -21,20 +22,27 @@ export default function ScheduleCheckInDialog({
   title: string
   dateKey: string
   existing: ScheduleCheckIn | null
+  history: ScheduleCheckIn[]
   completed: boolean
   onClose: () => void
   onSave: (note: string, photo: DiaryImage | null) => Promise<void>
   onUndo: () => Promise<void>
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [note, setNote] = useState(existing?.note ?? '')
   const [photo, setPhoto] = useState<DiaryImage | null>(existing?.photo ?? null)
+  const [showHistory, setShowHistory] = useState(false)
   const [imageSourceOpen, setImageSourceOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [imageBusy, setImageBusy] = useState(false)
   const [error, setError] = useState('')
   const imageInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+  const timeFormatter = new Intl.DateTimeFormat(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
 
   async function handleImageFiles(files: File[]) {
     if (files.length === 0 || imageBusy) return
@@ -128,6 +136,47 @@ export default function ScheduleCheckInDialog({
             <Icon name="image" />
             {imageBusy ? t('schedule.checkIn.photoBusy') : t('schedule.checkIn.addPhoto')}
           </button>
+        )}
+
+        {history.length > 0 && (
+          <div className="mt-3">
+            <button
+              type="button"
+              aria-expanded={showHistory}
+              aria-controls={showHistory ? 'schedule-check-in-history' : undefined}
+              onClick={() => setShowHistory((current) => !current)}
+              className="rounded-lg px-2 py-1 text-sm font-medium text-brand transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            >
+              {t(showHistory ? 'schedule.checkIn.hideHistory' : 'schedule.checkIn.viewHistory')}
+            </button>
+            {showHistory && (
+              <ol
+                id="schedule-check-in-history"
+                className="m-0 mt-2 max-h-56 list-none space-y-2 overflow-y-auto rounded-xl border border-line bg-surface p-2"
+              >
+                {history.map((record) => (
+                  <li key={record.dateKey} className="rounded-lg bg-canvas px-3 py-2">
+                    <time
+                      dateTime={record.recordedAt === null ? undefined : new Date(record.recordedAt).toISOString()}
+                      className="text-xs font-medium text-fg"
+                    >
+                      {formatDate(record.dateKey, t)} · {record.recordedAt === null
+                        ? t('schedule.checkIn.timeUnavailable')
+                        : timeFormatter.format(record.recordedAt)}
+                    </time>
+                    {record.note && <p className="mb-0 mt-1 whitespace-pre-wrap text-xs text-muted">{record.note}</p>}
+                    {record.photo && (
+                      <img
+                        src={record.photo.dataUrl}
+                        alt={t('schedule.checkIn.photoAlt')}
+                        className="mt-2 h-16 w-16 rounded-lg object-cover"
+                      />
+                    )}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
         )}
 
         {error && <p role="alert" className="mb-0 mt-3 text-xs text-danger">{error}</p>}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ScheduleItem } from '@/core/db/schema'
-import { buildDailyPostcardData } from './schedulePostcard'
+import { buildDailyPostcardData, fitPostcardPhoto } from './schedulePostcard'
 
 function schedule(patch: Partial<ScheduleItem> = {}): ScheduleItem {
   return {
@@ -28,5 +28,19 @@ describe('daily postcard data', () => {
       total: 2,
       entries: [{ title: '背单词', note: '复习了 35 个单词', photoDataUrl: photo.dataUrl }],
     })
+  })
+})
+
+describe('postcard photo sizing', () => {
+  it('keeps a tall photo intact within the height limit', () => {
+    const size = fitPostcardPhoto(600, 2400)
+    expect(size).toEqual({ width: 250, height: 1000 })
+    expect(size.width / size.height).toBe(600 / 2400)
+  })
+
+  it('keeps a wide photo intact within the postcard width', () => {
+    const size = fitPostcardPhoto(2400, 600)
+    expect(size).toEqual({ width: 872, height: 218 })
+    expect(size.width / size.height).toBe(2400 / 600)
   })
 })

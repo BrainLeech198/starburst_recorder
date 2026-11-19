@@ -57,7 +57,7 @@ describe('行级校验：必填缺失就丢行', () => {
     })
     expect(schedule?.checkIns).toEqual([
       { dateKey: '2026-11-02', note: '补充了复习结果', photo: null, recordedAt: 11 },
-      { dateKey: '2026-11-03', note: '坏图保留文字', photo: null, recordedAt: expect.any(Number) },
+      { dateKey: '2026-11-03', note: '坏图保留文字', photo: null, recordedAt: null },
     ])
   })
 

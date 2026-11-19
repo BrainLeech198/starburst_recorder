@@ -789,7 +789,10 @@ export function pickSchedule(raw: unknown): ScheduleItem | null {
             dateKey: checkInDate,
             note: text(checkIn.note).slice(0, 500),
             photo: photos[0] ?? null,
-            recordedAt: number(checkIn.recordedAt, Date.now()),
+            recordedAt:
+              typeof checkIn.recordedAt === 'number' && Number.isFinite(checkIn.recordedAt)
+                ? checkIn.recordedAt
+                : null,
           }
         })
         .filter((checkIn): checkIn is NonNullable<typeof checkIn> => checkIn !== null)
