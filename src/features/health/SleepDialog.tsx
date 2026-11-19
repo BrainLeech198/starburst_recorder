@@ -50,12 +50,15 @@ function isClock(value: string) {
 export default function SleepDialog({
   dateKey,
   sleep,
+  onSaved,
   onClose,
 }: {
   /** 这一夜的归属日期（起床那天） */
   dateKey: string
   /** 这一夜已有记录时传入，弹窗变成编辑 */
   sleep: HealthSleep | null
+  /** 记录写入成功后调用；取消或关闭不会调用 */
+  onSaved?: () => void
   onClose: () => void
 }) {
   const { t } = useI18n()
@@ -171,6 +174,7 @@ export default function SleepDialog({
             deletedAt: null,
           },
     )
+    onSaved?.()
     onClose()
   }
 

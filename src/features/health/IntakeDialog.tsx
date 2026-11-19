@@ -201,6 +201,7 @@ export default function IntakeDialog({
   dateKey,
   intakes,
   derived,
+  onSaved,
   onClose,
 }: {
   dateKey: string
@@ -208,6 +209,8 @@ export default function IntakeDialog({
   intakes: HealthIntake[]
   /** 推算 TDEE，问 AI 时作为参考线 */
   derived?: number | null
+  /** 所有记录写入成功后调用；取消或关闭不会调用 */
+  onSaved?: () => void
   onClose: () => void
 }) {
   const { t } = useI18n()
@@ -954,6 +957,7 @@ export default function IntakeDialog({
         deletedAt: null,
       })
     }
+    onSaved?.()
     onClose()
   }
 

@@ -1,3 +1,17 @@
+## 0.21.1 · 2026-11-19
+
+从当天页新增记录并保存后，回到原先查看的日期。
+
+### 这一版有什么
+
+- **当天新增后回到当天**：日记、收支、饮食、睡眠、训练和日程保存成功后都会返回原日期，新记录显示在当天时间线上。
+- **取消保持原处**：关闭或取消编辑不会误触发保存后的返回。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.21.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1-setup.exe)
+- Android 10 以上：[starburst-recorder-0.21.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1.apk)
+
 ## 0.21.0 · 2026-11-19
 
 把每天完成的事汇成清单与明信片，并让训练和月度回顾也能生成可分享的卡片。

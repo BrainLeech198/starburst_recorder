@@ -1,5 +1,19 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
+## 0.21.1 · 2026-11-19
+
+After adding a record from a day view, saving returns to the date you were viewing.
+
+### Improvements
+
+- **Return to the selected day after adding a record** — add a diary, finance entry, intake, sleep record, training session, or schedule from a day page; after a successful save, return to that date and see the new item in the timeline.
+- **Cancel stays in place** — cancelling or closing an editor does not count as a save or navigate away.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.21.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1-setup.exe)
+- Android 10+: [starburst-recorder-0.21.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1.apk)
+
 ## 0.21.0 · 2026-11-19
 
 Gather daily accomplishments into a checklist and postcard, and make shareable cards for training and monthly reviews too.

@@ -1,3 +1,17 @@
+## 0.21.1 · 2026-11-19
+
+Save a new record from a day page and return to the date you were viewing.
+
+### What's new
+
+- **Return to the selected day after adding a record** — diary, finance, intake, sleep, training, and schedule saves return to the original date, where the new record appears in the timeline.
+- **Cancel stays in place** — closing or cancelling an editor does not trigger the post-save navigation.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.21.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1-setup.exe)
+- Android 10+: [starburst-recorder-0.21.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.1/starburst-recorder-0.21.1.apk)
+
 ## 0.21.0 · 2026-11-19
 
 Gather daily accomplishments into a checklist and postcard, and make shareable cards for training and monthly reviews too.

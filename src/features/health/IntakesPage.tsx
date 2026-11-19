@@ -8,7 +8,7 @@ import EmptyState from '@/shared/ui/EmptyState'
 import RowCheckbox from '@/shared/ui/RowCheckbox'
 import RowMenu from '@/shared/ui/RowMenu'
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import type { HealthFood, HealthIntake } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
 import { formatDate, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
@@ -55,6 +55,9 @@ import FoodPhotoThumbnail from './FoodPhotoThumbnail'
 export default function IntakesPage() {
   const { t } = useI18n()
   const { showToast } = useToast()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const returnToDay = (location.state as { returnToDay?: boolean } | null)?.returnToDay === true
   // 日期进 URL：刷新、返回都还停在这一天
   const [searchParams, setSearchParams] = useSearchParams()
   const dateParam = searchParams.get('date')
@@ -448,7 +451,14 @@ export default function IntakesPage() {
       )}
 
       {dialogOpen && (
-        <IntakeDialog dateKey={dayKey} intakes={rows} onClose={() => setDialogOpen(false)} />
+        <IntakeDialog
+          dateKey={dayKey}
+          intakes={rows}
+          onSaved={() => {
+            if (returnToDay) navigate(`/day/${dayKey}`)
+          }}
+          onClose={() => setDialogOpen(false)}
+        />
       )}
 
       {pickerOpen && (

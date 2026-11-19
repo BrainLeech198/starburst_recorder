@@ -5,7 +5,7 @@
  * 每个日期现场算「今天该不该做」，所以改一次周几，过去的勾也不会跟着变。
  */
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import type { ScheduleItem } from '@/core/db/schema'
 import type { DiaryImage } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
@@ -44,6 +44,9 @@ const LIST =
 export default function SchedulePage() {
   const { t } = useI18n()
   const { showToast } = useToast()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const returnToDay = (location.state as { returnToDay?: boolean } | null)?.returnToDay === true
   const [params, setParams] = useSearchParams()
   const dateParam = params.get('date')
   const dayKey = isDateKey(dateParam) ? dateParam : todayKey()
@@ -299,10 +302,11 @@ export default function SchedulePage() {
           value={dialog.value}
           defaultDate={dayKey}
           onCancel={() => setDialog(null)}
-          onSave={(item) => {
-            void saveSchedule(item)
+          onSave={async (item) => {
+            await saveSchedule(item)
             setDialog(null)
             showToast({ message: t('schedule.saved') })
+            if (!dialog.value && returnToDay) navigate(`/day/${dayKey}`)
           }}
         />
       )}

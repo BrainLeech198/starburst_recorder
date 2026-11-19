@@ -57,6 +57,7 @@ import {
 interface DraftNav {
   editable?: boolean
   dateKey?: string
+  returnToDay?: boolean
   content?: string
   weather?: string
   images?: DiaryImage[]
@@ -256,6 +257,7 @@ export default function DiaryEditPage() {
   /** 去哪：默认回列表，并带上当前这天 */
   function proceedTarget() {
     const target = leaveTarget.current
+    if (navState.returnToDay && isDateKey(navState.dateKey)) return `/day/${navState.dateKey}`
     if (target === '' || target.split('?')[0] === '/diary') return `/diary?date=${shownDate}`
     return target
   }
@@ -329,6 +331,10 @@ export default function DiaryEditPage() {
       showToast({ message: t('diaryEdit.savedAs', { date: formatDate(dateKey, t) }) })
       if (saveAsLeave) {
         const target = proceedTarget()
+        if (navState.returnToDay && isDateKey(navState.dateKey)) {
+          go(`/day/${navState.dateKey}`)
+          return
+        }
         const toList = target.split('?')[0] === '/diary'
         go(toList ? `/diary?date=${dateKey}` : target)
       } else {
@@ -655,7 +661,9 @@ export default function DiaryEditPage() {
           {/* 回上一页：从「全部记录」点进来就回那个列表，从日记首页进来就回首页。
               退无可退（直接打开链接）时兜底回当天列表 */}
           <BackButton
-            to={`/diary?date=${shownDate}`}
+            to={navState.returnToDay && isDateKey(navState.dateKey)
+              ? `/day/${navState.dateKey}`
+              : `/diary?date=${shownDate}`}
             label={t('diaryEdit.back')}
             className={BACK_BUTTON}
           />

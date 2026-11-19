@@ -6,7 +6,7 @@
  */
 import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import { formatDate, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
@@ -55,6 +55,9 @@ import { describeSave, saveTextFile } from '@/platform/saveFile'
 export default function SleepsPage() {
   const { t } = useI18n()
   const { showToast } = useToast()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const returnToDay = (location.state as { returnToDay?: boolean } | null)?.returnToDay === true
   const [searchParams, setSearchParams] = useSearchParams()
   const dateParam = searchParams.get('date')
   const dayKey = isDateKey(dateParam) ? dateParam : todayKey()
@@ -437,7 +440,14 @@ export default function SleepsPage() {
       )}
 
       {dialogOpen && (
-        <SleepDialog dateKey={dayKey} sleep={sleep ?? null} onClose={() => setDialogOpen(false)} />
+        <SleepDialog
+          dateKey={dayKey}
+          sleep={sleep ?? null}
+          onSaved={() => {
+            if (returnToDay) navigate(`/day/${dayKey}`)
+          }}
+          onClose={() => setDialogOpen(false)}
+        />
       )}
 
       {exportData && (

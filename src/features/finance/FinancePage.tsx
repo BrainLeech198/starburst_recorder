@@ -28,7 +28,7 @@ import EmptyState from '@/shared/ui/EmptyState'
 import RowCheckbox from '@/shared/ui/RowCheckbox'
 import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import type { FinanceEntry } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
 import { formatMonthDay, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
@@ -181,6 +181,9 @@ function FinanceBars({ bars, max }: { bars: FinanceChartBar[]; max: number }) {
 export default function FinancePage() {
   const { t, locale } = useI18n()
   const { showToast } = useToast()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const returnToDay = (location.state as { returnToDay?: boolean } | null)?.returnToDay === true
   const [searchParams, setSearchParams] = useSearchParams()
 
   const currentMonth = monthKeyOf(todayKey())
@@ -1104,6 +1107,10 @@ export default function FinancePage() {
           defaultDate={dialog.date}
           onClose={() => setDialog(null)}
           onSaved={(record) => {
+            if (!dialog.entry && returnToDay) {
+              navigate(`/day/${record.dateKey}`)
+              return
+            }
             // 记到别的时段时直接翻过去，不然刚记的一笔会“消失”
             if (view === 'day') {
               if (record.dateKey !== dayKey) setDayKey(record.dateKey)

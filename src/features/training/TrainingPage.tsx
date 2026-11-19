@@ -7,7 +7,7 @@
  */
 import { useState, useRef, useMemo } from 'react'
 import type { ChangeEvent } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import type { HealthTraining, TrainingKind, TrainingTemplate } from '@/core/db/schema'
 import { newCode, newId } from '@/core/utils/id'
 import { useLiveQuery } from '@/core/db/live'
@@ -98,6 +98,9 @@ function Ring({ ratio }: { ratio: number }) {
 
 export default function TrainingPage() {
   const { t } = useI18n()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const returnToDay = (location.state as { returnToDay?: boolean } | null)?.returnToDay === true
   const { showToast } = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const dateParam = searchParams.get('date')
@@ -239,6 +242,7 @@ export default function TrainingPage() {
           })
         : t(updated ? 'training.updated' : 'training.saved'),
     })
+    if (!updated && returnToDay) navigate(`/day/${saved.dateKey}`)
   }
 
   async function handleDelete() {

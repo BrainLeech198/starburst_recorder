@@ -223,6 +223,50 @@ export default function DayPage() {
     () => goToDay(shiftDay(dayKey, 1)),
   )
 
+  const quickActions: {
+    kind: TimelineKind
+    label: MessageKey
+    to: string
+    state?: { dateKey: string; returnToDay?: boolean }
+  }[] = [
+    {
+      kind: 'diary',
+      label: 'day.diary',
+      to: '/diary/new',
+      state: { dateKey: dayKey, returnToDay: true },
+    },
+    {
+      kind: 'finance',
+      label: 'day.finance',
+      to: `/finance?view=day&date=${dayKey}`,
+      state: { dateKey: dayKey, returnToDay: true },
+    },
+    {
+      kind: 'intake',
+      label: 'day.intake',
+      to: `/health/intakes?date=${dayKey}`,
+      state: { dateKey: dayKey, returnToDay: true },
+    },
+    {
+      kind: 'sleep',
+      label: 'day.sleep',
+      to: `/health/sleeps?date=${dayKey}`,
+      state: { dateKey: dayKey, returnToDay: true },
+    },
+    {
+      kind: 'training',
+      label: 'day.training',
+      to: `/training?date=${dayKey}`,
+      state: { dateKey: dayKey, returnToDay: true },
+    },
+    {
+      kind: 'schedule',
+      label: 'day.schedule',
+      to: `/schedule?date=${dayKey}`,
+      state: { dateKey: dayKey, returnToDay: true },
+    },
+  ]
+
   return (
     <div
       className={`mx-auto w-full max-w-2xl p-4 ${swipe.animationClass}`}
@@ -273,6 +317,23 @@ export default function DayPage() {
               ? t('health.sleepDuration', { h: sleepTotal.h, m: sleepTotal.m })
               : '—'}
           </div>
+        </div>
+      </section>
+
+      <section className="mt-4" aria-label={t('diary.new')}>
+        <h2 className="mb-2 text-xs font-medium text-muted">{t('diary.new')}</h2>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {quickActions.map((action) => (
+            <Link
+              key={action.kind}
+              to={action.to}
+              state={action.state}
+              className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm text-fg transition-colors hover:border-brand hover:text-brand"
+            >
+              <Icon name={KIND_ICON[action.kind]} className="h-4 w-4 shrink-0" />
+              {t(action.label)}
+            </Link>
+          ))}
         </div>
       </section>
 
