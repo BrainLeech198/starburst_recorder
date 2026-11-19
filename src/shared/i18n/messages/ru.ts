@@ -2482,6 +2482,7 @@ export const ru: Record<MessageKey, string> = {
   'training.rpe': 'Усилие (1–10)',
   'training.restSec': 'Отдых (сек.)',
   'training.totalDuration': 'Длительность',
+  'training.durationInputLabel': 'Длительность тренировки (мин)',
   'training.quickName': 'Название (необязательно)',
   'training.quickPlaceholder': 'напр. бег, растяжка',
   'training.planSaved': 'Настройки напоминаний сохранены',

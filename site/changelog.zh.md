@@ -1,3 +1,16 @@
+## 0.21.3 · 2026-11-19
+
+训练时长输入现在会明确标出单位是分钟。
+
+### 改进
+
+- **训练时长单位明确**：快捷新增、整次训练和单个动作的时长字段均标明“分钟”；输入与保存方式不变。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.21.3-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3-setup.exe)
+- Android 10 以上：[starburst-recorder-0.21.3.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3.apk)
+
 ## 0.21.2 · 2026-11-19
 
 首页清单更紧凑，扫码和分享码导入集中到右上角菜单。

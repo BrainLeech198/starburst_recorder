@@ -2508,6 +2508,7 @@ export const ja: Record<MessageKey, string> = {
   'training.rpe': '強度（1～10）',
   'training.restSec': '休憩秒数',
   'training.totalDuration': '時間',
+  'training.durationInputLabel': 'トレーニング時間（分）',
   'training.quickName': '種目名（任意）',
   'training.quickPlaceholder': '例：ランニング、ストレッチ',
   'training.planSaved': '通知設定を保存しました',

@@ -1,3 +1,16 @@
+## 0.21.3 · 2026-11-19
+
+Workout duration fields now clearly state that values are in minutes.
+
+### Improvements
+
+- **Workout duration unit** — quick entry, session duration, and exercise duration fields now say “min.” Existing values and save behavior are unchanged.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.21.3-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3-setup.exe)
+- Android 10+: [starburst-recorder-0.21.3.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.3/starburst-recorder-0.21.3.apk)
+
 ## 0.21.2 · 2026-11-19
 
 Keep the home checklist compact and put scan and share-code import in one top-right menu.

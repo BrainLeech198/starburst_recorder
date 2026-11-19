@@ -2503,6 +2503,7 @@ export const ko: Record<MessageKey, string> = {
   'training.rpe': '강도 (1–10)',
   'training.restSec': '휴식 시간(초)',
   'training.totalDuration': '시간',
+  'training.durationInputLabel': '운동 시간(분)',
   'training.quickName': '종목명(선택)',
   'training.quickPlaceholder': '예: 달리기, 스트레칭',
   'training.planSaved': '알림 설정을 저장했어요',

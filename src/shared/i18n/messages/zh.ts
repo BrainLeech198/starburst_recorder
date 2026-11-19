@@ -2503,6 +2503,7 @@ export const zh = {
   'training.rpe': '强度（1–10）',
   'training.restSec': '休息秒数',
   'training.totalDuration': '时长',
+  'training.durationInputLabel': '时长（分钟）',
   'training.quickName': '项目名（可不填）',
   'training.quickPlaceholder': '例如：跑步、拉伸',
   'training.planSaved': '提醒设置已保存',

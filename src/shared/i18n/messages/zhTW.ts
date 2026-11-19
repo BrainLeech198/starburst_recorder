@@ -2497,6 +2497,7 @@ export const zhTW: Record<MessageKey, string> = {
   'training.rpe': '強度（1–10）',
   'training.restSec': '休息秒數',
   'training.totalDuration': '時長',
+  'training.durationInputLabel': '時長（分鐘）',
   'training.quickName': '項目名（可不填）',
   'training.quickPlaceholder': '例如：跑步、伸展',
   'training.planSaved': '提醒設定已儲存',

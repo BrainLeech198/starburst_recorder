@@ -2529,6 +2529,7 @@ export const es: Record<MessageKey, string> = {
   'training.rpe': 'Esfuerzo (1–10)',
   'training.restSec': 'Descanso (s)',
   'training.totalDuration': 'Duración',
+  'training.durationInputLabel': 'Duración del entrenamiento (min)',
   'training.quickName': 'Nombre (opcional)',
   'training.quickPlaceholder': 'p. ej. correr, estiramientos',
   'training.planSaved': 'Recordatorios guardados',

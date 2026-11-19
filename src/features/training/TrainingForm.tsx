@@ -463,7 +463,7 @@ export default function TrainingForm({
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-xs text-muted">{t('training.totalDuration')}</span>
+              <span className="text-xs text-muted">{t('training.durationInputLabel')}</span>
               <input
                 value={quickDuration}
                 inputMode="decimal"
@@ -510,7 +510,7 @@ export default function TrainingForm({
               />
             </label>
             <label className="block">
-              <span className="text-xs text-muted">{t('training.totalDuration')}</span>
+              <span className="text-xs text-muted">{t('training.durationInputLabel')}</span>
               <input
                 value={durationText}
                 inputMode="decimal"
@@ -650,11 +650,11 @@ export default function TrainingForm({
                   {(item.kind !== 'strength' || item.durationMin !== '' || item.distanceKm !== '') && (
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <label className="block min-w-0">
-                        <span className="text-[10px] text-muted">{t('training.totalDuration')}</span>
+                        <span className="text-[10px] text-muted">{t('training.durationInputLabel')}</span>
                         <input
                           value={item.durationMin}
                           inputMode="decimal"
-                          aria-label={t('training.durationMin')}
+                          aria-label={t('training.durationInputLabel')}
                           placeholder={t('training.durationMin')}
                           onChange={(event) =>
                             updateExercise(index, { durationMin: event.target.value })
