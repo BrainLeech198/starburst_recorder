@@ -21,6 +21,8 @@ export const ru: Record<MessageKey, string> = {
   'home.todayChecklist.add': 'Добавить задачу',
   'home.todayChecklist.markDone': 'Отметить «{name}» выполненным',
   'home.todayChecklist.markUndone': 'Снять отметку «{name}»',
+  'home.todayChecklist.showMore': 'Показать ещё: {count}',
+  'home.todayChecklist.collapse': 'Свернуть список',
 
   // ─────────── Здоровье ───────────
   'home.installHint': 'Для работы офлайн нажмите в Safari «Поделиться», затем «На экран Домой»',
@@ -438,6 +440,7 @@ export const ru: Record<MessageKey, string> = {
   'share.aiModelWrongPassword': 'Неверный пароль или повреждены данные общего доступа.',
   'share.receive': 'Принять общий доступ',
   'share.receiveTitle': 'Импорт общего доступа',
+  'share.importCode': 'Импортировать код общего доступа',
   'share.receiveDesc': 'Сканируйте QR-код друга или вставьте код ниже.',
   'share.scan': 'Сканировать',
   'share.chooseQrImage': 'Выбрать изображение QR',

@@ -21,6 +21,8 @@ export const zhTW: Record<MessageKey, string> = {
   'home.todayChecklist.add': '去安排任務',
   'home.todayChecklist.markDone': '標記「{name}」完成',
   'home.todayChecklist.markUndone': '取消「{name}」完成',
+  'home.todayChecklist.showMore': '展開其餘 {count} 項',
+  'home.todayChecklist.collapse': '收起清單',
 
   // ─────────── 健康 ───────────
   'home.installHint': '想離線使用？點 Safari 底部的分享按鈕，選「加入主畫面」',
@@ -436,6 +438,7 @@ export const zhTW: Record<MessageKey, string> = {
   'share.aiModelWrongPassword': '口令不正確或分享內容已損壞。',
   'share.receive': '收下分享',
   'share.receiveTitle': '匯入分享',
+  'share.importCode': '匯入分享碼',
   'share.receiveDesc': '掃朋友的二維碼，或把分享碼貼到下面。',
   'share.scan': '掃碼',
   'share.chooseQrImage': '從圖片辨識二維碼',

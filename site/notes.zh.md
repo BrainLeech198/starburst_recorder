@@ -1,5 +1,19 @@
 本地优先的个人记录工具，内置 AI：随手记一句今天，AI 会把它整理成一篇完整的日记。不用注册、没有云端，每一条记录都留在这台设备上。AI 用的是你自己准备的模型和 Key。
 
+## 0.21.2 · 2026-11-19
+
+首页清单更紧凑，扫码和分享码导入集中到右上角菜单。
+
+### 改进
+
+- **今日清单默认收起**：首页先显示前三项，可展开查看剩余任务，也可随时收起。
+- **分享入口更集中**：点右上角三点，可直接扫码或导入分享码。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.21.2-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2-setup.exe)
+- Android 10 以上：[starburst-recorder-0.21.2.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2.apk)
+
 ## 0.21.1 · 2026-11-19
 
 从当天页快速新增记录后，保存会回到正在查看的日期。

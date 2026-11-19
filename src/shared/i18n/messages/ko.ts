@@ -21,6 +21,8 @@ export const ko: Record<MessageKey, string> = {
   'home.todayChecklist.add': '할 일 추가',
   'home.todayChecklist.markDone': '“{name}” 완료로 표시',
   'home.todayChecklist.markUndone': '“{name}” 미완료로 표시',
+  'home.todayChecklist.showMore': '나머지 {count}개 보기',
+  'home.todayChecklist.collapse': '목록 접기',
 
   // ─────────── 건강 ───────────
   'home.installHint': '오프라인으로 쓰려면 Safari 하단의 공유 버튼을 눌러 \'홈 화면에 추가\'를 선택하세요',
@@ -437,6 +439,7 @@ export const ko: Record<MessageKey, string> = {
   'share.aiModelWrongPassword': '암호가 틀렸거나 공유 데이터가 손상되었습니다.',
   'share.receive': '공유 받기',
   'share.receiveTitle': '공유 가져오기',
+  'share.importCode': '공유 코드 가져오기',
   'share.receiveDesc': '친구의 QR 코드를 스캔하거나 아래에 공유 코드를 붙여넣으세요.',
   'share.scan': '스캔',
   'share.chooseQrImage': 'QR 이미지 선택',

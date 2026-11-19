@@ -10,11 +10,14 @@ import { checkInFor, checkInPatch, donePatch, isDoneOn, occurrencesOn } from '@/
 import { saveSchedule, schedules } from '@/features/schedule/scheduleRepo'
 import ScheduleCheckInDialog from '@/features/schedule/ScheduleCheckInDialog'
 
+const HOME_VISIBLE_ITEMS = 3
+
 export default function TodayScheduleCard() {
   const { t } = useI18n()
   const dayKey = todayKey()
   const scheduleResult = useLiveQuery(() => schedules(), [])
   const [checkInItem, setCheckInItem] = useState<ScheduleItem | null>(null)
+  const [showAll, setShowAll] = useState(false)
   const items = useMemo(
     () => occurrencesOn(scheduleResult ?? [], dayKey),
     [scheduleResult, dayKey],
@@ -22,6 +25,8 @@ export default function TodayScheduleCard() {
   const doneCount = items.reduce((count, item) => count + Number(isDoneOn(item, dayKey)), 0)
   const progress = items.length === 0 ? 0 : Math.round((doneCount / items.length) * 100)
   const allDone = items.length > 0 && doneCount === items.length
+  const visibleItems = showAll ? items : items.slice(0, HOME_VISIBLE_ITEMS)
+  const hiddenCount = items.length - visibleItems.length
   const scheduleUrl = `/schedule?date=${dayKey}`
 
   async function saveCheckIn(note: string, photo: DiaryImage | null) {
@@ -99,8 +104,8 @@ export default function TodayScheduleCard() {
           )}
 
           {items.length > 0 && (
-            <ul className="m-0 mt-2 list-none divide-y divide-line p-0">
-              {items.map((item) => {
+            <ul id="home-today-checklist-items" className="m-0 mt-2 list-none divide-y divide-line p-0">
+              {visibleItems.map((item) => {
                 const done = isDoneOn(item, dayKey)
                 return (
                   <li key={item.id} className="flex items-start gap-2 py-2">
@@ -143,6 +148,20 @@ export default function TodayScheduleCard() {
                 )
               })}
             </ul>
+          )}
+
+          {items.length > HOME_VISIBLE_ITEMS && (
+            <button
+              type="button"
+              aria-expanded={showAll}
+              aria-controls="home-today-checklist-items"
+              onClick={() => setShowAll((current) => !current)}
+              className="mt-2 min-h-10 w-full rounded-lg px-2 text-sm font-medium text-brand transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            >
+              {showAll
+                ? t('home.todayChecklist.collapse')
+                : t('home.todayChecklist.showMore', { count: hiddenCount })}
+            </button>
           )}
 
           {allDone && (

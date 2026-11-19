@@ -4,7 +4,7 @@
  * 预览只描述「将导入什么」，真正写库交给各类型的适配器；
  * 同名食物优先复用，避免把朋友的食物库覆盖成自己的。
  */
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import QrScanner from 'qr-scanner'
 import Modal from '@/shared/ui/Modal'
 import { GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonStyles'
@@ -20,9 +20,12 @@ import { decryptText } from '@/features/settings/secretBox'
 export default function ShareReceiveDialog({
   onClose,
   onImported,
+  autoScan = false,
 }: {
   onClose: () => void
   onImported?: () => void
+  /** Start the camera scan immediately when opened from the home menu. */
+  autoScan?: boolean
 }) {
   const { t } = useI18n()
   const { showToast } = useToast()
@@ -84,6 +87,18 @@ export default function ShareReceiveDialog({
     setText(value)
     await parse(value)
   }
+
+  const scanHandler = useRef<() => void>(() => {})
+
+  useEffect(() => {
+    scanHandler.current = () => void handleScan()
+  })
+
+  useEffect(() => {
+    if (!autoScan) return
+    const timer = window.setTimeout(() => scanHandler.current(), 0)
+    return () => window.clearTimeout(timer)
+  }, [autoScan])
 
   async function handleImport() {
     if (!doc) return

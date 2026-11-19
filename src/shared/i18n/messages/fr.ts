@@ -21,6 +21,8 @@ export const fr: Record<MessageKey, string> = {
   'home.todayChecklist.add': 'Ajouter une tâche',
   'home.todayChecklist.markDone': 'Marquer « {name} » comme terminé',
   'home.todayChecklist.markUndone': 'Marquer « {name} » comme non terminé',
+  'home.todayChecklist.showMore': 'Afficher {count} de plus',
+  'home.todayChecklist.collapse': 'Réduire la liste',
 
   // ─────────── Santé ───────────
   'home.installHint': 'Pour un usage hors ligne, touchez « Partager » dans Safari puis « Sur l’écran d’accueil »',
@@ -438,6 +440,7 @@ export const fr: Record<MessageKey, string> = {
   'share.aiModelWrongPassword': 'Phrase secrète incorrecte ou données de partage endommagées.',
   'share.receive': 'Recevoir un partage',
   'share.receiveTitle': 'Importer un partage',
+  'share.importCode': 'Importer un code de partage',
   'share.receiveDesc': "Scanne le QR code d'un ami ou colle le code de partage ci-dessous.",
   'share.scan': 'Scanner',
   'share.chooseQrImage': 'Choisir une image QR',

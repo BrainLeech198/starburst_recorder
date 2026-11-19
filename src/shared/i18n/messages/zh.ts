@@ -22,6 +22,8 @@ export const zh = {
   'home.todayChecklist.add': '去安排任务',
   'home.todayChecklist.markDone': '标记“{name}”完成',
   'home.todayChecklist.markUndone': '取消“{name}”完成',
+  'home.todayChecklist.showMore': '展开剩余 {count} 项',
+  'home.todayChecklist.collapse': '收起清单',
 
   // ─────────── 健康 ───────────
   'home.installHint': '想离线使用？点 Safari 底部的分享按钮，选「添加到主屏幕」',
@@ -438,6 +440,7 @@ export const zh = {
   'share.aiModelWrongPassword': '口令不正确或分享内容已损坏。',
   'share.receive': '收下分享',
   'share.receiveTitle': '导入分享',
+  'share.importCode': '导入分享码',
   'share.receiveDesc': '扫朋友的二维码，或把分享码粘贴到下面。',
   'share.scan': '扫码',
   'share.chooseQrImage': '从图片识别二维码',

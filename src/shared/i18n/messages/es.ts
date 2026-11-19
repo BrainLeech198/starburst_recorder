@@ -21,6 +21,8 @@ export const es: Record<MessageKey, string> = {
   'home.todayChecklist.add': 'Añadir tarea',
   'home.todayChecklist.markDone': 'Marcar «{name}» como completada',
   'home.todayChecklist.markUndone': 'Marcar «{name}» como pendiente',
+  'home.todayChecklist.showMore': 'Mostrar {count} más',
+  'home.todayChecklist.collapse': 'Mostrar menos',
 
   // ─────────── Salud ───────────
   'home.installHint': 'Para usarla sin conexión, toca «Compartir» en Safari y elige «Añadir a pantalla de inicio»',
@@ -440,6 +442,7 @@ export const es: Record<MessageKey, string> = {
   'share.aiModelWrongPassword': 'La contraseña es incorrecta o los datos están dañados.',
   'share.receive': 'Recibir un compartido',
   'share.receiveTitle': 'Importar un compartido',
+  'share.importCode': 'Importar código compartido',
   'share.receiveDesc': 'Escanea el código QR de un amigo o pega el código abajo.',
   'share.scan': 'Escanear',
   'share.chooseQrImage': 'Elegir imagen QR',

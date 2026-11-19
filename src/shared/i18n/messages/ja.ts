@@ -21,6 +21,8 @@ export const ja: Record<MessageKey, string> = {
   'home.todayChecklist.add': 'タスクを追加',
   'home.todayChecklist.markDone': '「{name}」を完了にする',
   'home.todayChecklist.markUndone': '「{name}」を未完了にする',
+  'home.todayChecklist.showMore': '残り {count} 件を表示',
+  'home.todayChecklist.collapse': 'リストを折りたたむ',
 
   // ─────────── 健康 ───────────
   'home.installHint': 'オフラインで使うには、Safari の共有ボタンから「ホーム画面に追加」を選んでください',
@@ -438,6 +440,7 @@ export const ja: Record<MessageKey, string> = {
   'share.aiModelWrongPassword': 'パスフレーズが違うか、共有データが破損しています。',
   'share.receive': '共有を受け取る',
   'share.receiveTitle': '共有を読み込む',
+  'share.importCode': '共有コードを読み込む',
   'share.receiveDesc': '相手のQRコードを読み取るか、下に共有コードを貼り付けてください。',
   'share.scan': 'スキャン',
   'share.chooseQrImage': 'QR画像を選択',

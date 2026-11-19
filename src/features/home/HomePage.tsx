@@ -4,6 +4,7 @@ import { useCareMode } from '@/shared/care/careContext'
 import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import ShareReceiveDialog from '@/features/share/ShareReceiveDialog'
+import Dropdown from '@/shared/ui/Dropdown'
 import InstallHint from './InstallHint'
 import TodayScheduleCard from './TodayScheduleCard'
 import { dismissHomeBrand, isHomeBrandDismissed } from './homeBrand'
@@ -39,7 +40,7 @@ export default function HomePage() {
   const { t } = useI18n()
   const { state: care } = useCareMode()
   const careHome = care.care
-  const [scanOpen, setScanOpen] = useState(false)
+  const [shareAction, setShareAction] = useState<'scan' | 'paste' | null>(null)
   const [brandVisible, setBrandVisible] = useState(() => !isHomeBrandDismissed())
 
   function hideBrand() {
@@ -50,12 +51,25 @@ export default function HomePage() {
   return (
     <div
       className={[
-        'mx-auto flex w-full flex-1 flex-col px-4 sm:px-6',
+        'relative mx-auto flex w-full flex-1 flex-col px-4 sm:px-6',
         careHome
           ? 'max-w-xl items-stretch justify-start py-8'
           : 'max-w-lg items-center justify-center pb-16 sm:pb-0',
       ].join(' ')}
     >
+      <div className="absolute right-4 top-3 z-20 sm:right-6 sm:top-4">
+        <Dropdown
+          label="⋯"
+          menuLabel={t('common.more')}
+          caret={false}
+          items={[
+            { label: t('share.scan'), icon: 'scan', onSelect: () => setShareAction('scan') },
+            { label: t('share.importCode'), icon: 'import', onSelect: () => setShareAction('paste') },
+          ]}
+          buttonClassName="inline-flex h-10 w-11 items-center justify-center rounded-xl border border-line bg-surface text-xl leading-none text-muted shadow-sm transition-colors hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        />
+      </div>
+
       {!careHome && (
         <>
           {brandVisible && (
@@ -110,23 +124,13 @@ export default function HomePage() {
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={() => setScanOpen(true)}
-        className={
-          careHome
-            ? 'mt-5 flex min-h-12 w-full items-center gap-3 border-t border-line px-2 pt-4 text-left text-base font-medium text-brand transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand'
-            : 'mt-2 flex w-full items-center gap-3 rounded-xl border border-brand/30 bg-brand/5 p-3 text-left transition-colors hover:border-brand sm:mt-3 sm:p-4'
-        }
-      >
-        <span aria-hidden="true" className="text-xl leading-none">▦</span>
-        <div>
-          <div className={careHome ? 'font-medium' : 'text-base font-medium'}>{t('share.receive')}</div>
-          {!careHome && <div className="mt-1 text-xs text-muted">{t('share.receiveDesc')}</div>}
-        </div>
-      </button>
-
-      {scanOpen && <ShareReceiveDialog onClose={() => setScanOpen(false)} />}
+      {shareAction && (
+        <ShareReceiveDialog
+          key={shareAction}
+          autoScan={shareAction === 'scan'}
+          onClose={() => setShareAction(null)}
+        />
+      )}
 
       <InstallHint />
     </div>

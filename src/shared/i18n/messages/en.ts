@@ -21,6 +21,8 @@ export const en: Record<MessageKey, string> = {
   'home.todayChecklist.add': 'Add a task',
   'home.todayChecklist.markDone': 'Mark “{name}” done',
   'home.todayChecklist.markUndone': 'Mark “{name}” not done',
+  'home.todayChecklist.showMore': 'Show {count} more',
+  'home.todayChecklist.collapse': 'Show less',
 
   // ─────────── Health ───────────
   'home.installHint': 'For offline use, tap Share in Safari, then "Add to Home Screen"',
@@ -451,6 +453,7 @@ export const en: Record<MessageKey, string> = {
   'share.aiModelWrongPassword': 'The passphrase is incorrect or the share data is damaged.',
   'share.receive': 'Receive a share',
   'share.receiveTitle': 'Import a share',
+  'share.importCode': 'Import share code',
   'share.receiveDesc': "Scan a friend's QR code, or paste the share code below.",
   'share.scan': 'Scan',
   'share.chooseQrImage': 'Choose QR image',

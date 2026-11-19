@@ -1,5 +1,19 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
+## 0.21.2 · 2026-11-19
+
+Keep the home checklist compact and put scan and share-code import in one top-right menu.
+
+### Improvements
+
+- **A shorter home checklist** — show the first three tasks by default, with controls to expand or collapse the rest.
+- **Share actions in one place** — tap the top-right menu to scan a QR code or import a share code.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.21.2-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2-setup.exe)
+- Android 10+: [starburst-recorder-0.21.2.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2.apk)
+
 ## 0.21.1 · 2026-11-19
 
 After adding a record from a day view, saving returns to the date you were viewing.

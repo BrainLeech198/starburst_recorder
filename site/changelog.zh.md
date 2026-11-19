@@ -1,3 +1,17 @@
+## 0.21.2 · 2026-11-19
+
+首页清单更紧凑，扫码和分享码导入集中到右上角菜单。
+
+### 这一版有什么
+
+- **今日清单默认收起**：首页先显示前三项，可展开查看剩余任务，也可随时收起。
+- **分享入口更集中**：点右上角三点，可直接扫码或导入分享码。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.21.2-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2-setup.exe)
+- Android 10 以上：[starburst-recorder-0.21.2.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.2/starburst-recorder-0.21.2.apk)
+
 ## 0.21.1 · 2026-11-19
 
 从当天页新增记录并保存后，回到原先查看的日期。

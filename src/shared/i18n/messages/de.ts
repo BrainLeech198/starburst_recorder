@@ -21,6 +21,8 @@ export const de: Record<MessageKey, string> = {
   'home.todayChecklist.add': 'Aufgabe hinzufügen',
   'home.todayChecklist.markDone': '„{name}“ als erledigt markieren',
   'home.todayChecklist.markUndone': '„{name}“ als offen markieren',
+  'home.todayChecklist.showMore': 'Weitere {count} anzeigen',
+  'home.todayChecklist.collapse': 'Liste einklappen',
 
   // ─────────── Gesundheit ───────────
   'home.installHint': 'Für Offline-Nutzung in Safari auf „Teilen“ tippen und „Zum Home-Bildschirm“ wählen',
@@ -439,6 +441,7 @@ export const de: Record<MessageKey, string> = {
   'share.aiModelWrongPassword': 'Die Passphrase ist falsch oder die Freigabe ist beschädigt.',
   'share.receive': 'Freigabe empfangen',
   'share.receiveTitle': 'Freigabe importieren',
+  'share.importCode': 'Freigabecode importieren',
   'share.receiveDesc': 'Scanne den QR-Code der anderen Person oder füge den Teilen-Code unten ein.',
   'share.scan': 'Scannen',
   'share.chooseQrImage': 'QR-Bild auswählen',
