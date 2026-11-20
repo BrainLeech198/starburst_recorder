@@ -1,3 +1,20 @@
+## 0.22.0 · 2026-11-20
+
+Home now separates the four-card landing view from today's checklist, with clearer schedule, reminder-permission, and update flows.
+
+### What's new
+
+- **Separate home from today's checklist** — the home tab keeps the brand and four entry cards, while the checklist has its own view. The top-right menu stays available.
+- **Show dates by schedule type** — one-time tasks ask for a date; recurring tasks hide the start-date field and ask for an end date. Check-ins show seven-character hexadecimal codes that are included in backups.
+- **Make reminder permissions clearer** — Android can request notification permission and sync local reminders from Settings. Windows can start hidden at sign-in so desktop reminders keep running.
+- **Open the update flow after a new version is found** — manual checks now open the update dialog with download-source options.
+- **Trim the website** — remove repeated sections and clarify what stays local and what goes to AI services or web reminders.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.22.0-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.22.0/starburst-recorder-0.22.0-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.22.0/starburst-recorder-0.22.0-setup.exe)
+- Android 10+: [starburst-recorder-0.22.0.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.22.0/starburst-recorder-0.22.0.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.22.0/starburst-recorder-0.22.0.apk)
+
 ## 0.21.5 · 2026-11-20
 
 Diary drafts created from a day view save to that date and return there; empty workout forms now say what to add.

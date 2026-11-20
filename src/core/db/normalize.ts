@@ -42,7 +42,7 @@ import type {
   TrainingTemplate,
   WeighIn,
 } from './schema'
-import { newCode } from '@/core/utils/id'
+import { newCode, stableCode } from '@/core/utils/id'
 
 function text(value: unknown, fallback = '') {
   return typeof value === 'string' ? value : fallback
@@ -757,6 +757,17 @@ export function pickWeeklyDays(raw: unknown): number[] {
   )
 }
 
+/** 旧 IndexedDB 行在内存中补齐稳定编号，不改写用户数据。 */
+export function ensureScheduleCheckInCodes(item: ScheduleItem): ScheduleItem {
+  const checkIns = (item.checkIns ?? []).map((checkIn) => ({
+    ...checkIn,
+    code: /^[0-9a-f]{7}$/i.test(checkIn.code ?? '')
+      ? checkIn.code.toLowerCase()
+      : stableCode(`${item.id}:${checkIn.dateKey}`),
+  }))
+  return { ...item, checkIns }
+}
+
 /**
  * 日程 / 定期任务：标题为空或日期不合法就整行丢掉；
  * 重复方式、周几、完成记录都按上限收紧，手改的备份不至于把页面撑爆。
@@ -786,6 +797,9 @@ export function pickSchedule(raw: unknown): ScheduleItem | null {
           if (!checkInDate) return null
           const photos = checkIn.photo ? pickImages([checkIn.photo]) : []
           return {
+            code: /^[0-9a-f]{7}$/i.test(text(checkIn.code))
+              ? text(checkIn.code).toLowerCase()
+              : stableCode(`${id}:${checkInDate}`),
             dateKey: checkInDate,
             note: text(checkIn.note).slice(0, 500),
             photo: photos[0] ?? null,

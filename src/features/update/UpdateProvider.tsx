@@ -25,7 +25,7 @@ interface UpdateValue {
   channel: UpdateChannel
   /** 切换通道会清掉旧结果，并按新通道立刻查一次 */
   setChannel: (channel: UpdateChannel) => void
-  /** 手动检查：结果会用 toast 说一句 */
+  /** 手动检查：找到新版后直接打开更新弹窗 */
   check: () => void
   /** 已经有 info 时重新打开弹窗 */
   open: () => void
@@ -71,15 +71,12 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       // 手动检查必须能替换启动时缓存的版本；没有新版时也要清掉过期结果。
       setInfo(found)
       if (manual) {
-        showToast({
-          message: found
-            ? t('update.found', { version: found.version })
-            : t('update.latest', { version: APP_VERSION }),
-        })
+        if (found) openWithCurrentSource()
+        else showToast({ message: t('update.latest', { version: APP_VERSION }) })
       }
       return found
     },
-    [channel, locale, showToast, t],
+    [channel, locale, openWithCurrentSource, showToast, t],
   )
 
   /** 切通道：先清掉旧结果，避免测试版卡片留在正式版通道里 */

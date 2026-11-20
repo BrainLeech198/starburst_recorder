@@ -19,6 +19,7 @@ const PLAN_IDS = [0, 1, 2, 3, 4, 5, 6].map((index) => PLAN_NOTIFICATION_BASE + i
 const ALL_IDS = [...PLAN_IDS, NUDGE_NOTIFICATION_ID]
 const NOTIFIED_KEY = 'starburst.trainingNotified'
 const NUDGE_KEY = 'starburst.trainingNudged'
+const inFlight = new Set<string>()
 
 function localDay(key: string) {
   try {
@@ -40,8 +41,14 @@ function clockNow() {
   return new Date().toTimeString().slice(0, 5)
 }
 
-function show(title: string, body: string) {
+function show(markKey: string, today: string, title: string, body: string) {
+  if (inFlight.has(markKey)) return
+  inFlight.add(markKey)
   void notifyNow(title, body)
+    .then((delivered) => {
+      if (delivered) markDay(markKey, today)
+    })
+    .finally(() => inFlight.delete(markKey))
 }
 
 /**
@@ -63,17 +70,17 @@ export function maybeNotifyTraining(
       isPlanDay(normalized, today) &&
       isTimeReached(normalized, clockNow())
     ) {
-      show(translate('training.plan.notifyTitle'), translate('training.plan.notifyBody'))
-      markDay(NOTIFIED_KEY, today)
+      show(NOTIFIED_KEY, today, translate('training.plan.notifyTitle'), translate('training.plan.notifyBody'))
     }
   }
 
   if (localDay(NUDGE_KEY) !== today && shouldNudge(normalizePlan(plan), gapDays, false)) {
     show(
+      NUDGE_KEY,
+      today,
       translate('training.plan.nudgeTitle'),
       translate('training.plan.nudgeBody', { n: gapDays }),
     )
-    markDay(NUDGE_KEY, today)
   }
 }
 
@@ -83,7 +90,8 @@ export async function syncTrainingReminder(plan: TrainingPlan | undefined): Prom
     const { Capacitor } = await import('@capacitor/core')
     if (!Capacitor.isNativePlatform()) return
     const { LocalNotifications } = await import('@capacitor/local-notifications')
-    await LocalNotifications.requestPermissions()
+    const permission = await LocalNotifications.checkPermissions()
+    if (permission.display !== 'granted') return
 
     const normalized = normalizePlan(plan)
     const cancelAll = async () => {

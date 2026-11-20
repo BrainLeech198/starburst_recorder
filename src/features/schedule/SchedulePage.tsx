@@ -218,9 +218,12 @@ export default function SchedulePage() {
                     <Icon name="check" className="h-3 w-3" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className={done ? 'block text-sm text-muted line-through' : 'block text-sm text-fg'}>
-                    {item.time && <span className="mr-1.5 text-muted">{item.time}</span>}
-                    {item.title}
+                    <span className="flex items-baseline gap-2">
+                      <span className={done ? 'min-w-0 truncate text-sm text-muted line-through' : 'min-w-0 truncate text-sm text-fg'}>
+                        {item.time && <span className="mr-1.5 text-muted">{item.time}</span>}
+                        {item.title}
+                      </span>
+                      <span className="shrink-0 font-mono text-[10px] text-muted">{item.code}</span>
                     </span>
                     <span className="mt-0.5 block text-[11px] text-muted">
                     {repeatLabel(item)}
@@ -286,12 +289,16 @@ export default function SchedulePage() {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="text-sm text-fg">
-                  {item.time && <span className="mr-1.5 text-muted">{item.time}</span>}
-                  {item.title}
+                  <span className="flex items-baseline gap-2">
+                    <span className="min-w-0 truncate">
+                      {item.time && <span className="mr-1.5 text-muted">{item.time}</span>}
+                      {item.title}
+                    </span>
+                    <span className="shrink-0 font-mono text-[10px] text-muted">{item.code}</span>
+                  </span>
                 </div>
                 <div className="mt-0.5 text-[11px] text-muted">
                   {repeatLabel(item)}
-                  {' · '}{t('schedule.fromDate', { date: formatDate(item.dateKey, t) })}
                   {item.endDate
                     ? ` · ${t('schedule.untilDate', { date: formatDate(item.endDate, t) })}`
                     : ` · ${t('schedule.endDateUnset')}`}

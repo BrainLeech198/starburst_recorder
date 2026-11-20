@@ -528,7 +528,7 @@ describe('桌面端 SQLite 分块导入', () => {
       remind: true,
       doneAt: null,
       doneDays: ['2026-11-02', '2026-11-04'],
-      checkIns: [{ dateKey: '2026-11-02', note: '深蹲三组', photo: image, recordedAt: 1_700_000_000_000 }],
+      checkIns: [{ code: 'legacy', dateKey: '2026-11-02', note: '深蹲三组', photo: image, recordedAt: 1_700_000_000_000 }],
       createdAt: 1_700_000_000_000,
       updatedAt: 1_700_000_000_000,
       deletedAt: null,
@@ -553,7 +553,8 @@ describe('桌面端 SQLite 分块导入', () => {
     expect(after.schedules[0]).toEqual(before.schedules[0])
     expect(after.schedules[0].remind).toBe(true)
     expect(after.schedules[0].doneDays).toEqual(['2026-11-02', '2026-11-04'])
-    expect(after.schedules[0].checkIns).toEqual(item.checkIns)
+    expect(after.schedules[0].checkIns).toEqual(before.schedules[0].checkIns)
+    expect(after.schedules[0].checkIns?.[0].code).toMatch(/^[0-9a-f]{7}$/)
   })
 
   it('训练软删除后进回收站，恢复与彻底删除都能用', () => {

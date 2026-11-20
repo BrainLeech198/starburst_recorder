@@ -1,5 +1,22 @@
 本地优先的个人记录工具，内置 AI：随手记一句今天，AI 会把它整理成一篇完整的日记。不用注册、没有云端，每一条记录都留在这台设备上。AI 用的是你自己准备的模型和 Key。
 
+## 0.22.0 · 2026-11-20
+
+首页分为两个视图；日程、提醒权限和更新操作更清楚。
+
+### 改进
+
+- **首页与今日清单分开**：首页只保留品牌与四张入口卡片，今日清单单独显示；右上角菜单固定可用。
+- **日程表单按类型显示日期**：一次性日程填写日期；重复任务不再要求填写开始日期，只需设置截止日期。打卡记录显示七位十六进制编号，并随备份保存。
+- **提醒权限更明确**：安卓可从设置申请系统通知权限并同步本地提醒；Windows 可设置登录后隐藏启动，让桌面提醒继续运行。
+- **检查更新直接进入下载流程**：发现新版本后打开更新弹窗，可以选择下载来源。
+- **官网内容精简**：移除重复介绍，并把本地记录、AI 服务和网页提醒会发送的数据说清楚。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.22.0-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.22.0/starburst-recorder-0.22.0-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.22.0/starburst-recorder-0.22.0-setup.exe)
+- Android 10 以上：[starburst-recorder-0.22.0.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.22.0/starburst-recorder-0.22.0.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.22.0/starburst-recorder-0.22.0.apk)
+
 ## 0.21.5 · 2026-11-20
 
 当天页新建日记可直接保存并回到原日期；训练空表单会说明需要补充什么。

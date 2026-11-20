@@ -117,7 +117,7 @@
 
   // 滚动渐显：没有 IntersectionObserver 或用户要求减少动效时，直接显示
   var targets = document.querySelectorAll(
-    '.hero__copy, .hero__paper, .section-head, .card, .compare, .shot, .privacy, .chips, .open__actions, .downloads'
+    '.hero__copy, .hero__paper, .section-head, .card, .compare, .shot, .privacy, .downloads'
   );
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 

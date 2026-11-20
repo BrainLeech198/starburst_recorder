@@ -42,6 +42,7 @@ export default function HomePage() {
   const careHome = care.care
   const [shareAction, setShareAction] = useState<'scan' | 'paste' | null>(null)
   const [brandVisible, setBrandVisible] = useState(() => !isHomeBrandDismissed())
+  const [activeView, setActiveView] = useState<'home' | 'today'>('home')
 
   function hideBrand() {
     dismissHomeBrand()
@@ -51,13 +52,13 @@ export default function HomePage() {
   return (
     <div
       className={[
-        'relative mx-auto flex w-full flex-1 flex-col px-4 sm:px-6',
+        'relative mx-auto flex w-full flex-1 flex-col px-4 pt-12 sm:px-6 sm:pt-14',
         careHome
           ? 'max-w-xl items-stretch justify-start py-8'
           : 'max-w-lg items-center justify-center pb-16 sm:pb-0',
       ].join(' ')}
     >
-      <div className="absolute right-4 top-3 z-20 sm:right-6 sm:top-4">
+      <div className="fixed right-4 top-3 z-50 sm:right-6 sm:top-4">
         <Dropdown
           label="⋯"
           menuLabel={t('common.more')}
@@ -70,59 +71,62 @@ export default function HomePage() {
         />
       </div>
 
-      {!careHome && (
+      <div role="tablist" aria-label={t('nav.home')} className="mb-5 flex rounded-xl border border-line bg-surface p-1">
+        {(['home', 'today'] as const).map((view) => (
+          <button
+            key={view}
+            type="button"
+            role="tab"
+            aria-selected={activeView === view}
+            onClick={() => setActiveView(view)}
+            className={[
+              'min-h-9 flex-1 whitespace-nowrap rounded-lg px-3 text-sm transition-colors',
+              activeView === view ? 'bg-surface-2 font-medium text-fg shadow-sm' : 'text-muted hover:text-fg',
+            ].join(' ')}
+          >
+            {t(view === 'home' ? 'nav.home' : 'home.todayChecklist.title')}
+          </button>
+        ))}
+      </div>
+
+      {activeView === 'today' ? (
+        <TodayScheduleCard />
+      ) : (
         <>
-          {brandVisible && (
+          {!careHome && brandVisible && (
             <div className="flex flex-col items-center">
               <Starburst onDismiss={hideBrand} label={t('home.brand.dismiss')} />
               <h1 className="mt-5 text-2xl font-medium tracking-wide sm:mt-7">{t('app.name')}</h1>
               <p className="mt-2 text-sm text-muted">{t('app.tagline')}</p>
             </div>
           )}
+
+          {careHome && <h1 className="w-full text-xl font-semibold">{t('home.careTitle')}</h1>}
+
+          <div className={careHome ? 'mt-5 grid w-full grid-cols-1 gap-3' : 'mt-6 grid w-full grid-cols-2 auto-rows-fr gap-2 sm:mt-10 sm:gap-3'}>
+            {ENTRIES.map((entry) => (
+              <Link
+                key={entry.to}
+                to={entry.to}
+                className={careHome
+                  ? 'flex min-h-20 items-center gap-4 rounded-xl border border-line bg-surface p-5 text-left transition-colors hover:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand'
+                  : 'flex min-h-20 items-center gap-3 rounded-xl border border-line bg-surface p-3 transition-colors hover:border-brand sm:min-h-24 sm:p-4'}
+              >
+                <span aria-hidden="true" className={careHome ? 'text-3xl leading-none' : 'text-lg leading-none'}>
+                  {entry.icon}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className={careHome ? 'text-lg font-semibold' : 'text-base font-medium'}>{t(entry.labelKey)}</div>
+                  <div className={careHome ? 'mt-1 text-sm text-muted' : 'mt-1 min-h-8 text-xs leading-4 text-muted'}>
+                    {t(entry.descKey)}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <InstallHint />
         </>
       )}
-
-      {careHome && <h1 className="w-full text-xl font-semibold">{t('home.careTitle')}</h1>}
-
-      <TodayScheduleCard />
-
-      <div
-        className={
-          careHome
-            ? 'mt-5 grid w-full grid-cols-1 gap-3'
-            : 'mt-6 grid w-full grid-cols-2 auto-rows-fr gap-2 sm:mt-10 sm:gap-3'
-        }
-      >
-        {ENTRIES.map((entry) => (
-          <Link
-            key={entry.to}
-            to={entry.to}
-            className={
-              [
-                careHome
-                  ? 'flex min-h-20 items-center gap-4 rounded-xl border border-line bg-surface p-5 text-left transition-colors hover:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand'
-                  : 'flex min-h-20 items-center gap-3 rounded-xl border border-line bg-surface p-3 transition-colors hover:border-brand sm:min-h-24 sm:p-4',
-              ].join(' ')
-            }
-          >
-            <span aria-hidden="true" className={careHome ? 'text-3xl leading-none' : 'text-lg leading-none'}>
-              {entry.icon}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className={careHome ? 'text-lg font-semibold' : 'text-base font-medium'}>{t(entry.labelKey)}</div>
-              <div
-                className={
-                  careHome
-                    ? 'mt-1 text-sm text-muted'
-                    : 'mt-1 min-h-8 text-xs leading-4 text-muted'
-                }
-              >
-                {t(entry.descKey)}
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
 
       {shareAction && (
         <ShareReceiveDialog
@@ -132,7 +136,6 @@ export default function HomePage() {
         />
       )}
 
-      <InstallHint />
     </div>
   )
 }

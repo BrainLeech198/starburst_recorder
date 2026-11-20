@@ -785,10 +785,6 @@ html[lang='en'] .download h3 {
   border-top: 1px solid rgb(232 237 247 / 5%);
 }
 
-.dark-section--open {
-  background: var(--bg-soft);
-}
-
 .dark-section--download {
   background:
     radial-gradient(circle at 50% 0%, rgb(110 231 255 / 10%), transparent 48%),
@@ -817,37 +813,6 @@ html[lang='en'] .download h3 {
 .privacy p {
   margin-top: 8px;
   font-size: 14px;
-  color: var(--muted);
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 36px;
-}
-
-.chips li {
-  padding: 6px 14px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  background: rgb(255 255 255 / 2%);
-}
-
-.open__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-top: 32px;
-}
-
-.open__version {
-  font-size: 12px;
-  letter-spacing: 0.1em;
   color: var(--muted);
 }
 
@@ -1106,80 +1071,5 @@ html[lang='en'] .download h3 {
 .history-link a:hover {
   color: var(--brand);
   border-bottom-color: currentColor;
-}
-
-
-/* 这一版有什么：下载前先说清值不值得升级 */
-.whatsnew {
-  margin-bottom: 28px;
-  padding: 18px 20px;
-  border: 1px solid rgb(110 231 255 / 18%);
-  border-radius: 14px;
-  background: rgb(110 231 255 / 6%);
-}
-
-.whatsnew__head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.whatsnew__ver {
-  padding: 2px 9px;
-  border: 1px solid rgb(110 231 255 / 38%);
-  border-radius: 999px;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  font-variant-numeric: tabular-nums;
-  color: var(--brand);
-}
-
-.whatsnew__head h3 {
-  margin: 0;
-  font-size: 16px;
-  color: var(--fg);
-}
-
-.whatsnew__list {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding-left: 18px;
-  font-size: 13.5px;
-  line-height: 1.7;
-  /* 更新日志在深色下载区里，正文要用浅色；--ink-soft 是纸面墨色，深底上会隐身 */
-  color: var(--fg);
-}
-
-.whatsnew__list li::marker {
-  color: var(--brand);
-}
-
-.whatsnew__more {
-  margin: 12px 0 0;
-  font-size: 12px;
-}
-
-.whatsnew__more a {
-  color: var(--brand);
-  text-decoration: none;
-  border-bottom: 1px dotted currentColor;
-}
-
-.whatsnew__more a:hover {
-  border-bottom-style: solid;
-}
-
-@media (max-width: 640px) {
-  .whatsnew {
-    padding: 14px 15px;
-    margin-bottom: 22px;
-  }
-
-  .whatsnew__list {
-    font-size: 13px;
-    padding-left: 16px;
-  }
 }
 

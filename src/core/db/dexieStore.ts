@@ -37,7 +37,7 @@ import type {
 } from './store'
 import { zeroStats } from './store'
 import { briefEntry, briefFinance, briefFood, briefMeal, briefStamp } from './brief'
-import { cleanTags } from './normalize'
+import { cleanTags, ensureScheduleCheckInCodes } from './normalize'
 import { searchRows } from '@/core/search/match'
 import { newCode, newId } from '@/core/utils/id'
 import { formatClock } from '@/core/utils/dateKey'
@@ -381,7 +381,7 @@ export const dexieStore: DiaryStore = {
       measurements,
       trainings,
       finance,
-      schedules,
+      schedules: schedules.map(ensureScheduleCheckInCodes),
     }
   },
 
@@ -1182,7 +1182,7 @@ export const dexieStore: DiaryStore = {
       item.checkIns ??= []
     }
     // 和 SQLite 版本同一口径：起始日期、时刻、创建时间都参与排序
-    return rows.sort(
+    return rows.map(ensureScheduleCheckInCodes).sort(
       (a, b) =>
         a.dateKey.localeCompare(b.dateKey) ||
         (a.time || '').localeCompare(b.time || '') ||
@@ -1196,7 +1196,7 @@ export const dexieStore: DiaryStore = {
       item.endDate ??= null
       item.checkIns ??= []
     }
-    return rows.sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0))
+    return rows.map(ensureScheduleCheckInCodes).sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0))
   },
 
   async saveSchedule(item) {

@@ -234,6 +234,7 @@ describe('备份读写的兼容口径', () => {
         doneAt: null,
         doneDays: ['2026-11-02'],
         checkIns: [{
+          code: 'c0ffee2',
           dateKey: '2026-11-02',
           note: '复习了 35 个单词',
           photo: { id: 'checkin-photo', dataUrl: 'data:image/jpeg;base64,AA', width: 8, height: 6 },
@@ -264,6 +265,7 @@ describe('备份读写的兼容口径', () => {
     expect(read.payload.schedules[0].doneDays).toEqual(['2026-11-02'])
     expect(read.payload.schedules[0].checkIns).toEqual([
       {
+        code: 'c0ffee2',
         dateKey: '2026-11-02',
         note: '复习了 35 个单词',
         photo: { id: 'checkin-photo', dataUrl: 'data:image/jpeg;base64,AA', width: 8, height: 6 },

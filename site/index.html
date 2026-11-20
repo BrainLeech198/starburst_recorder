@@ -6,7 +6,7 @@
     <title>星芒记录者 · 把零散的日子，攒成看得见的自己</title>
     <meta
       name="description"
-      content="星芒记录者是一个本地优先的个人记录工具：日记、随记、健康、训练、收支与日历都在一处，内置 AI 助手帮忙整理和动手。无账号、无云端，Windows 与 Android 同源。"
+      content="星芒记录者是本地优先的个人记录工具：日记、健康、训练、收支和日程保存在设备上。AI 只连接你配置的服务，网页离线提醒只同步提醒时间和类别。支持 Windows、Android 与 PWA。"
     />
     <link rel="icon" href="assets/icon.png" type="image/png" />
     <link rel="apple-touch-icon" href="assets/icon.png" />
@@ -74,8 +74,8 @@
             </h1>
             <p class="hero__lead" data-i18n="app.tagline">把零散的日子，攒成看得见的自己。</p>
             <p class="hero__sub" data-i18n="hero.sub">
-              随手记下今天，AI 帮你整理成完整的日记；也可以直接问助手，让它查记录、记账、写随记或记睡眠。AI
-              用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。
+              随手记下今天，AI 帮你整理成完整的日记；也可以直接问助手，让它查记录、记账、写随记或记睡眠。核心记录保存在本机；AI
+              按需发送到你配置的服务，网页离线提醒只同步时间和类别。Windows 和 Android 用的是同一份代码。
             </p>
             <div class="hero__actions">
               <a
@@ -314,17 +314,13 @@
         <div class="dark-section__inner">
           <header class="section-head section-head--dark">
             <p class="kicker" data-i18n="privacy.kicker">隐私</p>
-            <h2 data-i18n="privacy.title">你的日子，不离开这台机器</h2>
+            <h2 data-i18n="privacy.title">核心记录留在本机，外发由你选择</h2>
           </header>
           <ul class="privacy">
             <li>
-              <h3 data-i18n="privacy.noAccount">不用注册</h3>
-              <p data-i18n="privacy.noAccountDesc">打开就能写。没有账号，也就没有找回密码那套流程。</p>
-            </li>
-            <li>
-              <h3 data-i18n="privacy.noCloud">没有云端</h3>
+              <h3 data-i18n="privacy.noCloud">核心记录保存在本机</h3>
               <p data-i18n="privacy.noCloudDesc">
-                我们不做服务器，也没有任何一条记录会被上传到我们这里。
+                日记、健康、训练和收支保存在本机。开启网页离线提醒时，只同步提醒时间和类别，不上传标题或正文。
               </p>
             </li>
             <li>
@@ -336,88 +332,23 @@
             <li>
               <h3 data-i18n="privacy.aiTitle">AI 只连你指定的服务</h3>
               <p data-i18n="privacy.aiDesc">
-                只有你点「AI 整理」或向助手提问时，需要用到的那部分记录才会发给你自己配置的模型服务；其余记录不出本机。
+                只有你点「AI 整理」或向助手提问时，相关记录才会发送到你配置的模型服务。AI 提供商按其自身政策处理请求。
               </p>
             </li>
           </ul>
         </div>
       </section>
 
-      <!-- 6. 开源 -->
-      <section class="dark-section dark-section--open" id="open-source">
-        <div class="dark-section__inner">
-          <header class="section-head section-head--dark">
-            <p class="kicker" data-i18n="open.kicker">开源</p>
-            <h2 data-i18n="open.title">源码一直是公开的</h2>
-            <p class="section-head__desc" data-i18n="open.desc">
-              从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走
-              SQLite、浏览器与安卓走 IndexedDB。
-            </p>
-          </header>
-
-          <ul class="chips" aria-label="技术栈">
-            <li>React 19</li>
-            <li>TypeScript</li>
-            <li>Vite 8</li>
-            <li>Tailwind v4</li>
-            <li>Electron</li>
-            <li>Capacitor</li>
-            <li>SQLite</li>
-            <li>Dexie</li>
-            <li>MIT</li>
-          </ul>
-
-          <div class="open__actions">
-            <a
-              class="btn btn--ghost"
-              href="https://github.com/BrainLeech198/starburst_recorder"
-              target="_blank"
-              rel="noreferrer noopener"
-              >GitHub</a
-            >
-            <a
-              class="btn btn--ghost"
-              href="https://gitee.com/Mr_brainleech/starburst_recorder"
-              target="_blank"
-              rel="noreferrer noopener"
-              >Gitee</a
-            >
-            <span class="open__version" data-i18n="open.version">版本 0.21.5</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- 7. 下载 -->
+      <!-- 6. 下载 -->
       <section class="dark-section dark-section--download" id="download">
         <div class="dark-section__inner">
           <header class="section-head section-head--dark">
             <p class="kicker" data-i18n="download.kicker">下载</p>
             <h2 data-i18n="download.title">拿一份回去用</h2>
             <p class="section-head__desc" data-i18n="download.desc">
-              0.21.5 仍是早期版本，升级前请先导出备份。0.13.1 之前的备份可能含明文模型名称和 API Key；若旧备份曾外传或存到云端、邮件，请撤销旧 Key 并重新生成。
+              0.22.0 仍是早期版本，升级前请先导出备份。0.13.1 之前的备份可能含明文模型名称和 API Key；若旧备份曾外传或存到云端、邮件，请撤销旧 Key 并重新生成。
             </p>
           </header>
-
-          <!-- 这一版有什么：先让人知道值不值得升级，再给下载 -->
-          <div class="whatsnew">
-            <div class="whatsnew__head">
-              <span class="whatsnew__ver">0.21.5</span>
-              <h3 data-i18n="whatsnew.title">这一版有什么</h3>
-            </div>
-            <ul class="whatsnew__list">
-              <li data-i18n="whatsnew.item1">当天页新建日记可保存到所选日期并返回当天</li>
-              <li data-i18n="whatsnew.item2">训练空表单会提示缺少动作、时长、备注或距离</li>
-              <li data-i18n="whatsnew.item3">屏幕阅读器也能收到训练表单的动态错误提示</li>
-            </ul>
-            <p class="whatsnew__more">
-              <a
-                href="changelog.html"
-                data-i18n="whatsnew.more"
-                data-i18n-href="whatsnew.moreHref"
-                >完整更新日志</a
-              >
-            </p>
-          </div>
 
           <div class="downloads">
             <article class="download">
@@ -443,14 +374,14 @@
               <div class="download__links">
                 <a
                   class="btn btn--primary btn--sm"
-                  href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5-setup.exe"
+                  href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.22.0/starburst-recorder-0.22.0-setup.exe"
                   target="_blank"
                   rel="noreferrer noopener"
                   >Gitee</a
                 >
                 <a
                   class="btn btn--ghost btn--sm"
-                  href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5-setup.exe"
+                  href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.22.0/starburst-recorder-0.22.0-setup.exe"
                   target="_blank"
                   rel="noreferrer noopener"
                   >GitHub</a
@@ -469,14 +400,14 @@
               <div class="download__links">
                 <a
                   class="btn btn--primary btn--sm"
-                  href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5.apk"
+                  href="https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.22.0/starburst-recorder-0.22.0.apk"
                   target="_blank"
                   rel="noreferrer noopener"
                   >Gitee</a
                 >
                 <a
                   class="btn btn--ghost btn--sm"
-                  href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.21.5/starburst-recorder-0.21.5.apk"
+                  href="https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.22.0/starburst-recorder-0.22.0.apk"
                   target="_blank"
                   rel="noreferrer noopener"
                   >GitHub</a
@@ -502,9 +433,9 @@
         <p>
           <span data-i18n="app.name">星芒记录者</span>
           <span class="footer__dot" aria-hidden="true">·</span>
-          <span data-i18n="footer.version">版本 0.21.5</span>
+          <span data-i18n="footer.version">版本 0.22.0</span>
         </p>
-        <p data-i18n="footer.tagline">数据只存在你的设备上</p>
+        <p data-i18n="footer.tagline">核心记录保存在本机，AI 与网页推送按需连接</p>
         <p><a href="admin/" data-i18n="footer.admin">管理员入口</a></p>
       </div>
     </footer>

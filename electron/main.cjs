@@ -102,6 +102,7 @@ let isQuitting = false
 /** 托盘和主窗口都放模块级，单实例回切和菜单都要用 */
 let tray = null
 let mainWindow = null
+const startedHidden = process.platform === 'win32' && process.argv.includes('--hidden-at-login')
 /** 快速记一笔的小窗，记录完就销毁，不常驻 */
 let quickWindow = null
 /** 首次收进托盘时提示一次，之后不再打扰 */
@@ -141,13 +142,14 @@ function assetPathFor(requestUrl) {
   return target
 }
 
-function createWindow() {
+function createWindow({ hidden = false } = {}) {
   const state = readWindowState()
   // 默认 1000×760 在 768 高的屏幕上会被任务栏挤出去，开窗前先按可用区域收一收
   const area = screen.getPrimaryDisplay().workArea
   const maxWidth = Math.max(MIN_WIDTH, area.width - 40)
   const maxHeight = Math.max(MIN_HEIGHT, area.height - 40)
   const win = new BrowserWindow({
+    show: false,
     width: Math.min(state?.width ?? 1000, maxWidth),
     height: Math.min(state?.height ?? 760, maxHeight),
     ...(state?.x !== undefined ? { x: state.x, y: state.y } : {}),
@@ -165,6 +167,9 @@ function createWindow() {
   })
 
   mainWindow = win
+  win.once('ready-to-show', () => {
+    if (!hidden) win.show()
+  })
 
   // 拖边框、点设置页的预设、最大化都会落盘；防抖一下，别拖一次写几十次文件
   let saveTimer = null
@@ -328,6 +333,27 @@ ipcMain.handle('window:get-size', (event) => {
   if (!win) return null
   const [width, height] = win.getSize()
   return { width, height }
+})
+
+function windowsStartupStatus() {
+  if (process.platform !== 'win32' || !app.isPackaged) {
+    return { available: false, enabled: false }
+  }
+  const settings = app.getLoginItemSettings({ path: process.execPath, args: ['--hidden-at-login'] })
+  return { available: true, enabled: settings.openAtLogin === true }
+}
+
+ipcMain.handle('startup:get', () => windowsStartupStatus())
+ipcMain.handle('startup:set', (_event, enabled) => {
+  if (process.platform !== 'win32' || !app.isPackaged || typeof enabled !== 'boolean') {
+    return windowsStartupStatus()
+  }
+  app.setLoginItemSettings({
+    openAtLogin: enabled,
+    path: process.execPath,
+    args: ['--hidden-at-login'],
+  })
+  return windowsStartupStatus()
 })
 
 /**
@@ -939,7 +965,7 @@ app.whenReady().then(() => {
     return net.fetch(nodeUrl.pathToFileURL(target).toString())
   })
 
-  const win = createWindow()
+  const win = createWindow({ hidden: startedHidden })
   createTray()
 
   if (process.env.STARBURST_SELFCHECK === '1') {

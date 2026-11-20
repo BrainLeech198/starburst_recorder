@@ -74,6 +74,10 @@ export interface DesktopBridge {
   isDesktop: boolean
   setSize: (width: number, height: number) => Promise<boolean>
   getSize: () => Promise<{ width: number; height: number } | null>
+  startup: {
+    get: () => Promise<{ available: boolean; enabled: boolean }>
+    set: (enabled: boolean) => Promise<{ available: boolean; enabled: boolean }>
+  }
   /**
    * 从主进程发 AI 请求：绕开 CORS，key 也不经过渲染进程的网络栈。
    * requestId 只是这一趟的流水号，主进程靠它认「取消谁」，不进请求体。

@@ -98,6 +98,7 @@ export default function ScheduleCheckInDialog({
         <div className="text-base font-medium text-fg">{label}</div>
         <div className="mt-1 text-xs text-muted">
           {formatDate(dateKey, t)} · {title}
+          {existing?.code && <span className="ml-2 font-mono text-[10px]">{existing.code}</span>}
         </div>
 
         <label className="mt-4 block text-xs font-medium text-muted" htmlFor="schedule-check-in-note">
@@ -156,14 +157,17 @@ export default function ScheduleCheckInDialog({
               >
                 {history.map((record) => (
                   <li key={record.dateKey} className="rounded-lg bg-canvas px-3 py-2">
-                    <time
-                      dateTime={record.recordedAt === null ? undefined : new Date(record.recordedAt).toISOString()}
-                      className="text-xs font-medium text-fg"
-                    >
-                      {formatDate(record.dateKey, t)} · {record.recordedAt === null
-                        ? t('schedule.checkIn.timeUnavailable')
-                        : timeFormatter.format(record.recordedAt)}
-                    </time>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <time
+                        dateTime={record.recordedAt === null ? undefined : new Date(record.recordedAt).toISOString()}
+                        className="text-xs font-medium text-fg"
+                      >
+                        {formatDate(record.dateKey, t)} · {record.recordedAt === null
+                          ? t('schedule.checkIn.timeUnavailable')
+                          : timeFormatter.format(record.recordedAt)}
+                      </time>
+                      <span className="shrink-0 font-mono text-[10px] text-muted">{record.code}</span>
+                    </div>
                     {record.note && <p className="mb-0 mt-1 whitespace-pre-wrap text-xs text-muted">{record.note}</p>}
                     {record.photo && (
                       <img

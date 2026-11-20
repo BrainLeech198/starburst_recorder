@@ -17,7 +17,7 @@ describe('daily postcard data', () => {
     const items = [
       schedule({
         doneDays: ['2026-11-02'],
-        checkIns: [{ dateKey: '2026-11-02', note: '复习了 35 个单词', photo, recordedAt: 1 }],
+        checkIns: [{ code: 'c0ffee1', dateKey: '2026-11-02', note: '复习了 35 个单词', photo, recordedAt: 1 }],
       }),
       schedule({ id: 's2', title: '算法题', doneDays: ['2026-11-01'], checkIns: [] }),
     ]

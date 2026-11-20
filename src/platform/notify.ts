@@ -13,20 +13,27 @@
  */
 const ICON = './icons/icon-192.png'
 
-/** 申请权限并弹一条通知；拿不到权限就静默返回 */
-export async function notifyNow(title: string, body: string): Promise<void> {
+/** 只在用户手势中调用：后台到点检查不能可靠弹出浏览器权限询问。 */
+export async function requestNotificationPermission(): Promise<boolean> {
   try {
-    if (typeof Notification === 'undefined') return
-    if (Notification.permission === 'default') {
-      // iOS 上这一步通常需要用户手势，否则可能直接给 denied；拒绝也只是少一条通知
-      const permission = await Notification.requestPermission()
-      if (permission !== 'granted') return
-    } else if (Notification.permission !== 'granted') {
-      return
-    }
+    if (typeof Notification === 'undefined') return false
+    if (Notification.permission === 'granted') return true
+    if (Notification.permission === 'denied') return false
+    return (await Notification.requestPermission()) === 'granted'
+  } catch {
+    return false
+  }
+}
+
+/** 发一条通知；权限不足时返回 false，调用方不要记为已提醒。 */
+export async function notifyNow(title: string, body: string): Promise<boolean> {
+  try {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return false
     await deliver(title, body)
+    return true
   } catch {
     // 见文件头：通知不可用不算错误
+    return false
   }
 }
 

@@ -15,6 +15,7 @@ import { notifyNow } from '@/platform/notify'
 import { dueOn, isRemindableLater } from './scheduleMath'
 
 const NOTIFIED_KEY = 'starburst.scheduleNotified'
+const inFlight = new Set<string>()
 
 /** 安卓本地通知占用的 id 段；重排时先把这个段整体取消 */
 const BASE_ID = 78000
@@ -78,15 +79,17 @@ export function maybeNotifySchedules(items: ScheduleItem[]): void {
   if (due.length === 0) return
 
   const state = readNotified(today)
-  const fresh = due.filter((item) => !state.ids.includes(item.id))
+  const fresh = due.filter((item) => !state.ids.includes(item.id) && !inFlight.has(item.id))
   if (fresh.length === 0) return
 
-  try {
-    void notifyNow(translate('schedule.notifyTitle'), bodyOf(fresh))
-    writeNotified({ date: today, ids: [...state.ids, ...fresh.map((item) => item.id)] })
-  } catch {
-    // 通知不可用就静默：页面里的列表还在
-  }
+  fresh.forEach((item) => inFlight.add(item.id))
+  void notifyNow(translate('schedule.notifyTitle'), bodyOf(fresh))
+    .then((delivered) => {
+      if (!delivered) return
+      const latest = readNotified(today)
+      writeNotified({ date: today, ids: [...new Set([...latest.ids, ...fresh.map((item) => item.id)])] })
+    })
+    .finally(() => fresh.forEach((item) => inFlight.delete(item.id)))
 }
 
 function hourMinute(time: string): { hour: number; minute: number } | null {
@@ -106,7 +109,8 @@ export async function syncScheduleReminders(items: ScheduleItem[]): Promise<void
     if (!Capacitor.isNativePlatform()) return
     isAndroid = Capacitor.getPlatform() === 'android'
     const { LocalNotifications } = await import('@capacitor/local-notifications')
-    await LocalNotifications.requestPermissions()
+    const permission = await LocalNotifications.checkPermissions()
+    if (permission.display !== 'granted') return
 
     // 先把这个 id 段整体取消，再按当前设置重排：删掉的任务不会留下旧通知
     await LocalNotifications.cancel({

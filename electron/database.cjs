@@ -746,14 +746,23 @@ function scheduleRow(row) {
     remind: row.remind === 1 || row.remind === true,
     doneAt: num(row.doneAt),
     doneDays: doneDaysFromDb(row.doneDays),
-    checkIns: scheduleCheckInsFromDb(row.checkIns),
+    checkIns: scheduleCheckInsFromDb(row.checkIns, row.id),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     deletedAt: row.deletedAt ?? null,
   }
 }
 
-function scheduleCheckInsFromDb(value) {
+function stableScheduleCode(seed) {
+  let hash = 0x811c9dc5
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0').slice(-7)
+}
+
+function scheduleCheckInsFromDb(value, scheduleId = '') {
   if (typeof value !== 'string' || value.trim() === '') return []
   try {
     const list = JSON.parse(value)
@@ -775,6 +784,9 @@ function scheduleCheckInsFromDb(value) {
           ? { id, dataUrl, width, height }
           : null
         return {
+          code: typeof raw.code === 'string' && /^[0-9a-f]{7}$/i.test(raw.code)
+            ? raw.code.toLowerCase()
+            : stableScheduleCode(`${scheduleId}:${dateKey}`),
           dateKey,
           note: typeof raw.note === 'string' ? raw.note.slice(0, 500) : '',
           photo,
@@ -1622,7 +1634,7 @@ function createDatabase(file) {
           : [],
       ),
       checkIns: JSON.stringify(
-        scheduleCheckInsFromDb(JSON.stringify(Array.isArray(item.checkIns) ? item.checkIns : [])),
+        scheduleCheckInsFromDb(JSON.stringify(Array.isArray(item.checkIns) ? item.checkIns : []), item.id),
       ),
       createdAt: num(item.createdAt) ?? Date.now(),
       updatedAt: num(item.updatedAt) ?? Date.now(),

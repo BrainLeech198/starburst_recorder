@@ -418,6 +418,8 @@ export type ScheduleRepeat = 'none' | 'daily' | 'weekly'
 
 /** 一次任务在某天的打卡记录；照片内联保存，随日程备份。 */
 export interface ScheduleCheckIn {
+  /** 7 位十六进制短编号；读取旧记录时会按任务与日期稳定补齐。 */
+  code: string
   dateKey: string
   note: string
   photo: DiaryImage | null

@@ -56,9 +56,14 @@ describe('行级校验：必填缺失就丢行', () => {
       ],
     })
     expect(schedule?.checkIns).toEqual([
-      { dateKey: '2026-11-02', note: '补充了复习结果', photo: null, recordedAt: 11 },
-      { dateKey: '2026-11-03', note: '坏图保留文字', photo: null, recordedAt: null },
+      { code: expect.stringMatching(/^[0-9a-f]{7}$/), dateKey: '2026-11-02', note: '补充了复习结果', photo: null, recordedAt: 11 },
+      { code: expect.stringMatching(/^[0-9a-f]{7}$/), dateKey: '2026-11-03', note: '坏图保留文字', photo: null, recordedAt: null },
     ])
+    const reread = pickSchedule({
+      id: 'schedule-1', dateKey: '2026-11-02', title: '背单词', repeat: 'daily',
+      checkIns: [{ dateKey: '2026-11-02', note: '旧数据' }],
+    })
+    expect(reread?.checkIns?.[0]?.code).toBe(schedule?.checkIns?.[0]?.code)
   })
 
   it('随记的短编号缺失时现场补一个 7 位十六进制，已有的原样保留', () => {

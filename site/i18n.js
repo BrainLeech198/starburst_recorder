@@ -7,7 +7,7 @@ window.SITE_I18N = {
   zh: {
     'meta.title': '星芒记录者 · 把零散的日子，攒成看得见的自己',
     'meta.description':
-      '星芒记录者是一个本地优先的个人记录工具：日记、随记、健康、训练、收支与日历都在一处，内置 AI 助手帮忙整理和动手。无账号、无云端，Windows 与 Android 同源。',
+      '星芒记录者是本地优先的个人记录工具：核心记录保存在设备上。AI 只连接你配置的服务，网页离线提醒只同步提醒时间和类别。支持 Windows、Android 与 PWA。',
 
     'a11y.skip': '跳到正文',
 
@@ -44,7 +44,7 @@ window.SITE_I18N = {
 
     'hero.eyebrow': '本地优先 · 内置 AI',
     'hero.sub':
-      '随手记下今天，AI 帮你整理成完整的日记；也可以直接问助手，让它查记录、记账、写随记或记睡眠。AI 用的是你自己填的模型和 Key；其余数据只留在这台设备上。Windows 和 Android 用的是同一份代码。',
+      '随手记下今天，AI 帮你整理成完整的日记；也可以直接问助手，让它查记录、记账、写随记或记睡眠。核心记录保存在本机；AI 按需发送到你配置的服务，网页离线提醒只同步时间和类别。Windows 和 Android 用的是同一份代码。',
     'hero.cta': '打开网页版',
     'hero.download': '下载电脑版 / Android',
     'hero.source': '看源码',
@@ -118,26 +118,18 @@ window.SITE_I18N = {
     'shots.editAlt': '编辑页：正文写在稿纸一样的横线上',
 
     'privacy.kicker': '隐私',
-    'privacy.title': '你的日子，不离开这台机器',
-    'privacy.noAccount': '不用注册',
-    'privacy.noAccountDesc': '打开就能写。没有账号，也就没有找回密码那套流程。',
-    'privacy.noCloud': '没有云端',
-    'privacy.noCloudDesc': '我们不做服务器，也没有任何一条记录会被上传到我们这里。',
+    'privacy.title': '核心记录留在本机，外发由你选择',
+    'privacy.noCloud': '核心记录保存在本机',
+    'privacy.noCloudDesc': '日记、健康、训练和收支保存在本机。开启网页离线提醒时，只同步提醒时间和类别，不上传标题或正文。',
     'privacy.export': '导出即备份',
     'privacy.exportDesc': '一次导出 Markdown、纯文本或完整 JSON；桌面上数据就是一个能复制的文件。',
     'privacy.aiTitle': 'AI 只连你指定的服务',
     'privacy.aiDesc':
-      '只有你点「AI 整理」或向助手提问时，需要用到的那部分记录才会发给你自己配置的模型服务；其余记录不出本机。',
-
-    'open.kicker': '开源',
-    'open.title': '源码一直是公开的',
-    'open.desc':
-      '从第一版起就在公开仓库里迭代：React 19 + Vite 写界面，桌面用 Electron 包了一层，存储桌面走 SQLite、浏览器与安卓走 IndexedDB。',
-    'open.version': '版本 0.21.5',
+      '只有你点「AI 整理」或向助手提问时，相关记录才会发送到你配置的模型服务。AI 提供商按其自身政策处理请求。',
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.21.5 仍是早期版本，升级前请先导出备份。0.13.1 之前的备份可能含明文模型名称和 API Key；若旧备份曾外传或存到云端、邮件，请撤销旧 Key 并重新生成。',
+    'download.desc': '0.22.0 仍是早期版本，升级前请先导出备份。0.13.1 之前的备份可能含明文模型名称和 API Key；若旧备份曾外传或存到云端、邮件，请撤销旧 Key 并重新生成。',
     'download.web': '网页版',
     'download.webMeta': '浏览器直接使用 · 支持安装为 PWA',
     'download.webDesc': '无需下载安装，打开即可使用；也可以添加到主屏幕，像应用一样启动。',
@@ -150,26 +142,20 @@ window.SITE_I18N = {
     'download.androidDesc': '侧载安装，需要允许「安装未知来源应用」。手机上是同一套界面，数据留在本机。',
     'download.note': '当前版安装包优先由 Gitee 提供大陆下载，GitHub 保留完整版本历史并作备用；历史版本请从 GitHub 下载。',
 
-    'whatsnew.title': '这一版有什么',
-    'whatsnew.item1': '当天页新建日记可保存到所选日期并返回当天',
-    'whatsnew.item2': '训练空表单会提示缺少动作、时长、备注或距离',
-    'whatsnew.item3': '屏幕阅读器也能收到训练表单的动态错误提示',
-    'whatsnew.more': '完整更新日志',
-    'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': '更新日志',
     'changelog.title': '每一版改了什么',
     'changelog.back': '← 回到下载',
     'download.historyLink': '历史版本与更新日志，每版都附下载 →',
 
-    'footer.version': '版本 0.21.5',
-    'footer.tagline': '数据只存在你的设备上',
+    'footer.version': '版本 0.22.0',
+    'footer.tagline': '核心记录保存在本机，AI 与网页推送按需连接',
     'footer.admin': '管理员入口',
   },
 
   en: {
     'meta.title': 'Starburst Recorder · Turn scattered days into a self you can see',
     'meta.description':
-      'Starburst Recorder is a local-first personal recorder: diary, quick notes, health, training, spending and calendar in one place, with an AI assistant that can compose and act. No account, no cloud, same codebase on Windows and Android.',
+      'Starburst Recorder is a local-first personal recorder. Core records stay on your device; AI uses the service you configure, and web push syncs only reminder times and categories. Available on Windows, Android and as a PWA.',
 
     'a11y.skip': 'Skip to content',
 
@@ -207,7 +193,7 @@ window.SITE_I18N = {
 
     'hero.eyebrow': 'Local-first · AI inside',
     'hero.sub':
-      'Jot down today and let AI shape it into a finished entry — or just ask the assistant to look things up, log spending, write a note or record your sleep. AI runs on your own model and API key; everything else stays on this device. Windows and Android run the same code.',
+      'Jot down today and let AI shape it into a finished entry — or ask the assistant to look things up, log spending, write a note or record your sleep. Core records stay on this device; AI goes to the service you configure, and web push syncs only reminder times and categories. Windows and Android run the same code.',
     'hero.cta': 'Open web app',
     'hero.download': 'Download for Windows / Android',
     'hero.source': 'View source',
@@ -281,28 +267,20 @@ window.SITE_I18N = {
     'shots.editAlt': 'Editor page: text written on ruled paper lines',
 
     'privacy.kicker': 'Privacy',
-    'privacy.title': 'Your days never leave this machine',
-    'privacy.noAccount': 'No sign-up',
-    'privacy.noAccountDesc': 'Open it and write. No account means no password recovery loop either.',
-    'privacy.noCloud': 'No cloud',
-    'privacy.noCloudDesc': 'We run no server, and not one entry is uploaded to us.',
+    'privacy.title': 'Core records stay local; you choose what leaves',
+    'privacy.noCloud': 'Core records stay on your device',
+    'privacy.noCloudDesc': 'Diary, health, training and spending records stay local. Web push sends only reminder times and categories, never titles or entry text.',
     'privacy.export': 'Export is backup',
     'privacy.exportDesc':
       'Export Markdown, plain text or full JSON in one go. On desktop your data is a file you can copy.',
     'privacy.aiTitle': 'AI talks only to the service you pick',
     'privacy.aiDesc':
-      'Only when you tap AI compose or ask the assistant does the relevant part of your records go to the model service you configured. Nothing else leaves the device.',
-
-    'open.kicker': 'Open source',
-    'open.title': 'The source has always been public',
-    'open.desc':
-      'Built in the open since the first commit: React 19 + Vite for the interface, Electron for the desktop shell, SQLite on desktop and IndexedDB in the browser and on Android.',
-    'open.version': 'Version 0.21.5',
+      'Only the relevant records are sent to your configured model when you use AI compose or ask the assistant. The AI provider handles requests under its own policies.',
 
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.21.5 is still an early build. Export a backup before upgrading. Backups exported before 0.13.1 may contain model names and API keys in plain text; if you shared one or stored it in cloud storage or email, revoke old keys and generate fresh ones.',
+      '0.22.0 is still an early build. Export a backup before upgrading. Backups exported before 0.13.1 may contain model names and API keys in plain text; if you shared one or stored it in cloud storage or email, revoke old keys and generate fresh ones.',
     'download.web': 'Web app',
     'download.webMeta': 'Use in your browser · Installable as a PWA',
     'download.webDesc': 'No download needed. Open it in your browser, or add it to your home screen like an app.',
@@ -317,19 +295,13 @@ window.SITE_I18N = {
       'Sideload it — you will need to allow installs from unknown sources. Same interface, data stays on the phone.',
     'download.note': 'The current installers are available from Gitee for users in mainland China. GitHub keeps the full release history and serves as a fallback; download older versions from GitHub.',
 
-    'whatsnew.title': "What's new in 0.21.5",
-    'whatsnew.item1': 'Save a day-view diary to the selected date and return there',
-    'whatsnew.item2': 'Empty workout forms explain whether to add an exercise, duration, note, or distance',
-    'whatsnew.item3': 'Screen readers receive dynamic workout form errors',
-    'whatsnew.more': 'Full release notes',
-    'whatsnew.moreHref': 'changelog.html',
     'changelog.kicker': 'Changelog',
     'changelog.title': 'What changed in each version',
     'changelog.back': '← Back to downloads',
     'download.historyLink': 'Previous versions and changelog, each with downloads →',
 
-    'footer.version': 'Version 0.21.5',
-    'footer.tagline': 'Data stays on your device',
+    'footer.version': 'Version 0.22.0',
+    'footer.tagline': 'Core records stay local; AI and web push connect when you choose',
     'footer.admin': 'Admin',
   },
 };

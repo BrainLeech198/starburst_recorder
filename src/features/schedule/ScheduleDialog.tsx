@@ -6,7 +6,7 @@
  */
 import { useState } from 'react'
 import type { ScheduleItem, ScheduleRepeat } from '@/core/db/schema'
-import { isDateKey } from '@/core/utils/dateKey'
+import { isDateKey, todayKey } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import Modal from '@/shared/ui/Modal'
@@ -109,19 +109,21 @@ export default function ScheduleDialog({
       />
       {touched && !titleOk && <p className="mt-1 text-xs text-danger">{t('schedule.titleRequired')}</p>}
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <div>
-          <label className="block text-xs text-muted" htmlFor="schedule-date">
-            {t(repeat === 'none' ? 'schedule.fieldDate' : 'schedule.fieldStartDate')}
-          </label>
-          <input
-            id="schedule-date"
-            type="date"
-            value={dateKey}
-            onChange={(event) => setDateKey(event.target.value)}
-            className={`mt-1 ${INPUT}`}
-          />
-        </div>
+      <div className={`mt-3 grid gap-2 ${repeat === 'none' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        {repeat === 'none' && (
+          <div>
+            <label className="block text-xs text-muted" htmlFor="schedule-date">
+              {t('schedule.fieldDate')}
+            </label>
+            <input
+              id="schedule-date"
+              type="date"
+              value={dateKey}
+              onChange={(event) => setDateKey(event.target.value)}
+              className={`mt-1 ${INPUT}`}
+            />
+          </div>
+        )}
         <div>
           <label className="block text-xs text-muted" htmlFor="schedule-time">
             {t('schedule.fieldTime')}
@@ -143,7 +145,11 @@ export default function ScheduleDialog({
           <button
             key={item.id}
             type="button"
-            onClick={() => setRepeat(item.id)}
+            onClick={() => {
+              if (repeat === 'none' && item.id !== 'none') setDateKey(todayKey())
+              if (repeat !== 'none' && item.id === 'none') setDateKey(defaultDate)
+              setRepeat(item.id)
+            }}
             aria-pressed={repeat === item.id}
             className={[
               'rounded-full border px-2.5 py-1 text-xs transition-colors',

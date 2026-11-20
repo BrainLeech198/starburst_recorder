@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ScheduleItem } from '@/core/db/schema'
+import { stableCode } from '@/core/utils/id'
 import {
   countByDay,
   checkInFor,
@@ -147,7 +148,7 @@ describe('打卡补充记录', () => {
     const row = item({
       repeat: 'daily',
       checkIns: [
-        { dateKey: '2026-11-02', note: '昨天', photo: firstPhoto, recordedAt: 1 },
+        { code: '1111111', dateKey: '2026-11-02', note: '昨天', photo: firstPhoto, recordedAt: 1 },
       ],
     })
     const updated = {
@@ -155,9 +156,10 @@ describe('打卡补充记录', () => {
       ...checkInPatch(row, '2026-11-03', { note: ' 复习 35 个词 ', photo: secondPhoto }, 1234),
     }
     expect(checkInFor(updated, '2026-11-02')?.note).toBe('昨天')
-    expect(checkInFor(updated, '2026-11-03')).toEqual({
+    expect(checkInFor(updated, '2026-11-03')).toMatchObject({
       dateKey: '2026-11-03', note: '复习 35 个词', photo: secondPhoto, recordedAt: 1234,
     })
+    expect(checkInFor(updated, '2026-11-03')?.code).toMatch(/^[0-9a-f]{7}$/)
   })
 
   it('完成时保存毫秒时间戳，编辑已完成记录不会刷新时间', () => {
@@ -176,13 +178,13 @@ describe('打卡补充记录', () => {
       repeat: 'daily',
       doneDays: ['2026-11-02', '2026-11-04', '2026-11-03'],
       checkIns: [
-        { dateKey: '2026-11-02', note: '第二天', photo: null, recordedAt: 1234 },
+        { code: '2222222', dateKey: '2026-11-02', note: '第二天', photo: null, recordedAt: 1234 },
       ],
     })
     expect(checkInHistory(row)).toEqual([
-      { dateKey: '2026-11-04', note: '', photo: null, recordedAt: null },
-      { dateKey: '2026-11-03', note: '', photo: null, recordedAt: null },
-      { dateKey: '2026-11-02', note: '第二天', photo: null, recordedAt: 1234 },
+      { code: stableCode('s1:2026-11-04'), dateKey: '2026-11-04', note: '', photo: null, recordedAt: null },
+      { code: stableCode('s1:2026-11-03'), dateKey: '2026-11-03', note: '', photo: null, recordedAt: null },
+      { code: '2222222', dateKey: '2026-11-02', note: '第二天', photo: null, recordedAt: 1234 },
     ])
   })
 
@@ -191,15 +193,15 @@ describe('打卡补充记录', () => {
     const row = item({
       repeat: 'daily',
       doneDays: ['2026-11-02'],
-      checkIns: [{ dateKey: '2026-11-02', note: '保留内容', photo, recordedAt: 1234 }],
+      checkIns: [{ code: '3333333', dateKey: '2026-11-02', note: '保留内容', photo, recordedAt: 1234 }],
     })
     const undone = {
       ...row,
       ...donePatch(row, '2026-11-02', false),
       ...undoCheckInPatch(row, '2026-11-02'),
     }
-    expect(checkInFor(undone, '2026-11-02')).toEqual({
-      dateKey: '2026-11-02', note: '保留内容', photo, recordedAt: null,
+    expect(checkInFor(undone, '2026-11-02')).toMatchObject({
+      code: '3333333', dateKey: '2026-11-02', note: '保留内容', photo, recordedAt: null,
     })
     expect(checkInHistory(undone)).toEqual([])
   })
@@ -207,17 +209,17 @@ describe('打卡补充记录', () => {
   it('一次性日程的历史使用完成时间戳', () => {
     const row = item({ doneAt: 1234 })
     expect(checkInHistory(row)).toEqual([
-      { dateKey: '2026-11-01', note: '', photo: null, recordedAt: 1234 },
+      { code: stableCode('s1:2026-11-01'), dateKey: '2026-11-01', note: '', photo: null, recordedAt: 1234 },
     ])
   })
 
   it('清空选中日期的内容时不动其它日期', () => {
     const row = item({ repeat: 'daily', checkIns: [
-      { dateKey: '2026-11-02', note: '保留', photo: null, recordedAt: 1 },
-      { dateKey: '2026-11-03', note: '清掉', photo: null, recordedAt: 2 },
+      { code: '4444444', dateKey: '2026-11-02', note: '保留', photo: null, recordedAt: 1 },
+      { code: '5555555', dateKey: '2026-11-03', note: '清掉', photo: null, recordedAt: 2 },
     ] })
     expect(checkInPatch(row, '2026-11-03', null).checkIns).toEqual([
-      { dateKey: '2026-11-02', note: '保留', photo: null, recordedAt: 1 },
+      { code: '4444444', dateKey: '2026-11-02', note: '保留', photo: null, recordedAt: 1 },
     ])
   })
 })

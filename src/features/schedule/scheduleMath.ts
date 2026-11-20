@@ -5,6 +5,7 @@
  * 「周几命中」「昨天的勾不影响今天」这些规则才有单测兜着。
  */
 import type { ScheduleCheckIn, ScheduleItem } from '@/core/db/schema'
+import { newCode, stableCode } from '@/core/utils/id'
 
 /** 某个月的日期键列表（含首尾），日历补位时用不到，只用来遍历当月 */
 export function dateKeysOfMonth(monthKey: string): string[] {
@@ -99,6 +100,9 @@ export function checkInHistory(item: ScheduleItem): ScheduleCheckIn[] {
     .map((dateKey) => {
       const existing = byDate.get(dateKey)
       return {
+        code: existing && /^[0-9a-f]{7}$/i.test(existing.code ?? '')
+          ? existing.code.toLowerCase()
+          : stableCode(`${item.id}:${dateKey}`),
         dateKey,
         note: existing?.note ?? '',
         photo: existing?.photo ?? null,
@@ -120,6 +124,11 @@ export function checkInPatch(
   if (value && (value.note.trim() !== '' || value.photo !== null || timestamp !== null)) {
     remaining.push({
       ...value,
+      code: existing && /^[0-9a-f]{7}$/i.test(existing.code ?? '')
+        ? existing.code.toLowerCase()
+        : existing
+          ? stableCode(`${item.id}:${dateKey}`)
+          : newCode(),
       dateKey,
       note: value.note.trim().slice(0, 500),
       recordedAt: timestamp,

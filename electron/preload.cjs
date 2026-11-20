@@ -5,6 +5,10 @@ contextBridge.exposeInMainWorld('desktop', {
   isDesktop: true,
   setSize: (width, height) => ipcRenderer.invoke('window:set-size', width, height),
   getSize: () => ipcRenderer.invoke('window:get-size'),
+  startup: {
+    get: () => ipcRenderer.invoke('startup:get'),
+    set: (enabled) => ipcRenderer.invoke('startup:set', enabled),
+  },
   // 由主进程代发，网页那边不用操心跨域。
   // requestId 是渲染层生成的流水号，只用来「取消这一次」，不进请求体。
   chat: (request, requestId) => ipcRenderer.invoke('ai:chat', request, requestId),

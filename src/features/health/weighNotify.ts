@@ -17,6 +17,7 @@ import type { HealthProfile } from '@/core/db/schema'
 /** 安卓本地通知的固定 id；桌面不用 */
 const WEIGH_NOTIFICATION_ID = 77120
 const NOTIFIED_KEY = 'starburst.weighNotified'
+let notificationInFlight = false
 
 function weighTitle() {
   return translate('health.weighTitle')
@@ -51,14 +52,26 @@ export function maybeNotifyWeighDay(profile: HealthProfile | undefined): void {
   if (weighedToday(profile)) return
   try {
     if (localStorage.getItem(NOTIFIED_KEY) === today) return
-    const now = new Date()
-    const { hour, minute } = hourMinute(profile.weighTime)
-    if (now.getHours() * 60 + now.getMinutes() < hour * 60 + minute) return
-    void notifyNow(weighTitle(), weighBody())
-    localStorage.setItem(NOTIFIED_KEY, today)
   } catch {
-    // 隐私模式存不了提醒标记：大不了明天再提醒一次
+    // 隐私模式存不了提醒标记：仍尝试发送通知
   }
+  if (notificationInFlight) return
+  const now = new Date()
+  const { hour, minute } = hourMinute(profile.weighTime)
+  if (now.getHours() * 60 + now.getMinutes() < hour * 60 + minute) return
+  notificationInFlight = true
+  void notifyNow(weighTitle(), weighBody())
+    .then((delivered) => {
+      if (!delivered) return
+      try {
+        localStorage.setItem(NOTIFIED_KEY, today)
+      } catch {
+        // 隐私模式下无法记录；页面再次检查时可能重复一次
+      }
+    })
+    .finally(() => {
+      notificationInFlight = false
+    })
 }
 
 /**
@@ -70,7 +83,8 @@ export async function syncWeighReminder(profile: HealthProfile | undefined): Pro
     const { Capacitor } = await import('@capacitor/core')
     if (!Capacitor.isNativePlatform()) return
     const { LocalNotifications } = await import('@capacitor/local-notifications')
-    await LocalNotifications.requestPermissions()
+    const permission = await LocalNotifications.checkPermissions()
+    if (permission.display !== 'granted') return
     if (!profile?.weighDay) {
       await LocalNotifications.cancel({ notifications: [{ id: WEIGH_NOTIFICATION_ID }] })
       return
