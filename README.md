@@ -4,7 +4,7 @@
 
 ## 当前版本与使用入口
 
-- 当前稳定版：**0.22.0** · [版本说明与下载](https://gitee.com/Mr_brainleech/starburst_recorder/releases/tag/v0.22.0) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/tag/v0.22.0)
+- 当前稳定版：**0.22.1** · [版本说明与下载](https://gitee.com/Mr_brainleech/starburst_recorder/releases/tag/v0.22.1) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/tag/v0.22.1)
 - 网页版 / PWA：[starburst-recorder.pages.dev](https://starburst-recorder.pages.dev/)
 - 官网：[brainleech198.github.io/starburst_recorder](https://brainleech198.github.io/starburst_recorder/)
 - 主仓库（Gitee）：[Mr_brainleech/starburst_recorder](https://gitee.com/Mr_brainleech/starburst_recorder)

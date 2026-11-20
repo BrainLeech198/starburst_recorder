@@ -104,7 +104,6 @@ export default function DiaryPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const { t } = useI18n()
-  const aiReady = isConfigured(loadAiConfig())
   // 从「全部记录」点一条随记过来时，日期栏左侧亮一个返回入口——
   // 这一页是标签页，本来没有返回按钮，不给一个的话人就被困在这一天了
   const location = useLocation()
@@ -483,9 +482,7 @@ export default function DiaryPage() {
                 <button
                   type="button"
                   onClick={handleImageImport}
-                  disabled={!aiReady}
-                  title={!aiReady ? t('diary.hintNoModel') : undefined}
-                  className={`${SOLID_BUTTON} disabled:opacity-40`}
+                  className={SOLID_BUTTON}
                 >
                   <Icon name="image" />
                   {t('diary.imageImport')}
@@ -505,30 +502,30 @@ export default function DiaryPage() {
                   <Icon name="camera" />
                   {t('diary.photoStamp')}
                 </button>
-                {/* AI 模型没配好时不亮；这天有没有素材交给弹窗去说（健康/经济也能当来源） */}
+                {/* 模型没配好时点按会说明配置要求；这天有没有素材交给弹窗去说 */}
                 <button
                   type="button"
                   onClick={handleCompose}
-                  disabled={!aiReady}
-                  title={!aiReady ? t('diary.hintNoModel') : undefined}
-                  className={`${SOLID_BUTTON} disabled:opacity-40`}
+                  className={SOLID_BUTTON}
                 >
                   <Icon name="sparkles" />
                   {t('diary.compose')}
                 </button>
               </>
             )}
-            <button
-              type="button"
-              onClick={() => {
-                setHint('')
-                batch.enter()
-              }}
-              className={SOLID_BUTTON}
-            >
-              <Icon name="list" />
-              {t('diary.batch')}
-            </button>
+            {selectableIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setHint('')
+                  batch.enter()
+                }}
+                className={SOLID_BUTTON}
+              >
+                <Icon name="list" />
+                {t('diary.batch')}
+              </button>
+            )}
           </>
         )}
 

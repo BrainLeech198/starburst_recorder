@@ -5,6 +5,7 @@ import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import ShareReceiveDialog from '@/features/share/ShareReceiveDialog'
 import Dropdown from '@/shared/ui/Dropdown'
+import { Icon } from '@/shared/ui/icons'
 import InstallHint from './InstallHint'
 import TodayScheduleCard from './TodayScheduleCard'
 import { dismissHomeBrand, isHomeBrandDismissed } from './homeBrand'
@@ -52,10 +53,10 @@ export default function HomePage() {
   return (
     <div
       className={[
-        'relative mx-auto flex w-full flex-1 flex-col px-4 pt-12 sm:px-6 sm:pt-14',
+        'relative mx-auto flex w-full flex-1 flex-col px-4 pt-20 sm:px-6',
         careHome
-          ? 'max-w-xl items-stretch justify-start py-8'
-          : 'max-w-lg items-center justify-center pb-16 sm:pb-0',
+          ? 'max-w-xl items-stretch justify-start pb-8'
+          : 'max-w-lg items-center justify-start pb-16 sm:pb-8',
       ].join(' ')}
     >
       <div className="fixed right-4 top-3 z-50 sm:right-6 sm:top-4">
@@ -71,22 +72,39 @@ export default function HomePage() {
         />
       </div>
 
-      <div role="tablist" aria-label={t('nav.home')} className="mb-5 flex rounded-xl border border-line bg-surface p-1">
-        {(['home', 'today'] as const).map((view) => (
-          <button
-            key={view}
-            type="button"
-            role="tab"
-            aria-selected={activeView === view}
-            onClick={() => setActiveView(view)}
-            className={[
-              'min-h-9 flex-1 whitespace-nowrap rounded-lg px-3 text-sm transition-colors',
-              activeView === view ? 'bg-surface-2 font-medium text-fg shadow-sm' : 'text-muted hover:text-fg',
-            ].join(' ')}
-          >
-            {t(view === 'home' ? 'nav.home' : 'home.todayChecklist.title')}
-          </button>
-        ))}
+      <div className="fixed left-4 top-3 z-50 sm:top-4 md:left-4">
+        <div
+          role="group"
+          aria-label={t('home.viewSwitcher')}
+          className="inline-flex items-center gap-0.5 rounded-xl border border-line bg-surface/95 p-1 shadow-sm backdrop-blur"
+        >
+          {(['home', 'today'] as const).map((view) => {
+            const selected = activeView === view
+            return (
+              <button
+                key={view}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setActiveView(view)}
+                className={[
+                  'sb-pressable inline-flex min-h-9 items-center gap-1 whitespace-nowrap rounded-lg px-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand',
+                  selected
+                    ? 'bg-brand/15 font-medium text-brand'
+                    : 'text-muted hover:bg-surface-2 hover:text-fg',
+                ].join(' ')}
+              >
+                {view === 'home' ? (
+                  <span aria-hidden="true" className="text-base leading-none">
+                    🏠
+                  </span>
+                ) : (
+                  <Icon name="check" className="h-4 w-4 shrink-0" />
+                )}
+                {t(view === 'home' ? 'nav.home' : 'home.todayChecklist.title')}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {activeView === 'today' ? (
@@ -94,16 +112,22 @@ export default function HomePage() {
       ) : (
         <>
           {!careHome && brandVisible && (
-            <div className="flex flex-col items-center">
+            <div className="mt-5 flex flex-col items-center">
               <Starburst onDismiss={hideBrand} label={t('home.brand.dismiss')} />
               <h1 className="mt-5 text-2xl font-medium tracking-wide sm:mt-7">{t('app.name')}</h1>
               <p className="mt-2 text-sm text-muted">{t('app.tagline')}</p>
             </div>
           )}
 
-          {careHome && <h1 className="w-full text-xl font-semibold">{t('home.careTitle')}</h1>}
+          {careHome && <h1 className="mt-1 w-full text-xl font-semibold">{t('home.careTitle')}</h1>}
 
-          <div className={careHome ? 'mt-5 grid w-full grid-cols-1 gap-3' : 'mt-6 grid w-full grid-cols-2 auto-rows-fr gap-2 sm:mt-10 sm:gap-3'}>
+          <div
+            className={
+              careHome
+                ? 'mt-5 grid w-full grid-cols-1 gap-3'
+                : 'mt-8 grid w-full grid-cols-2 auto-rows-fr gap-3 sm:mt-10'
+            }
+          >
             {ENTRIES.map((entry) => (
               <Link
                 key={entry.to}

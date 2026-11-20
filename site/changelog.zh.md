@@ -1,3 +1,19 @@
+## 0.22.1 · 2026-11-20
+
+首页切换更容易找到，窄屏与宽屏排版更协调，悬浮助手不再压住底部导航。
+
+### 这一版有什么
+
+- **切换入口更清楚**：首页与今日清单切换移到内容区左上角，选中状态明确，也支持键盘切换。
+- **首屏更舒展**：调整首页与今日清单的起始位置和卡片间距；窄屏下菜单与切换入口保持分开。
+- **导航不再被悬浮球遮挡**：悬浮助手会停在手机底部导航上方，自动贴边时也会保持间距。
+- **空状态操作更可靠**：未配置 AI 时图片导入和 AI 整理仍可点开配置提示；没有记录时不显示无效的批量操作，搜索提示也不再提到不存在的标签。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.22.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.22.1/starburst-recorder-0.22.1-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.22.1/starburst-recorder-0.22.1-setup.exe)
+- Android 10 以上：[starburst-recorder-0.22.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.22.1/starburst-recorder-0.22.1.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.22.1/starburst-recorder-0.22.1.apk)
+
 ## 0.22.0 · 2026-11-20
 
 首页分为两个视图；日程、提醒权限和更新操作更清楚。

@@ -92,7 +92,7 @@ Android：`npm run build && npx cap sync android`，再到 `android/` 执行 `gr
 
 ## AI 协作与设置页规范
 
-- Vibe Coding 的持久规则、验收标准、小步实施与独立复核：`D:\File\skills\vibe-coding-guardrails\SKILL.md`。涉及 AI 辅助代码改动时先遵循该流程；聊天记录不作为唯一规范来源。
-- 设置页排版约定：`D:\File\skills\settings-layout\SKILL.md`。新增或调整设置界面时遵循紧凑偏好项左右排布、复杂表单上下排布、分组标题与留白层级，并检查窄屏可读性。
-- 规则副本存于本机 `D:\File\skills`，便于复用；本仓库只记录路径与项目约束，不把本机技能目录纳入版本控制。
+- Vibe Coding 的持久规则、验收标准、小步实施与独立复核：`D:\File\doc\skills\vibe-coding-guardrails\SKILL.md`。涉及 AI 辅助代码改动时先遵循该流程；聊天记录不作为唯一规范来源。
+- 设置页排版约定：`D:\File\doc\skills\settings-layout\SKILL.md`。新增或调整设置界面时遵循紧凑偏好项左右排布、复杂表单上下排布、分组标题与留白层级，并检查窄屏可读性。
+- 规则副本存于本机 `D:\File\doc\skills`，便于复用；本仓库只记录路径与项目约束，不把本机技能目录纳入版本控制。
 - 全量整改按模块分批：先盘点现状与风险，再逐批提出可追踪的改动单元；每批保留最小差异并说明验证。不得覆盖工作区中其他协作者的未提交改动，测试脚本不得为通过而弱化。

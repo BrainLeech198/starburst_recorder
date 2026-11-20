@@ -129,7 +129,7 @@ window.SITE_I18N = {
 
     'download.kicker': '下载',
     'download.title': '拿一份回去用',
-    'download.desc': '0.22.0 仍是早期版本，升级前请先导出备份。0.13.1 之前的备份可能含明文模型名称和 API Key；若旧备份曾外传或存到云端、邮件，请撤销旧 Key 并重新生成。',
+    'download.desc': '0.22.1 仍是早期版本，升级前请先导出备份。0.13.1 之前的备份可能含明文模型名称和 API Key；若旧备份曾外传或存到云端、邮件，请撤销旧 Key 并重新生成。',
     'download.web': '网页版',
     'download.webMeta': '浏览器直接使用 · 支持安装为 PWA',
     'download.webDesc': '无需下载安装，打开即可使用；也可以添加到主屏幕，像应用一样启动。',
@@ -147,7 +147,7 @@ window.SITE_I18N = {
     'changelog.back': '← 回到下载',
     'download.historyLink': '历史版本与更新日志，每版都附下载 →',
 
-    'footer.version': '版本 0.22.0',
+    'footer.version': '版本 0.22.1',
     'footer.tagline': '核心记录保存在本机，AI 与网页推送按需连接',
     'footer.admin': '管理员入口',
   },
@@ -280,7 +280,7 @@ window.SITE_I18N = {
     'download.kicker': 'Download',
     'download.title': 'Take a copy home',
     'download.desc':
-      '0.22.0 is still an early build. Export a backup before upgrading. Backups exported before 0.13.1 may contain model names and API keys in plain text; if you shared one or stored it in cloud storage or email, revoke old keys and generate fresh ones.',
+      '0.22.1 is still an early build. Export a backup before upgrading. Backups exported before 0.13.1 may contain model names and API keys in plain text; if you shared one or stored it in cloud storage or email, revoke old keys and generate fresh ones.',
     'download.web': 'Web app',
     'download.webMeta': 'Use in your browser · Installable as a PWA',
     'download.webDesc': 'No download needed. Open it in your browser, or add it to your home screen like an app.',
@@ -300,7 +300,7 @@ window.SITE_I18N = {
     'changelog.back': '← Back to downloads',
     'download.historyLink': 'Previous versions and changelog, each with downloads →',
 
-    'footer.version': 'Version 0.22.0',
+    'footer.version': 'Version 0.22.1',
     'footer.tagline': 'Core records stay local; AI and web push connect when you choose',
     'footer.admin': 'Admin',
   },

@@ -1,5 +1,21 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
+## 0.22.1 · 2026-11-20
+
+The home switch is easier to find, narrow and wide layouts feel more balanced, and the floating assistant stays clear of bottom navigation.
+
+### Improvements
+
+- **Make the view switch clear** — move Home and Today’s checklist to the upper-left of the content area, with a clear selected state and keyboard support.
+- **Give the first screen more room** — refine the top spacing and card gaps; keep the switch and menu apart on narrow screens.
+- **Keep the assistant clear of navigation** — the floating assistant stays above mobile bottom navigation, including when it tucks to an edge.
+- **Make empty-state actions useful** — image import and AI compose open setup guidance when AI is unconfigured; hide batch actions when there are no records, and remove the search hint about tags that are not shown.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.22.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.22.1/starburst-recorder-0.22.1-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.22.1/starburst-recorder-0.22.1-setup.exe)
+- Android 10+: [starburst-recorder-0.22.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.22.1/starburst-recorder-0.22.1.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.22.1/starburst-recorder-0.22.1.apk)
+
 ## 0.22.0 · 2026-11-20
 
 Home now separates the four-card landing view from today's checklist, with clearer schedule, reminder-permission, and update flows.

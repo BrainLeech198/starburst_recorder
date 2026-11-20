@@ -13,6 +13,7 @@ import AssistantChat from './AssistantChat'
 
 const POS_KEY = 'starburst.ball.pos'
 const EDGE = 8
+const MOBILE_NAV_CLEARANCE_PX = 12
 const DRAG_THRESHOLD = 5
 /** 贴边时至少留出 44px，手指仍有足够的可点区域。 */
 const PEEK_VISIBLE_PX = 44
@@ -29,6 +30,17 @@ interface Point {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), Math.max(min, max))
+}
+
+/** 手机上悬浮球停在底栏上方；桌面侧栏不占底部空间。 */
+function bottomBoundary() {
+  if (window.innerWidth >= 768) return window.innerHeight - EDGE
+
+  const navHeight =
+    Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sb-nav-h')) ||
+    document.querySelector('.sb-shell > nav')?.getBoundingClientRect().height ||
+    56
+  return window.innerHeight - navHeight - MOBILE_NAV_CLEARANCE_PX
 }
 
 function readPos(): Point | null {
@@ -51,14 +63,14 @@ function defaultPos(size: number): Point {
 function clampToViewport(point: Point, size: number): Point {
   return {
     x: clamp(point.x, EDGE, window.innerWidth - size - EDGE),
-    y: clamp(point.y, EDGE, window.innerHeight - size - EDGE),
+    y: clamp(point.y, EDGE, bottomBoundary() - size),
   }
 }
 
 /** 贴到最近的一条边，至少露出 44px */
 function peekTarget(point: Point, size: number): Point {
   const width = window.innerWidth
-  const height = window.innerHeight
+  const height = bottomBoundary()
   const visible = Math.min(size, PEEK_VISIBLE_PX)
   const gaps = [
     { edge: 'left', value: point.x },
@@ -71,6 +83,7 @@ function peekTarget(point: Point, size: number): Point {
   if (nearest.edge === 'left') return { x: visible - size, y: point.y }
   if (nearest.edge === 'right') return { x: width - visible, y: point.y }
   if (nearest.edge === 'top') return { x: point.x, y: visible - size }
+  if (window.innerWidth < 768) return { x: point.x, y: height - size }
   return { x: point.x, y: height - visible }
 }
 
@@ -91,13 +104,20 @@ export default function FloatingAssistant() {
   const dragOffset = useRef<Point | null>(null)
   const dragged = useRef(false)
 
-  // 窗口尺寸变化时把球拉回可视区
+  // 窗口变化或手机导航栏展开 / 收起时，把球重新限位到内容区。
   useEffect(() => {
-    function onResize() {
+    function clampPosition() {
       setPos((prev) => clampToViewport(prev, size))
     }
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    const nav = document.querySelector<HTMLElement>('.sb-shell > nav')
+    const observer = nav ? new ResizeObserver(clampPosition) : null
+    if (nav) observer?.observe(nav)
+    window.addEventListener('resize', clampPosition)
+    clampPosition()
+    return () => {
+      observer?.disconnect()
+      window.removeEventListener('resize', clampPosition)
+    }
   }, [size])
 
   // 长时间没有交互（且没在悬停、面板没开着）就贴边半藏
@@ -154,7 +174,7 @@ export default function FloatingAssistant() {
 
     setPos({
       x: clamp(event.clientX - offset.x, EDGE, window.innerWidth - size - EDGE),
-      y: clamp(event.clientY - offset.y, EDGE, window.innerHeight - size - EDGE),
+      y: clamp(event.clientY - offset.y, EDGE, bottomBoundary() - size),
     })
   }
 

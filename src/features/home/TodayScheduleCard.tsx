@@ -60,7 +60,7 @@ export default function TodayScheduleCard() {
   return (
     <section
       aria-labelledby="home-today-checklist-title"
-      className="mt-5 w-full rounded-2xl border border-brand/25 bg-surface p-4"
+      className="w-full rounded-2xl border border-brand/25 bg-surface p-4"
     >
       <div className="flex items-start justify-between gap-3">
         <h2
