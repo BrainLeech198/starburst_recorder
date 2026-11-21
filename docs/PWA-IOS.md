@@ -503,3 +503,4 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
 - **2026-11-21 v0.23.1**：标签 `v0.23.1`（产品提交 `2cebb2f`）已部署到生产 Pages，地址 `https://3a1b6423.starburst-recorder.pages.dev`，部署 ID `3a1b6423-26f4-408c-969e-bbc7476ece75`，构建号 `mwq9xmro`；正式域名线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并控制页面，推送鉴权与 `/health` 通过，测试订阅已删除。
 
 - **2026-11-21 v0.23.2**：标签 `v0.23.2`（产品提交 `9a5ab50`）已部署到生产 Pages，地址 `https://692d09a9.starburst-recorder.pages.dev`，部署 ID `692d09a9-8dcb-4311-a2db-f3fc36430353`，构建号 `mwqa6bat`；正式域名线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并接管页面，推送鉴权与 `/health` 通过，测试订阅已删除。支持多日期重复的推送中继已部署，Worker 版本 `90771581-48cb-49f1-9523-345d4639a1b7`。未连接 Android 真机，尚未实测通知实际弹出。
+- **2026-11-21 v0.23.3**：标签 `v0.23.3`（产品提交 `b182915`）已部署到生产 Pages，地址 `https://1e32ebd2.starburst-recorder.pages.dev`，部署 ID `1e32ebd2-5186-4c04-affb-266118b8d4a6`，构建号 `mwqbkosb`；正式域名线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并控制页面，推送鉴权与 `/health` 通过，测试订阅已删除。部署使用 Wrangler 4.150.0。

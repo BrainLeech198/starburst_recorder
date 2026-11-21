@@ -192,7 +192,7 @@ Gitee 免费仓库（社区版）的 Release 附件有**两层限制**，不要�
 
 | 限制 | 数值 | 当前状态 |
 | --- | --- | --- |
-| 单个附件大小 | **≤ 100 MiB**（104,857,600 字节） | 当前 exe 为 100,484,297 字节（95.8 MiB），接近上限；上传前按 Gitee 实际响应核验 |
+| 单个附件大小 | **≤ 100 MiB**（104,857,600 字节） | 当前 exe 为 100,509,304 字节（95.8 MiB），接近上限；上传前按 Gitee 实际响应核验 |
 | 仓库附件总量 | **≤ 1 GiB** | 每版 `apk + exe` 约 162 MB（155 MiB），约 6 版占满 |
 
 GitHub 保存完整资产历史，不受 Gitee 的仓库附件总量约束。Gitee 每次发布先上传并验证最新版两项附件，再删除上一正式版的二进制附件，避免清理失败时出现无包窗口。不要删除旧 Release 条目、tag 或源码归档。上传前确认每个文件均不超过 100 MiB，并在清理旧附件后确认仓库总量不超过 1 GiB。
@@ -414,3 +414,13 @@ APK 为 61,976,356 字节、`versionCode=2302999`、`versionName=0.23.2`、SHA-2
 GitHub 普通 Release [v0.23.2](https://github.com/BrainLeech198/starburst_recorder/releases/tag/v0.23.2) 与 Gitee Release（API ID `1343056`）均含同名 APK / EXE；GitHub asset digest、Gitee 回下载 SHA-256 均与本地一致，四个附件下载地址均可用。Gitee 上一正式版 `v0.23.1` Release（ID `1342924`）的二进制附件（ID `3779974` / `3779979`）在新版回下载校验后删除，旧 Release、tag 与源码归档保留；GitHub 保留全部历史附件。产品提交推送时 Gitee `origin/main`、GitHub 镜像 `main` 与标签均指向 `9a5ab50`；GitHub 主线 CI `44896247210`、tag CI `44896247061` 与官网 Pages 工作流 `44896247118` 均成功。
 
 `npm test`（99 个文件、971 项）、`npm run typecheck`、`npm run lint`、`npm run build`、`npx cap sync android`、Android `assembleRelease` 与 Windows 安装包构建均通过。Windows 隔离自检中的 `app://starburst`、字体、IndexedDB 与 SQLite 均通过。本地 PWA 探针 20/20，生产域名线上验收 10/10；Service Worker 已激活并控制页面，推送鉴权与 `/health` 通过，测试订阅已删除。Cloudflare Pages 部署地址 `https://692d09a9.starburst-recorder.pages.dev`，部署 ID `692d09a9-8dcb-4311-a2db-f3fc36430353`，构建号 `mwqa6bat`；推送中继 Worker 部署版本 `90771581-48cb-49f1-9523-345d4639a1b7`。尚未连接 Android 真机或在正式 Windows 安装环境中实测提醒弹出；构建提示包括 Vite 大 chunk、第三方 Kotlin 元数据版本差异、Gradle 9 弃用与 npm 镜像配置提示，均未阻断构建。
+
+`0.23.3` 正式版：标签 `v0.23.3` 指向产品提交 `b182915d3533345fb9c6ed32d65e839b28fb8ff0`。当天称重立即进入趋势；旧档案中仅有当前体重字段时也补入历史。趋势详情默认展示全部留存称重，可横向浏览或切换近 7 / 30 / 90 天，并提供最新值、整体变化、周均变化和平均范围总览。
+
+APK 为 61,977,128 字节、`versionCode=2303999`、`versionName=0.23.3`、SHA-256 `636B1F0572B18CA7D8D391F9E7A52BE708AFC81F7913FABAD09616D68E9A18C7`；签名证书 SHA-256 `2eb0978a6abad455b55aa06dc86d2ccd73816aa68059ce6e4289c35533f94b05` 与 §2.2 一致。Windows 安装包为 100,509,304 字节、ProductVersion `0.23.3`、SHA-256 `0D9CF914B5EDF6FA0F84A58A5C49F1B1808ED2A2D22B91F1E9B41BB624641AF4`，低于 Gitee 单附件 100 MiB 上限。
+
+GitHub 普通 Release [v0.23.3](https://github.com/BrainLeech198/starburst_recorder/releases/tag/v0.23.3) 与 Gitee Release（API ID `1343186`）均含本版 APK / EXE；GitHub asset digest 与本地 SHA-256 一致，Gitee 附件 ID `3780434` / `3780450` 的大小与本地一致，四个下载地址均返回 HTTP 200。Gitee 上一正式版 `v0.23.2` Release（ID `1343056`）的二进制附件（ID `3780091` / `3780095`）在新版附件核验后删除，旧 Release、tag 与源码归档保留；GitHub 保留全部历史附件。本版两项 Gitee 附件合计 162,486,432 字节，低于 1 GiB 限额。
+
+产品提交推送时 Gitee `origin/main`、GitHub 镜像 `main` 与标签均指向 `b182915`；GitHub 主线 CI `44898145701`、tag CI `44898145666` 与官网 Pages 工作流 `44898145687` 均成功。官网首页、中英文说明与更新日志均已随提交更新。
+
+`npm test`（99 个文件、974 项）、`npm run typecheck`、`npm run lint`、`npm run build`、Android `assembleRelease` 与 Windows 安装包构建均通过。Android 版本与签名核验通过；本地 PWA 探针 20/20，生产域名线上验收 10/10；Service Worker 已激活并控制页面，推送鉴权与 `/health` 通过，测试订阅已删除。生产 Pages 部署地址 `https://1e32ebd2.starburst-recorder.pages.dev`，部署 ID `1e32ebd2-5186-4c04-affb-266118b8d4a6`，构建号 `mwqbkosb`；本机使用 Wrangler 4.150.0 完成部署。
