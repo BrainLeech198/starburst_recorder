@@ -397,6 +397,16 @@ GitHub 普通 Release [v0.23.0](https://github.com/BrainLeech198/starburst_recor
 
 `npm test`（99 个文件、964 项）、`npm run typecheck`、`npm run lint`、`npm run build`、`npx cap sync android`、Android `assembleRelease` 与 Windows 安装包构建均通过。本地 PWA 探针 20/20，生产域名线上验收 10/10；Service Worker 已激活并控制页面，推送鉴权与 `/health` 通过，测试订阅已删除。Cloudflare Pages 部署地址 `https://e137cda7.starburst-recorder.pages.dev`，部署 ID `e137cda7-02c3-4d29-afff-31c25fac393a`，构建号 `mwpwhamk`。已核对 Windows 安装包版本元数据，未在本机安装客户端内实测“检查更新”弹窗（本机没有旧版安装）；本机未连接 Android 真机，未实测原生提醒。构建提示包括 Vite 大 chunk、Android 第三方 Kotlin 元数据版本差异、Gradle 9 弃用与 npm 镜像配置提示，均未阻断构建。
 
+`0.23.1` 正式版：标签 `v0.23.1` 指向产品提交 `2cebb2f07a9c5ac51f6735f0be0e41ec228dba7d`。健康首页将「健康分析」移到与「身体测量」同一层，并把健康目标管理和近 30 天分析合并到该页；旧 `/health/goals` 地址保留重定向。
+
+APK 为 61,972,075 字节、`versionCode=2301999`、`versionName=0.23.1`、SHA-256 `66AF830618DCB361D55E9F7955554FFC47D30854186DEA34B524DB05DF8553C1`；签名证书 SHA-256 `2eb0978a6abad455b55aa06dc86d2ccd73816aa68059ce6e4289c35533f94b05` 与 §2.2 一致。Windows 安装包为 100,505,196 字节、ProductVersion `0.23.1`、SHA-256 `B5400DA0022A96D7FB9C1AB8D18FC06FB0074AB59B19A3C030554D52551F39F5`，低于 Gitee 单附件 100 MiB 限制。
+
+GitHub 普通 Release [v0.23.1](https://github.com/BrainLeech198/starburst_recorder/releases/tag/v0.23.1) 与 Gitee Release（API ID `1342924`）均含 APK / EXE；GitHub asset digest 与本地 SHA-256 一致，Gitee 附件 ID `3779974` / `3779979` 回下载大小和 SHA-256 均与本地一致，四个下载地址均返回 HTTP 200。发布时，Gitee 上一正式版 `v0.23.0` Release（ID `1341544`）的 APK / EXE 附件（ID `3776252`、`3776251`）在新包校验后删除，均返回 HTTP 204；`v0.22.1` 与 `v0.22.0` Release 当时无二进制附件。随后 `v0.23.2` 发布时，Gitee `v0.23.1` 的两项附件（ID `3779974`、`3779979`）在新版验证后删除，旧 Release、tag 与源码归档保留。本版两项 Gitee 附件合计 162,477,271 字节，低于 1 GiB 限额。Gitee Releases 全量附件复查期间 API 返回 HTTP 403 rate limit；其余历史版的清理情况沿用前次发布记录逐版核验链。
+
+产品推送时 Gitee `origin/main`、GitHub 镜像 `main` 与标签均指向 `2cebb2f`；GitHub 主线 CI `44894634246`、tag CI `44894634326` 与官网 Pages 工作流 `44894634414` 均成功。官网首页、中英文说明与更新日志均 HTTP 200，显示本版并提供 Gitee 主下载与 GitHub 备用链接。
+
+`npm test`（99 个文件、964 项）、`npm run typecheck`、`npm run lint`、`npm run build`、`npx cap sync android`、Android `assembleRelease` 与 Windows 安装包构建均通过。本地 PWA 探针 20/20，正式域名线上验收 10/10；Service Worker 已激活并控制页面，推送鉴权与 `/health` 通过，测试订阅已删除。Cloudflare Pages 部署地址 `https://3a1b6423.starburst-recorder.pages.dev`，部署 ID `3a1b6423-26f4-408c-969e-bbc7476ece75`，构建号 `mwq9xmro`。未在有旧版安装的 Windows 用户环境里实测「检查更新」，本机也未连接 Android 真机验证升级和原生提醒。构建提示包括 Vite 大 chunk、第三方 Kotlin 元数据版本差异、Gradle 9 弃用和 npm 镜像配置；均未阻断构建。
+
 `0.23.2` 正式版：标签 `v0.23.2` 指向产品提交 `9a5ab5089251bec52e2ca950100f8c8e764c2032`。日程新增每周多选星期、每月多选日期、每年多选月日；提醒遵循开始 / 截止日期，备份及 AI 创建、编辑都保留规则。桌面应用打开时提醒，Android 获得通知权限后由系统排程，网页关闭后的提醒依赖用户开启 Web Push。
 
 APK 为 61,976,356 字节、`versionCode=2302999`、`versionName=0.23.2`、SHA-256 `899FC1B6E7E7357164BD9F248590AA636B7A18A3F2F9C49991943947E3EC943F`；签名证书 SHA-256 `2eb0978a6abad455b55aa06dc86d2ccd73816aa68059ce6e4289c35533f94b05` 与 §2.2 一致。Windows 安装包为 100,507,835 字节、ProductVersion `0.23.2`、SHA-256 `1D056C7C858DFB1D39BAEB3C4062023E1FB4DBE05E5A40BA18A0829244A2B8BE`，为 95.85 MiB，低于 Gitee 单附件 100 MiB 限制。
