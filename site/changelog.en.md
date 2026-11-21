@@ -24,8 +24,8 @@ Bring health goals and health insights together under one entry, with goal manag
 
 ### Downloads
 
-- Windows 10/11: [starburst-recorder-0.23.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.1/starburst-recorder-0.23.1-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.1/starburst-recorder-0.23.1-setup.exe)
-- Android 10+: [starburst-recorder-0.23.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.1/starburst-recorder-0.23.1.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.1/starburst-recorder-0.23.1.apk)
+- Windows 10/11: [starburst-recorder-0.23.1-setup.exe](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.1/starburst-recorder-0.23.1-setup.exe)
+- Android 10+: [starburst-recorder-0.23.1.apk](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.1/starburst-recorder-0.23.1.apk) (release-signed)
 
 ## 0.23.0 · 2026-11-21
 

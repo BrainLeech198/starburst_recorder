@@ -408,7 +408,7 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
 
 ---
 
-## 10. 当前部署状态（2026-11-20）
+## 10. 当前部署状态（2026-11-21）
 
 | 项目 | 值 |
 | --- | --- |
@@ -500,3 +500,4 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
 
 - **2026-11-20 v0.22.1**：标签 `v0.22.1`（产品提交 `26bb225`）已部署到生产 Pages，地址 `https://cb305a53.starburst-recorder.pages.dev`，部署 ID `cb305a53-5073-4445-9271-f39fdb4b779c`，构建号 `mwospaxm`；正式域名 `https://starburst-recorder.pages.dev` 线上验收 10/10，本地 PWA 探针 20/20；Service Worker 已激活并控制页面，推送中继鉴权与 `/health` 通过，测试订阅已删除。
 - **2026-11-21 v0.23.0**：标签 `v0.23.0`（产品提交 `30fe0cb`）已部署到生产 Pages，地址 `https://e137cda7.starburst-recorder.pages.dev`，部署 ID `e137cda7-02c3-4d29-afff-31c25fac393a`，构建号 `mwpwhamk`；正式域名线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并接管页面，推送中继鉴权与 `/health` 通过，测试订阅已删除。
+- **2026-11-21 v0.23.2**：标签 `v0.23.2`（产品提交 `9a5ab50`）已部署到生产 Pages，地址 `https://692d09a9.starburst-recorder.pages.dev`，部署 ID `692d09a9-8dcb-4311-a2db-f3fc36430353`，构建号 `mwqa6bat`；正式域名线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并接管页面，推送鉴权与 `/health` 通过，测试订阅已删除。支持多日期重复的推送中继已部署，Worker 版本 `90771581-48cb-49f1-9523-345d4639a1b7`。未连接 Android 真机，尚未实测通知实际弹出。
