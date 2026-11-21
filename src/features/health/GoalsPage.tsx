@@ -36,7 +36,7 @@ function positive(text: string, max = 1000) {
   return Number.isFinite(value) && value > 0 && value <= max ? value : null
 }
 
-export default function GoalsPage() {
+export default function GoalsPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { t } = useI18n()
   const today = todayKey()
   const week = weekRange(today)
@@ -221,12 +221,21 @@ export default function GoalsPage() {
   const inputClass = 'h-10 min-w-0 rounded-xl border border-line bg-surface-2 px-3 text-sm tabular-nums text-fg'
 
   return (
-    <div className="w-full p-4">
-      <header className="flex items-center gap-2">
-        <BackButton to="/health" label={t('nav.health')} icon className={`${NAV_BACK_BUTTON} gap-1`} />
-        <h1 className="m-0 text-base font-medium text-fg">{t('health.goalsTitle')}</h1>
-      </header>
-      <p className="mb-0 mt-2 text-xs text-muted">{t('health.goalsIntro')}</p>
+    <div className={embedded ? 'w-full' : 'w-full p-4'}>
+      {embedded ? (
+        <div>
+          <h2 className="m-0 text-sm font-medium text-fg">{t('health.goalsTitle')}</h2>
+          <p className="mb-0 mt-1 text-xs text-muted">{t('health.goalsIntro')}</p>
+        </div>
+      ) : (
+        <>
+          <header className="flex items-center gap-2">
+            <BackButton to="/health" label={t('nav.health')} icon className={`${NAV_BACK_BUTTON} gap-1`} />
+            <h1 className="m-0 text-base font-medium text-fg">{t('health.goalsTitle')}</h1>
+          </header>
+          <p className="mb-0 mt-2 text-xs text-muted">{t('health.goalsIntro')}</p>
+        </>
+      )}
 
       <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
         <label className="block text-xs text-muted">

@@ -1,3 +1,17 @@
+## 0.23.1 · 2026-11-21
+
+Bring health goals and health insights together under one entry, with goal management and a 30-day overview on one page.
+
+### What's new
+
+- **One health analysis entry** — move it beside Body Measurements on the health home; manage goals and review the last 30 days on the same page.
+- **Keep old goal bookmarks working** — the previous `/health/goals` address opens the combined health analysis page.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.1/starburst-recorder-0.23.1-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.1/starburst-recorder-0.23.1-setup.exe)
+- Android 10+: [starburst-recorder-0.23.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.1/starburst-recorder-0.23.1.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.1/starburst-recorder-0.23.1.apk)
+
 ## 0.23.0 · 2026-11-21
 
 Check-ins are editable, health trends use more consistent rules, and the built-in assistant can load an app guide when it needs one.

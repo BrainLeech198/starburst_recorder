@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { Link } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import { formatDate, shiftDay, todayKey } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
@@ -11,6 +10,7 @@ import { formatNum } from './healthMath'
 import { averageBedtimeOffset, nutritionByTrainingRecord, recordCoverage } from './healthInsights'
 import { healthProfile, intakesBetween, measurementsBetween, sleepsBetween } from './healthRepo'
 import { trainingsBetween } from '@/features/training/trainingRepo'
+import GoalsPage from './GoalsPage'
 
 const EMPTY_INTAKES: HealthIntake[] = []
 const EMPTY_SLEEPS: HealthSleep[] = []
@@ -77,6 +77,10 @@ export default function InsightsPage() {
       </header>
       <p className="mb-0 mt-2 text-xs text-muted">{t('health.insightsRange', { from: formatDate(from, t), to: formatDate(to, t) })}</p>
 
+      <div className="mt-4">
+        <GoalsPage embedded />
+      </div>
+
       <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
         <h2 className="m-0 text-sm font-medium text-fg">{t('health.insightsProteinPerKg')}</h2>
         {proteinPerKg === null ? (
@@ -132,7 +136,6 @@ export default function InsightsPage() {
         </ul>
       </section>
 
-      <Link to="/health/goals" className="mt-3 block text-center text-xs text-brand">{t('health.goalsTitle')}</Link>
     </div>
   )
 }

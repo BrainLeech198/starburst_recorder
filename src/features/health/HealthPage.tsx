@@ -151,6 +151,12 @@ export default function HealthPage() {
         trailing={
           <>
             <Link
+              to="/health/insights"
+              className="inline-flex h-8 items-center rounded-lg px-2 text-sm text-muted transition-colors hover:text-fg"
+            >
+              {t('health.insightsTitle')}
+            </Link>
+            <Link
               to="/health/measurements"
               className="inline-flex h-8 items-center rounded-lg px-2 text-sm text-muted transition-colors hover:text-fg"
             >
@@ -174,15 +180,6 @@ export default function HealthPage() {
           </>
         }
       />
-
-      <div className="mt-2 flex gap-2 overflow-x-auto">
-        <Link to="/health/goals" className="shrink-0 rounded-full border border-line px-3 py-1.5 text-xs text-muted">
-          {t('health.goalsTitle')}
-        </Link>
-        <Link to="/health/insights" className="shrink-0 rounded-full border border-line px-3 py-1.5 text-xs text-muted">
-          {t('health.insightsTitle')}
-        </Link>
-      </div>
       <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
         {/* 指标卡式头部：小标题 + 右上角记录入口，不再用大标题和分隔线 */}
         <div className="flex items-center justify-between gap-2">

@@ -1,3 +1,17 @@
+## 0.23.1 · 2026-11-21
+
+把健康目标和健康分析收进同一个入口，在一页管理目标并查看近 30 天数据。
+
+### 这一版有什么
+
+- **统一健康分析入口**：健康首页将「健康分析」移到「身体测量」同一行；目标设置与近 30 天分析集中在健康分析页。
+- **保留旧目标地址**：旧 `/health/goals` 书签会自动打开合并后的健康分析页。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.23.1-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.1/starburst-recorder-0.23.1-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.1/starburst-recorder-0.23.1-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.1.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.1/starburst-recorder-0.23.1.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.1/starburst-recorder-0.23.1.apk)
+
 ## 0.23.0 · 2026-11-21
 
 日程打卡可修改，健康趋势口径更可靠，内置 AI 也能按需读取应用功能指南。
