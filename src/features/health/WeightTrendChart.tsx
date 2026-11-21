@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { formatMonthDay } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import type { WeighIn } from '@/core/db/schema'
@@ -22,6 +23,7 @@ export default function WeightTrendChart({
   selected = null,
   onSelect,
   tall = false,
+  scrollable = false,
   className = 'mt-2',
 }: {
   items: WeighIn[]
@@ -33,32 +35,31 @@ export default function WeightTrendChart({
   onSelect?: (dateKey: string) => void
   /** 详情页用更高的画布 */
   tall?: boolean
+  /** 详情页按点数展开画布，触屏可横向滑动查看完整历史 */
+  scrollable?: boolean
   className?: string
 }) {
   const { t } = useI18n()
 
-  if (items.length === 0) {
-    return <p className="m-0 mt-2 text-xs text-muted">{t('health.trendEmpty')}</p>
-  }
-
   const cleanItems = filterWeightOutliers(items, outlierContext)
   const cleanContext = filterWeightOutliers(outlierContext)
   const smoothedItems = rollingWeightAverages(cleanItems, cleanContext)
-  if (smoothedItems.length === 0) {
-    return <p className="m-0 mt-2 text-xs text-muted">{t('health.trendEmpty')}</p>
-  }
 
   const height = tall ? TALL_HEIGHT : SMALL_HEIGHT
   /** 左侧留出纵轴刻度的地方，刻度用 HTML 叠在图上，字号不跟着 SVG 一起缩 */
   const pad = tall ? 24 : 16
+  const chartWidth = scrollable ? Math.max(WIDTH, (smoothedItems.length - 1) * 48 + pad * 2) : WIDTH
   const { points, min, max } = trendPoints(
     smoothedItems.map((item) => item.weightKg),
-    WIDTH,
+    chartWidth,
     height,
     pad,
   )
   const line = points.map((point) => `${point.x},${point.y}`).join(' ')
-  const area = `${points[0].x},${height - pad} ${line} ${points[points.length - 1].x},${height - pad}`
+  const area =
+    points.length === 0
+      ? ''
+      : `${points[0].x},${height - pad} ${line} ${points[points.length - 1].x},${height - pad}`
   const midValue = (min + max) / 2
   /** 点少时直接标出每个点的数值，点多时只标最高/最低，选中点另有完整标签 */
   const showAllValues = smoothedItems.length <= 8
@@ -70,6 +71,21 @@ export default function WeightTrendChart({
     ? `${formatMonthDay(selectedItem.dateKey, t)} · ${formatNum(selectedItem.weightKg)} ${t('health.weighUnit')}`
     : ''
   const percent = (value: number, total: number) => `${(value / total) * 100}%`
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const viewport = scrollRef.current
+    if (!scrollable || !viewport) return
+    const targetX = selectedPoint?.x ?? chartWidth
+    viewport.scrollLeft = Math.max(
+      0,
+      Math.min(targetX - viewport.clientWidth / 2, viewport.scrollWidth - viewport.clientWidth),
+    )
+  }, [chartWidth, scrollable, selectedPoint?.x])
+
+  if (smoothedItems.length === 0) {
+    return <p className="m-0 mt-2 text-xs text-muted">{t('health.trendEmpty')}</p>
+  }
 
   function activate(dateKey: string) {
     onSelect?.(dateKey)
@@ -78,18 +94,25 @@ export default function WeightTrendChart({
   return (
     <div className={className}>
       {/* 图上的数字用 HTML 叠在 SVG 上：SVG 随窄屏整体缩小，HTML 字号不会跟着缩成看不清 */}
-      <div className="relative mt-1">
+      <div
+        ref={scrollRef}
+        role={scrollable ? 'region' : undefined}
+        aria-label={scrollable ? t('health.trendTitle') : undefined}
+        tabIndex={scrollable ? 0 : undefined}
+        className={scrollable ? 'overflow-x-auto overscroll-x-contain' : undefined}
+      >
+      <div className="relative mt-1" style={scrollable ? { width: `${chartWidth}px` } : undefined}>
         <svg
-          viewBox={`0 0 ${WIDTH} ${height}`}
-          width="100%"
-          className="block h-auto w-full"
+          viewBox={`0 0 ${chartWidth} ${height}`}
+          width={scrollable ? chartWidth : '100%'}
+          className={scrollable ? 'block h-auto max-w-none' : 'block h-auto w-full'}
           role="img"
           aria-label={t('health.trendTitle')}
         >
         <line
           x1={0}
           y1={height - pad}
-          x2={WIDTH}
+          x2={chartWidth}
           y2={height - pad}
           stroke="currentColor"
           className="text-line"
@@ -105,7 +128,7 @@ export default function WeightTrendChart({
               <line
                 x1={pad}
                 y1={pad}
-                x2={WIDTH - pad}
+                x2={chartWidth - pad}
                 y2={pad}
                 stroke="currentColor"
                 className="text-line"
@@ -118,7 +141,7 @@ export default function WeightTrendChart({
               <line
                 x1={pad}
                 y1={height / 2}
-                x2={WIDTH - pad}
+                x2={chartWidth - pad}
                 y2={height / 2}
                 stroke="currentColor"
                 className="text-line"
@@ -245,7 +268,7 @@ export default function WeightTrendChart({
                 (item.weightKg === max || item.weightKg === min ? 'text-fg' : 'text-muted')
               }
               style={{
-                left: percent(point.x, WIDTH),
+                left: percent(point.x, chartWidth),
                 top: percent(point.y, height),
                 transform: 'translate(-50%, calc(-100% - 2px))',
               }}
@@ -258,12 +281,12 @@ export default function WeightTrendChart({
           <span
             className="absolute whitespace-nowrap rounded-md border border-line bg-surface px-2 py-1 text-xs tabular-nums text-fg shadow-sm"
             style={{
-              left: percent(selectedPoint.x, WIDTH),
+              left: percent(selectedPoint.x, chartWidth),
               top: percent(selectedPoint.y, height),
               transform:
                 (selectedPoint.x < 60
                   ? 'translate(0, '
-                  : selectedPoint.x > WIDTH - 60
+                  : selectedPoint.x > chartWidth - 60
                     ? 'translate(-100%, '
                     : 'translate(-50%, ') +
                 (selectedPoint.y < 34 ? '10px)' : 'calc(-100% - 8px))'),
@@ -272,6 +295,7 @@ export default function WeightTrendChart({
             {selectedLabel}
           </span>
         )}
+      </div>
       </div>
     </div>
       {/* 两行摊开：第一行只放首尾日期，第二行放最新体重和区间，窄屏不会三个数字挤成一团 */}

@@ -17,7 +17,9 @@ import { SOLID_SMALL_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
 import {
   TREND_RANGES,
+  profileWeighIns,
   trendWeighIns,
+  upsertWeighIn,
   weightReviewKey,
   type TrendRange,
 } from './healthViz'
@@ -43,26 +45,28 @@ export default function WeighInCard({
     if (!profile || !Number.isFinite(kg) || kg <= 0) return
     const day = todayKey()
     const rounded = round2(kg)
-    const weighIns = [
-      { dateKey: day, weightKg: rounded, createdAt: Date.now() },
-      ...(profile.weighIns ?? []).filter((item) => item.dateKey !== day),
-    ].slice(0, 120)
+    const createdAt = Date.now()
+    const weighIns = upsertWeighIn(profileWeighIns(profile), {
+      dateKey: day,
+      weightKg: rounded,
+      createdAt,
+    })
     await saveHealthProfile({
       ...profile,
       weighIns,
       weightKg: rounded,
-      weightAt: Date.now(),
+      weightAt: createdAt,
     })
     setWeightText('')
     showToast({ message: t('health.weighSaved', { value: formatNum(rounded) }) })
   }
 
-  const weighIns = profile?.weighIns ?? []
+  const weighIns = profileWeighIns(profile)
   const today = todayKey()
   const completedWeighIns = weighIns.filter((item) => item.dateKey < today)
   const todayIsWeighDay = isWeighDay(today, profile?.weighDay ?? null)
   const review = weightReviewKey(weighIns)
-  const trend = trendWeighIns(weighIns, range, today, { excludeToday: true })
+  const trend = trendWeighIns(weighIns, range, today)
 
   return (
     <div className="rounded-2xl border border-line bg-surface p-4">

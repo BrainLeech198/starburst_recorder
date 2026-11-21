@@ -4,8 +4,8 @@
  * 全部不碰 React 和存储：页面只管把数据和坐标画出来，
  * 判断「这段曲线怎么走」「这一觉算长算短」这类事都放在这里，好写单测。
  */
-import type { HealthIntake, HealthSleep, WeighIn } from '@/core/db/schema'
-import { shiftDay } from '@/core/utils/dateKey'
+import type { HealthIntake, HealthProfile, HealthSleep, WeighIn } from '@/core/db/schema'
+import { isDateKey, shiftDay, toDateKey } from '@/core/utils/dateKey'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import { sleepMinutes, sleepWakeStats } from './sleepMath'
 import { filterWeightOutliers, rollingWeightAverages, weightSlopePerDay } from './healthMath'
@@ -13,23 +13,56 @@ import { filterWeightOutliers, rollingWeightAverages, weightSlopePerDay } from '
 /** 体重趋势的区间，单位是天（30 天在界面上叫「近一月」） */
 export type TrendRange = 3 | 5 | 7 | 30 | 90
 
-/** 健康首页小卡片上只放短区间，详情页再给更长的 90 天 */
+/** 健康首页小卡片上只放短区间 */
 export const TREND_RANGES: TrendRange[] = [3, 5, 7, 30]
 
-/** 趋势详情页的区间：至少一周才看得出走势 */
-export const DETAIL_TREND_RANGES: TrendRange[] = [7, 30, 90]
+/** 趋势详情页可看全部保留记录，也可聚焦近 7 / 30 / 90 天 */
+export type DetailTrendRange = TrendRange | 'all'
+export const DETAIL_TREND_RANGES: DetailTrendRange[] = ['all', 7, 30, 90]
 
-/** 取区间内的称重，按日期从早到晚；健康趋势可排除尚未结束的今天。 */
+const MAX_WEIGHT_HISTORY = 120
+
+/** 兼容旧档案：把只存在当前体重字段里的最近一次读数补到历史曲线。 */
+export function profileWeighIns(
+  profile: Pick<HealthProfile, 'weightKg' | 'weightAt' | 'weighIns'> | null | undefined,
+): WeighIn[] {
+  if (!profile) return []
+  const weighIns = [...profile.weighIns]
+  if (
+    profile.weightKg !== null &&
+    Number.isFinite(profile.weightKg) &&
+    profile.weightKg > 0 &&
+    profile.weightAt !== null &&
+    Number.isFinite(profile.weightAt)
+  ) {
+    const dateKey = toDateKey(new Date(profile.weightAt))
+    if (isDateKey(dateKey) && !weighIns.some((item) => item.dateKey === dateKey)) {
+      weighIns.push({ dateKey, weightKg: profile.weightKg, createdAt: profile.weightAt })
+    }
+  }
+  return weighIns
+    .sort((a, b) => (a.dateKey < b.dateKey ? 1 : a.dateKey > b.dateKey ? -1 : 0))
+    .slice(0, MAX_WEIGHT_HISTORY)
+}
+
+/** 新增或替换某一天的称重，并按日期倒序保留最近 120 条。 */
+export function upsertWeighIn(weighIns: WeighIn[], next: WeighIn): WeighIn[] {
+  return [next, ...weighIns.filter((item) => item.dateKey !== next.dateKey)]
+    .sort((a, b) => (a.dateKey < b.dateKey ? 1 : a.dateKey > b.dateKey ? -1 : 0))
+    .slice(0, MAX_WEIGHT_HISTORY)
+}
+
+/** 取区间内的称重，按日期从早到晚；详情页的 all 会返回完整留存历史。 */
 export function trendWeighIns(
   weighIns: WeighIn[],
-  range: TrendRange,
+  range: DetailTrendRange,
   today: string,
   options: { excludeToday?: boolean } = {},
 ): WeighIn[] {
-  const from = shiftDay(today, -(range - 1))
+  const from = range === 'all' ? null : shiftDay(today, -(range - 1))
   const to = options.excludeToday ? shiftDay(today, -1) : today
   return weighIns
-    .filter((item) => item.dateKey >= from && item.dateKey <= to)
+    .filter((item) => (from === null || item.dateKey >= from) && item.dateKey <= to)
     .sort((a, b) => (a.dateKey < b.dateKey ? -1 : a.dateKey > b.dateKey ? 1 : 0))
 }
 

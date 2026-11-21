@@ -33,6 +33,7 @@ import DayNav from '@/shared/ui/DayNav'
 import BackButton from '@/shared/ui/BackButton'
 import { useDaySwipe } from '@/shared/ui/useDaySwipe'
 import { formatNum, round2 } from './healthMath'
+import { profileWeighIns, upsertWeighIn } from './healthViz'
 import { exportAllData, healthProfile, saveHealthProfile } from './healthRepo'
 import type { BackupData } from './healthRepo'
 import DatePickerDialog from '@/features/diary/DatePickerDialog'
@@ -60,8 +61,8 @@ function withWeighIns(base: HealthProfile, list: WeighIn[]): HealthProfile {
   return {
     ...base,
     weighIns: list,
-    weightKg: newest ? newest.weightKg : base.weightKg,
-    weightAt: newest ? newest.createdAt : base.weightAt,
+    weightKg: newest?.weightKg ?? null,
+    weightAt: newest?.createdAt ?? null,
   }
 }
 
@@ -85,7 +86,7 @@ export default function WeightsPage() {
   const [batchDeleting, setBatchDeleting] = useState(false)
   const importInputRef = useRef<HTMLInputElement | null>(null)
 
-  const weighIns = profile?.weighIns ?? []
+  const weighIns = profileWeighIns(profile)
   const entry = weighIns.find((item) => item.dateKey === dayKey) ?? null
   /** 日历里标亮称过重的那些天 */
   const writtenDays = new Set(weighIns.map((item) => item.dateKey))
@@ -104,10 +105,13 @@ export default function WeightsPage() {
     const kg = Number(weightText)
     if (!Number.isFinite(kg) || kg <= 0) return
     const rounded = round2(kg)
-    const list = [
-      { dateKey: dayKey, weightKg: rounded, createdAt: Date.now() },
-      ...weighIns.filter((item) => item.dateKey !== dayKey),
-    ].slice(0, 120)
+    // eslint-disable-next-line react-hooks/purity -- 保存回调内取时间，不在渲染期
+    const createdAt = Date.now()
+    const list = upsertWeighIn(weighIns, {
+      dateKey: dayKey,
+      weightKg: rounded,
+      createdAt,
+    })
     await saveHealthProfile(withWeighIns(profile, list))
     setWeightText('')
     setFormOpen(false)
@@ -127,9 +131,7 @@ export default function WeightsPage() {
         void (async () => {
           const current = await healthProfile()
           if (!current) return
-          const restored = [target, ...(current.weighIns ?? [])]
-            .sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1))
-            .slice(0, 120)
+          const restored = upsertWeighIn(profileWeighIns(current), target)
           await saveHealthProfile(withWeighIns(current, restored))
         })()
       },
@@ -190,7 +192,7 @@ export default function WeightsPage() {
     setBatchDeleting(false)
     batch.exit()
     await saveHealthProfile(
-      withWeighIns(base, base.weighIns.filter((item) => !days.has(item.dateKey))),
+      withWeighIns(base, profileWeighIns(base).filter((item) => !days.has(item.dateKey))),
     )
     showToast({
       message: t('health.batchWeightsDeleted', { n: days.size }),
@@ -199,7 +201,7 @@ export default function WeightsPage() {
         void (async () => {
           const current = await healthProfile()
           if (!current) return
-          await saveHealthProfile(withWeighIns(current, base.weighIns))
+          await saveHealthProfile(withWeighIns(current, profileWeighIns(base)))
         })()
       },
     })

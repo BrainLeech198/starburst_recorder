@@ -1,3 +1,16 @@
+## 0.23.3 · 2026-11-21
+
+今日体重会及时进入趋势图；趋势详情默认展示全部保留记录，可左右滑动浏览，并提供体重总览。
+
+### 改进
+
+- **显示当天称重**：在健康首页或趋势详情录入的当天体重会立即进入曲线；旧档案中仅保存在身体资料里的当前体重也会补到历史中。
+- **浏览完整体重历史**：趋势详情默认展示全部保留记录，可切换近 7 / 30 / 90 天；曲线支持左右滑动，下面同步显示最新体重、整体变化、周均变化和平均范围。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.23.3-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.3/starburst-recorder-0.23.3-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.3/starburst-recorder-0.23.3-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.3.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.3/starburst-recorder-0.23.3.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.3/starburst-recorder-0.23.3.apk)
 ## 0.23.2 · 2026-11-21
 
 日程支持每周、每月、每年的多日期重复，并按开始与截止日期触发桌面、Android 和已开启推送的网页提醒。

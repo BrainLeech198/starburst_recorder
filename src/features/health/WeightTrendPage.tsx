@@ -8,7 +8,7 @@
  *   4. 选中那天的体重、能量差、蛋白达成、睡眠达标，以及摄入 / 睡眠明细
  *   5. 区间内的称重记录，兼作图表的无障碍替代（键盘也能选日期）
  *
- * 首页卡片只放 3/5/7/30 天，这里放宽到 90 天；体重来自身体档案的 weighIns，
+ * 首页卡片只放短区间；这里可看 7/30/90 天或全部保留称重，
  * 摄入和睡眠走区间批量查询，不逐日打库、也不额外落表。
  */
 import EmptyState from '@/shared/ui/EmptyState'
@@ -32,13 +32,14 @@ import {
 } from './healthMath'
 import {
   DETAIL_TREND_RANGES,
+  profileWeighIns,
   bmiValue,
   healthRangeSummary,
   sleepWakeMessage,
   trendWeighIns,
   weightTrendStats,
 } from './healthViz'
-import type { TrendRange } from './healthViz'
+import type { DetailTrendRange } from './healthViz'
 import { sleepMinutes, sleepParts, sleepWakeStats } from './sleepMath'
 import {
   healthProfile,
@@ -102,13 +103,13 @@ function MetricChip({
 export default function WeightTrendPage() {
   const { t } = useI18n()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [range, setRange] = useState<TrendRange>(30)
+  const [range, setRange] = useState<DetailTrendRange>('all')
 
   const profile = useLiveQuery(() => healthProfile(), [])
-  const weighIns = profile?.weighIns ?? []
+  const weighIns = profileWeighIns(profile)
   const today = todayKey()
   const completedWeighIns = weighIns.filter((item) => item.dateKey < today)
-  const rangeItems = trendWeighIns(weighIns, range, today, { excludeToday: true })
+  const rangeItems = trendWeighIns(weighIns, range, today)
   const cleanRangeItems = filterWeightOutliers(rangeItems, completedWeighIns)
   const cleanDateKeys = new Set(cleanRangeItems.map((item) => item.dateKey))
   const stats = weightTrendStats(rangeItems, completedWeighIns)
@@ -153,7 +154,8 @@ export default function WeightTrendPage() {
   const wakeMessage = wakeStats ? sleepWakeMessage(wakeStats.count, wakeStats.minutes) : null
 
   // 区间内的摄入与睡眠一次取回，用来算日均、蛋白达标和推算 TDEE
-  const rangeStart = shiftDay(today, -(range - 1))
+  const rangeStart =
+    range === 'all' ? (rangeItems[0]?.dateKey ?? today) : shiftDay(today, -(range - 1))
   const rangeEnd = shiftDay(today, -1)
   const rangeData = useLiveQuery(async () => {
     const [entries, nights] = await Promise.all([
@@ -175,11 +177,11 @@ export default function WeightTrendPage() {
     profile === undefined
       ? null
       : derivedTdeeEstimate({
-          weighIns: profile.weighIns,
+          weighIns,
           intakeKcalByDay,
           startDateKey: rangeStart,
           endDateKeyExclusive: today,
-          minimumTdee: minimumPlausibleTdee(profile, profile.weighIns, today),
+          minimumTdee: minimumPlausibleTdee(profile, weighIns, today),
         })
   const avgSleepHours =
     summary.avgSleepMinutes === null
@@ -246,7 +248,7 @@ export default function WeightTrendPage() {
                     onClick={() => setRange(item)}
                     className={choiceTile(range === item, 'px-2 py-1 text-[11px]')}
                   >
-                    {t('health.trendDays', { n: item })}
+                    {item === 'all' ? t('diary.allRecords') : t('health.trendDays', { n: item })}
                   </button>
                 ))}
               </div>
@@ -255,6 +257,7 @@ export default function WeightTrendPage() {
               items={rangeItems}
               outlierContext={completedWeighIns}
               tall
+              scrollable
               selected={selectedKey}
               onSelect={selectDay}
             />
@@ -264,34 +267,37 @@ export default function WeightTrendPage() {
           </section>
 
           {stats && (
-            <section className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <StatCell
-                label={t('health.trendStatLatest')}
-                value={formatNum(stats.latest)}
-                unit={t('health.weighUnit')}
-                hint={bmi === null ? null : `${t('health.trendBmi')} ${formatNum(bmi)}`}
-              />
-              <StatCell
-                label={t('health.trendStatChange')}
-                value={signed(stats.delta)}
-                unit={t('health.weighUnit')}
-                hint={t('health.trendStatSpan', { n: stats.spanDays })}
-              />
-              <StatCell
-                label={t('health.trendStatWeekly')}
-                value={stats.weekly === null ? '—' : signed(stats.weekly)}
-                unit={stats.weekly === null ? '' : t('health.trendWeekUnit')}
-              />
-              <StatCell
-                label={t('health.trendStatAverage')}
-                value={formatNum(stats.average)}
-                unit={t('health.weighUnit')}
-                hint={
-                  stats.min === stats.max
-                    ? null
-                    : `${formatNum(stats.min)} – ${formatNum(stats.max)}`
-                }
-              />
+            <section className="mt-3">
+              <h2 className="m-0 mb-2 text-xs text-muted">{t('health.trendWeightOverview')}</h2>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <StatCell
+                  label={t('health.trendStatLatest')}
+                  value={formatNum(stats.latest)}
+                  unit={t('health.weighUnit')}
+                  hint={bmi === null ? null : `${t('health.trendBmi')} ${formatNum(bmi)}`}
+                />
+                <StatCell
+                  label={t('health.trendStatChange')}
+                  value={signed(stats.delta)}
+                  unit={t('health.weighUnit')}
+                  hint={t('health.trendStatSpan', { n: stats.spanDays })}
+                />
+                <StatCell
+                  label={t('health.trendStatWeekly')}
+                  value={stats.weekly === null ? '—' : signed(stats.weekly)}
+                  unit={stats.weekly === null ? '' : t('health.trendWeekUnit')}
+                />
+                <StatCell
+                  label={t('health.trendStatAverage')}
+                  value={formatNum(stats.average)}
+                  unit={t('health.weighUnit')}
+                  hint={
+                    stats.min === stats.max
+                      ? null
+                      : `${formatNum(stats.min)} – ${formatNum(stats.max)}`
+                  }
+                />
+              </div>
             </section>
           )}
 

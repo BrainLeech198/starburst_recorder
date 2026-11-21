@@ -6,6 +6,7 @@ import {
   intakeReviewKey,
   midnightPercent,
   offsetFromMidnight,
+  profileWeighIns,
   sleepBarColor,
   sleepBarLayout,
   sleepBarScore,
@@ -13,6 +14,7 @@ import {
   sleepWakeMessage,
   trendPoints,
   trendWeighIns,
+  upsertWeighIn,
   weightReviewKey,
   weightTrendStats,
 } from './healthViz'
@@ -48,6 +50,47 @@ describe('体重趋势', () => {
 
   it('未来日期不画进趋势', () => {
     expect(trendWeighIns([weight('2026-10-29', 62)], 7, '2026-10-28')).toHaveLength(0)
+  })
+
+  it('今天的称重进入趋势，全部区间包含所有已留存日期', () => {
+    const list = [
+      weight('2026-10-01', 63),
+      weight('2026-10-27', 62),
+      weight('2026-10-28', 61.8),
+      weight('2026-10-29', 61.7),
+    ]
+    expect(trendWeighIns(list, 3, '2026-10-28').map((item) => item.dateKey)).toEqual([
+      '2026-10-27',
+      '2026-10-28',
+    ])
+    expect(trendWeighIns(list, 'all', '2026-10-28').map((item) => item.dateKey)).toEqual([
+      '2026-10-01',
+      '2026-10-27',
+      '2026-10-28',
+    ])
+  })
+
+  it('把旧档案里的当前体重补成缺失的历史点', () => {
+    const weightAt = new Date(2026, 10, 21, 8).getTime()
+    expect(
+      profileWeighIns({
+        weightKg: 61.8,
+        weightAt,
+        weighIns: [weight('2026-11-20', 62)],
+      }),
+    ).toEqual([
+      { dateKey: '2026-11-21', weightKg: 61.8, createdAt: weightAt },
+      weight('2026-11-20', 62),
+    ])
+  })
+
+  it('同一天再次称重时替换旧点，并按日期倒序保留', () => {
+    expect(
+      upsertWeighIn(
+        [weight('2026-11-20', 62), weight('2026-11-19', 62.2)],
+        weight('2026-11-20', 61.8),
+      ),
+    ).toEqual([weight('2026-11-20', 61.8), weight('2026-11-19', 62.2)])
   })
 
   it('单点落在正中；值全相同给一条中线', () => {

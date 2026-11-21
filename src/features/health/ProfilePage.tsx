@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useBlocker } from 'react-router'
 import type { HealthActivity, HealthProfile, HealthSex } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
+import { toDateKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
 import PageShell from '@/shared/ui/PageShell'
@@ -20,6 +21,7 @@ import {
   suggestProteinForPlan,
 } from './healthMath'
 import { healthProfile, saveHealthProfile } from './healthRepo'
+import { profileWeighIns, upsertWeighIn } from './healthViz'
 import ActivityAiDialog from './ActivityAiDialog'
 import HealthEstimateNote from './HealthDisclaimer'
 
@@ -232,19 +234,25 @@ export default function ProfilePage() {
 
   async function handleSave() {
     const nextWeight = weightKg
+    const weightChanged = nextWeight !== profile?.weightKg
+    // eslint-disable-next-line react-hooks/purity -- 保存回调内取时间，不在渲染期
+    const savedAt = Date.now()
+    const weighIns = profileWeighIns(profile)
+    const nextWeighIns =
+      nextWeight !== null && weightChanged
+        ? upsertWeighIn(weighIns, {
+            dateKey: toDateKey(new Date(savedAt)),
+            weightKg: nextWeight,
+            createdAt: savedAt,
+          })
+        : weighIns
     const next: HealthProfile = {
       id: 'me',
       sex: draft.sex,
       age,
       heightCm,
       weightKg: nextWeight,
-      weightAt:
-        nextWeight !== profile?.weightKg
-          ? nextWeight === null
-            ? null
-            : // eslint-disable-next-line react-hooks/purity -- 在保存回调里取时间，不在渲染期
-              Date.now()
-          : profile?.weightAt ?? null,
+      weightAt: weightChanged ? (nextWeight === null ? null : savedAt) : (profile?.weightAt ?? null),
       activity: draft.activity,
       tdee,
       targetKcal: parseNumber(draft.target),
@@ -256,9 +264,8 @@ export default function ProfilePage() {
       weighTime: profile?.weighTime ?? '07:00',
       idealBedtime: profile?.idealBedtime ?? '23:00',
       idealWakeTime: profile?.idealWakeTime ?? '07:00',
-      weighIns: profile?.weighIns ?? [],
-      // eslint-disable-next-line react-hooks/purity -- 在保存回调里取时间，不在渲染期
-      updatedAt: Date.now(),
+      weighIns: nextWeighIns,
+      updatedAt: savedAt,
     }
     await saveHealthProfile(next)
     showToast({ message: t('profile.saved') })

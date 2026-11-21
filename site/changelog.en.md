@@ -1,3 +1,16 @@
+## 0.23.3 · 2026-11-21
+
+Today’s weight now appears in the trend chart. The detail page opens with all retained readings, supports horizontal browsing, and includes a weight overview.
+
+### Improvements
+
+- **Show today’s reading** — weights entered on the health home or trend detail page appear in the chart right away. Older profiles with a current weight but no matching history entry also show that reading.
+- **Browse the full weight history** — the detail page opens with all retained readings, with 7-, 30-, and 90-day views available. Swipe horizontally through the chart and review the latest weight, overall change, weekly change, and average range below.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.3-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.3/starburst-recorder-0.23.3-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.3/starburst-recorder-0.23.3-setup.exe)
+- Android 10+: [starburst-recorder-0.23.3.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.3/starburst-recorder-0.23.3.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.3/starburst-recorder-0.23.3.apk)
 ## 0.23.2 · 2026-11-21
 
 Schedules now support multiple weekly, monthly, and yearly repeat dates, with desktop, Android, and enabled web push reminders honoring the start and end dates.
