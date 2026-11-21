@@ -124,6 +124,10 @@ export default function AssistantActionCard({
           ? t('schedule.everyDay')
           : action.repeat === 'weekly'
             ? t('schedule.everyWeek', { days })
+            : action.repeat === 'monthly'
+              ? t('schedule.everyMonth', { days: action.monthlyDays.join('/') })
+              : action.repeat === 'yearly'
+                ? t('schedule.everyYear', { dates: action.yearlyDates.join('/') })
             : t('schedule.onlyOnce')
         return `${t('schedule.addTitle')} · ${date}${action.time ? ` ${action.time}` : ''} · ${preview(action.title)} · ${repeat}${action.remind ? ` · ${t('schedule.remindOn')}` : ''}${action.note ? ` · ${preview(action.note, 100)}` : ''}`
       }
@@ -133,8 +137,13 @@ export default function AssistantActionCard({
           action.time === undefined ? '' : `${t('schedule.fieldTime')} ${action.time || '—'}`,
           action.newTitle ? `${t('schedule.fieldTitle')} ${preview(action.newTitle)}` : '',
           action.note === undefined ? '' : `${t('schedule.fieldNote')} ${preview(action.note, 100) || '—'}`,
-          action.repeat ? `${t('schedule.fieldRepeat')} ${t(action.repeat === 'daily' ? 'schedule.repeatDaily' : action.repeat === 'weekly' ? 'schedule.repeatWeekly' : 'schedule.repeatNone')}` : '',
+          action.repeat ? `${t('schedule.fieldRepeat')} ${t(({
+            none: 'schedule.repeatNone', daily: 'schedule.repeatDaily', weekly: 'schedule.repeatWeekly',
+            monthly: 'schedule.repeatMonthly', yearly: 'schedule.repeatYearly',
+          } as const)[action.repeat])}` : '',
           action.weeklyDays?.length ? action.weeklyDays.map((day) => t((`date.weekdayShort${day % 7}`) as MessageKey)).join('、') : '',
+          action.monthlyDays?.length ? `${t('schedule.monthlyDaysLabel')} ${action.monthlyDays.join('、')}` : '',
+          action.yearlyDates?.length ? `${t('schedule.yearlyDatesLabel')} ${action.yearlyDates.join('、')}` : '',
           action.remind === undefined ? '' : `${t('schedule.fieldRemind')} ${action.remind ? t('schedule.remindOn') : '—'}`,
         ].filter(Boolean).join(' · ')
         return `${t('schedule.editTitle')} · ${date} · ${preview(action.title)}（${action.code}） · ${details}`

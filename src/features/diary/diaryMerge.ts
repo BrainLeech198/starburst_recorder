@@ -143,6 +143,10 @@ function weeklyDaysKey(schedule: ScheduleItem) {
   return [...schedule.weeklyDays].sort((a, b) => a - b).join(',')
 }
 
+function dateListKey(values: Array<string | number> | undefined) {
+  return [...(values ?? [])].map(String).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).join(',')
+}
+
 /** 定期任务的打卡历史，同样只看集合不看顺序 */
 function doneDaysKey(schedule: ScheduleItem) {
   return [...schedule.doneDays].sort().join(',')
@@ -155,6 +159,10 @@ function scheduleSummary(schedule: ScheduleItem) {
       ? `每周 ${[...schedule.weeklyDays].sort((a, b) => a - b).join('/')}`
       : schedule.repeat === 'daily'
         ? '每天'
+        : schedule.repeat === 'monthly'
+          ? `每月 ${dateListKey(schedule.monthlyDays).replaceAll(',', '/')}`
+          : schedule.repeat === 'yearly'
+            ? `每年 ${dateListKey(schedule.yearlyDates).replaceAll(',', '/')}`
         : '一次'
   const done =
     schedule.doneDays.length > 0
@@ -171,9 +179,12 @@ function scheduleDiffers(local: ScheduleItem, incoming: ScheduleItem) {
     local.title !== incoming.title ||
     local.note !== incoming.note ||
     local.dateKey !== incoming.dateKey ||
+    local.endDate !== incoming.endDate ||
     local.time !== incoming.time ||
     local.repeat !== incoming.repeat ||
     weeklyDaysKey(local) !== weeklyDaysKey(incoming) ||
+    dateListKey(local.monthlyDays) !== dateListKey(incoming.monthlyDays) ||
+    dateListKey(local.yearlyDates) !== dateListKey(incoming.yearlyDates) ||
     local.remind !== incoming.remind ||
     tombstone(local.doneAt) !== tombstone(incoming.doneAt) ||
     doneDaysKey(local) !== doneDaysKey(incoming) ||

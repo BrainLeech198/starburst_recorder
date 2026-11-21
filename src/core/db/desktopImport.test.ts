@@ -534,9 +534,23 @@ describe('桌面端 SQLite 分块导入', () => {
       deletedAt: null,
     }
     call('saveSchedule', item)
+    const yearlyItem: ScheduleItem = {
+      ...item,
+      id: 'sc2',
+      code: 'C000002',
+      dateKey: '2026-11-03',
+      repeat: 'yearly',
+      weeklyDays: [],
+      yearlyDates: ['01-06', '01-01', '07-01'],
+      doneAt: null,
+      doneDays: [],
+      checkIns: [],
+    }
+    call('saveSchedule', yearlyItem)
     const before = call<{ schedules: ScheduleItem[] }>('exportAllData')
-    expect(before.schedules[0].weeklyDays).toEqual([1, 3, 5])
-    expect(before.schedules[0].endDate).toBe('2026-12-31')
+    expect(before.schedules.find((schedule) => schedule.id === item.id)?.weeklyDays).toEqual([1, 3, 5])
+    expect(before.schedules.find((schedule) => schedule.id === yearlyItem.id)?.yearlyDates).toEqual(['01-01', '01-06', '07-01'])
+    expect(before.schedules.find((schedule) => schedule.id === item.id)?.endDate).toBe('2026-12-31')
 
     call('replaceSections', {
       diary: {
@@ -549,12 +563,13 @@ describe('桌面端 SQLite 分块导入', () => {
     })
 
     const after = call<{ schedules: ScheduleItem[] }>('exportAllData')
-    expect(after.schedules).toHaveLength(1)
-    expect(after.schedules[0]).toEqual(before.schedules[0])
-    expect(after.schedules[0].remind).toBe(true)
-    expect(after.schedules[0].doneDays).toEqual(['2026-11-02', '2026-11-04'])
-    expect(after.schedules[0].checkIns).toEqual(before.schedules[0].checkIns)
-    expect(after.schedules[0].checkIns?.[0].code).toMatch(/^[0-9a-f]{7}$/)
+    expect(after.schedules).toHaveLength(2)
+    expect(after.schedules.find((schedule) => schedule.id === item.id)).toEqual(before.schedules.find((schedule) => schedule.id === item.id))
+    expect(after.schedules.find((schedule) => schedule.id === yearlyItem.id)?.yearlyDates).toEqual(['01-01', '01-06', '07-01'])
+    expect(after.schedules.find((schedule) => schedule.id === item.id)?.remind).toBe(true)
+    expect(after.schedules.find((schedule) => schedule.id === item.id)?.doneDays).toEqual(['2026-11-02', '2026-11-04'])
+    expect(after.schedules.find((schedule) => schedule.id === item.id)?.checkIns).toEqual(before.schedules.find((schedule) => schedule.id === item.id)?.checkIns)
+    expect(after.schedules.find((schedule) => schedule.id === item.id)?.checkIns?.[0].code).toMatch(/^[0-9a-f]{7}$/)
   })
 
   it('训练软删除后进回收站，恢复与彻底删除都能用', () => {

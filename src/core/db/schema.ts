@@ -413,8 +413,8 @@ export interface DiaryPreset {
   deletedAt: number | null
 }
 
-/** 日程的重复方式：一次性 / 每天 / 每周的某几天 */
-export type ScheduleRepeat = 'none' | 'daily' | 'weekly'
+/** 日程的重复方式：一次性 / 每天 / 每周 / 每月 / 每年 */
+export type ScheduleRepeat = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly'
 
 /** 一次任务在某天的打卡记录；照片内联保存，随日程备份。 */
 export interface ScheduleCheckIn {
@@ -431,7 +431,8 @@ export interface ScheduleCheckIn {
  * 一条日程或定期任务。
  *
  * 两种用法共用一张表：`repeat = 'none'` 是一次性日程，只落在 `dateKey` 那天；
- * 其余从 `dateKey` 起生效，`weekly` 看 `weeklyDays`（1=周一 … 7=周日）。
+ * 其余从 `dateKey` 起生效：`weekly` 看 `weeklyDays`、`monthly` 看 `monthlyDays`、
+ * `yearly` 看 `yearlyDates`（MM-DD，允许 02-29）。
  * 完成状态分开记：一次性看 `doneAt`，定期任务按天进 `doneDays`，
  * 这样同一个任务昨天的勾不会影响今天。
  */
@@ -450,6 +451,10 @@ export interface ScheduleItem {
   repeat: ScheduleRepeat
   /** repeat = 'weekly' 时有效：1=周一 … 7=周日 */
   weeklyDays: number[]
+  /** repeat = 'monthly' 时有效：1–31；旧对象可能缺省，当月不存在该日期时跳过 */
+  monthlyDays?: number[]
+  /** repeat = 'yearly' 时有效：MM-DD；旧对象可能缺省，02-29 仅在闰年发生 */
+  yearlyDates?: string[]
   /** 到点弹系统通知；整体在提醒设置里也只对开了这个的条目生效 */
   remind: boolean
   /** 一次性日程的完成时间；null 表示没完成 */

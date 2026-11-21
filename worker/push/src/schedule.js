@@ -51,15 +51,18 @@ export function isValidTimeZone(timeZone) {
 }
 
 /**
- * 某个提醒位在这一分钟是否命中。
- *
- * 一次性提醒看 `date`，每周重复看 `weekdays`，两者都有时以 `date` 为准
- * （客户端就是这么生成的，这里只是不让脏数据两边都触发）。
+ * 某个提醒位在这一分钟是否命中。一次性日期优先；重复规则可按周、月、年选择多天，
+ * 并受本地日期的起止范围约束。
  */
 export function matchSlot(slot, parts) {
   if (!slot || slot.time !== parts.time) return false
   if (slot.date) return slot.date === parts.dateKey
-  return Array.isArray(slot.weekdays) && slot.weekdays.includes(parts.weekday)
+  if (slot.startDate && parts.dateKey < slot.startDate) return false
+  if (slot.endDate && parts.dateKey > slot.endDate) return false
+  if (Array.isArray(slot.weekdays)) return slot.weekdays.includes(parts.weekday)
+  if (Array.isArray(slot.monthlyDays)) return slot.monthlyDays.includes(Number(parts.dateKey.slice(8, 10)))
+  if (Array.isArray(slot.yearlyDates)) return slot.yearlyDates.includes(parts.dateKey.slice(5))
+  return false
 }
 
 /** 同一条提醒同一天同一分钟只推一次：cron 重试或重叠执行都不会重复弹窗 */

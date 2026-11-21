@@ -1,3 +1,18 @@
+## 0.23.2 · 2026-11-21
+
+日程支持每周、每月、每年的多日期重复，并按开始与截止日期触发桌面、Android 和已开启推送的网页提醒。
+
+### 这一版有什么
+
+- **多日期重复**：每周可选多个星期；每月可选 1–31 号；每年可选多个具体月日。某月不存在的日期会跳过，2 月 29 日只在闰年触发，规则从开始日期持续到截止日期。
+- **提醒覆盖更多日期规则**：桌面应用保持打开时可按时通知；Android 授权后由系统排程，包含一次性日程；网页关闭后的提醒需要在设置的提醒页开启推送。
+- **规则同步**：日程备份导入导出及 AI 创建、编辑日程都会保留所选日期规则。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.23.2-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.2/starburst-recorder-0.23.2-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.2/starburst-recorder-0.23.2-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.2.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.2/starburst-recorder-0.23.2.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.2/starburst-recorder-0.23.2.apk)
+
 ## 0.23.1 · 2026-11-21
 
 把健康目标和健康分析收进同一个入口，在一页管理目标并查看近 30 天数据。

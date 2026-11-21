@@ -110,6 +110,19 @@ describe('提醒位：日程', () => {
       TODAY,
     )
     expect(slots[0].weekdays).toEqual([0, 1])
+    expect(slots[0].startDate).toBe(TODAY)
+  })
+
+  it('每月和每年重复保留多选日期与起止范围', () => {
+    const monthly = buildReminderSlots(profileOf(), [itemOf({
+      repeat: 'monthly', monthlyDays: [7, 1, 3], endDate: '2027-01-31',
+    })], TODAY)[0]
+    expect(monthly).toMatchObject({ monthlyDays: [1, 3, 7], startDate: TODAY, endDate: '2027-01-31' })
+
+    const yearly = buildReminderSlots(profileOf(), [itemOf({
+      repeat: 'yearly', yearlyDates: ['08-01', '01-01', '07-01'],
+    })], TODAY)[0]
+    expect(yearly).toMatchObject({ yearlyDates: ['01-01', '07-01', '08-01'], startDate: TODAY, endDate: null })
   })
 
   it('全天日程（没有时刻）不参与推送', () => {

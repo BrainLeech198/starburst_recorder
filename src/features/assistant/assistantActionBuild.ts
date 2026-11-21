@@ -19,6 +19,7 @@ import { formatClock, isDateKey, shiftDay } from '@/core/utils/dateKey'
 import { trainingLabel } from '@/features/training/trainingMath'
 import { FINANCE_CATEGORIES } from '@/features/finance/financeCategories'
 import { findMemoryByText, type AssistantMemory, type AssistantMemoryKind } from './assistantMemory'
+import { pickMonthlyDays, pickYearlyDates } from '@/core/db/normalize'
 
 type ProfileFields = {
   sex?: HealthSex
@@ -35,8 +36,8 @@ type ProfileFields = {
 }
 
 export type AssistantAction =
-  | { kind: 'scheduleCreate'; dateKey: string; endDate: string | null; time: string; title: string; note: string; repeat: ScheduleRepeat; weeklyDays: number[]; remind: boolean }
-  | { kind: 'scheduleEdit'; code: string; dateKey: string; title: string; time?: string; newDateKey?: string; newTitle?: string; note?: string; repeat?: ScheduleRepeat; endDate?: string; weeklyDays?: number[]; remind?: boolean }
+  | { kind: 'scheduleCreate'; dateKey: string; endDate: string | null; time: string; title: string; note: string; repeat: ScheduleRepeat; weeklyDays: number[]; monthlyDays: number[]; yearlyDates: string[]; remind: boolean }
+  | { kind: 'scheduleEdit'; code: string; dateKey: string; title: string; time?: string; newDateKey?: string; newTitle?: string; note?: string; repeat?: ScheduleRepeat; endDate?: string; weeklyDays?: number[]; monthlyDays?: number[]; yearlyDates?: string[]; remind?: boolean }
   | { kind: 'scheduleDelete'; code: string; dateKey: string; title: string }
   | { kind: 'memory'; text: string; memoryKind: AssistantMemoryKind }
   | {
@@ -489,7 +490,7 @@ export function buildAssistantAction(
       if (args.note !== undefined) action.note = textArg(args, 'note').slice(0, 1000)
       if (args.repeat !== undefined) {
         const repeat = textArg(args, 'repeat')
-        if (repeat !== 'none' && repeat !== 'daily' && repeat !== 'weekly') return fail('重复方式不对。')
+        if (repeat !== 'none' && repeat !== 'daily' && repeat !== 'weekly' && repeat !== 'monthly' && repeat !== 'yearly') return fail('重复方式不对。')
         action.repeat = repeat
       }
       if (args.endDate !== undefined) {
@@ -503,6 +504,14 @@ export function buildAssistantAction(
         if (days.some((day) => !Number.isInteger(day) || day < 1 || day > 7)) return fail('每周重复日只能是 1 到 7。')
         action.weeklyDays = [...new Set(days as number[])].sort()
       }
+      if (args.monthlyDays !== undefined) {
+        if (!Array.isArray(args.monthlyDays) || args.monthlyDays.some((day) => !Number.isInteger(day) || day < 1 || day > 31)) return fail('每月日期需要是 1 到 31 的列表。')
+        action.monthlyDays = pickMonthlyDays(args.monthlyDays)
+      }
+      if (args.yearlyDates !== undefined) {
+        if (!Array.isArray(args.yearlyDates) || args.yearlyDates.some((date) => typeof date !== 'string' || !/^[0-9]{2}-[0-9]{2}$/.test(date) || !isDateKey(`2000-${date}`))) return fail('每年日期需要是有效的 MM-DD 列表。')
+        action.yearlyDates = pickYearlyDates(args.yearlyDates)
+      }
       if (args.remind !== undefined) {
         if (typeof args.remind !== 'boolean') return fail('提醒只能是开或关。')
         action.remind = args.remind
@@ -510,7 +519,11 @@ export function buildAssistantAction(
       if (Object.keys(action).length === 4) return fail('至少提供一个要改的字段。')
       const repeat = action.repeat ?? item.repeat
       const days = action.weeklyDays ?? item.weeklyDays
+      const monthDays = action.monthlyDays ?? item.monthlyDays ?? []
+      const yearDates = action.yearlyDates ?? item.yearlyDates ?? []
       if (repeat === 'weekly' && days.length === 0) return fail('每周重复时至少选一个星期。')
+      if (repeat === 'monthly' && monthDays.length === 0) return fail('每月重复时至少选一个日期。')
+      if (repeat === 'yearly' && yearDates.length === 0) return fail('每年重复时至少选一个日期。')
       const resultingDate = action.newDateKey ?? item.dateKey
       const resultingEndDate = action.endDate ?? item.endDate ?? null
       if (repeat !== 'none' && !resultingEndDate) return fail('重复任务需要截止日期，请补充 endDate（YYYY-MM-DD）。')
@@ -519,6 +532,8 @@ export function buildAssistantAction(
       }
       if (repeat === 'none') delete action.endDate
       if (repeat !== 'weekly') action.weeklyDays = []
+      if (repeat !== 'monthly') action.monthlyDays = []
+      if (repeat !== 'yearly') action.yearlyDates = []
       return { ok: true, action }
     }
     case 'delete_schedule': {
@@ -535,19 +550,28 @@ export function buildAssistantAction(
       const time = args.time === undefined ? '09:00' : textArg(args, 'time')
       if (time !== '' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return fail('时刻不对：需要 HH:MM，或留空表示全天。')
       const rawRepeat = textArg(args, 'repeat')
-      if (rawRepeat && rawRepeat !== 'none' && rawRepeat !== 'daily' && rawRepeat !== 'weekly') return fail('重复方式不对。')
-      const repeat: ScheduleRepeat = rawRepeat === 'daily' || rawRepeat === 'weekly' ? rawRepeat : 'none'
+      if (rawRepeat && !['none', 'daily', 'weekly', 'monthly', 'yearly'].includes(rawRepeat)) return fail('重复方式不对。')
+      const repeat: ScheduleRepeat = ['daily', 'weekly', 'monthly', 'yearly'].includes(rawRepeat) ? rawRepeat as ScheduleRepeat : 'none'
       const endDate = args.endDate === undefined ? '' : textArg(args, 'endDate')
       if (repeat !== 'none' && !isDateKey(endDate)) return fail('重复任务需要截止日期 endDate（YYYY-MM-DD）。')
       if (repeat !== 'none' && endDate < dateKey) return fail('截止日期不能早于开始日期。')
       const weeklyDays = Array.isArray(args.weeklyDays)
         ? [...new Set(args.weeklyDays.filter((day): day is number => Number.isInteger(day) && day >= 1 && day <= 7))].sort()
         : []
+      if (args.monthlyDays !== undefined && (!Array.isArray(args.monthlyDays) || args.monthlyDays.some((day) => !Number.isInteger(day) || day < 1 || day > 31))) return fail('每月日期需要是 1 到 31 的列表。')
+      if (args.yearlyDates !== undefined && (!Array.isArray(args.yearlyDates) || args.yearlyDates.some((date) => typeof date !== 'string' || !/^[0-9]{2}-[0-9]{2}$/.test(date) || !isDateKey(`2000-${date}`)))) return fail('每年日期需要是有效的 MM-DD 列表。')
+      const monthlyDays = Array.isArray(args.monthlyDays) ? pickMonthlyDays(args.monthlyDays) : []
+      const yearlyDates = Array.isArray(args.yearlyDates) ? pickYearlyDates(args.yearlyDates) : []
       if (repeat === 'weekly' && weeklyDays.length === 0) return fail('每周重复时至少选一个星期。')
+      if (repeat === 'monthly' && monthlyDays.length === 0) return fail('每月重复时至少选一个日期。')
+      if (repeat === 'yearly' && yearlyDates.length === 0) return fail('每年重复时至少选一个日期。')
       return { ok: true, action: {
         kind: 'scheduleCreate', dateKey, endDate: repeat === 'none' ? null : endDate, time, title: title.slice(0, 120),
         note: textArg(args, 'note').slice(0, 1000), repeat,
-        weeklyDays: repeat === 'weekly' ? weeklyDays : [], remind: args.remind === true,
+        weeklyDays: repeat === 'weekly' ? weeklyDays : [],
+        monthlyDays: repeat === 'monthly' ? monthlyDays : [],
+        yearlyDates: repeat === 'yearly' ? yearlyDates : [],
+        remind: args.remind === true,
       } }
     }
     case 'remember': {
@@ -1359,8 +1383,10 @@ export function buildAssistantAction(
 /** 给模型看的动作描述（中文固定），也用于「已确认写入」的上下文 */
 export function describeAction(action: AssistantAction): string {
   switch (action.kind) {
-    case 'scheduleCreate':
-      return `${action.dateKey} ${action.time || '全天'} 新增日程「${action.title}」${action.repeat === 'none' ? '' : action.repeat === 'daily' ? `（每天，截止 ${action.endDate}）` : `（每周 ${action.weeklyDays.join('、')}，截止 ${action.endDate}）`}${action.remind ? '，到点提醒' : ''}`
+    case 'scheduleCreate': {
+      const repeat = action.repeat === 'daily' ? '每天' : action.repeat === 'weekly' ? `每周 ${action.weeklyDays.join('、')}` : action.repeat === 'monthly' ? `每月 ${action.monthlyDays.join('、')} 号` : action.repeat === 'yearly' ? `每年 ${action.yearlyDates.join('、')}` : ''
+      return `${action.dateKey} ${action.time || '全天'} 新增日程「${action.title}」${repeat ? `（${repeat}，截止 ${action.endDate}）` : ''}${action.remind ? '，到点提醒' : ''}`
+    }
     case 'scheduleEdit':
       return `修改日程（${action.code}）「${action.title}」：${[
         action.newDateKey ? `日期 ${action.newDateKey}` : '',
@@ -1370,6 +1396,8 @@ export function describeAction(action: AssistantAction): string {
         action.repeat ? `重复 ${action.repeat}` : '',
         action.endDate ? `截止 ${action.endDate}` : '',
         action.weeklyDays ? `周几 ${action.weeklyDays.join('、') || '无'}` : '',
+        action.monthlyDays ? `每月日期 ${action.monthlyDays.join('、') || '无'}` : '',
+        action.yearlyDates ? `每年日期 ${action.yearlyDates.join('、') || '无'}` : '',
         action.remind === undefined ? '' : `提醒 ${action.remind ? '开' : '关'}`,
       ].filter(Boolean).join('；')}`
     case 'scheduleDelete':

@@ -92,6 +92,17 @@ describe('add_schedule', () => {
       title: '背单词', repeat: 'daily', endDate: '2026-11-30',
     }, CTX).ok).toBe(true)
   })
+
+  it('每月和每年重复可以带多个日期', () => {
+    const monthly = buildAssistantAction('add_schedule', {
+      title: '账单', repeat: 'monthly', endDate: '2027-11-02', monthlyDays: [7, 1, 5],
+    }, CTX)
+    expect(monthly.ok && monthly.action.kind === 'scheduleCreate' ? monthly.action.monthlyDays : []).toEqual([1, 5, 7])
+    const yearly = buildAssistantAction('add_schedule', {
+      title: '纪念日', repeat: 'yearly', endDate: '2027-11-02', yearlyDates: ['07-01', '01-01', '02-29'],
+    }, CTX)
+    expect(yearly.ok && yearly.action.kind === 'scheduleCreate' ? yearly.action.yearlyDates : []).toEqual(['01-01', '02-29', '07-01'])
+  })
 })
 
 describe('update_schedule / delete_schedule', () => {

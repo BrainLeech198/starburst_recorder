@@ -28,7 +28,9 @@ export function occursOn(item: ScheduleItem, dateKey: string): boolean {
   if (item.repeat === 'none') return dateKey === item.dateKey
   if (item.endDate && dateKey > item.endDate) return false
   if (item.repeat === 'daily') return true
-  return item.weeklyDays.includes(weekdayOf(dateKey))
+  if (item.repeat === 'weekly') return item.weeklyDays.includes(weekdayOf(dateKey))
+  if (item.repeat === 'monthly') return item.monthlyDays?.includes(Number(dateKey.slice(8, 10))) ?? false
+  return item.yearlyDates?.includes(dateKey.slice(5)) ?? false
 }
 
 /** 某一天的全部日程，按时刻排序；全天（空时刻）排在最前 */
@@ -168,7 +170,7 @@ export function dueOn(items: ScheduleItem[], dateKey: string, clock: string): Sc
 /** 一次性日程的提醒只排给未来 30 天，避免给很久以后的事情也占通知位 */
 export function isRemindableLater(item: ScheduleItem, today: string): boolean {
   if (!item.remind || item.deletedAt !== null) return false
-  if (item.repeat !== 'none') return true
+  if (item.repeat !== 'none') return !item.endDate || item.endDate >= today
   const limit = shiftDayKey(today, 30)
   return item.dateKey >= today && item.dateKey <= limit
 }

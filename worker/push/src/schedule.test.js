@@ -80,6 +80,14 @@ describe('matchSlot', () => {
     expect(matchSlot({ id: 'd', category: 'weigh', time: '09:30' }, parts)).toBe(false)
     expect(matchSlot(null, parts)).toBe(false)
   })
+
+  it('每月与每年可匹配多个日期，并遵守重复起止日期', () => {
+    expect(matchSlot({ id: 'm', category: 'schedule', time: '09:30', monthlyDays: [1, 3, 7] }, parts)).toBe(true)
+    expect(matchSlot({ id: 'm', category: 'schedule', time: '09:30', monthlyDays: [1, 3, 7] }, { ...parts, dateKey: '2026-11-04' })).toBe(false)
+    expect(matchSlot({ id: 'y', category: 'schedule', time: '09:30', yearlyDates: ['11-03', '01-01'] }, parts)).toBe(true)
+    expect(matchSlot({ id: 'range', category: 'schedule', time: '09:30', weekdays: [2], startDate: '2026-11-04' }, parts)).toBe(false)
+    expect(matchSlot({ id: 'range', category: 'schedule', time: '09:30', weekdays: [2], endDate: '2026-11-02' }, parts)).toBe(false)
+  })
 })
 
 describe('dedupeKey', () => {

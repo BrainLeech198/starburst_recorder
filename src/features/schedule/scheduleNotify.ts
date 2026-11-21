@@ -3,28 +3,31 @@
  *
  * 分两层，和称重提醒一致：
  *   - 桌面 / 网页版：应用打开时检查一次，之后每分钟查一次，到点弹一条通知（见 @/platform/notify）
- *   - 安卓：一次性走 Capacitor；重复任务由原生层逐次重排，截止日后停止
+ *   - 安卓：一次性与重复任务都由原生层逐次排程，截止日后停止
  *
  * 每天每条只提醒一次（localStorage 里按「日期 + id」记），免得开一次弹一次。
  */
 import type { ScheduleItem } from '@/core/db/schema'
-import { registerPlugin } from '@capacitor/core'
+import { Capacitor, registerPlugin } from '@capacitor/core'
+import { LocalNotifications } from '@capacitor/local-notifications'
 import { todayKey } from '@/core/utils/dateKey'
 import { translate } from '@/shared/i18n/context'
 import { notifyNow } from '@/platform/notify'
-import { dueOn, isRemindableLater } from './scheduleMath'
+import { desktopBridge } from '@/platform/desktop'
+import { dueOn, isRemindableLater, occursOn } from './scheduleMath'
 
 const NOTIFIED_KEY = 'starburst.scheduleNotified'
 const inFlight = new Set<string>()
 
-/** 安卓本地通知占用的 id 段；重排时先把这个段整体取消 */
+/** 本地通知占用的 id 段；重排时先把这个段整体取消 */
 const BASE_ID = 78000
 const MAX_NOTIFICATIONS = 40
+const pendingNotices = new Set<string>()
 
 interface NativeScheduleReminderPlugin {
   sync(options: {
     title: string
-    items: Pick<ScheduleItem, 'id' | 'dateKey' | 'endDate' | 'time' | 'title' | 'repeat' | 'weeklyDays'>[]
+    items: Pick<ScheduleItem, 'id' | 'dateKey' | 'endDate' | 'time' | 'title' | 'repeat' | 'weeklyDays' | 'monthlyDays' | 'yearlyDates'>[]
   }): Promise<void>
 }
 
@@ -73,7 +76,7 @@ function bodyOf(items: ScheduleItem[]): string {
  * 桌面 / 浏览器：今天到点、还没做、今天没提醒过的条目 → 合成一条通知。
  * 页面挂载时调一次，之后由宿主组件每分钟调一次。
  */
-export function maybeNotifySchedules(items: ScheduleItem[]): void {
+export async function maybeNotifySchedules(items: ScheduleItem[]): Promise<void> {
   const today = todayKey()
   const due = dueOn(items, today, currentClock())
   if (due.length === 0) return
@@ -82,24 +85,43 @@ export function maybeNotifySchedules(items: ScheduleItem[]): void {
   const fresh = due.filter((item) => !state.ids.includes(item.id) && !inFlight.has(item.id))
   if (fresh.length === 0) return
 
+  const pendingKey = `${today}:${fresh.map((item) => item.id).sort().join(',')}`
+  if (pendingNotices.has(pendingKey)) return
+  pendingNotices.add(pendingKey)
   fresh.forEach((item) => inFlight.add(item.id))
-  void notifyNow(translate('schedule.notifyTitle'), bodyOf(fresh))
-    .then((delivered) => {
-      if (!delivered) return
+  try {
+    const delivered = await notifyNow(translate('schedule.notifyTitle'), bodyOf(fresh), { requestPermission: false })
+    if (delivered) {
       const latest = readNotified(today)
       writeNotified({ date: today, ids: [...new Set([...latest.ids, ...fresh.map((item) => item.id)])] })
-    })
-    .finally(() => fresh.forEach((item) => inFlight.delete(item.id)))
+    }
+  } finally {
+    pendingNotices.delete(pendingKey)
+    fresh.forEach((item) => inFlight.delete(item.id))
+  }
 }
 
-function hourMinute(time: string): { hour: number; minute: number } | null {
-  const matched = time.match(/^([01]\d|2[0-3]):([0-5]\d)$/)
-  if (!matched) return null
-  return { hour: Number(matched[1]), minute: Number(matched[2]) }
+/** 必须在用户点击「到点提醒我」时调用，不能等到提醒触发时再申请权限。 */
+export async function requestScheduleReminderPermission(): Promise<boolean> {
+  try {
+    if (desktopBridge()?.isDesktop === true) return true
+    if (Capacitor.isNativePlatform()) {
+      const current = await LocalNotifications.checkPermissions()
+      if (current.display === 'granted') return true
+      const requested = await LocalNotifications.requestPermissions()
+      return requested.display === 'granted'
+    }
+    if (typeof Notification === 'undefined') return false
+    if (Notification.permission === 'granted') return true
+    if (Notification.permission === 'denied') return false
+    return (await Notification.requestPermission()) === 'granted'
+  } catch {
+    return false
+  }
 }
 
 /**
- * 安卓：重复任务由原生层逐次排下一条提醒；一次性日程排到具体时刻。
+ * 安卓：一次性和重复任务都由原生层逐次排下一条提醒。
  * 桌面 / 浏览器没有这个插件，这里直接不动。
  */
 export async function syncScheduleReminders(items: ScheduleItem[]): Promise<void> {
@@ -108,7 +130,6 @@ export async function syncScheduleReminders(items: ScheduleItem[]): Promise<void
     const { Capacitor } = await import('@capacitor/core')
     if (!Capacitor.isNativePlatform()) return
     isAndroid = Capacitor.getPlatform() === 'android'
-    const { LocalNotifications } = await import('@capacitor/local-notifications')
     const permission = await LocalNotifications.checkPermissions()
     if (permission.display !== 'granted') return
 
@@ -119,6 +140,13 @@ export async function syncScheduleReminders(items: ScheduleItem[]): Promise<void
       })),
     })
 
+    if (permission.display !== 'granted') {
+      if (isAndroid) {
+        await NativeScheduleReminder.sync({ title: translate('schedule.notifyTitle'), items: [] })
+      }
+      return
+    }
+
     const today = todayKey()
     const title = translate('schedule.notifyTitle')
     const notifications: Parameters<typeof LocalNotifications.schedule>[0]['notifications'] = []
@@ -127,32 +155,26 @@ export async function syncScheduleReminders(items: ScheduleItem[]): Promise<void
     for (const item of items) {
       if (!item.remind || item.deletedAt !== null) continue
       if (notifications.length >= MAX_NOTIFICATIONS) break
-      const clock = hourMinute(item.time) ?? { hour: 9, minute: 0 }
+      // Android 的 AlarmManager 接管所有日程，远期一次性日程也不会漏排。
+      if (isAndroid) continue
+      if (!isRemindableLater(item, today)) continue
 
-      if (item.repeat === 'weekly') {
-        if (isAndroid) continue
-        for (const day of item.weeklyDays) {
-          if (notifications.length >= MAX_NOTIFICATIONS) break
-          notifications.push({
-            id: nextId++,
-            title,
-            body: item.title,
-            schedule: { every: 'week', on: { weekday: (day % 7) + 1, ...clock } },
-          })
+      // 用具体发生日期排一次性通知，保证开始 / 截止日期和每周、每月、每年多选规则都生效。
+      // iOS 的本地通知最多预排 40 次；应用再次打开时会滚动补排，Android 由原生闹钟逐次续排。
+      const searchStart = item.dateKey > today ? item.dateKey : today
+      const daysToSearch = item.repeat === 'yearly' ? 1465 : 366
+      let candidate = searchStart
+      for (let offset = 0; offset < daysToSearch && notifications.length < MAX_NOTIFICATIONS; offset += 1) {
+        if (item.endDate && candidate > item.endDate) break
+        if (occursOn(item, candidate)) {
+          const at = new Date(`${candidate}T${item.time || '09:00'}:00`)
+          if (!Number.isNaN(at.getTime()) && at.getTime() > Date.now()) {
+            notifications.push({ id: nextId++, title, body: item.title, schedule: { at } })
+          }
         }
-      } else if (item.repeat === 'daily') {
-        if (isAndroid) continue
-        notifications.push({
-          id: nextId++,
-          title,
-          body: item.title,
-          schedule: { every: 'day', on: clock },
-        })
-      } else if (isRemindableLater(item, today)) {
-        // 一次性日程只排最近 30 天，很久以后的事不占通知位
-        const at = new Date(`${item.dateKey}T${item.time || '09:00'}:00`)
-        if (Number.isNaN(at.getTime())) continue
-        notifications.push({ id: nextId++, title, body: item.title, schedule: { at } })
+        const [year, month, day] = candidate.split('-').map(Number)
+        const next = new Date(year, month - 1, day + 1)
+        candidate = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`
       }
     }
 
@@ -167,9 +189,9 @@ export async function syncScheduleReminders(items: ScheduleItem[]): Promise<void
       await NativeScheduleReminder.sync({
         title,
         items: items
-          .filter((item) => item.remind && item.deletedAt === null && item.repeat !== 'none')
+          .filter((item) => item.remind && item.deletedAt === null)
           .slice(0, MAX_NOTIFICATIONS)
-          .map(({ id, dateKey, endDate, time, title: itemTitle, repeat, weeklyDays }) => ({
+          .map(({ id, dateKey, endDate, time, title: itemTitle, repeat, weeklyDays, monthlyDays, yearlyDates }) => ({
             id,
             dateKey,
             endDate: endDate ?? null,
@@ -177,6 +199,8 @@ export async function syncScheduleReminders(items: ScheduleItem[]): Promise<void
             title: itemTitle,
             repeat,
             weeklyDays,
+            monthlyDays,
+            yearlyDates,
           })),
       })
     } catch {

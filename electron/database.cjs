@@ -213,7 +213,7 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_finance_day ON financeEntries(dateKey);
   CREATE INDEX IF NOT EXISTS idx_finance_trash ON financeEntries(deletedAt);
 
-  -- 日程 / 定期任务：周几、完成日期与逐日打卡记录都以 JSON 存
+  -- 日程 / 定期任务：重复日期、完成日期与逐日打卡记录都以 JSON 存
   CREATE TABLE IF NOT EXISTS schedules (
     id TEXT PRIMARY KEY,
     code TEXT NOT NULL DEFAULT '',
@@ -224,6 +224,8 @@ const SCHEMA = `
     note TEXT NOT NULL DEFAULT '',
     repeat TEXT NOT NULL DEFAULT 'none',
     weeklyDays TEXT NOT NULL DEFAULT '[]',
+    monthlyDays TEXT NOT NULL DEFAULT '[]',
+    yearlyDates TEXT NOT NULL DEFAULT '[]',
     remind INTEGER NOT NULL DEFAULT 0,
     doneAt INTEGER,
     doneDays TEXT NOT NULL DEFAULT '[]',
@@ -728,11 +730,12 @@ function financeBriefRow(row) {
 }
 
 /**
- * 日程行：weeklyDays / doneDays 是 JSON 文本，读出来还原成数组，坏了当空。
+ * 日程行：重复日期 / doneDays 是 JSON 文本，读出来还原成数组，坏了当空。
  * remind 在 SQLite 里是 0/1，这里统一回布尔。
  */
 function scheduleRow(row) {
   if (!row) return undefined
+  const repeat = ['daily', 'weekly', 'monthly', 'yearly'].includes(row.repeat) ? row.repeat : 'none'
   return {
     id: row.id,
     code: row.code ?? '',
@@ -741,8 +744,10 @@ function scheduleRow(row) {
     time: row.time ?? '',
     title: row.title ?? '',
     note: row.note ?? '',
-    repeat: row.repeat === 'daily' || row.repeat === 'weekly' ? row.repeat : 'none',
-    weeklyDays: weeklyDaysFromDb(row.weeklyDays),
+    repeat,
+    weeklyDays: repeat === 'weekly' ? weeklyDaysFromDb(row.weeklyDays) : [],
+    monthlyDays: repeat === 'monthly' ? monthlyDaysFromDb(row.monthlyDays) : [],
+    yearlyDates: repeat === 'yearly' ? yearlyDatesFromDb(row.yearlyDates) : [],
     remind: row.remind === 1 || row.remind === true,
     doneAt: num(row.doneAt),
     doneDays: doneDaysFromDb(row.doneDays),
@@ -821,6 +826,34 @@ function weeklyDaysFromDb(text) {
   }
 }
 
+function monthlyDaysFromDb(text) {
+  if (typeof text !== 'string' || text.trim() === '') return []
+  try {
+    const list = JSON.parse(text)
+    if (!Array.isArray(list)) return []
+    return [...new Set(list.map(Number).filter((day) => Number.isInteger(day) && day >= 1 && day <= 31))]
+      .sort((a, b) => a - b)
+  } catch {
+    return []
+  }
+}
+
+function yearlyDatesFromDb(text) {
+  if (typeof text !== 'string' || text.trim() === '') return []
+  try {
+    const list = JSON.parse(text)
+    if (!Array.isArray(list)) return []
+    return [...new Set(list.filter((value) => {
+      if (typeof value !== 'string' || !/^[0-9]{2}-[0-9]{2}$/.test(value)) return false
+      const [month, day] = value.split('-').map(Number)
+      const date = new Date(2000, month - 1, day)
+      return date.getFullYear() === 2000 && date.getMonth() === month - 1 && date.getDate() === day
+    }))].sort()
+  } catch {
+    return []
+  }
+}
+
 function doneDaysFromDb(text) {
   if (typeof text !== 'string' || text.trim() === '') return []
   try {
@@ -881,6 +914,10 @@ function createDatabase(file) {
   if (!scheduleColumns.has('endDate')) db.exec('ALTER TABLE schedules ADD COLUMN endDate TEXT')
   if (!scheduleColumns.has('checkIns'))
     db.exec("ALTER TABLE schedules ADD COLUMN checkIns TEXT NOT NULL DEFAULT '[]'")
+  if (!scheduleColumns.has('monthlyDays'))
+    db.exec("ALTER TABLE schedules ADD COLUMN monthlyDays TEXT NOT NULL DEFAULT '[]'")
+  if (!scheduleColumns.has('yearlyDates'))
+    db.exec("ALTER TABLE schedules ADD COLUMN yearlyDates TEXT NOT NULL DEFAULT '[]'")
   if (!intakeColumns.has('mealId')) db.exec('ALTER TABLE healthIntakes ADD COLUMN mealId TEXT')
   if (!intakeColumns.has('components')) db.exec('ALTER TABLE healthIntakes ADD COLUMN components TEXT')
   if (!intakeColumns.has('tdeeSnapshot')) db.exec('ALTER TABLE healthIntakes ADD COLUMN tdeeSnapshot REAL')
@@ -1247,8 +1284,8 @@ function createDatabase(file) {
     ),
     upsertSchedule: db.prepare(
       `INSERT INTO schedules
-         (id, code, dateKey, endDate, time, title, note, repeat, weeklyDays, remind, doneAt, doneDays, checkIns, createdAt, updatedAt, deletedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (id, code, dateKey, endDate, time, title, note, repeat, weeklyDays, monthlyDays, yearlyDates, remind, doneAt, doneDays, checkIns, createdAt, updatedAt, deletedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          code = excluded.code,
          dateKey = excluded.dateKey,
@@ -1258,6 +1295,8 @@ function createDatabase(file) {
          note = excluded.note,
          repeat = excluded.repeat,
          weeklyDays = excluded.weeklyDays,
+         monthlyDays = excluded.monthlyDays,
+         yearlyDates = excluded.yearlyDates,
          remind = excluded.remind,
          doneAt = excluded.doneAt,
          doneDays = excluded.doneDays,
@@ -1618,14 +1657,16 @@ function createDatabase(file) {
       time: typeof item.time === 'string' ? item.time : '',
       title: item.title ?? '',
       note: item.note ?? '',
-      repeat: item.repeat === 'daily' || item.repeat === 'weekly' ? item.repeat : 'none',
+      repeat: ['daily', 'weekly', 'monthly', 'yearly'].includes(item.repeat) ? item.repeat : 'none',
       weeklyDays: JSON.stringify(
-        Array.isArray(item.weeklyDays)
+        item.repeat === 'weekly' && Array.isArray(item.weeklyDays)
           ? [...new Set(item.weeklyDays.filter((day) => Number.isInteger(day) && day >= 1 && day <= 7))].sort(
               (a, b) => a - b,
             )
           : [],
       ),
+      monthlyDays: JSON.stringify(item.repeat === 'monthly' ? monthlyDaysFromDb(JSON.stringify(item.monthlyDays ?? [])) : []),
+      yearlyDates: JSON.stringify(item.repeat === 'yearly' ? yearlyDatesFromDb(JSON.stringify(item.yearlyDates ?? [])) : []),
       remind: item.remind === true ? 1 : 0,
       doneAt: num(item.doneAt),
       doneDays: JSON.stringify(
@@ -1650,6 +1691,8 @@ function createDatabase(file) {
       next.note,
       next.repeat,
       next.weeklyDays,
+      next.monthlyDays,
+      next.yearlyDates,
       next.remind,
       next.doneAt,
       next.doneDays,

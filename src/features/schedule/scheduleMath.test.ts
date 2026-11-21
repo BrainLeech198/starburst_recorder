@@ -29,6 +29,8 @@ function item(patch: Partial<ScheduleItem> = {}): ScheduleItem {
     note: '',
     repeat: 'none',
     weeklyDays: [],
+    monthlyDays: [],
+    yearlyDates: [],
     remind: false,
     doneAt: null,
     doneDays: [],
@@ -77,6 +79,25 @@ describe('occursOn', () => {
     expect(occursOn(row, '2026-11-02')).toBe(true) // 周一
     expect(occursOn(row, '2026-11-03')).toBe(false) // 周二
     expect(occursOn(row, '2026-11-04')).toBe(true) // 周三
+  })
+
+  it('每月可选多个日期，短月份不会把不存在的 31 日移到月末', () => {
+    const row = item({ repeat: 'monthly', monthlyDays: [1, 3, 5, 7, 31] })
+    expect(occursOn(row, '2026-11-03')).toBe(true)
+    expect(occursOn(row, '2026-11-30')).toBe(false)
+    expect(occursOn(row, '2027-02-28')).toBe(false)
+    expect(occursOn(row, '2026-12-31')).toBe(true)
+  })
+
+  it('每年可选多个不同月份日期，02-29 只在闰年触发', () => {
+    const row = item({
+      repeat: 'yearly',
+      yearlyDates: ['01-01', '01-03', '01-06', '07-01', '08-01', '02-29'],
+    })
+    expect(occursOn(row, '2027-01-03')).toBe(true)
+    expect(occursOn(row, '2027-07-01')).toBe(true)
+    expect(occursOn(row, '2027-02-28')).toBe(false)
+    expect(occursOn(row, '2028-02-29')).toBe(true)
   })
 
   it('回收站里的不算', () => {

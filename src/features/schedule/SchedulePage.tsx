@@ -99,6 +99,8 @@ export default function SchedulePage() {
         .join('、')
       return t('schedule.everyWeek', { days: names })
     }
+    if (item.repeat === 'monthly') return t('schedule.everyMonth', { days: (item.monthlyDays ?? []).join('/') })
+    if (item.repeat === 'yearly') return t('schedule.everyYear', { dates: (item.yearlyDates ?? []).join('/') })
     return t('schedule.onlyOnce')
   }
 

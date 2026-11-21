@@ -38,6 +38,8 @@ export function buildAssistantActionChanges(
       add('schedule.fieldNote', old.note, action.note)
       add('schedule.fieldRepeat', old.repeat, action.repeat)
       add('schedule.fieldWeeklyDays', old.weeklyDays, action.weeklyDays)
+      add('schedule.monthlyDaysLabel', old.monthlyDays, action.monthlyDays)
+      add('schedule.yearlyDatesLabel', old.yearlyDates, action.yearlyDates)
       add('schedule.fieldRemind', old.remind, action.remind)
       break
     }

@@ -248,6 +248,20 @@ function isValidTime(value) {
   return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59
 }
 
+function isValidDateKey(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(0)
+  date.setUTCHours(0, 0, 0, 0)
+  date.setUTCFullYear(year, month - 1, day)
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+}
+
+function isValidMonthDay(value) {
+  if (typeof value !== 'string' || !/^\d{2}-\d{2}$/.test(value)) return false
+  return isValidDateKey(`2000-${value}`)
+}
+
 function sanitizeSlots(slots) {
   if (!Array.isArray(slots)) return null
   const clean = []
@@ -257,17 +271,32 @@ function sanitizeSlots(slots) {
     if (!CATEGORIES.includes(slot.category)) return null
     if (!isValidTime(slot.time)) return null
     const entry = { id: slot.id, category: slot.category, time: slot.time }
+    if (isValidDateKey(slot.date)) {
+      entry.date = slot.date
+      clean.push(entry)
+      continue
+    }
+    if (isValidDateKey(slot.startDate)) entry.startDate = slot.startDate
+    if (isValidDateKey(slot.endDate)) entry.endDate = slot.endDate
+    if (entry.startDate && entry.endDate && entry.endDate < entry.startDate) continue
     if (Array.isArray(slot.weekdays)) {
       const weekdays = [...new Set(slot.weekdays)]
         .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
         .sort((a, b) => a - b)
       if (weekdays.length) entry.weekdays = weekdays
     }
-    if (typeof slot.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(slot.date)) {
-      entry.date = slot.date
+    if (Array.isArray(slot.monthlyDays)) {
+      const monthlyDays = [...new Set(slot.monthlyDays)]
+        .filter((day) => Number.isInteger(day) && day >= 1 && day <= 31)
+        .sort((a, b) => a - b)
+      if (monthlyDays.length) entry.monthlyDays = monthlyDays
     }
-    // 既没有 weekdays 也没有 date 的提醒永远命中不了，收下来只是垃圾
-    if (!entry.weekdays && !entry.date) continue
+    if (Array.isArray(slot.yearlyDates)) {
+      const yearlyDates = [...new Set(slot.yearlyDates)].filter(isValidMonthDay).sort()
+      if (yearlyDates.length) entry.yearlyDates = yearlyDates
+    }
+    // 既没有可识别重复规则，也没有一次性日期的提醒永远命中不了。
+    if (!entry.weekdays && !entry.monthlyDays && !entry.yearlyDates) continue
     clean.push(entry)
   }
   return clean

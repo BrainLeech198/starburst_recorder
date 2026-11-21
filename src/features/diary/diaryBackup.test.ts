@@ -244,13 +244,32 @@ describe('备份读写的兼容口径', () => {
         updatedAt: 1,
         deletedAt: null,
       },
+      {
+        id: 'sc-yearly',
+        code: 'c0ffee2',
+        dateKey: '2026-11-02',
+        endDate: null,
+        time: '08:00',
+        title: '纪念日',
+        note: '',
+        repeat: 'yearly',
+        weeklyDays: [],
+        yearlyDates: ['01-06', '01-01', '07-01'],
+        remind: false,
+        doneAt: null,
+        doneDays: [],
+        checkIns: [],
+        createdAt: 2,
+        updatedAt: 2,
+        deletedAt: null,
+      },
     ]
 
     const full = JSON.parse(buildBackup(payload).content) as {
       sections: { diary: { schedules: unknown[] }; schedule: { items: unknown[] } }
     }
-    expect(full.sections.diary.schedules).toHaveLength(1)
-    expect(full.sections.schedule.items).toHaveLength(1)
+    expect(full.sections.diary.schedules).toHaveLength(2)
+    expect(full.sections.schedule.items).toHaveLength(2)
 
     const file = buildBackup(payload, '备份', ['schedule'])
     const raw = JSON.parse(file.content) as { sections: Record<string, unknown> }
@@ -258,12 +277,14 @@ describe('备份读写的兼容口径', () => {
     expect(raw.sections).not.toHaveProperty('diary')
     const read = readBackup(file.content)
     expect(read.ok).toBe(true)
-    expect(read.payload.schedules).toHaveLength(1)
-    expect(read.payload.schedules[0].weeklyDays).toEqual([1, 3])
-    expect(read.payload.schedules[0].endDate).toBe('2026-12-31')
-    expect(read.payload.schedules[0].remind).toBe(true)
-    expect(read.payload.schedules[0].doneDays).toEqual(['2026-11-02'])
-    expect(read.payload.schedules[0].checkIns).toEqual([
+    expect(read.payload.schedules).toHaveLength(2)
+    const weekly = read.payload.schedules.find((item) => item.id === 'sc1')!
+    const yearly = read.payload.schedules.find((item) => item.id === 'sc-yearly')!
+    expect(weekly.weeklyDays).toEqual([1, 3])
+    expect(weekly.endDate).toBe('2026-12-31')
+    expect(weekly.remind).toBe(true)
+    expect(weekly.doneDays).toEqual(['2026-11-02'])
+    expect(weekly.checkIns).toEqual([
       {
         code: 'c0ffee2',
         dateKey: '2026-11-02',
@@ -272,6 +293,7 @@ describe('备份读写的兼容口径', () => {
         recordedAt: 123,
       },
     ])
+    expect(yearly.yearlyDates).toEqual(['01-01', '01-06', '07-01'])
   })
 
   it('旧备份里归在日记块的日程仍能读回并显示为独立块', () => {
@@ -436,7 +458,7 @@ describe('备份读写的兼容口径', () => {
     const parsed = JSON.parse(buildBackup(sample()).content) as Record<string, unknown>
     expect(parsed.app).toBe('starburst-recorder')
     expect(parsed.version).toBe(2)
-    expect(parsed.schemaVersion).toBe(2)
+    expect(parsed.schemaVersion).toBe(3)
   })
 
   it('v1 那种扁平摆法照样读得出来', () => {

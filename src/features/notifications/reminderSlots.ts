@@ -1,7 +1,7 @@
 /**
- * 把本地的提醒设置压成一份「只有时间、没有内容」的清单，交给服务端定时推送。
+ * 把本地的提醒设置压成一份「时间、重复日期、没有内容」的清单，交给服务端定时推送。
  *
- * 为什么只有时间和类别：Web Push 要在应用关着的时候推送，服务端就必须先知道「几点推」；
+ * 为什么没有标题：Web Push 要在应用关着的时候推送，服务端必须知道「几点、哪些日期推」；
  * 但日程标题、训练内容、体重这些是用户自己的事，不该为了一个提醒离开设备。
  * 推送文案在订阅时由客户端给一份**通用版本**（见 `buildPushCopy`），服务端只负责到点取用。
  *
@@ -84,11 +84,40 @@ export function buildReminderSlots(
         category: 'schedule',
         time: item.time,
         weekdays: [0, 1, 2, 3, 4, 5, 6],
+        startDate: item.dateKey,
+        endDate: item.endDate,
       })
-    } else {
+    } else if (item.repeat === 'weekly') {
       const weekdays = sortedWeekdays(item.weeklyDays)
       if (weekdays.length === 0) continue
-      slots.push({ id: `schedule:${item.id}`, category: 'schedule', time: item.time, weekdays })
+      slots.push({
+        id: `schedule:${item.id}`,
+        category: 'schedule',
+        time: item.time,
+        weekdays,
+        startDate: item.dateKey,
+        endDate: item.endDate,
+      })
+    } else if (item.repeat === 'monthly' && item.monthlyDays?.length) {
+      slots.push({
+        id: `schedule:${item.id}`,
+        category: 'schedule',
+        time: item.time,
+        monthlyDays: [...new Set(item.monthlyDays)].sort((a, b) => a - b),
+        startDate: item.dateKey,
+        endDate: item.endDate,
+      })
+    } else if (item.repeat === 'yearly' && item.yearlyDates?.length) {
+      slots.push({
+        id: `schedule:${item.id}`,
+        category: 'schedule',
+        time: item.time,
+        yearlyDates: [...new Set(item.yearlyDates)].sort(),
+        startDate: item.dateKey,
+        endDate: item.endDate,
+      })
+    } else {
+      continue
     }
     scheduleCount += 1
   }

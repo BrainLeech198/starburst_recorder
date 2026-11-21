@@ -66,6 +66,23 @@ describe('行级校验：必填缺失就丢行', () => {
     expect(reread?.checkIns?.[0]?.code).toBe(schedule?.checkIns?.[0]?.code)
   })
 
+  it('日程重复规则清理并保留每月 / 每年多个日期', () => {
+    const monthly = pickSchedule({
+      id: 'monthly', dateKey: '2026-11-01', title: '月度检查', repeat: 'monthly',
+      monthlyDays: [31, 1, 3, 3, 0, 32, '7'],
+    })
+    const yearly = pickSchedule({
+      id: 'yearly', dateKey: '2026-01-01', title: '周年提醒', repeat: 'yearly',
+      yearlyDates: ['08-01', '02-29', '01-01', '02-30', '8-1', '01-01'],
+    })
+    expect(monthly?.monthlyDays).toEqual([1, 3, 7, 31])
+    expect(monthly?.yearlyDates).toEqual([])
+    expect(yearly?.yearlyDates).toEqual(['01-01', '02-29', '08-01'])
+    expect(pickSchedule({ id: 'old', dateKey: '2026-01-01', title: '旧日程' })).toMatchObject({
+      repeat: 'none', monthlyDays: [], yearlyDates: [],
+    })
+  })
+
   it('随记的短编号缺失时现场补一个 7 位十六进制，已有的原样保留', () => {
     const fresh = pickStamp({ id: 'a', dateKey: '2026-10-25', time: '09:30', content: 'x' })
     expect(fresh?.code).toMatch(/^[0-9a-f]{7}$/)

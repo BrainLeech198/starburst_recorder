@@ -188,6 +188,25 @@ describe('POST /subscribe', () => {
     expect(JSON.stringify(record.slots)).not.toContain('称重了')
   })
 
+  it('保存月 / 年多日期规则与本地起止范围，不带日程标题', async () => {
+    const env = await makeEnv()
+    const subscription = await makeSubscription()
+    const response = await worker.fetch(subscribeRequest(subscription, {
+      slots: [
+        { id: 'schedule-monthly', category: 'schedule', time: '09:30', monthlyDays: [1, 3, 7, 3], startDate: '2026-11-01', endDate: '2027-06-30' },
+        { id: 'schedule-yearly', category: 'schedule', time: '08:00', yearlyDates: ['01-01', '07-01', '02-29'], startDate: '2026-01-01' },
+      ],
+    }), env)
+    expect(response.status).toBe(200)
+    const [key] = [...env.PUSH_KV.store.keys()]
+    const record = JSON.parse(env.PUSH_KV.store.get(key))
+    expect(record.slots).toEqual([
+      { id: 'schedule-monthly', category: 'schedule', time: '09:30', startDate: '2026-11-01', endDate: '2027-06-30', monthlyDays: [1, 3, 7] },
+      { id: 'schedule-yearly', category: 'schedule', time: '08:00', startDate: '2026-01-01', yearlyDates: ['01-01', '02-29', '07-01'] },
+    ])
+    expect(JSON.stringify(record.slots)).not.toContain('title')
+  })
+
   it('拒绝来路不明的源、非法时区、缺 keys 的订阅', async () => {
     const env = await makeEnv()
     const subscription = await makeSubscription()

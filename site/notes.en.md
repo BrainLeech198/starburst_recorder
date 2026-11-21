@@ -1,5 +1,20 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
+## 0.23.2 · 2026-11-21
+
+Schedules now support multiple weekly, monthly, and yearly repeat dates, with desktop, Android, and enabled web push reminders honoring the start and end dates.
+
+### Improvements
+
+- **Choose multiple repeat dates** — select any weekdays, days 1–31 of the month, or several month/day dates each year. Dates a month does not have are skipped; February 29 occurs only in leap years. Rules run from the start date through the end date.
+- **Apply reminders to more dates** — desktop notifications work while the app is open; Android schedules system notifications after permission is granted, including one-off schedules. For a closed web app, enable push on the Reminder settings page.
+- **Keep rules in sync** — schedule backups and AI schedule creation or edits preserve the selected repeat dates.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.2-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.2/starburst-recorder-0.23.2-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.2/starburst-recorder-0.23.2-setup.exe)
+- Android 10+: [starburst-recorder-0.23.2.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.2/starburst-recorder-0.23.2.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.2/starburst-recorder-0.23.2.apk)
+
 ## 0.23.1 · 2026-11-21
 
 Bring health goals and health insights together under one entry, with goal management and a 30-day overview on one page.

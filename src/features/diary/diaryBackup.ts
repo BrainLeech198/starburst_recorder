@@ -69,7 +69,7 @@ const BACKUP_APP = 'starburst-recorder'
  *   - 于是「新应用读旧备份」不需要代码，「旧应用读新备份」也不至于整份读不出来。
  */
 const BACKUP_VERSION = 2
-const SCHEMA_VERSION = 2
+const SCHEMA_VERSION = 3
 
 /** 备份按可独立恢复的内容分块。旧版的日程、训练仍在 readBackup 中兼容映射。 */
 export type BackupSection =

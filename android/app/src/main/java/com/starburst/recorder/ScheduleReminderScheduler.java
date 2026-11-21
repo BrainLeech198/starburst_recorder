@@ -7,6 +7,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 
@@ -17,6 +18,7 @@ import org.json.JSONObject;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.MonthDay;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 
@@ -72,10 +74,13 @@ final class ScheduleReminderScheduler {
         if (item == null || item.optString("id").isEmpty() || item.optString("title").isEmpty()) return false;
         LocalDate start = parseDate(item.optString("dateKey"));
         String repeat = item.optString("repeat");
-        if (start == null || !("daily".equals(repeat) || "weekly".equals(repeat))) return false;
+        if (start == null || !("none".equals(repeat) || "daily".equals(repeat) || "weekly".equals(repeat)
+            || "monthly".equals(repeat) || "yearly".equals(repeat))) return false;
         LocalDate end = parseDate(item.optString("endDate"));
         if (end != null && end.isBefore(start)) return false;
         if ("weekly".equals(repeat) && !hasWeeklyDay(item.optJSONArray("weeklyDays"))) return false;
+        if ("monthly".equals(repeat) && !hasMonthlyDay(item.optJSONArray("monthlyDays"))) return false;
+        if ("yearly".equals(repeat) && !hasYearlyDate(item.optJSONArray("yearlyDates"))) return false;
         return true;
     }
 
@@ -134,10 +139,12 @@ final class ScheduleReminderScheduler {
         LocalDate end = parseDate(item.optString("endDate"));
         LocalTime time = parseTime(item.optString("time"));
         String repeat = item.optString("repeat");
+        if ("none".equals(repeat) && (start.isBefore(now.toLocalDate())
+            || (start.equals(now.toLocalDate()) && !LocalDateTime.of(start, time).isAfter(now)))) return;
         LocalDate candidate = now.toLocalDate().isBefore(start) ? start : now.toLocalDate();
 
-        // Daily and weekly repetitions always find their next date within a week.
-        for (int i = 0; i < 8; i++, candidate = candidate.plusDays(1)) {
+        // 4 years covers every yearly selection, including a Feb 29 that only exists in leap years.
+        for (int i = 0; i < 1465; i++, candidate = candidate.plusDays(1)) {
             if (end != null && candidate.isAfter(end)) return;
             if (!occursOn(item, candidate)) continue;
             LocalDateTime trigger = LocalDateTime.of(candidate, time);
@@ -165,13 +172,32 @@ final class ScheduleReminderScheduler {
         LocalDate end = parseDate(item.optString("endDate"));
         if (end != null && date.isAfter(end)) return false;
         String repeat = item.optString("repeat");
+        if ("none".equals(repeat)) return start.equals(date);
         if ("daily".equals(repeat)) return true;
-        if (!"weekly".equals(repeat)) return false;
-        JSONArray days = item.optJSONArray("weeklyDays");
-        if (days == null) return false;
-        int weekday = date.getDayOfWeek().getValue(); // Monday=1 … Sunday=7
-        for (int i = 0; i < days.length(); i++) {
-            if (days.optInt(i, -1) == weekday) return true;
+        if ("weekly".equals(repeat)) {
+            JSONArray days = item.optJSONArray("weeklyDays");
+            if (days == null) return false;
+            int weekday = date.getDayOfWeek().getValue(); // Monday=1 … Sunday=7
+            for (int i = 0; i < days.length(); i++) {
+                if (days.optInt(i, -1) == weekday) return true;
+            }
+            return false;
+        }
+        if ("monthly".equals(repeat)) {
+            JSONArray days = item.optJSONArray("monthlyDays");
+            if (days == null) return false;
+            for (int i = 0; i < days.length(); i++) {
+                if (days.optInt(i, -1) == date.getDayOfMonth()) return true;
+            }
+            return false;
+        }
+        if ("yearly".equals(repeat)) {
+            JSONArray dates = item.optJSONArray("yearlyDates");
+            if (dates == null) return false;
+            String monthDay = String.format(java.util.Locale.ROOT, "%02d-%02d", date.getMonthValue(), date.getDayOfMonth());
+            for (int i = 0; i < dates.length(); i++) {
+                if (monthDay.equals(dates.optString(i))) return true;
+            }
         }
         return false;
     }
@@ -181,6 +207,29 @@ final class ScheduleReminderScheduler {
         for (int i = 0; i < days.length(); i++) {
             int day = days.optInt(i, -1);
             if (day >= 1 && day <= 7) return true;
+        }
+        return false;
+    }
+
+    private static boolean hasMonthlyDay(JSONArray days) {
+        if (days == null) return false;
+        for (int i = 0; i < days.length(); i++) {
+            int day = days.optInt(i, -1);
+            if (day >= 1 && day <= 31) return true;
+        }
+        return false;
+    }
+
+    private static boolean hasYearlyDate(JSONArray dates) {
+        if (dates == null) return false;
+        for (int i = 0; i < dates.length(); i++) {
+            String value = dates.optString(i, "");
+            try {
+                MonthDay.parse("--" + value);
+                return true;
+            } catch (DateTimeParseException ignored) {
+                // Ignore malformed dates in a stored payload.
+            }
         }
         return false;
     }
@@ -202,6 +251,10 @@ final class ScheduleReminderScheduler {
     }
 
     private static void postNotification(Context context, JSONObject item) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+            && context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager == null) return;
         String title = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

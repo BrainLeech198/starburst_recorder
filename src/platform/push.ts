@@ -4,19 +4,19 @@
  * 三步必须按顺序发生，顺序错了 iOS 会直接拒绝：
  *   1. 权限申请（`Notification.requestPermission`）——必须由用户手势触发；
  *   2. `pushManager.subscribe`——需要 VAPID 公钥；
- *   3. 把订阅和「只有时间的提醒清单」发给自己的转发服务。
+ *   3. 把订阅和「时间 + 日期规则」发给自己的转发服务。
  *
  * 配置从环境变量来：`VITE_PUSH_API` 与 `VITE_VAPID_PUBLIC_KEY`。两个都不配时整块功能
  * 视为不可用——设置页会说明原因，而不是摆一个点了没反应的按钮。
  *
- * 这里刻意只定义「时间 + 类别」的数据形状，不放任何用户内容：服务端要能在应用关着时
- * 推送，就必须知道几点推；但它不需要知道推的是什么。文案由客户端订阅时给一份通用版本。
+ * 这里刻意只定义「时间 + 日期规则 + 类别」的数据形状，不放任何用户内容：服务端要能在应用关着时
+ * 推送，就必须知道几点与哪些日期触发；但它不需要知道推的是什么。文案由客户端订阅时给一份通用版本。
  */
 import { isIosWebApp, isStandalone, isWebApp } from './pwa'
 
 export type ReminderCategory = 'weigh' | 'training' | 'schedule'
 
-/** 一条提醒位：要么每周重复（weekdays），要么一次性（date），二选一 */
+/** 一条提醒位：一次性 date，或在起止日期内按所选周期重复。 */
 export interface ReminderSlot {
   /** 稳定 id：同一条提醒改了时间也算同一条，服务端据此去重 */
   id: string
@@ -25,6 +25,13 @@ export interface ReminderSlot {
   time: string
   /** 每周几，0=周日 … 6=周六 */
   weekdays?: number[]
+  /** 每月几号，1–31；不存在的日期当月跳过 */
+  monthlyDays?: number[]
+  /** 每年哪些日期，MM-DD；允许 02-29 */
+  yearlyDates?: string[]
+  /** 重复规则起止日期，均为本地日期且含当天 */
+  startDate?: string
+  endDate?: string | null
   /** 一次性提醒的本地日期 `YYYY-MM-DD` */
   date?: string
 }

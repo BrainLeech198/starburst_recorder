@@ -747,7 +747,7 @@ export function pickFinance(raw: unknown): FinanceEntry | null {
   }
 }
 
-const SCHEDULE_REPEATS: ScheduleRepeat[] = ['none', 'daily', 'weekly']
+const SCHEDULE_REPEATS: ScheduleRepeat[] = ['none', 'daily', 'weekly', 'monthly', 'yearly']
 
 /** 周几：只认 1–7，去重排序；超出范围的手改数据直接丢掉 */
 export function pickWeeklyDays(raw: unknown): number[] {
@@ -768,6 +768,23 @@ export function ensureScheduleCheckInCodes(item: ScheduleItem): ScheduleItem {
   return { ...item, checkIns }
 }
 
+/** 每月日期只收 1–31；短月份不会把 31 号挪到月末。 */
+export function pickMonthlyDays(raw: unknown): number[] {
+  if (!Array.isArray(raw)) return []
+  return [...new Set(raw.map(Number).filter((day) => Number.isInteger(day) && day >= 1 && day <= 31))].sort(
+    (a, b) => a - b,
+  )
+}
+
+/** 每年日期使用 MM-DD；用闰年校验可保留合法的 02-29。 */
+export function pickYearlyDates(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  return [...new Set(raw.filter((value): value is string => {
+    if (typeof value !== 'string' || !/^\d{2}-\d{2}$/.test(value)) return false
+    return dateKey(`2000-${value}`) !== null
+  }))].sort()
+}
+
 /**
  * 日程 / 定期任务：标题为空或日期不合法就整行丢掉；
  * 重复方式、周几、完成记录都按上限收紧，手改的备份不至于把页面撑爆。
@@ -783,6 +800,8 @@ export function pickSchedule(raw: unknown): ScheduleItem | null {
     ? (item.repeat as ScheduleRepeat)
     : 'none'
   const weeklyDays = repeat === 'weekly' ? pickWeeklyDays(item.weeklyDays) : []
+  const monthlyDays = repeat === 'monthly' ? pickMonthlyDays(item.monthlyDays) : []
+  const yearlyDates = repeat === 'yearly' ? pickYearlyDates(item.yearlyDates) : []
   const doneDays = Array.isArray(item.doneDays)
     ? [...new Set(item.doneDays.map((value) => dateKey(value)).filter((value): value is string => value !== null))]
         .sort()
@@ -826,6 +845,8 @@ export function pickSchedule(raw: unknown): ScheduleItem | null {
     note: text(item.note),
     repeat,
     weeklyDays,
+    monthlyDays,
+    yearlyDates,
     remind: item.remind === true,
     doneAt: deletedAt(item.doneAt),
     doneDays,

@@ -106,7 +106,7 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
       id: newId(), code: newCode(), dateKey: action.dateKey, time: action.time,
       endDate: action.repeat === 'none' ? null : action.endDate,
       title: action.title, note: action.note, repeat: action.repeat,
-      weeklyDays: action.weeklyDays, remind: action.remind,
+      weeklyDays: action.weeklyDays, monthlyDays: action.monthlyDays, yearlyDates: action.yearlyDates, remind: action.remind,
       doneAt: null, doneDays: [], checkIns: [], createdAt: now, updatedAt: now, deletedAt: null,
     }
     await saveSchedule(item)
@@ -118,7 +118,11 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
     if (!item) throw new Error('这条日程已经不在了，刷新后再看一次。')
     const repeat = action.repeat ?? item.repeat
     const weeklyDays = repeat === 'weekly' ? (action.weeklyDays ?? item.weeklyDays) : []
+    const monthlyDays = repeat === 'monthly' ? (action.monthlyDays ?? item.monthlyDays ?? []) : []
+    const yearlyDates = repeat === 'yearly' ? (action.yearlyDates ?? item.yearlyDates ?? []) : []
     if (repeat === 'weekly' && weeklyDays.length === 0) throw new Error('每周重复时至少选一个星期。')
+    if (repeat === 'monthly' && monthlyDays.length === 0) throw new Error('每月重复时至少选一个日期。')
+    if (repeat === 'yearly' && yearlyDates.length === 0) throw new Error('每年重复时至少选一个日期。')
     await saveSchedule({
       ...item,
       dateKey: action.newDateKey ?? item.dateKey,
@@ -128,6 +132,8 @@ export async function executeAssistantAction(action: AssistantAction): Promise<A
       note: action.note ?? item.note,
       repeat,
       weeklyDays,
+      monthlyDays,
+      yearlyDates,
       remind: action.remind ?? item.remind,
       updatedAt: now,
     })
