@@ -44,6 +44,17 @@ describe('data_inventory', () => {
   })
 })
 
+describe('load_app_guide', () => {
+  it('返回固定的应用功能与逻辑说明，不要求读取用户数据', () => {
+    const text = runAssistantTool('load_app_guide', {}, { data: emptyData(), today: '2026-10-28' })
+    expect(text).toContain('【星芒记录者：产品功能与代码导航】')
+    expect(text).toContain('重复任务指定开始日期')
+    expect(text).toContain('两者分开存放')
+    expect(text).toContain('不能把概括性产品规则冒充逐行代码审查结论')
+    expect(text).not.toContain('API Key')
+  })
+})
+
 describe('browse_records', () => {
   it('分页遍历全部记录，并把回收站与有效记录分开', () => {
     const data = emptyData()
@@ -475,7 +486,7 @@ describe('统计类工具', () => {
     })
     const text = runAssistantTool('weight_chart', { days: 30 }, { data, today: '2026-10-28' })
     expect(text).toContain('3 个点')
-    expect(text).toContain('首尾变化 -2 kg')
+    expect(text).toContain('趋势变化 -1.87 kg')
     expect(text).toContain('每周趋势：')
     expect(text).toContain('2026-10-27 68 kg')
     expect(text).not.toContain('2026-10-29')

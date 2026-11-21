@@ -4,27 +4,33 @@
  */
 import { useLiveQuery } from '@/core/db/live'
 import type { HealthProfile } from '@/core/db/schema'
-import { todayKey } from '@/core/utils/dateKey'
+import { shiftDay, todayKey } from '@/core/utils/dateKey'
 import { intakeDays, intakesOfDay } from './healthRepo'
-import { derivedTdee } from './healthMath'
-
-/** 回看窗口取 28 天：比推算窗口（14 天）宽一倍，改窗口参数时不用回来改这里 */
-const LOOKBACK_DAYS = 28
+import {
+  DERIVED_TDEE_WINDOW_DAYS,
+  derivedTdee,
+  minimumPlausibleTdee,
+} from './healthMath'
 
 export function useDerivedTdee(profile: HealthProfile | undefined): number | null | undefined {
   return useLiveQuery(async () => {
     const weighIns = profile?.weighIns ?? []
     if (weighIns.length < 2) return null
-    const end = new Date(todayKey() + 'T00:00:00Z').getTime()
-    const start = end - LOOKBACK_DAYS * 86400000
+    const today = todayKey()
+    const startDateKey = shiftDay(today, -(DERIVED_TDEE_WINDOW_DAYS - 1))
     const intakeKcalByDay: Record<string, number> = {}
     for (const day of await intakeDays()) {
-      const dayN = new Date(day + 'T00:00:00Z').getTime()
-      if (dayN < start || dayN > end) continue
+      if (day < startDateKey || day >= today) continue
       const items = await intakesOfDay(day)
       const kcal = items.reduce((sum, item) => sum + item.kcal, 0)
       if (kcal > 0) intakeKcalByDay[day] = kcal
     }
-    return derivedTdee({ weighIns, intakeKcalByDay })
+    return derivedTdee({
+      weighIns,
+      intakeKcalByDay,
+      startDateKey,
+      endDateKeyExclusive: today,
+      minimumTdee: minimumPlausibleTdee(profile, weighIns, today),
+    })
   }, [profile?.weighIns, profile?.updatedAt])
 }

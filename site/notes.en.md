@@ -1,5 +1,20 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
+## 0.23.0 · 2026-11-21
+
+Check-ins are editable, health trends use more consistent rules, and the built-in assistant can load an app guide when it needs one.
+
+### Improvements
+
+- **Edit check-in history** — change the note, photo, and recorded time for a daily check-in. Recurring tasks appear only on dates when they are active, keeping past schedules clear.
+- **Align health trends** — exclude today, filter weight spikes supported by nearby readings, and use a 7-day rolling average. Hide derived TDEE when samples are insufficient or the estimate falls below the BMR safety floor; interval and weekly trends share one method.
+- **Give the assistant app knowledge** — a built-in guide covers main screens, key rules, reminder differences across platforms, and code entry points. It loads when relevant and does not automatically read personal records.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.0-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.0/starburst-recorder-0.23.0-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.0/starburst-recorder-0.23.0-setup.exe)
+- Android 10+: [starburst-recorder-0.23.0.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.0/starburst-recorder-0.23.0.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.0/starburst-recorder-0.23.0.apk)
+
 ## 0.22.1 · 2026-11-20
 
 The home switch is easier to find, narrow and wide layouts feel more balanced, and the floating assistant stays clear of bottom navigation.

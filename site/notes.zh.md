@@ -1,5 +1,20 @@
 本地优先的个人记录工具，内置 AI：随手记一句今天，AI 会把它整理成一篇完整的日记。不用注册、没有云端，每一条记录都留在这台设备上。AI 用的是你自己准备的模型和 Key。
 
+## 0.23.0 · 2026-11-21
+
+日程打卡可修改，健康趋势口径更可靠，内置 AI 也能按需读取应用功能指南。
+
+### 改进
+
+- **打卡记录可修改**：可调整每日打卡的内容、照片和实际时间；重复任务只在安排生效的日期显示，历史清单更清楚。
+- **健康趋势更一致**：趋势与推算排除今天，过滤有邻近数据支持的体重突变并使用 7 日滚动均值；样本不足或推算低于基础代谢保护线时不显示推算值，周趋势与区间变化使用同一口径。
+- **助手了解应用功能**：新增内置应用指南，覆盖主要页面、关键规则、提醒平台差异和代码入口；助手按问题需要读取，不会因此自动读取个人记录。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.23.0-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.0/starburst-recorder-0.23.0-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.0/starburst-recorder-0.23.0-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.0.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.0/starburst-recorder-0.23.0.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.0/starburst-recorder-0.23.0.apk)
+
 ## 0.22.1 · 2026-11-20
 
 首页切换更容易找到，窄屏与宽屏排版更协调，悬浮助手不再压住底部导航。

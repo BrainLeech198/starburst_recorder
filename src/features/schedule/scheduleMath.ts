@@ -74,7 +74,7 @@ export function donePatch(
   }
 }
 
-/** 每日打卡记录以「任务 + 日期」唯一定位，更新内容时保留原时间和其它日期的历史。 */
+/** 每日打卡记录以「任务 + 日期」唯一定位；编辑时仅替换该日期记录，保留其它日期历史。 */
 export function checkInFor(item: ScheduleItem, dateKey: string): ScheduleCheckIn | null {
   return (item.checkIns ?? []).find((checkIn) => checkIn.dateKey === dateKey) ?? null
 }
@@ -106,7 +106,8 @@ export function checkInHistory(item: ScheduleItem): ScheduleCheckIn[] {
         dateKey,
         note: existing?.note ?? '',
         photo: existing?.photo ?? null,
-        recordedAt: existing?.recordedAt ?? (item.repeat === 'none' ? item.doneAt : null),
+        // null 可以代表用户明确把这条记录的时间清空；只有缺少记录时才回退一次性日程的 doneAt。
+        recordedAt: existing ? existing.recordedAt : item.repeat === 'none' ? item.doneAt : null,
       }
     })
     .sort((a, b) => b.dateKey.localeCompare(a.dateKey))
@@ -117,18 +118,21 @@ export function checkInPatch(
   dateKey: string,
   value: Pick<ScheduleCheckIn, 'note' | 'photo'> | null,
   recordedAt?: number | null,
+  preserveEmpty = false,
+  recordCode?: string | null,
 ): Pick<ScheduleItem, 'checkIns'> {
   const existing = checkInFor(item, dateKey)
   const remaining = (item.checkIns ?? []).filter((checkIn) => checkIn.dateKey !== dateKey)
   const timestamp = recordedAt === undefined ? existing?.recordedAt ?? Date.now() : recordedAt
-  if (value && (value.note.trim() !== '' || value.photo !== null || timestamp !== null)) {
+  const suppliedCode = recordCode && /^[0-9a-f]{7}$/i.test(recordCode) ? recordCode.toLowerCase() : null
+  if (value && (preserveEmpty || value.note.trim() !== '' || value.photo !== null || timestamp !== null)) {
     remaining.push({
       ...value,
       code: existing && /^[0-9a-f]{7}$/i.test(existing.code ?? '')
         ? existing.code.toLowerCase()
         : existing
           ? stableCode(`${item.id}:${dateKey}`)
-          : newCode(),
+          : suppliedCode ?? newCode(),
       dateKey,
       note: value.note.trim().slice(0, 500),
       recordedAt: timestamp,

@@ -58,9 +58,11 @@ export default function WeighInCard({
   }
 
   const weighIns = profile?.weighIns ?? []
-  const todayIsWeighDay = isWeighDay(todayKey(), profile?.weighDay ?? null)
+  const today = todayKey()
+  const completedWeighIns = weighIns.filter((item) => item.dateKey < today)
+  const todayIsWeighDay = isWeighDay(today, profile?.weighDay ?? null)
   const review = weightReviewKey(weighIns)
-  const trend = trendWeighIns(weighIns, range, todayKey())
+  const trend = trendWeighIns(weighIns, range, today, { excludeToday: true })
 
   return (
     <div className="rounded-2xl border border-line bg-surface p-4">
@@ -138,6 +140,7 @@ export default function WeighInCard({
           {/* 点哪个圆点就直接带着那一天进详情页，不再只跳到默认的最新一条 */}
           <WeightTrendChart
             items={trend}
+            outlierContext={completedWeighIns}
             onSelect={(dateKey) => navigate(`/health/weights/trend?date=${dateKey}`)}
           />
         </div>

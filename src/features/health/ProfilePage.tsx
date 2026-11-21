@@ -541,6 +541,7 @@ export default function ProfilePage() {
                 <input
                   value={draft.target}
                   onChange={(event) => patch({ target: event.target.value })}
+                  placeholder={tdee ? String(tdee) : ''}
                   inputMode="numeric"
                   className={`${INPUT} mt-1`}
                 />

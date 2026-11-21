@@ -1,5 +1,5 @@
 /**
- * 日程页：上面是这一天的安排，下面是长期在用的定期任务。
+ * 日程页：上面是这一天实际发生的安排，下面只列出所选日期仍有效的定期任务定义。
  *
  * 一次性日程和定期任务共用一条时间轴：定期任务不预先展开成很多条记录，
  * 每个日期现场算「今天该不该做」，所以改一次周几，过去的勾也不会跟着变。
@@ -29,7 +29,6 @@ import {
   donePatch,
   isDoneOn,
   occurrencesOn,
-  recordedAtForCheckIn,
   undoCheckInPatch,
 } from './scheduleMath'
 import ScheduleCheckInDialog from './ScheduleCheckInDialog'
@@ -64,9 +63,21 @@ export default function SchedulePage() {
   const [checkInItem, setCheckInItem] = useState<ScheduleItem | null>(null)
   const [postcardOpen, setPostcardOpen] = useState(false)
 
+  const storedCheckInItem = checkInItem
+    ? items.find((item) => item.id === checkInItem.id)
+    : undefined
+  const activeCheckInItem = checkInItem
+    ? storedCheckInItem && storedCheckInItem.updatedAt > checkInItem.updatedAt
+      ? storedCheckInItem
+      : checkInItem
+    : null
   const today = occurrencesOn(items, dayKey)
+  // 下方是定期任务管理列表，按生效日期范围筛选；周几是否命中只影响上方当天安排。
   const recurring = items.filter(
-    (item) => item.repeat !== 'none' && (!item.endDate || item.endDate >= dayKey),
+    (item) =>
+      item.repeat !== 'none' &&
+      item.dateKey <= dayKey &&
+      (!item.endDate || item.endDate >= dayKey),
   )
 
   /** 换天把日期写进地址栏：从日历 / 一天一页跳进来都停在同一处 */
@@ -91,23 +102,40 @@ export default function SchedulePage() {
     return t('schedule.onlyOnce')
   }
 
-  async function saveCheckIn(note: string, photo: DiaryImage | null) {
-    if (!checkInItem) return
-    const recordedAt = recordedAtForCheckIn(checkInItem, dayKey)
-    await saveSchedule({
-      ...checkInItem,
-      ...donePatch(checkInItem, dayKey, true, recordedAt ?? Date.now()),
-      ...checkInPatch(checkInItem, dayKey, { note, photo }, recordedAt),
+  async function saveCheckIn(
+    recordDateKey: string,
+    note: string,
+    photo: DiaryImage | null,
+    recordedAt: number | null,
+    recordCode: string | null,
+  ) {
+    const item = activeCheckInItem
+    if (!item) return
+    const completionTime = recordedAt ?? (
+      item.repeat === 'none' && isDoneOn(item, recordDateKey)
+        ? item.doneAt ?? Date.now()
+        : Date.now()
+    )
+    const completedItem = {
+      ...item,
+      ...donePatch(item, recordDateKey, true, completionTime),
+    }
+    const savedItem = await saveSchedule({
+      ...completedItem,
+      ...checkInPatch(completedItem, recordDateKey, { note, photo }, recordedAt, true, recordCode),
     })
+    setCheckInItem(savedItem)
   }
 
-  async function undoCheckIn() {
-    if (!checkInItem) return
-    await saveSchedule({
-      ...checkInItem,
-      ...donePatch(checkInItem, dayKey, false),
-      ...undoCheckInPatch(checkInItem, dayKey),
+  async function undoCheckIn(recordDateKey: string) {
+    const item = activeCheckInItem
+    if (!item) return
+    const savedItem = await saveSchedule({
+      ...item,
+      ...donePatch(item, recordDateKey, false),
+      ...undoCheckInPatch(item, recordDateKey),
     })
+    setCheckInItem(savedItem)
   }
 
   async function confirmDelete() {
@@ -334,13 +362,13 @@ export default function SchedulePage() {
         />
       )}
 
-      {checkInItem && (
+      {activeCheckInItem && (
         <ScheduleCheckInDialog
-          title={checkInItem.title}
+          title={activeCheckInItem.title}
           dateKey={dayKey}
-          existing={checkInFor(checkInItem, dayKey)}
-          history={checkInHistory(checkInItem)}
-          completed={isDoneOn(checkInItem, dayKey)}
+          existing={checkInFor(activeCheckInItem, dayKey)}
+          history={checkInHistory(activeCheckInItem)}
+          completed={isDoneOn(activeCheckInItem, dayKey)}
           onClose={() => setCheckInItem(null)}
           onSave={saveCheckIn}
           onUndo={undoCheckIn}

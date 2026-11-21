@@ -13,7 +13,6 @@ import {
   donePatch,
   isDoneOn,
   occurrencesOn,
-  recordedAtForCheckIn,
   undoCheckInPatch,
 } from '@/features/schedule/scheduleMath'
 import { saveSchedule, schedules } from '@/features/schedule/scheduleRepo'
@@ -27,9 +26,18 @@ export default function TodayScheduleCard() {
   const scheduleResult = useLiveQuery(() => schedules(), [])
   const [checkInItem, setCheckInItem] = useState<ScheduleItem | null>(null)
   const [showAll, setShowAll] = useState(false)
+  const storedItems = useMemo(() => scheduleResult ?? [], [scheduleResult])
+  const storedCheckInItem = checkInItem
+    ? storedItems.find((item) => item.id === checkInItem.id)
+    : undefined
+  const activeCheckInItem = checkInItem
+    ? storedCheckInItem && storedCheckInItem.updatedAt > checkInItem.updatedAt
+      ? storedCheckInItem
+      : checkInItem
+    : null
   const items = useMemo(
-    () => occurrencesOn(scheduleResult ?? [], dayKey),
-    [scheduleResult, dayKey],
+    () => occurrencesOn(storedItems, dayKey),
+    [storedItems, dayKey],
   )
   const doneCount = items.reduce((count, item) => count + Number(isDoneOn(item, dayKey)), 0)
   const progress = items.length === 0 ? 0 : Math.round((doneCount / items.length) * 100)
@@ -38,23 +46,40 @@ export default function TodayScheduleCard() {
   const hiddenCount = items.length - visibleItems.length
   const scheduleUrl = `/schedule?date=${dayKey}`
 
-  async function saveCheckIn(note: string, photo: DiaryImage | null) {
-    if (!checkInItem) return
-    const recordedAt = recordedAtForCheckIn(checkInItem, dayKey)
-    await saveSchedule({
-      ...checkInItem,
-      ...donePatch(checkInItem, dayKey, true, recordedAt ?? Date.now()),
-      ...checkInPatch(checkInItem, dayKey, { note, photo }, recordedAt),
+  async function saveCheckIn(
+    recordDateKey: string,
+    note: string,
+    photo: DiaryImage | null,
+    recordedAt: number | null,
+    recordCode: string | null,
+  ) {
+    const item = activeCheckInItem
+    if (!item) return
+    const completionTime = recordedAt ?? (
+      item.repeat === 'none' && isDoneOn(item, recordDateKey)
+        ? item.doneAt ?? Date.now()
+        : Date.now()
+    )
+    const completedItem = {
+      ...item,
+      ...donePatch(item, recordDateKey, true, completionTime),
+    }
+    const savedItem = await saveSchedule({
+      ...completedItem,
+      ...checkInPatch(completedItem, recordDateKey, { note, photo }, recordedAt, true, recordCode),
     })
+    setCheckInItem(savedItem)
   }
 
-  async function undoCheckIn() {
-    if (!checkInItem) return
-    await saveSchedule({
-      ...checkInItem,
-      ...donePatch(checkInItem, dayKey, false),
-      ...undoCheckInPatch(checkInItem, dayKey),
+  async function undoCheckIn(recordDateKey: string) {
+    const item = activeCheckInItem
+    if (!item) return
+    const savedItem = await saveSchedule({
+      ...item,
+      ...donePatch(item, recordDateKey, false),
+      ...undoCheckInPatch(item, recordDateKey),
     })
+    setCheckInItem(savedItem)
   }
 
   return (
@@ -187,13 +212,13 @@ export default function TodayScheduleCard() {
           )}
         </>
       )}
-      {checkInItem && (
+      {activeCheckInItem && (
         <ScheduleCheckInDialog
-          title={checkInItem.title}
+          title={activeCheckInItem.title}
           dateKey={dayKey}
-          existing={checkInFor(checkInItem, dayKey)}
-          history={checkInHistory(checkInItem)}
-          completed={isDoneOn(checkInItem, dayKey)}
+          existing={checkInFor(activeCheckInItem, dayKey)}
+          history={checkInHistory(activeCheckInItem)}
+          completed={isDoneOn(activeCheckInItem, dayKey)}
           onClose={() => setCheckInItem(null)}
           onSave={saveCheckIn}
           onUndo={undoCheckIn}

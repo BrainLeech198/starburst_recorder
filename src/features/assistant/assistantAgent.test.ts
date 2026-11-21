@@ -73,6 +73,8 @@ describe('buildSystemPrompt', () => {
   it('带上今天、读写工具清单和确认后才写入的约束', () => {
     const text = buildSystemPrompt('2026-10-28', false)
     expect(text).toContain('今天是 2026-10-28')
+    expect(text).toContain('load_app_guide')
+    expect(text).toContain('应用知识和用户长期记忆是两类内容')
     expect(text).toContain('query_day')
     expect(text).toContain('add_finance')
     expect(text).toContain('待确认卡片')

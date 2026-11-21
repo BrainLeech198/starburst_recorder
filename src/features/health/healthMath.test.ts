@@ -8,7 +8,9 @@ import {
   dayTargets,
   derivedTdee,
   derivedTdeeEstimate,
+  effectiveTargetKcal,
   estimateTdee,
+  filterWeightOutliers,
   foodMacros,
   isWeighDay,
   mealTotals,
@@ -17,10 +19,13 @@ import {
   macroEnergySharePercent,
   macroGramSharePercent,
   missingProfileFields,
+  minimumPlausibleTdee,
   remainingKcal,
+  rollingWeightAverages,
   suggestProteinForPlan,
   sumMacros,
   weekdayOf,
+  weightSlopePerDay,
 } from './healthMath'
 import type { HealthProfile } from '@/core/db/schema'
 
@@ -190,11 +195,17 @@ describe('档案完整性', () => {
   })
 
   it('没填过时把该填的都列出来', () => {
-    expect(missingProfileFields(undefined)).toHaveLength(6)
+    expect(missingProfileFields(undefined)).toHaveLength(5)
   })
 
-  it('只缺目标热量时文案只报这一项', () => {
-    expect(missingProfileFields(profile({ targetKcal: null }))).toEqual(['targetKcal'])
+  it('目标热量是可选项', () => {
+    expect(missingProfileFields(profile({ targetKcal: null }))).toEqual([])
+  })
+
+  it('目标热量留空时跟随档案 TDEE，明确填写时保留自定义值', () => {
+    expect(effectiveTargetKcal(profile({ targetKcal: null, tdee: 2450 }))).toBe(2450)
+    expect(effectiveTargetKcal(profile({ targetKcal: 2350, tdee: 2450 }))).toBe(2350)
+    expect(effectiveTargetKcal(profile({ targetKcal: null, tdee: null }))).toBeNull()
   })
 })
 
@@ -302,14 +313,14 @@ describe('每天的目标线', () => {
     })
   })
 
-  it('今天档案缺项时回退到当天第一笔快照', () => {
+  it('今天目标留空时跟随 TDEE；蛋白目标仍回退到第一笔快照', () => {
     const list = [
       intake({ time: '08:00', tdeeSnapshot: 2200, targetKcalSnapshot: 1900, proteinTargetSnapshot: 90 }),
     ]
     const changed = profile({ tdee: 2400, targetKcal: null, proteinTarget: null })
     expect(dayTargets(list, changed, true)).toEqual({
       tdee: 2400,
-      targetKcal: 1900,
+      targetKcal: 2400,
       proteinTarget: 90,
     })
   })
@@ -343,6 +354,68 @@ describe('推算 TDEE（能量收支法）', () => {
     expect(result).toBe(2000)
   })
 
+  it('对日常平稳体重中的孤立突变做七日平滑，并保留原始记录', () => {
+    const raw = days('2026-10-01', 7).map((dateKey) => ({ dateKey, weightKg: 62 }))
+    raw[3].weightKg = 64.5
+    const clean = filterWeightOutliers(raw)
+    expect(clean.map((point) => point.dateKey)).not.toContain('2026-10-04')
+    expect(raw[3].weightKg).toBe(64.5)
+    expect(rollingWeightAverages(clean).every((point) => point.weightKg === 62)).toBe(true)
+    expect(weightSlopePerDay(rollingWeightAverages(clean))).toBe(0)
+  })
+
+  it('BMR 下限只拦截不可信估值，不会把估值硬抬高', () => {
+    const floor = minimumPlausibleTdee(
+      { sex: 'male', age: 20, heightCm: 176, weightKg: 61.65 },
+      [],
+      '2026-10-16',
+    )
+    expect(floor).toBe(1783.65)
+    expect(
+      derivedTdeeEstimate({
+        ...interval,
+        weighIns: stableWeights,
+        intakeKcalByDay: intakeFull('2026-10-01', 15, 1700),
+        minimumTdee: floor,
+      })?.value,
+    ).toBeNull()
+    expect(
+      derivedTdee({
+        ...interval,
+        weighIns: stableWeights,
+        intakeKcalByDay: intakeFull('2026-10-01', 15, 1700),
+      }),
+    ).toBe(1700)
+  })
+
+  it('30 天摄入与平稳体重不会被临近日的孤立高值拉成极低 TDEE，且排除今天', () => {
+    const omitted = new Set(['2026-10-28', '2026-11-03', '2026-11-10'])
+    const weighIns = days('2026-10-25', 28)
+      .filter((dateKey) => !omitted.has(dateKey))
+      .map((dateKey) => ({
+        dateKey,
+        weightKg:
+          dateKey === '2026-10-25'
+            ? 61.8
+            : dateKey === '2026-11-19'
+              ? 63.75
+              : dateKey === '2026-11-21'
+                ? 61.65
+                : 61.7,
+      }))
+    const result = derivedTdeeEstimate({
+      startDateKey: '2026-10-23',
+      endDateKeyExclusive: '2026-11-21',
+      weighIns,
+      intakeKcalByDay: intakeFull('2026-10-23', 30, 2408),
+      minimumTdee: 1783.65,
+    })
+    expect(result?.intakeDays).toBe(29)
+    expect(result?.weighInCount).toBe(23)
+    expect(result?.value).not.toBeNull()
+    expect(Math.abs((result?.value ?? 0) - 2408)).toBeLessThan(100)
+  })
+
   it('掉秤就把消耗算高', () => {
     // 14 天约掉 1kg，回归斜率为负，推算消耗高于摄入。
     const result = derivedTdee({
@@ -355,7 +428,7 @@ describe('推算 TDEE（能量收支法）', () => {
       ],
       intakeKcalByDay: intakeFull('2026-10-01', 15, 2000),
     })
-    expect(result).toBe(2550)
+    expect(result).toBe(2500)
   })
 
   it('长秤就把消耗算低', () => {
@@ -369,7 +442,7 @@ describe('推算 TDEE（能量收支法）', () => {
       ],
       intakeKcalByDay: intakeFull('2026-10-01', 15, 2000),
     })
-    expect(result).toBe(1450)
+    expect(result).toBe(1500)
   })
 
   it('摄入少于七天、称重少于四次或称重跨度太短都不算', () => {
@@ -423,7 +496,7 @@ describe('推算 TDEE（能量收支法）', () => {
     expect(result).toBe(2000)
   })
 
-  it('30 天示例用回归趋势并按 50 千卡取整到合理范围', () => {
+  it('30 天示例用七日平滑回归趋势并按 50 千卡取整', () => {
     const weights = [
       ['2026-10-06', 63.0], ['2026-10-07', 62.85], ['2026-10-12', 62.1],
       ['2026-10-13', 62.4], ['2026-10-16', 62.75], ['2026-10-17', 62.75],
@@ -439,7 +512,9 @@ describe('推算 TDEE（能量收支法）', () => {
       weighIns: weights,
       intakeKcalByDay: intakeFull('2026-10-06', 29, 2323),
     })
-    expect(result).toEqual({ value: 2400, intakeDays: 29, weighInCount: 19 })
+    expect(result?.value).not.toBeNull()
+    expect(result?.intakeDays).toBe(29)
+    expect(result?.weighInCount).toBe(19)
     expect(result?.value).toBeGreaterThanOrEqual(2400)
     expect(result?.value).toBeLessThanOrEqual(2520)
   })
@@ -492,7 +567,7 @@ describe('推算 TDEE（能量收支法）', () => {
       intakeKcalByDay: intakeFull('2026-10-01', 15, 2000),
     })
     // 区间结束日 10/15 的低体重与摄入都不计入。
-    expect(result).toBe(2600)
+    expect(result).toBe(2500)
   })
 })
 

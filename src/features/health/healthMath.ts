@@ -154,6 +154,14 @@ export function estimateTdee(profile: {
   return round2(base * factor)
 }
 
+/** 目标热量留空时按档案维持热量；填写过的目标仍按用户值处理。 */
+export function effectiveTargetKcal(profile: Pick<HealthProfile, 'targetKcal' | 'tdee'> | undefined): number | null {
+  const target = profile?.targetKcal
+  if (target !== null && target !== undefined && target > 0) return target
+  const tdee = profile?.tdee
+  return tdee !== null && tdee !== undefined && tdee > 0 ? tdee : null
+}
+
 /** 从三大营养素克数反推热量，用来核对食物库里的数字有没有写错 */
 export function macroKcal(protein: number, carbs: number, fat: number) {
   return round2(protein * KCAL_PER_GRAM.protein + carbs * KCAL_PER_GRAM.carbs + fat * KCAL_PER_GRAM.fat)
@@ -246,14 +254,13 @@ export function barPercent(value: number, scale: number) {
 
 /** 档案里还缺哪几项；空了才算能用 */
 export function missingProfileFields(profile: HealthProfile | undefined): string[] {
-  if (!profile) return ['sex', 'age', 'heightCm', 'weightKg', 'tdee', 'targetKcal']
+  if (!profile) return ['sex', 'age', 'heightCm', 'weightKg', 'tdee']
   const missing: string[] = []
   if (!profile.sex) missing.push('sex')
   if (!profile.age || profile.age <= 0) missing.push('age')
   if (!profile.heightCm || profile.heightCm <= 0) missing.push('heightCm')
   if (!profile.weightKg || profile.weightKg <= 0) missing.push('weightKg')
   if (!profile.tdee || profile.tdee <= 0) missing.push('tdee')
-  if (!profile.targetKcal || profile.targetKcal <= 0) missing.push('targetKcal')
   return missing
 }
 
@@ -280,7 +287,7 @@ export function dayTargets(
 ): DayTargets {
   const fallback: DayTargets = {
     tdee: profile?.tdee ?? null,
-    targetKcal: profile?.targetKcal ?? null,
+    targetKcal: effectiveTargetKcal(profile),
     proteinTarget: profile?.proteinTarget ?? null,
   }
   if (intakes.length === 0) return fallback
@@ -290,7 +297,7 @@ export function dayTargets(
   if (isToday) {
     return {
       tdee: profile?.tdee ?? first.tdeeSnapshot ?? null,
-      targetKcal: profile?.targetKcal ?? first.targetKcalSnapshot ?? null,
+      targetKcal: effectiveTargetKcal(profile) ?? first.targetKcalSnapshot ?? null,
       proteinTarget: profile?.proteinTarget ?? first.proteinTargetSnapshot ?? null,
     }
   }
@@ -353,8 +360,123 @@ export interface WeighPoint {
   weightKg: number
 }
 
-/** 称重点至少覆盖一周，太密的点算出来只是水分波动 */
-export const DERIVED_TDEE_MIN_SPAN_DAYS = 6
+/** 趋势和 TDEE 都使用相同的 7 日滚动均值口径。 */
+export const WEIGHT_SMOOTHING_DAYS = 7
+/** 前后邻点或区间边缘的两条同侧邻点都支持时，偏离中位数超过 1 kg 才视为突变。 */
+export const WEIGHT_OUTLIER_THRESHOLD_KG = 1
+export const WEIGHT_OUTLIER_NEIGHBOR_DAYS = 3
+
+function uniqueSortedWeights<T extends WeighPoint>(points: T[]): T[] {
+  const byDate = new Map<string, T>()
+  for (const point of points) {
+    if (!Number.isFinite(dayNumber(point.dateKey)) || !Number.isFinite(point.weightKg) || point.weightKg <= 0) continue
+    byDate.set(point.dateKey, point)
+  }
+  return [...byDate.values()].sort((a, b) => dayNumber(a.dateKey) - dayNumber(b.dateKey))
+}
+
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b)
+  const middle = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle]
+}
+
+/** 标记孤立突变值，但不改写或删除原始称重记录。 */
+export function filterWeightOutliers<T extends WeighPoint>(
+  points: T[],
+  context: WeighPoint[] = points,
+): T[] {
+  const sorted = uniqueSortedWeights(points)
+  const contextSorted = uniqueSortedWeights(context)
+  const excluded = new Set<string>()
+  sorted.forEach((point) => {
+    const pointDay = dayNumber(point.dateKey)
+    const before = contextSorted.filter((other) => {
+      const distance = pointDay - dayNumber(other.dateKey)
+      return distance > 0 && distance <= WEIGHT_OUTLIER_NEIGHBOR_DAYS
+    })
+    const after = contextSorted.filter((other) => {
+      const distance = dayNumber(other.dateKey) - pointDay
+      return distance > 0 && distance <= WEIGHT_OUTLIER_NEIGHBOR_DAYS
+    })
+    const neighbors = [...before, ...after].map((other) => other.weightKg)
+    const hasSupport =
+      (before.length > 0 && after.length > 0) ||
+      before.length >= 2 ||
+      after.length >= 2
+    if (
+      hasSupport &&
+      Math.abs(point.weightKg - median(neighbors)) > WEIGHT_OUTLIER_THRESHOLD_KG
+    ) {
+      excluded.add(point.dateKey)
+    }
+  })
+  return sorted.filter((point) => !excluded.has(point.dateKey))
+}
+
+/** 每个称重点替换为截至当天、过去 7 个日历日内有记录体重的均值。 */
+export function rollingWeightAverages(
+  points: WeighPoint[],
+  context: WeighPoint[] = points,
+): WeighPoint[] {
+  const sorted = uniqueSortedWeights(points)
+  const contextSorted = uniqueSortedWeights(context)
+  return sorted.map((point) => {
+    const pointDay = dayNumber(point.dateKey)
+    const window = contextSorted.filter((other) => {
+      const otherDay = dayNumber(other.dateKey)
+      return otherDay >= pointDay - (WEIGHT_SMOOTHING_DAYS - 1) && otherDay <= pointDay
+    })
+    return {
+      dateKey: point.dateKey,
+      weightKg: window.reduce((sum, item) => sum + item.weightKg, 0) / window.length,
+    }
+  })
+}
+
+/** 与体重趋势卡片共用的线性趋势斜率（kg/day）。 */
+export function weightSlopePerDay(points: WeighPoint[]): number | null {
+  const sorted = uniqueSortedWeights(points)
+  if (sorted.length < 2) return null
+  const firstDay = dayNumber(sorted[0].dateKey)
+  const xs = sorted.map((point) => dayNumber(point.dateKey) - firstDay)
+  const ys = sorted.map((point) => point.weightKg)
+  const meanX = xs.reduce((sum, value) => sum + value, 0) / xs.length
+  const meanY = ys.reduce((sum, value) => sum + value, 0) / ys.length
+  let numerator = 0
+  let denominator = 0
+  xs.forEach((x, index) => {
+    numerator += (x - meanX) * (ys[index] - meanY)
+    denominator += (x - meanX) ** 2
+  })
+  return denominator === 0 ? null : numerator / denominator
+}
+
+/** 推算下限只用于发现数据冲突，不会把推算结果抬高到该数值。 */
+export function minimumPlausibleTdee(
+  profile: Pick<HealthProfile, 'sex' | 'age' | 'heightCm' | 'weightKg'> | undefined,
+  weighIns: WeighPoint[],
+  endDateKeyExclusive: string,
+): number | null {
+  if (!profile) return null
+  const completedWeights = weighIns.filter((point) => point.dateKey < endDateKeyExclusive)
+  const stableWeights = filterWeightOutliers(completedWeights)
+  const lastStableWeight = stableWeights[stableWeights.length - 1]?.weightKg
+  const lastWeightIsRecent = stableWeights.length > 0 &&
+    dayNumber(endDateKeyExclusive) - dayNumber(stableWeights[stableWeights.length - 1].dateKey) <= 30
+  const base = bmr({
+    ...profile,
+    weightKg: lastWeightIsRecent ? lastStableWeight ?? profile.weightKg : profile.weightKg,
+  })
+  return base === null ? null : round2(base * 1.1)
+}
+
+/** 推算至少覆盖两周，确保比较的是至少两个 7 日窗口 */
+export const DERIVED_TDEE_MIN_SPAN_DAYS = 13
+/** 首页推算窗口与近 30 天健康趋势使用同一日历区间。 */
+export const DERIVED_TDEE_WINDOW_DAYS = 30
 /** 窗口里至少七天有真实摄入记录，不然均值没意义 */
 export const DERIVED_TDEE_MIN_INTAKE_DAYS = 7
 /** 回归至少需要四个称重点，避免首末值和水分波动左右结果 */
@@ -388,11 +510,11 @@ export function isWeighDay(dateKey: string, weighDay: number | null): boolean {
 
 /**
  * 「推算 TDEE」：不用档案里的公式估值，用选定日期窗口内的记录反推。
- * 摄入按有记录的天数单独求均值；体重用所有称重点的线性回归斜率，二者不要求同日配对。
+ * 摄入按有记录的天数单独求均值；体重过滤孤立突变后按 7 日滚动均值回归，二者不要求同日配对。
  * TDEE ≈ 日均摄入 − 体重日变化 × 7700；减重斜率为负，所以推算 TDEE 高于摄入均值。
  *
- * 数据不够（摄入少于七天、称重少于四次或跨度太短）一律返回 null——
- * 宁可不显示，也不拿几天的水分波动当代谢。结果按 50 千卡取整。
+ * 数据不够（摄入少于七天、有效称重少于四次或跨度不足两周）或结果低于 BMR×1.1，返回 null。
+ * 低于下限视为记录冲突，不钳制成看似合理的数值。结果按 50 千卡取整。
  */
 export interface DerivedTdeeEstimate {
   value: number | null
@@ -410,6 +532,8 @@ export function derivedTdeeEstimate(params: {
   startDateKey?: string
   /** 区间结束日期（不含）；默认今天，排除尚未结束的当天 */
   endDateKeyExclusive?: string
+  /** BMR×1.1 数据保护下限；低于时视作数据不可靠，而非强行抬高。 */
+  minimumTdee?: number | null
   /** 兼容旧调用和测试：未传 endDateKeyExclusive 时作为区间结束日期 */
   todayDateKey?: string
 }): DerivedTdeeEstimate | null {
@@ -420,29 +544,21 @@ export function derivedTdeeEstimate(params: {
   const startN = dayNumber(startDateKey)
   if (!Number.isFinite(startN) || !Number.isFinite(endN) || startN >= endN) return null
 
-  const weighInsByDate = new Map<string, number>()
-  for (const point of params.weighIns) {
+  const completedWeights = params.weighIns.filter((point) => point.dateKey < endDateKey)
+  const cleanWeights = filterWeightOutliers(completedWeights)
+  const smoothedWeights = rollingWeightAverages(cleanWeights, cleanWeights)
+  const points = smoothedWeights.filter((point) => {
     const pointN = dayNumber(point.dateKey)
-    if (
-      Number.isFinite(pointN) &&
-      pointN >= startN &&
-      pointN < endN &&
-      Number.isFinite(point.weightKg) &&
-      point.weightKg > 0
-    ) {
-      weighInsByDate.set(point.dateKey, point.weightKg)
-    }
-  }
-  const points = [...weighInsByDate]
-    .map(([dateKey, weightKg]) => ({ dateKey, day: dayNumber(dateKey), weightKg }))
-    .sort((a, b) => a.day - b.day)
+    return pointN >= startN && pointN < endN
+  })
 
   const intake = Object.entries(params.intakeKcalByDay).filter(([dateKey, kcal]) => {
     const n = dayNumber(dateKey)
     return Number.isFinite(n) && n >= startN && n < endN && Number.isFinite(kcal) && kcal > 0
   })
-  const spanDays =
-    points.length < 2 ? 0 : points[points.length - 1].day - points[0].day
+  const spanDays = points.length < 2
+    ? 0
+    : dayNumber(points[points.length - 1].dateKey) - dayNumber(points[0].dateKey)
   const enoughData =
     intake.length >= DERIVED_TDEE_MIN_INTAKE_DAYS &&
     points.length >= DERIVED_TDEE_MIN_WEIGH_INS &&
@@ -452,16 +568,16 @@ export function derivedTdeeEstimate(params: {
   }
 
   const avgIntake = intake.reduce((sum, [, kcal]) => sum + kcal, 0) / intake.length
-  const meanDay = points.reduce((sum, point) => sum + point.day, 0) / points.length
-  const meanWeight = points.reduce((sum, point) => sum + point.weightKg, 0) / points.length
-  const variance = points.reduce((sum, point) => sum + (point.day - meanDay) ** 2, 0)
-  if (variance === 0) return { value: null, intakeDays: intake.length, weighInCount: points.length }
-  const weightSlopePerDay =
-    points.reduce(
-      (sum, point) => sum + (point.day - meanDay) * (point.weightKg - meanWeight),
-      0,
-    ) / variance
-  const estimate = avgIntake - weightSlopePerDay * 7700
+  const slopePerDay = weightSlopePerDay(points)
+  if (slopePerDay === null) return { value: null, intakeDays: intake.length, weighInCount: points.length }
+  const estimate = avgIntake - slopePerDay * 7700
+  if (
+    !Number.isFinite(estimate) ||
+    estimate <= 0 ||
+    (params.minimumTdee !== null && params.minimumTdee !== undefined && estimate < params.minimumTdee)
+  ) {
+    return { value: null, intakeDays: intake.length, weighInCount: points.length }
+  }
   const value = Math.round(estimate / DERIVED_TDEE_ROUNDING_KCAL) * DERIVED_TDEE_ROUNDING_KCAL
   return { value, intakeDays: intake.length, weighInCount: points.length }
 }

@@ -3,7 +3,7 @@
  *
  * 结构按「先看走势，再看那一天的细节」排：
  *   1. 区间切换 + 可点的折线图（点一下选一天，选中点放大并拉竖线）
- *   2. 体重摘要：最新 / 首尾变化 / 回归周均 / 平均与高低
+ *   2. 体重摘要：最新实测 / 平滑趋势变化 / 周均趋势 / 平均与范围
  *   3. 区间健康概览：日均摄入、日均睡眠、蛋白达标天数、推算 TDEE
  *   4. 选中那天的体重、能量差、蛋白达成、睡眠达标，以及摄入 / 睡眠明细
  *   5. 区间内的称重记录，兼作图表的无障碍替代（键盘也能选日期）
@@ -21,7 +21,15 @@ import { formatDate, formatMonthDay, isDateKey, shiftDay, todayKey } from '@/cor
 import { useI18n } from '@/shared/i18n/context'
 import { NAV_BACK_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
-import { dayTargets, derivedTdeeEstimate, formatNum, round2, sumMacros } from './healthMath'
+import {
+  dayTargets,
+  derivedTdeeEstimate,
+  filterWeightOutliers,
+  formatNum,
+  minimumPlausibleTdee,
+  round2,
+  sumMacros,
+} from './healthMath'
 import {
   DETAIL_TREND_RANGES,
   bmiValue,
@@ -99,8 +107,11 @@ export default function WeightTrendPage() {
   const profile = useLiveQuery(() => healthProfile(), [])
   const weighIns = profile?.weighIns ?? []
   const today = todayKey()
-  const rangeItems = trendWeighIns(weighIns, range, today)
-  const stats = weightTrendStats(rangeItems)
+  const completedWeighIns = weighIns.filter((item) => item.dateKey < today)
+  const rangeItems = trendWeighIns(weighIns, range, today, { excludeToday: true })
+  const cleanRangeItems = filterWeightOutliers(rangeItems, completedWeighIns)
+  const cleanDateKeys = new Set(cleanRangeItems.map((item) => item.dateKey))
+  const stats = weightTrendStats(rangeItems, completedWeighIns)
   const bmi = stats ? bmiValue(stats.latest, profile?.heightCm) : null
 
   // 选中日期放 URL：刷新、返回都还停在那天；区间外的旧日期自动退回最新一条
@@ -108,7 +119,11 @@ export default function WeightTrendPage() {
   const selectedKey =
     isDateKey(dateParam) && rangeItems.some((item) => item.dateKey === dateParam)
       ? dateParam
-      : (rangeItems[rangeItems.length - 1]?.dateKey ?? null)
+      : (
+          cleanRangeItems[cleanRangeItems.length - 1]?.dateKey ??
+          rangeItems[rangeItems.length - 1]?.dateKey ??
+          null
+        )
 
   const selected = selectedKey
     ? (weighIns.find((item) => item.dateKey === selectedKey) ?? null)
@@ -139,13 +154,14 @@ export default function WeightTrendPage() {
 
   // 区间内的摄入与睡眠一次取回，用来算日均、蛋白达标和推算 TDEE
   const rangeStart = shiftDay(today, -(range - 1))
+  const rangeEnd = shiftDay(today, -1)
   const rangeData = useLiveQuery(async () => {
     const [entries, nights] = await Promise.all([
-      intakesBetween(rangeStart, today),
-      sleepsBetween(rangeStart, today),
+      intakesBetween(rangeStart, rangeEnd),
+      sleepsBetween(rangeStart, rangeEnd),
     ])
     return { intakes: entries, sleeps: nights }
-  }, [rangeStart, today])
+  }, [rangeStart, rangeEnd])
   const summary = healthRangeSummary({
     intakes: rangeData?.intakes ?? [],
     sleeps: rangeData?.sleeps ?? [],
@@ -163,6 +179,7 @@ export default function WeightTrendPage() {
           intakeKcalByDay,
           startDateKey: rangeStart,
           endDateKeyExclusive: today,
+          minimumTdee: minimumPlausibleTdee(profile, profile.weighIns, today),
         })
   const avgSleepHours =
     summary.avgSleepMinutes === null
@@ -236,6 +253,7 @@ export default function WeightTrendPage() {
             </div>
             <WeightTrendChart
               items={rangeItems}
+              outlierContext={completedWeighIns}
               tall
               selected={selectedKey}
               onSelect={selectDay}
@@ -499,6 +517,11 @@ export default function WeightTrendPage() {
                         <span className="shrink-0 tabular-nums text-fg">
                           {formatNum(item.weightKg)} {t('health.weighUnit')}
                         </span>
+                        {!cleanDateKeys.has(item.dateKey) && (
+                          <span className="shrink-0 text-[10px] text-warning">
+                            {t('health.trendOutlierTag')}
+                          </span>
+                        )}
                         <span className="w-16 shrink-0 text-right tabular-nums text-muted">
                           {before
                             ? `${signed(item.weightKg - before.weightKg)} ${t('health.weighUnit')}`

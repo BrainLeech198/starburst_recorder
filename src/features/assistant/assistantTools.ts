@@ -31,7 +31,7 @@ import { expenseByCategory, isMonthKey, shiftMonth, summarizeFinance } from '@/f
 import { FINANCE_CATEGORIES } from '@/features/finance/financeCategories'
 import { bmiValue, trendWeighIns, weightTrendStats, type TrendRange } from '@/features/health/healthViz'
 import { healthRangeSummary } from '@/features/health/healthViz'
-import { derivedTdee } from '@/features/health/healthMath'
+import { derivedTdee, minimumPlausibleTdee } from '@/features/health/healthMath'
 import { isMonthKey as isReviewMonthKey, monthRange } from '@/features/calendar/calendarData'
 import { averageSleepMinutes, recordCountOf, scheduleProgress, summarizeMonth } from '@/features/review/reviewMath'
 import { sleepMinutes, sleepParts } from '@/features/health/sleepMath'
@@ -39,6 +39,7 @@ import { summarizeDay, summarizeWeek, trainingLabel, weekRange } from '@/feature
 import { planOfProfile } from '@/features/training/trainingPlan'
 import { findSkill, type AssistantSkill } from './assistantSkills'
 import type { AssistantMemory, AssistantMemoryKind } from './assistantMemory'
+import { ASSISTANT_APP_GUIDE } from './assistantAppGuide'
 
 const FINANCE_CATEGORY_IDS = {
   expense: FINANCE_CATEGORIES.filter((item) => item.kind === 'expense')
@@ -72,6 +73,11 @@ const DATE_ARGS = {
 } as const
 
 export const ASSISTANT_READ_TOOLS: AssistantToolSpec[] = [
+  {
+    name: 'load_app_guide',
+    description: '读取星芒记录者的页面用途、业务规则、平台边界和关键代码入口。用户询问应用功能、操作流程、规则原因或代码职责时先调用。只返回固定应用说明，不读取用户记录。',
+    parameters: { type: 'object', properties: {} },
+  },
   {
     name: 'data_inventory',
     description: '查看用户整库有哪些记录：每类有效记录与回收站数量、称重史和长期记忆数量。先用它判断该查哪类。',
@@ -1223,12 +1229,14 @@ function financeChart(month: string, data: AssistantDataSource) {
 function weightChart(range: TrendRange, today: string, data: AssistantDataSource) {
   const profile = data.profile
   if (!profile) return '用户还没有填写身体档案。'
-  const items = trendWeighIns(profile.weighIns ?? [], range, today)
-  const stats = weightTrendStats(items)
+  const weighIns = profile.weighIns ?? []
+  const items = trendWeighIns(weighIns, range, today, { excludeToday: true })
+  const completedWeighIns = weighIns.filter((item) => item.dateKey < today)
+  const stats = weightTrendStats(items, completedWeighIns)
   if (!stats) return `近 ${range} 天没有称重记录。`
   const bmi = bmiValue(stats.latest, profile.heightCm)
   return [
-    `近 ${range} 天体重趋势：${items.length} 个点，最新 ${stats.latest} kg，首尾变化 ${stats.delta} kg，平均 ${stats.average} kg，最低 ${stats.min} kg，最高 ${stats.max} kg。`,
+    `近 ${range} 天体重趋势：${items.length} 个点，最新 ${stats.latest} kg，趋势变化 ${stats.delta} kg，平均 ${stats.average} kg，最低 ${stats.min} kg，最高 ${stats.max} kg；排除突变点 ${stats.excludedCount} 个。`,
     `首尾相隔 ${stats.spanDays} 天；每周趋势：${stats.weekly === null ? '数据不足' : `${stats.weekly} kg/周`}；BMI：${bmi === null ? '身高数据不足' : bmi}。`,
     '图上称重点（从旧到新）：',
     ...items.slice(-30).map((item) => `${item.dateKey} ${item.weightKg} kg`),
@@ -1238,15 +1246,22 @@ function weightChart(range: TrendRange, today: string, data: AssistantDataSource
 
 function healthOverviewChart(range: TrendRange, today: string, data: AssistantDataSource) {
   const from = shiftDay(today, -(range - 1))
-  const intakes = data.intakes.filter((item) => item.deletedAt === null && inRange(item.dateKey, from, today))
-  const sleeps = data.sleeps.filter((item) => item.deletedAt === null && inRange(item.dateKey, from, today))
+  const end = shiftDay(today, -1)
+  const intakes = data.intakes.filter((item) => item.deletedAt === null && inRange(item.dateKey, from, end))
+  const sleeps = data.sleeps.filter((item) => item.deletedAt === null && inRange(item.dateKey, from, end))
   const summary = healthRangeSummary({ intakes, sleeps, proteinTarget: data.profile?.proteinTarget ?? null })
   const intakeKcalByDay: Record<string, number> = {}
   for (const intake of intakes) {
     intakeKcalByDay[intake.dateKey] = (intakeKcalByDay[intake.dateKey] ?? 0) + intake.kcal
   }
   const derived = data.profile
-    ? derivedTdee({ weighIns: data.profile.weighIns, intakeKcalByDay, todayDateKey: today })
+    ? derivedTdee({
+        weighIns: data.profile.weighIns,
+        intakeKcalByDay,
+        startDateKey: from,
+        endDateKeyExclusive: today,
+        minimumTdee: minimumPlausibleTdee(data.profile, data.profile.weighIns, today),
+      })
     : null
   return [
     `${from} 到 ${today} 的区间健康概览（与趋势页同一口径）：`,
@@ -1515,6 +1530,9 @@ export function runAssistantTool(
 
   let text: string
   switch (name) {
+    case 'load_app_guide':
+      text = ASSISTANT_APP_GUIDE
+      break
     case 'data_inventory':
       text = dataInventory(ctx)
       break
@@ -1671,5 +1689,5 @@ export function runAssistantTool(
       text = `没有叫 ${name} 的工具。`
   }
 
-  return clip(text, MAX_RESULT_CHARS)
+  return clip(text, name === 'load_app_guide' ? 4_000 : MAX_RESULT_CHARS)
 }

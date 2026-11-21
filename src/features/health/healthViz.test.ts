@@ -35,6 +35,17 @@ describe('体重趋势', () => {
     ])
   })
 
+  it('健康概览可统一排除尚未结束的今天', () => {
+    const list = [
+      weight('2026-10-26', 62),
+      weight('2026-10-27', 62),
+      weight('2026-10-28', 62),
+      weight('2026-10-29', 62),
+    ]
+    expect(trendWeighIns(list, 3, '2026-10-28', { excludeToday: true }).map((item) => item.dateKey))
+      .toEqual(['2026-10-26', '2026-10-27'])
+  })
+
   it('未来日期不画进趋势', () => {
     expect(trendWeighIns([weight('2026-10-29', 62)], 7, '2026-10-28')).toHaveLength(0)
   })
@@ -60,12 +71,32 @@ describe('体重趋势', () => {
     expect(stats).not.toBeNull()
     expect(stats!.latest).toBe(63)
     expect(stats!.first).toBe(64)
-    expect(stats!.delta).toBe(-1)
+    expect(stats!.delta).toBe(-0.95)
     expect(stats!.min).toBe(62)
     expect(stats!.max).toBe(64)
     expect(stats!.average).toBe(63)
     expect(stats!.spanDays).toBe(19)
     expect(stats!.weekly).toBeLessThan(0)
+    expect(stats!.delta).toBeLessThan(0)
+    expect(stats!.weekly).not.toBeNull()
+    expect(stats!.delta).toBeCloseTo((stats!.weekly! * stats!.spanDays) / 7, 1)
+  })
+
+  it('孤立突变不进入趋势统计，但原始体重点仍在调用方数据中', () => {
+    const raw = [
+      weight('2026-10-01', 62),
+      weight('2026-10-02', 62),
+      weight('2026-10-03', 62),
+      weight('2026-10-04', 64.5),
+      weight('2026-10-05', 62),
+      weight('2026-10-06', 62),
+      weight('2026-10-07', 62),
+    ]
+    const stats = weightTrendStats(raw)
+    expect(stats?.excludedCount).toBe(1)
+    expect(stats?.min).toBe(62)
+    expect(stats?.max).toBe(62)
+    expect(raw.find((item) => item.dateKey === '2026-10-04')?.weightKg).toBe(64.5)
   })
 
   it('只有一个点或同一天多次称重时不给周均', () => {
