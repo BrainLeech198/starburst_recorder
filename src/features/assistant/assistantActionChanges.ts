@@ -188,6 +188,22 @@ export function updateAssistantActionChanges(
         else if (change.field === 'assistant.edit.time') value = action.time
         else return change
         break
+      case 'foodEdit':
+        if (change.field === 'assistant.edit.name') value = action.name
+        else if (change.field === 'assistant.edit.kcal') value = action.kcal
+        else if (change.field === 'assistant.change.protein') value = action.protein
+        else if (change.field === 'assistant.change.carbs') value = action.carbs
+        else if (change.field === 'assistant.change.fat') value = action.fat
+        else if (change.field === 'assistant.change.servingName') value = action.servingName
+        else if (change.field === 'assistant.change.servingGrams') value = action.servingGrams
+        else return change
+        break
+      case 'mealEdit':
+        if (change.field === 'assistant.edit.name') value = action.name
+        else if (change.field === 'assistant.change.components' && action.items !== undefined) {
+          value = action.items.map((item) => `${item.name} ${item.grams}g`).join('、')
+        } else return change
+        break
       case 'weighEdit':
         if (change.field === 'assistant.edit.weight') value = action.weightKg
         else return change

@@ -15,7 +15,13 @@ import type { ChatContentPart } from '@/platform/desktop'
 import { todayKey } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import { useToast } from '@/app/providers/ToastProvider'
-import { assistantData, healthFoodById, healthMealById } from '@/features/health/healthRepo'
+import {
+  assistantData,
+  healthFoodBriefs,
+  healthFoodById,
+  healthMealBriefs,
+  healthMealById,
+} from '@/features/health/healthRepo'
 import { entryByCode, stampById } from '@/features/diary/diaryRepo'
 import { financeById } from '@/features/finance/financeRepo'
 import type { AssistantData } from '@/core/db/store'
@@ -208,6 +214,10 @@ const CHAT_ROW = 'flex min-h-12 min-w-0 flex-1 flex-col px-2.5 py-2 text-left tr
  */
 const MESSAGE_ACTION =
   'inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-2 hover:text-fg disabled:opacity-40 md:h-7 md:w-7'
+const BATCH_ACTION =
+  'inline-flex min-h-10 items-center justify-center rounded-full border border-line px-3 text-xs text-muted transition-colors hover:border-brand/50 hover:text-fg disabled:opacity-40 md:min-h-8'
+const BATCH_EXPORT_ACTION =
+  'inline-flex min-h-10 items-center justify-center rounded-full bg-brand px-3 text-xs font-medium text-on-brand transition-colors hover:opacity-90 disabled:opacity-40 md:min-h-8'
 const MESSAGE_ACTION_DANGER = `${MESSAGE_ACTION} hover:text-danger`
 /** 模式开关：计划 / 深度思考用同一套芯片，别一个文字键一个开关，看着乱 */
 const MODE_CHIP =
@@ -321,6 +331,11 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
   const [exportIds, setExportIds] = useState<string[] | null>(null)
   /** 删除确认 */
   const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null)
+  /** 卡片也要能在重开历史会话时查到食物与套餐的当前详情。 */
+  const [actionData, setActionData] = useState<Pick<AssistantData, 'foods' | 'meals'> | null>(null)
+  const [actionDataLoading, setActionDataLoading] = useState(true)
+  const [actionDataError, setActionDataError] = useState(false)
+  const [actionDataRetry, setActionDataRetry] = useState(0)
   /** 生成中插话：在下一轮请求前交给模型，不打断当前这轮 */
   const [steerMode, setSteerMode] = useState(false)
   /** 斜杠命令菜单与 @ 引用弹窗 */
@@ -339,6 +354,22 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
       mountedRef.current = false
     }
   }, [])
+
+  useEffect(() => {
+    let active = true
+    void Promise.all([healthFoodBriefs(), healthMealBriefs()]).then(([foods, meals]) => {
+      if (!active) return
+      setActionData({ foods, meals })
+      setActionDataLoading(false)
+    }).catch(() => {
+      if (!active) return
+      setActionDataError(true)
+      setActionDataLoading(false)
+    })
+    return () => {
+      active = false
+    }
+  }, [actionDataRetry])
 
   /** 应用在请求途中退出时，localStorage 留下的空占位改成可重试状态。 */
   useEffect(() => {
@@ -472,7 +503,12 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
 
       // 每轮都取一份最新快照：刚刚在别的页面记的东西也能查到
       const data = await assistantData()
-      if (mountedRef.current && getCurrentSessionId() === sessionId) dataRef.current = data
+      if (mountedRef.current && getCurrentSessionId() === sessionId) {
+        dataRef.current = data
+        setActionData({ foods: data.foods, meals: data.meals })
+        setActionDataError(false)
+        setActionDataLoading(false)
+      }
       // 历史里只放已经说出口的话；正在加载的占位、错误和停止的消息都不算
       const source = assistantContextMessages(getChatMessages(sessionId), pending.id)
       const historySource = assistantTranscriptMessages(source)
@@ -1065,6 +1101,14 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             key={`${item.id}-${index}`}
             state={state}
             busy={working !== '' || busy}
+            data={actionData}
+            catalogLoading={actionDataLoading}
+            catalogError={actionDataError}
+            onRetryCatalog={() => {
+              setActionDataLoading(true)
+              setActionDataError(false)
+              setActionDataRetry((value) => value + 1)
+            }}
             onConfirm={() => void confirmAction(item.id, index, state)}
             onCancel={() => patchAction(item.id, index, { status: 'canceled' })}
             onUndo={() => void undoAction(item.id, index, state)}
@@ -1239,7 +1283,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
 
       {/* 多选工具条：批量复制、导出、删除 */}
       {selectMode && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-line py-2 text-[11px]">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-line py-2 text-[11px]">
           <span className="text-muted">
             {t('assistant.selected', { n: selected.length })}
           </span>
@@ -1263,7 +1307,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
                 ),
               )
             }
-            className={MESSAGE_ACTION}
+            className={BATCH_ACTION}
           >
             {t('assistant.batchCopy')}
           </button>
@@ -1271,7 +1315,9 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             type="button"
             disabled={selected.length === 0}
             onClick={() => setExportIds([...selected])}
-            className={MESSAGE_ACTION}
+            aria-label={t('assistant.batchExport')}
+            title={t('assistant.batchExport')}
+            className={BATCH_EXPORT_ACTION}
           >
             {t('assistant.batchExport')}
           </button>
@@ -1279,7 +1325,7 @@ export default function AssistantChat({ compact = false }: { compact?: boolean }
             type="button"
             disabled={selected.length === 0 || busy}
             onClick={askDeleteSelected}
-            className="inline-flex min-h-11 items-center px-1 text-[11px] text-danger transition-opacity hover:opacity-80 disabled:opacity-40 md:min-h-0"
+            className="inline-flex min-h-10 items-center rounded-full px-2 text-xs text-danger transition-opacity hover:bg-danger/10 disabled:opacity-40 md:min-h-8"
           >
             {t('assistant.batchDelete')}
           </button>

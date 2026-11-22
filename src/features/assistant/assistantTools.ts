@@ -31,7 +31,7 @@ import { expenseByCategory, isMonthKey, shiftMonth, summarizeFinance } from '@/f
 import { FINANCE_CATEGORIES } from '@/features/finance/financeCategories'
 import { bmiValue, trendWeighIns, weightTrendStats, type TrendRange } from '@/features/health/healthViz'
 import { healthRangeSummary } from '@/features/health/healthViz'
-import { derivedTdee, minimumPlausibleTdee } from '@/features/health/healthMath'
+import { derivedTdee, formatNum, mealTotals, minimumPlausibleTdee } from '@/features/health/healthMath'
 import { isMonthKey as isReviewMonthKey, monthRange } from '@/features/calendar/calendarData'
 import { averageSleepMinutes, recordCountOf, scheduleProgress, summarizeMonth } from '@/features/review/reviewMath'
 import { sleepMinutes, sleepParts } from '@/features/health/sleepMath'
@@ -245,11 +245,12 @@ export const ASSISTANT_READ_TOOLS: AssistantToolSpec[] = [
   {
     name: 'search_food',
     description:
-      '在食物库里按名称查食物，拿到 foodId 和每 100g 营养。要记饮食时先用它查，别自己猜热量。',
+      '在有效食物库里按名称或标签查食物，拿到 foodId、标签和每 100g 营养。默认每页 25 条；用户要求完整清单或查漏时，必须继续翻页，直到结果显示最后一页。要记饮食时先用它查，别自己猜热量。',
     parameters: {
       type: 'object',
       properties: {
-        keyword: { type: 'string', description: '食物名关键词，可不填（不填时列出前 25 条）' },
+        keyword: { type: 'string', description: '食物名称或标签关键词，可不填；不填时浏览全库' },
+        page: { type: 'number', description: '页码，从 1 开始，默认 1；每页最多 25 条' },
       },
     },
   },
@@ -262,11 +263,12 @@ export const ASSISTANT_READ_TOOLS: AssistantToolSpec[] = [
   {
     name: 'search_meals',
     description:
-      '查套餐库（几样食物组成的固定一顿），返回套餐名、成分和每份营养。改或删套餐前先用它拿 mealId。',
+      '查套餐库（几样食物组成的固定一顿），返回套餐名、成分和按当前食物库计算的每份营养。默认每页 20 条；用户要求完整清单或查漏时，必须继续翻页，直到结果显示最后一页。改或删套餐前先用它拿 mealId。',
     parameters: {
       type: 'object',
       properties: {
-        keyword: { type: 'string', description: '套餐名关键词，可不填（不填时列出前 20 条）' },
+        keyword: { type: 'string', description: '套餐名关键词，可不填；不填时浏览全库' },
+        page: { type: 'number', description: '页码，从 1 开始，默认 1；每页最多 20 条' },
       },
     },
   },
@@ -1358,21 +1360,26 @@ function foodLine(food: HealthFood | HealthFoodBrief) {
     food.servingName && food.servingGrams
       ? `；常用份量「${food.servingName}」约 ${food.servingGrams} g`
       : ''
-  return `${food.name} [${food.code}]（foodId=${food.id}）每 100g：${Math.round(food.kcal)} 千卡，蛋白 ${food.protein} g，碳水 ${food.carbs} g，脂肪 ${food.fat} g${serving}`
+  const tags = food.tags.length > 0 ? `；标签：${food.tags.join('、')}` : ''
+  return `${food.name} [${food.code}]（foodId=${food.id}）每 100g：${formatNum(food.kcal)} 千卡，蛋白 ${formatNum(food.protein)} g，碳水 ${formatNum(food.carbs)} g，脂肪 ${formatNum(food.fat)} g${serving}${tags}`
 }
 
-function searchFood(keyword: string, data: AssistantDataSource) {
+function searchFood(keyword: string, page: number, data: AssistantDataSource) {
   const foods = data.foods.filter(
-    (item) => item.deletedAt === null && matches(item.name, keyword),
+    (item) => item.deletedAt === null && (matches(item.name, keyword) || item.tags.some((tag) => matches(tag, keyword))),
   )
   if (foods.length === 0) {
     return keyword === ''
       ? '食物库里还没有食物。'
-      : `食物库里没有名字含「${keyword}」的食物。`
+      : `在全部 ${data.foods.filter((item) => item.deletedAt === null).length} 条有效食物的名称或标签中，没有找到含「${keyword}」的项目。`
   }
-  const picked = foods.slice(0, 25)
+  const pageCount = Math.ceil(foods.length / 25)
+  if (page > pageCount) return `食物结果共 ${foods.length} 条，只有 ${pageCount} 页；第 ${page} 页不存在。`
+  const picked = foods.slice((page - 1) * 25, page * 25)
   return [
-    keyword === '' ? `食物库共 ${foods.length} 条，先列 ${picked.length} 条：` : `找到 ${picked.length} 条：`,
+    keyword === ''
+      ? `食物库共 ${foods.length} 条有效食物；第 ${page}/${pageCount} 页，本页 ${picked.length} 条。${page < pageCount ? `还有结果，请继续调用 search_food page=${page + 1}。` : '已到最后一页。'}`
+      : `名称或标签含「${keyword}」的有效食物共 ${foods.length} 条；第 ${page}/${pageCount} 页，本页 ${picked.length} 条。${page < pageCount ? `还有结果，请继续调用 search_food page=${page + 1}。` : '已到最后一页。'}`,
     ...picked.map(foodLine),
     '以上 foodId 只用于工具参数，不要念给用户。',
   ].join('\n')
@@ -1380,29 +1387,41 @@ function searchFood(keyword: string, data: AssistantDataSource) {
 
 /** 套餐按成分实时算营养，和页面口径一致：每项食物每 100g 值 × 克数 */
 function mealLine(meal: HealthMeal | HealthMealBrief, foods: Array<HealthFood | HealthFoodBrief>) {
+  const availableFoods = foods.filter((food) => food.deletedAt === null)
   const items = meal.items.map((item) => {
-    const food = foods.find((entry) => entry.id === item.foodId && entry.deletedAt === null)
-    if (!food) return `（食物已删除）${item.grams} g`
+    const food = availableFoods.find((entry) => entry.id === item.foodId)
+    if (!food) {
+      return `（食物已删除）${item.grams} g`
+    }
     const ratio = item.grams / 100
-    return `${food.name} ${item.grams} g（${Math.round(food.kcal * ratio)} 千卡）`
+    return `${food.name} ${item.grams} g（${formatNum(food.kcal * ratio)} 千卡）`
   })
-  return `${meal.name}（mealId=${meal.id}）：${items.join(' + ')}`
+  const total = mealTotals(meal.items, availableFoods)
+  const allGrams = meal.items.reduce((sum, item) => sum + item.grams, 0)
+  const summary = total.missing === 0
+    ? `合计 ${formatNum(total.grams)} g，${formatNum(total.kcal)} 千卡；蛋白 ${formatNum(total.protein)} g、碳水 ${formatNum(total.carbs)} g、脂肪 ${formatNum(total.fat)} g`
+    : `合计 ${formatNum(allGrams)} g；营养合计不完整（有成分食物已不在有效食物库）`
+  return `${meal.name}（mealId=${meal.id}）：${items.join(' + ')}。${summary}`
 }
 
-function searchMeals(keyword: string, data: AssistantDataSource) {
+function searchMeals(keyword: string, page: number, data: AssistantDataSource) {
   const meals = data.meals.filter(
     (item) => item.deletedAt === null && matches(item.name, keyword),
   )
   if (meals.length === 0) {
     return keyword === ''
       ? '套餐库里还没有套餐。'
-      : `套餐库里没有名字含「${keyword}」的套餐。`
+      : `在全部 ${data.meals.filter((item) => item.deletedAt === null).length} 条有效套餐的名称中，没有找到含「${keyword}」的项目。`
   }
-  const picked = meals.slice(0, 20)
+  const pageCount = Math.ceil(meals.length / 20)
+  if (page > pageCount) return `套餐结果共 ${meals.length} 条，只有 ${pageCount} 页；第 ${page} 页不存在。`
+  const picked = meals.slice((page - 1) * 20, page * 20)
   return [
-    keyword === '' ? `套餐库共 ${meals.length} 条，先列 ${picked.length} 条：` : `找到 ${picked.length} 条：`,
+    keyword === ''
+      ? `套餐库共 ${meals.length} 条有效套餐；第 ${page}/${pageCount} 页，本页 ${picked.length} 条。${page < pageCount ? `还有结果，请继续调用 search_meals page=${page + 1}。` : '已到最后一页。'}`
+      : `名称含「${keyword}」的有效套餐共 ${meals.length} 条；第 ${page}/${pageCount} 页，本页 ${picked.length} 条。${page < pageCount ? `还有结果，请继续调用 search_meals page=${page + 1}。` : '已到最后一页。'}`,
     ...picked.map((item) => mealLine(item, data.foods)),
-    '成分里的食物按每 100g 营养换算；mealId 只用于工具参数，不要念给用户。',
+    '套餐营养按当前有效食物库和克数实时计算；有成分食物缺失时合计标为不完整。mealId 只用于工具参数，不要念给用户。',
   ].join('\n')
 }
 
@@ -1656,12 +1675,20 @@ export function runAssistantTool(
         : monthReviewChart(requested || ctx.today.slice(0, 7), ctx.today, ctx.data)
       break
     }
-    case 'search_food':
-      text = searchFood(keyword, ctx.data)
+    case 'search_food': {
+      const page = args.page === undefined ? 1 : Number(args.page)
+      text = Number.isInteger(page) && page >= 1
+        ? searchFood(keyword, page, ctx.data)
+        : '页码必须是从 1 开始的整数。'
       break
-    case 'search_meals':
-      text = searchMeals(keyword, ctx.data)
+    }
+    case 'search_meals': {
+      const page = args.page === undefined ? 1 : Number(args.page)
+      text = Number.isInteger(page) && page >= 1
+        ? searchMeals(keyword, page, ctx.data)
+        : '页码必须是从 1 开始的整数。'
       break
+    }
     case 'list_presets':
       text = listPresets(ctx.data)
       break

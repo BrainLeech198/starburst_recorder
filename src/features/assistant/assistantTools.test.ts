@@ -566,13 +566,53 @@ describe('search_food', () => {
     expect(text).not.toContain('米饭')
   })
 
+  it('保留食物库中的小数营养值，不提前取整', () => {
+    const data = emptyData()
+    const item = food('酸奶')
+    item.kcal = 133.5
+    item.protein = 4.65
+    data.foods.push(item)
+    const text = runAssistantTool('search_food', { keyword: '酸奶' }, { data, today: '2026-10-28' })
+    expect(text).toContain('每 100g：133.5 千卡，蛋白 4.65 g')
+  })
+
+  it('可用食物标签查分类，并在结果中保留标签证据', () => {
+    const data = emptyData()
+    const drink = food('无糖可乐')
+    drink.tags = ['饮料', '零食']
+    data.foods.push(drink, food('米饭', 'food_2'))
+    const text = runAssistantTool('search_food', { keyword: '饮料' }, { data, today: '2026-10-28' })
+    expect(text).toContain('无糖可乐')
+    expect(text).toContain('标签：饮料、零食')
+    expect(text).not.toContain('米饭')
+  })
+
   it('没有命中时直说', () => {
     const text = runAssistantTool(
       'search_food',
       { keyword: '火锅' },
       { data: emptyData(), today: '2026-10-28' },
     )
-    expect(text).toContain('没有名字含')
+    expect(text).toContain('没有找到含「火锅」')
+  })
+
+  it('显式报告全库结果数量并可翻到末页', () => {
+    const data = emptyData()
+    for (let index = 1; index <= 26; index += 1) data.foods.push(food(`食物${index}`, `food_${index}`))
+    const first = runAssistantTool('search_food', {}, { data, today: '2026-10-28' })
+    expect(first).toContain('食物库共 26 条有效食物；第 1/2 页，本页 25 条')
+    expect(first).toContain('继续调用 search_food page=2')
+    expect(first).not.toContain('食物26')
+
+    const second = runAssistantTool('search_food', { page: 2 }, { data, today: '2026-10-28' })
+    expect(second).toContain('第 2/2 页，本页 1 条')
+    expect(second).toContain('已到最后一页')
+    expect(second).toContain('食物26')
+  })
+
+  it('拒绝无效页码', () => {
+    expect(runAssistantTool('search_food', { page: 0 }, { data: emptyData(), today: '2026-10-28' }))
+      .toContain('页码必须')
   })
 })
 
@@ -592,12 +632,40 @@ describe('search_meals / list_memory', () => {
     const text = runAssistantTool('search_meals', { keyword: '鸡' }, { data, today: '2026-10-28' })
     expect(text).toContain('鸡胸饭')
     expect(text).toContain('mealId=meal_1')
-    expect(text).toContain('200 千卡')
+    expect(text).toContain('199.5 千卡')
+    expect(text).toContain('合计 150 g，199.5 千卡；蛋白 36 g、碳水 0 g、脂肪 7.5 g')
+  })
+
+  it('套餐库完整分页，并在成分食物缺失时标记营养合计不完整', () => {
+    const data = emptyData()
+    for (let index = 1; index <= 21; index += 1) {
+      data.meals.push({
+        id: `meal_${index}`,
+        name: `套餐${index}`,
+        items: [{ foodId: 'deleted_food', grams: 100 }],
+        photo: null,
+        createdAt: 0,
+        updatedAt: 0,
+        deletedAt: null,
+      })
+    }
+    const first = runAssistantTool('search_meals', {}, { data, today: '2026-10-28' })
+    expect(first).toContain('套餐库共 21 条有效套餐；第 1/2 页，本页 20 条')
+    expect(first).toContain('继续调用 search_meals page=2')
+    expect(first).toContain('营养合计不完整')
+    const second = runAssistantTool('search_meals', { page: 2 }, { data, today: '2026-10-28' })
+    expect(second).toContain('第 2/2 页，本页 1 条')
+    expect(second).toContain('套餐21')
   })
 
   it('没有套餐时直说', () => {
     const text = runAssistantTool('search_meals', {}, { data: emptyData(), today: '2026-10-28' })
     expect(text).toContain('还没有套餐')
+  })
+
+  it('拒绝无效套餐页码', () => {
+    expect(runAssistantTool('search_meals', { page: 1.5 }, { data: emptyData(), today: '2026-10-28' }))
+      .toContain('页码必须')
   })
 
   it('记忆带分类列出原文，方便改删', () => {

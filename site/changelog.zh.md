@@ -1,3 +1,19 @@
+## 0.23.9 · 2026-11-22
+
+助手会提示检索覆盖范围并统一套餐营养算法；食物和套餐操作卡片能查看细节、修改后再确认，悬浮助手多选也能清楚导出所选消息。
+
+### 改进
+
+- **完整检索与分类**：食物库支持按名称或标签查找，分页显示总数、当前页和是否还有结果；需要完整清单时可继续翻到末页。
+- **营养数值一致**：食物保留库内精度，套餐使用与健康页相同的成分计算；缺失食材会标明营养合计不完整，估算和推断会明确区分。
+- **写入先审阅**：食物和套餐卡片显示具体成分、份量与营养；修改卡片逐项显示原值和新值。支持编辑的待确认草稿可以直接调整。详情读取失败时可重试，加载成功前不能确认写入。
+- **悬浮助手多选导出**：所选消息的导出按钮更醒目；可在弹窗选择格式、范围，以及是否包含工具轨迹和动作卡片。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.23.9-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.9.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9.apk)
+
 ## 0.23.8 · 2026-11-22
 
 食物库热量更醒目；编辑记录份量会自动重算营养，记录时图片加载期间也能继续操作。

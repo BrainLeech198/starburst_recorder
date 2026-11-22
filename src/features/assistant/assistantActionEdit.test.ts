@@ -69,4 +69,55 @@ describe('卡片就地编辑', () => {
     expect(editFields(action)).toEqual([])
     expect(applyEdits(action, {})).toBeNull()
   })
+
+  it('食物待确认卡可以改全套每百克营养，允许真实的 0 营养值', () => {
+    const action: AssistantAction = {
+      kind: 'foodCreate',
+      name: '蒸蛋',
+      kcal: 70,
+      protein: 6,
+      carbs: 0,
+      fat: 4,
+      servingName: null,
+      servingGrams: null,
+    }
+    const draft = { ...draftOf(action), protein: '6.5', servingName: '一碗', servingGrams: '180' }
+
+    expect(draftValid(editFields(action), draft)).toBe(true)
+    expect(applyEdits(action, draft)).toMatchObject({
+      kind: 'foodCreate', name: '蒸蛋', kcal: 70, protein: 6.5, carbs: 0, fat: 4,
+      servingName: '一碗', servingGrams: 180,
+    })
+  })
+
+  it('套餐草稿能改成分和克数，并拒绝空套餐', () => {
+    const action: AssistantAction = {
+      kind: 'mealCreate',
+      name: '蛋包饭',
+      items: [
+        { foodId: 'egg', name: '鸡蛋', grams: 50 },
+        { foodId: 'ham', name: '火腿丁', grams: 20 },
+      ],
+    }
+    const draft = {
+      ...draftOf(action),
+      name: '蛋包饭（加火腿丁）',
+      items: JSON.stringify([
+        { foodId: 'egg', name: '鸡蛋', grams: 60 },
+        { foodId: 'ham', name: '火腿丁', grams: 25 },
+      ]),
+    }
+
+    expect(draftValid(editFields(action), draft)).toBe(true)
+    expect(applyEdits(action, draft)).toMatchObject({
+      kind: 'mealCreate',
+      name: '蛋包饭（加火腿丁）',
+      items: [
+        { foodId: 'egg', name: '鸡蛋', grams: 60 },
+        { foodId: 'ham', name: '火腿丁', grams: 25 },
+      ],
+    })
+    expect(draftValid(editFields(action), { ...draft, items: '[]' })).toBe(false)
+    expect(applyEdits(action, { ...draft, items: '[]' })).toBeNull()
+  })
 })

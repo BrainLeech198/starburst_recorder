@@ -1087,6 +1087,8 @@ export const zh = {
 
   'assistant.action.title': '准备记一笔',
   'assistant.action.pending': '待确认',
+  'assistant.action.previewLoading': '正在读取食物和套餐详情，读取完成后才能确认。',
+  'assistant.action.previewFailed': '暂时无法读取食物和套餐详情。请重试后再确认。',
   'assistant.action.done': '已写入',
   'assistant.action.undone': '已撤销',
   'assistant.action.canceled': '已取消',
@@ -1114,7 +1116,7 @@ export const zh = {
   'assistant.edit.open': '改一下',
   'assistant.edit.save': '保存修改',
   'assistant.edit.cancel': '不改了',
-  'assistant.edit.invalid': '数字要大于 0，必填项不能空',
+  'assistant.edit.invalid': '请检查数值范围和必填项。',
   'assistant.edit.name': '名称',
   'assistant.edit.amount': '金额',
   'assistant.edit.grams': '克数',

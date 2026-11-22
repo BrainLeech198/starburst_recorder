@@ -1,3 +1,19 @@
+## 0.23.9 · 2026-11-22
+
+The assistant now reports search coverage and uses consistent meal nutrition. Food and meal action cards show details for review and edits before confirmation; multi-select export is clearer in the floating assistant.
+
+### Improvements
+
+- **Complete search and categories** — search foods by name or tag, with totals, page numbers, and a clear next-page status. Continue to the last page when you need a complete list.
+- **Consistent nutrition values** — foods keep the precision stored in the library, and meals use the same ingredient calculation as the health page. Missing ingredients are marked as incomplete; estimates and inferences are identified.
+- **Review before writing** — food and meal cards show ingredients, amounts, and nutrition; modification cards list each changed value before and after. Supported pending drafts can be edited in place. If catalog details cannot load, retry; confirmation stays disabled until they are available.
+- **Export selected messages** — the floating assistant’s multi-select bar has a clearer export button. Choose the format, message range, and whether to include tool traces and action cards.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.9-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9-setup.exe)
+- Android 10+: [starburst-recorder-0.23.9.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9.apk)
+
 ## 0.23.8 · 2026-11-22
 
 Food calories stand out in the library; changing an intake portion recalculates nutrition, and the food picker stays interactive while photos load.

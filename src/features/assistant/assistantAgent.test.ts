@@ -70,6 +70,14 @@ describe('buildSystemPrompt', () => {
     expect(text).toContain('不要为了省卡片擅自改变记录颗粒度')
   })
 
+  it('要求分页查全、区分证据与推测，并禁止把待确认卡片说成已写入', () => {
+    const text = buildSystemPrompt('2026-10-28', false)
+    expect(text).toContain('继续翻页直到最后一页')
+    expect(text).toContain('不能把推测写成查证结果')
+    expect(text).toContain('待确认卡片尚未落库')
+    expect(text).toContain('套餐按工具返回的当前成分和合计值')
+  })
+
   it('带上今天、读写工具清单和确认后才写入的约束', () => {
     const text = buildSystemPrompt('2026-10-28', false)
     expect(text).toContain('今天是 2026-10-28')

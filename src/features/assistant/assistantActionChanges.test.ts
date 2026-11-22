@@ -52,4 +52,27 @@ describe('assistant action change preview', () => {
       { field: 'assistant.edit.amount', before: '28', after: '35' },
     ])
   })
+
+  it('keeps food and meal before/after previews in sync with inline edits', () => {
+    const foodChanges = [
+      { field: 'assistant.change.protein' as const, before: '4', after: '5' },
+    ]
+    const nextFood: AssistantAction = {
+      kind: 'foodEdit', code: 'a000001', protein: 6,
+    }
+    expect(updateAssistantActionChanges(foodChanges, nextFood)).toEqual([
+      { field: 'assistant.change.protein', before: '4', after: '6' },
+    ])
+
+    const mealChanges = [
+      { field: 'assistant.change.components' as const, before: '鸡蛋 50g', after: '鸡蛋 60g' },
+    ]
+    const nextMeal: AssistantAction = {
+      kind: 'mealEdit', mealId: 'meal-1',
+      items: [{ foodId: 'egg', name: '鸡蛋', grams: 75 }],
+    }
+    expect(updateAssistantActionChanges(mealChanges, nextMeal)).toEqual([
+      { field: 'assistant.change.components', before: '鸡蛋 50g', after: '鸡蛋 75g' },
+    ])
+  })
 })
