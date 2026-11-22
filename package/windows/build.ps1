@@ -11,6 +11,9 @@ $ErrorActionPreference = 'Stop'
 
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $issFile = Join-Path $PSScriptRoot 'starburst-recorder.iss'
+$webSource = Join-Path $root '.local\dist'
+$webStage = Join-Path $PSScriptRoot '.desktop-assets'
+$verifyArchive = Join-Path $PSScriptRoot 'verify-app-asar.cjs'
 
 function Get-IsccPath {
   $fromPath = Get-Command iscc -ErrorAction SilentlyContinue
@@ -43,8 +46,46 @@ try {
   if ($LASTEXITCODE -ne 0) { throw '前端构建失败' }
 
   Write-Host '== 2/3 打出免安装目录 ==' -ForegroundColor Cyan
-  npx electron-builder --win --dir
-  if ($LASTEXITCODE -ne 0) { throw 'electron-builder 打包失败' }
+  if (-not (Test-Path (Join-Path $webSource 'index.html'))) {
+    throw "前端入口不存在：$(Join-Path $webSource 'index.html')"
+  }
+  if (Test-Path $webStage) {
+    throw "临时前端目录已存在，为避免覆盖未知文件而停止：$webStage"
+  }
+
+  $stageCreated = $false
+  try {
+    New-Item -ItemType Directory -Path $webStage | Out-Null
+    $stageCreated = $true
+    Get-ChildItem -LiteralPath $webSource -Force |
+      Copy-Item -Destination $webStage -Recurse -Force | Out-Null
+
+    npx electron-builder --win --dir
+    if ($LASTEXITCODE -ne 0) { throw 'electron-builder 打包失败' }
+
+    $asarPath = Join-Path $root '.local\release\win-unpacked\resources\app.asar'
+    node $verifyArchive $asarPath
+    if ($LASTEXITCODE -ne 0) { throw '打包检查失败：app.asar 缺少前端入口或 JavaScript bundle' }
+  } finally {
+    if ($stageCreated -and (Test-Path $webStage)) {
+      $workspacePrefix = [System.IO.Path]::GetFullPath($root).TrimEnd('\', '/') +
+        [System.IO.Path]::DirectorySeparatorChar
+      $expectedStage = [System.IO.Path]::GetFullPath($webStage)
+      if (-not $expectedStage.StartsWith($workspacePrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "临时前端目录不在工作区内，拒绝清理：$expectedStage"
+      }
+
+      $resolvedStage = (Resolve-Path -LiteralPath $webStage).Path
+      $stageItem = Get-Item -LiteralPath $resolvedStage
+      if (
+        -not [string]::Equals($resolvedStage, $expectedStage, [System.StringComparison]::OrdinalIgnoreCase) -or
+        ($stageItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint)
+      ) {
+        throw "临时前端目录路径异常，拒绝清理：$resolvedStage"
+      }
+      Remove-Item -LiteralPath $resolvedStage -Recurse -Force
+    }
+  }
 } finally {
   Pop-Location
 }

@@ -1,5 +1,18 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
+## 0.23.5 · 2026-11-22
+
+Fixes the black window after updating the Windows app; existing local data stays in its current location.
+
+### Fixes
+
+- **Windows startup screen** — the installer now includes the app page and JavaScript resources. Existing records and AI settings remain in the same local user data folder.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.5-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.5/starburst-recorder-0.23.5-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.5/starburst-recorder-0.23.5-setup.exe)
+- Android 10+: [starburst-recorder-0.23.5.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.5/starburst-recorder-0.23.5.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.5/starburst-recorder-0.23.5.apk)
+
 ## 0.23.4 · 2026-11-22
 
 Record cards now include a QR code to the official download page, where recipients can choose the web app, Windows installer, or Android app.

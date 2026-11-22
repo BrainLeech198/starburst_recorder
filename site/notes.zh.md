@@ -1,5 +1,18 @@
 本地优先的个人记录工具，内置 AI：随手记一句今天，AI 会把它整理成一篇完整的日记。不用注册、没有云端，每一条记录都留在这台设备上。AI 用的是你自己准备的模型和 Key。
 
+## 0.23.5 · 2026-11-22
+
+修复 Windows 版更新后启动黑屏；应用数据仍保存在原有本机位置。
+
+### 修复
+
+- **Windows 启动黑屏**：安装包现在包含应用页面入口和 JavaScript 资源；更新后可正常打开，现有本地记录与 AI 配置保留在原用户资料目录。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.23.5-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.5/starburst-recorder-0.23.5-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.5/starburst-recorder-0.23.5-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.5.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.5/starburst-recorder-0.23.5.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.5/starburst-recorder-0.23.5.apk)
+
 ## 0.23.4 · 2026-11-22
 
 分享记录卡片新增官网二维码，收到图片的人扫码即可查看网页版、Windows 和 Android 获取入口。

@@ -94,7 +94,11 @@ function saveWindowState(win) {
   }
 }
 
-const DIST = path.join(__dirname, '..', '.local', 'dist')
+// .local 在 Codex worktree 里可能是 junction，Electron Builder 不会收录其中的文件。
+// 打包版改从 build.ps1 暂存的普通目录读取；开发版仍使用 Vite 输出目录。
+const DIST = app.isPackaged
+  ? path.join(__dirname, '..', 'package', 'windows', '.desktop-assets')
+  : path.join(__dirname, '..', '.local', 'dist')
 const APP_URL = 'app://starburst/index.html'
 
 /** 托盘常驻：真正退出前一直是 true，用来放行窗口的 close 事件 */
