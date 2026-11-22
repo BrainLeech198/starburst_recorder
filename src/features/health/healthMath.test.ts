@@ -364,6 +364,26 @@ describe('推算 TDEE（能量收支法）', () => {
     expect(weightSlopePerDay(rollingWeightAverages(clean))).toBe(0)
   })
 
+  it('没有后续记录确认时保留最新的体重点', () => {
+    const recent = [
+      { dateKey: '2026-10-01', weightKg: 62 },
+      { dateKey: '2026-10-02', weightKg: 62 },
+      { dateKey: '2026-10-03', weightKg: 64.5 },
+    ]
+
+    expect(filterWeightOutliers(recent).map((point) => point.dateKey)).toContain('2026-10-03')
+  })
+
+  it('滚动均值包含图中最新记录，而不只使用区间外背景', () => {
+    const context = [
+      { dateKey: '2026-10-01', weightKg: 62 },
+      { dateKey: '2026-10-02', weightKg: 62 },
+    ]
+    const latest = { dateKey: '2026-10-03', weightKg: 64.5 }
+
+    expect(rollingWeightAverages([latest], [...context, latest])[0].weightKg).toBeCloseTo(62.83, 2)
+  })
+
   it('BMR 下限只拦截不可信估值，不会把估值硬抬高', () => {
     const floor = minimumPlausibleTdee(
       { sex: 'male', age: 20, heightCm: 176, weightKg: 61.65 },

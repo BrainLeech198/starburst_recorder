@@ -1,5 +1,18 @@
 本地优先的个人记录工具，内置 AI：随手记一句今天，AI 会把它整理成一篇完整的日记。不用注册、没有云端，每一条记录都留在这台设备上。AI 用的是你自己准备的模型和 Key。
 
+## 0.23.6 · 2026-11-22
+
+修复体重趋势图未反映最近称重的问题。
+
+### 修复
+
+- **显示最新称重**：当天读数会参与七日趋势均值；后续称重出现前，不再只凭更早记录把最新读数从趋势图中排除。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.23.6-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.6/starburst-recorder-0.23.6-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.6/starburst-recorder-0.23.6-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.6.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.6/starburst-recorder-0.23.6.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.6/starburst-recorder-0.23.6.apk)
+
 ## 0.23.5 · 2026-11-22
 
 修复 Windows 版更新后启动黑屏；应用数据仍保存在原有本机位置。

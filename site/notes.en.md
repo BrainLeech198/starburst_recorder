@@ -1,5 +1,18 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
+## 0.23.6 · 2026-11-22
+
+Fixes the weight trend chart not reflecting recent readings.
+
+### Fixes
+
+- **Show the latest reading** — today's weight now contributes to the 7-day trend average. Earlier readings alone no longer hide the newest reading before later entries can confirm an isolated change.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.6-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.6/starburst-recorder-0.23.6-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.6/starburst-recorder-0.23.6-setup.exe)
+- Android 10+: [starburst-recorder-0.23.6.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.6/starburst-recorder-0.23.6.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.6/starburst-recorder-0.23.6.apk)
+
 ## 0.23.5 · 2026-11-22
 
 Fixes the black window after updating the Windows app; existing local data stays in its current location.

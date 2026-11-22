@@ -43,7 +43,8 @@ export default function WeightTrendChart({
 
   const cleanItems = filterWeightOutliers(items, outlierContext)
   const cleanContext = filterWeightOutliers(outlierContext)
-  const smoothedItems = rollingWeightAverages(cleanItems, cleanContext)
+  // 区间外的历史用于补足均值，但图内的当天记录也必须参与自己的滚动均值。
+  const smoothedItems = rollingWeightAverages(cleanItems, [...cleanContext, ...cleanItems])
 
   const height = tall ? TALL_HEIGHT : SMALL_HEIGHT
   /** 左侧留出纵轴刻度的地方，刻度用 HTML 叠在图上，字号不跟着 SVG 一起缩 */

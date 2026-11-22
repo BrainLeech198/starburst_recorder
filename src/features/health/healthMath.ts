@@ -362,7 +362,7 @@ export interface WeighPoint {
 
 /** 趋势和 TDEE 都使用相同的 7 日滚动均值口径。 */
 export const WEIGHT_SMOOTHING_DAYS = 7
-/** 前后邻点或区间边缘的两条同侧邻点都支持时，偏离中位数超过 1 kg 才视为突变。 */
+/** 前后邻点或两条后续邻点支持时，偏离中位数超过 1 kg 才视为突变。 */
 export const WEIGHT_OUTLIER_THRESHOLD_KG = 1
 export const WEIGHT_OUTLIER_NEIGHBOR_DAYS = 3
 
@@ -402,10 +402,8 @@ export function filterWeightOutliers<T extends WeighPoint>(
       return distance > 0 && distance <= WEIGHT_OUTLIER_NEIGHBOR_DAYS
     })
     const neighbors = [...before, ...after].map((other) => other.weightKg)
-    const hasSupport =
-      (before.length > 0 && after.length > 0) ||
-      before.length >= 2 ||
-      after.length >= 2
+    // 只有更早记录时，最新端的真实变化和录入错误无法区分；等后续记录出现再判孤立突变。
+    const hasSupport = (before.length > 0 && after.length > 0) || after.length >= 2
     if (
       hasSupport &&
       Math.abs(point.weightKg - median(neighbors)) > WEIGHT_OUTLIER_THRESHOLD_KG
