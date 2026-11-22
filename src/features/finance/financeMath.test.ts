@@ -4,6 +4,7 @@ import {
   expenseByCategory,
   financeWeeksOfMonth,
   groupFinanceByDay,
+  incomeByCategory,
   isMonthKey,
   monthBounds,
   monthKeyOf,
@@ -143,6 +144,29 @@ describe('expenseByCategory', () => {
   test('没有支出时返回空数组', () => {
     expect(expenseByCategory([])).toEqual([])
     expect(expenseByCategory([entry({ kind: 'income', amount: 100 })])).toEqual([])
+  })
+})
+
+describe('incomeByCategory', () => {
+  test('只算未删除的收入，按金额排序并独立计算占比', () => {
+    const slices = incomeByCategory([
+      entry({ id: 'salary', kind: 'income', category: 'salary', amount: 1000 }),
+      entry({ id: 'bonus', kind: 'income', category: 'bonus', amount: 200 }),
+      entry({ id: 'expense', kind: 'expense', category: 'food', amount: 700 }),
+      entry({ id: 'deleted', kind: 'income', category: 'gift', amount: 50, deletedAt: 1 }),
+    ])
+
+    expect(slices.map((item) => item.category)).toEqual(['salary', 'bonus'])
+    expect(slices[0].amount).toBe(1000)
+    expect(slices[0].share).toBeCloseTo(1000 / 1200)
+    expect(slices[1].amount).toBe(200)
+    expect(slices[1].share).toBeCloseTo(200 / 1200)
+    expect(slices.reduce((sum, item) => sum + item.share, 0)).toBeCloseTo(1)
+  })
+
+  test('没有收入时返回空数组', () => {
+    expect(incomeByCategory([])).toEqual([])
+    expect(incomeByCategory([entry({ amount: 100 })])).toEqual([])
   })
 })
 

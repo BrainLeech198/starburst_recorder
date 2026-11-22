@@ -1,5 +1,19 @@
 本地优先的个人记录工具，内置 AI：随手记一句今天，AI 会把它整理成一篇完整的日记。不用注册、没有云端，每一条记录都留在这台设备上。AI 用的是你自己准备的模型和 Key。
 
+## 0.23.9 · 2026-11-22
+
+遇到大额收支时，近几周趋势仍能看清日常金额；分类统计新增收入饼图。
+
+### 改进
+
+- **日常趋势更清楚**：大额收入或支出出现时压缩刻度，普通金额仍能辨认；点选周查看的仍是原金额。
+- **收入分类图**：可在收入与支出之间切换，并分别查看饼图或进度条；占比只按所选方向计算。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.23.9-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.9.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9.apk)
+
 ## 0.23.8 · 2026-11-22
 
 食物库热量更醒目；编辑记录份量会自动重算营养，记录时图片加载期间也能继续操作。

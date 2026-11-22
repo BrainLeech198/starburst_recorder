@@ -1,3 +1,17 @@
+## 0.23.9 · 2026-11-22
+
+Everyday amounts remain visible in recent trends when a large transaction appears; category breakdowns now include an income pie chart.
+
+### What's new
+
+- **Clearer everyday trends** — large income or expense values compress the scale while regular amounts remain visible. Selecting a week still shows its original amounts.
+- **Income category breakdown** — switch between income and expense, then view either a pie chart or progress bars. Each share is calculated within the selected direction.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.9-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9-setup.exe)
+- Android 10+: [starburst-recorder-0.23.9.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.9/starburst-recorder-0.23.9.apk)
+
 ## 0.23.8 · 2026-11-22
 
 Food calories stand out in the library; changing an intake portion recalculates nutrition, and the food picker stays interactive while photos load.
