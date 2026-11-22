@@ -424,3 +424,11 @@ GitHub 普通 Release [v0.23.3](https://github.com/BrainLeech198/starburst_recor
 产品提交推送时 Gitee `origin/main`、GitHub 镜像 `main` 与标签均指向 `b182915`；GitHub 主线 CI `44898145701`、tag CI `44898145666` 与官网 Pages 工作流 `44898145687` 均成功。官网首页、中英文说明与更新日志均已随提交更新。
 
 `npm test`（99 个文件、974 项）、`npm run typecheck`、`npm run lint`、`npm run build`、Android `assembleRelease` 与 Windows 安装包构建均通过。Android 版本与签名核验通过；本地 PWA 探针 20/20，生产域名线上验收 10/10；Service Worker 已激活并控制页面，推送鉴权与 `/health` 通过，测试订阅已删除。生产 Pages 部署地址 `https://1e32ebd2.starburst-recorder.pages.dev`，部署 ID `1e32ebd2-5186-4c04-affb-266118b8d4a6`，构建号 `mwqbkosb`；本机使用 Wrangler 4.150.0 完成部署。
+
+`0.23.4` 正式版：标签 `v0.23.4` 指向发布准备提交 `17fd2133125623c41417e9dd1e39245169887315`（功能提交 `5887dcc`）。APK 为 61,977,460 字节、`versionCode=2304999`、`versionName=0.23.4`、SHA-256 `4E9561CBD8ECB8A011039E1347C47747C9E9263C4D1063C0DD86734C1545516B`；签名证书 SHA-256 `2eb0978a6abad455b55aa06dc86d2ccd73816aa68059ce6e4289c35533f94b05` 与 §2.2 一致。Windows 安装包为 97,800,059 字节、ProductVersion `0.23.4`、SHA-256 `29EF58129B4C8558BDE96F0528EF206F12B92221AC213EDE06D9BAAFBED98117`，低于 Gitee 单附件 100 MiB 上限。
+
+GitHub 普通 Release [v0.23.4](https://github.com/BrainLeech198/starburst_recorder/releases/tag/v0.23.4) 有 APK 与 EXE，asset digest、大小均与本地一致；Gitee Release（API ID `1353053`）附件 ID `3789335` / `3789343` 大小一致，从 Gitee 回下载的两个文件 SHA-256 也与本地一致。Gitee 检查 75 个 Release 后，只有本版保留 APK / EXE；上一正式版 `v0.23.3` Release（ID `1343186`）的附件 ID `3780434` / `3780450` 已删除，Release、tag 与源码归档保留。Gitee 与 GitHub `/latest` 均指向 `v0.23.4`；两端 APK / EXE 下载链接与官网首页、更新说明和更新日志均返回 HTTP 200，在线内容显示本版。本版 Gitee 两项附件合计 159,777,519 字节，低于 1 GiB 限额。
+
+推送时 Gitee `origin/main`、GitHub 镜像 `main` 与标签均指向 `17fd213`。GitHub 主线 CI `45007575591`、tag CI `45007575722` 与官网 Pages 工作流 `45007575557` 均成功。生产 PWA 部署地址 `https://00efce37.starburst-recorder.pages.dev`，部署 ID `00efce37-c3e5-4047-a0b1-06612ad6eabe`，构建号 `mwrmtady`；正式域名线上验收 10/10，本地探针 20/20；Service Worker 已激活并控制页面，推送鉴权与 `/health` 通过，测试订阅已删除。部署使用项目锁定的 Wrangler 4.161.0。
+
+`npm test`（99 个文件、974 项）、`npm run typecheck`、`npm run lint`、`npm run build`、Android `assembleRelease` 与 Windows 安装包构建均通过。Android 验签及版本核验通过；构建提示包括 Kotlin 元数据版本不一致、Gradle 9 弃用与 Vite 大 chunk，均未阻断构建。Android 因共享 `node_modules` junction 的 Kotlin 增量缓存路径问题，使用单 worker、in-process Kotlin 且关闭增量编译的重试命令完成出包。
