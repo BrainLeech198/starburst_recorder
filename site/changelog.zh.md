@@ -1,4 +1,4 @@
-## 0.23.9 · 2026-11-22
+## 0.23.10 · 2026-11-22
 
 助手会提示检索覆盖范围并统一套餐营养算法；食物和套餐操作卡片能查看细节、修改后再确认，悬浮助手多选也能清楚导出所选消息。
 
@@ -8,6 +8,20 @@
 - **营养数值一致**：食物保留库内精度，套餐使用与健康页相同的成分计算；缺失食材会标明营养合计不完整，估算和推断会明确区分。
 - **写入先审阅**：食物和套餐卡片显示具体成分、份量与营养；修改卡片逐项显示原值和新值。支持编辑的待确认草稿可以直接调整。详情读取失败时可重试，加载成功前不能确认写入。
 - **悬浮助手多选导出**：所选消息的导出按钮更醒目；可在弹窗选择格式、范围，以及是否包含工具轨迹和动作卡片。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.23.10-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.10/starburst-recorder-0.23.10-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.10/starburst-recorder-0.23.10-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.10.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.10/starburst-recorder-0.23.10.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.10/starburst-recorder-0.23.10.apk)
+
+## 0.23.9 · 2026-11-22
+
+遇到大额收支时，近几周趋势仍能看清日常金额；分类统计新增收入饼图。
+
+### 这一版有什么
+
+- **日常趋势更清楚**：大额收入或支出出现时压缩刻度，普通金额仍能辨认；点选周查看的仍是原金额。
+- **收入分类图**：可在收入与支出之间切换，并分别查看饼图或进度条；占比只按所选方向计算。
 
 ### 下载
 

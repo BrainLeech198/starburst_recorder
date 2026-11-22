@@ -29,7 +29,7 @@ import RowCheckbox from '@/shared/ui/RowCheckbox'
 import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
-import type { FinanceEntry } from '@/core/db/schema'
+import type { FinanceEntry, FinanceKind } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
 import { formatMonthDay, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
 import { useToast } from '@/app/providers/ToastProvider'
@@ -47,6 +47,7 @@ import { Icon } from '@/shared/ui/icons'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import {
   expenseByCategory,
+  incomeByCategory,
   type FinanceRow,
   financeWeeksOfMonth,
   groupFinanceByDay,
@@ -269,7 +270,8 @@ export default function FinancePage() {
         : allRows
   const summary = summarizeFinance(rows)
   const days = groupFinanceByDay(rows)
-  const slices = expenseByCategory(rows)
+  const expenseSlices = expenseByCategory(rows)
+  const incomeSlices = incomeByCategory(rows)
   const summariesByDay = new Map(days.map((day) => [day.dateKey, day.summary]))
   const weekDays =
     view === 'week'
@@ -307,6 +309,11 @@ export default function FinancePage() {
   const [exportData, setExportData] = useState<BackupData | null>(null)
   const [sharing, setSharing] = useState<ShareFinanceDoc | null>(null)
   const [breakdownMode, setBreakdownMode] = useState<'pie' | 'bars'>('pie')
+  const [breakdownKind, setBreakdownKind] = useState<FinanceKind | null>(null)
+  const activeBreakdownKind =
+    breakdownKind ?? (expenseSlices.length > 0 ? 'expense' : 'income')
+  const slices = activeBreakdownKind === 'income' ? incomeSlices : expenseSlices
+  const hasCategorySlices = expenseSlices.length > 0 || incomeSlices.length > 0
   /** 打开挑选弹窗时预选这些流水 */
   const [exportInitial, setExportInitial] = useState<{ finance: string[] } | undefined>(undefined)
   const importInputRef = useRef<HTMLInputElement | null>(null)
@@ -715,81 +722,119 @@ export default function FinancePage() {
           </div>
         </div>
 
-        {/* 支出分类可以在饼图和原进度条之间切换；分类金额与占比共用同一份汇总。 */}
-        {slices.length > 0 && (
+        {/* 收入 / 支出分类共用同一套饼图与进度条视图，各自独立计算占比。 */}
+        {hasCategorySlices && (
           <>
-            <div className="mt-3 flex items-center justify-between gap-2 border-t border-dashed border-line pt-3">
-              <h2 className="m-0 min-w-0 text-xs font-medium text-fg">
-                {t('finance.breakdown')}
-              </h2>
-              <div
-                role="group"
-                aria-label={t('finance.breakdown')}
-                className="flex shrink-0 items-center rounded-lg bg-surface-2 p-0.5"
-              >
-                {([
-                  ['pie', 'finance.pieChart'],
-                  ['bars', 'finance.progressBars'],
-                ] as const).map(([mode, labelKey]) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    aria-pressed={breakdownMode === mode}
-                    onClick={() => setBreakdownMode(mode)}
-                    className={`whitespace-nowrap rounded-md px-2 py-1 text-[10px] ${
-                      breakdownMode === mode
-                        ? 'bg-surface text-fg shadow-sm'
-                        : 'text-muted hover:text-fg'
-                    }`}
-                  >
-                    {t(labelKey)}
-                  </button>
-                ))}
+            <div className="mt-3 border-t border-dashed border-line pt-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="m-0 min-w-0 text-xs font-medium text-fg">
+                  {t('finance.breakdown')}
+                </h2>
+                <div
+                  role="group"
+                  aria-label={t('finance.breakdownKind')}
+                  className="flex shrink-0 items-center rounded-lg bg-surface-2 p-0.5"
+                >
+                  {([
+                    ['expense', 'finance.expense'],
+                    ['income', 'finance.income'],
+                  ] as const).map(([kind, labelKey]) => (
+                    <button
+                      key={kind}
+                      type="button"
+                      aria-pressed={activeBreakdownKind === kind}
+                      onClick={() => setBreakdownKind(kind)}
+                      className={`whitespace-nowrap rounded-md px-2 py-1 text-[10px] ${
+                        activeBreakdownKind === kind
+                          ? 'bg-surface text-fg shadow-sm'
+                          : 'text-muted hover:text-fg'
+                      }`}
+                    >
+                      {t(labelKey)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-2 flex justify-end">
+                <div
+                  role="group"
+                  aria-label={t('finance.breakdown')}
+                  className="flex shrink-0 items-center rounded-lg bg-surface-2 p-0.5"
+                >
+                  {([
+                    ['pie', 'finance.pieChart'],
+                    ['bars', 'finance.progressBars'],
+                  ] as const).map(([mode, labelKey]) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      aria-pressed={breakdownMode === mode}
+                      onClick={() => setBreakdownMode(mode)}
+                      className={`whitespace-nowrap rounded-md px-2 py-1 text-[10px] ${
+                        breakdownMode === mode
+                          ? 'bg-surface text-fg shadow-sm'
+                          : 'text-muted hover:text-fg'
+                      }`}
+                    >
+                      {t(labelKey)}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-            {breakdownMode === 'pie' && (
-              <div
-                aria-hidden="true"
-                className="mx-auto mt-3 h-28 w-28 rounded-full border border-line"
-                style={{ background: financePieBackground(slices) }}
-              />
-            )}
-            <ul className="m-0 mt-2 flex list-none flex-col gap-1.5 p-0">
-              {slices.map((slice, index) => (
-                <li key={slice.category} className="flex items-center gap-2 text-[11px]">
-                  {breakdownMode === 'pie' ? (
-                    <>
+            {slices.length === 0 ? (
+              <p className="m-0 mt-3 text-center text-[11px] text-muted">
+                {t('finance.breakdownEmpty')}
+              </p>
+            ) : (
+              <>
+                {breakdownMode === 'pie' && (
+                  <div
+                    aria-hidden="true"
+                    className="mx-auto mt-3 h-28 w-28 rounded-full border border-line"
+                    style={{ background: financePieBackground(slices) }}
+                  />
+                )}
+                <ul className="m-0 mt-2 flex list-none flex-col gap-1.5 p-0">
+                  {slices.map((slice, index) => (
+                    <li key={slice.category} className="flex items-center gap-2 text-[11px]">
+                      {breakdownMode === 'pie' ? (
+                        <>
+                          <span
+                            aria-hidden="true"
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{ background: financePieColor(index, slices.length) }}
+                          />
+                          <span className="min-w-0 flex-1 truncate text-muted">
+                            {t(categoryKey(slice.category))}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="w-14 shrink-0 truncate text-muted">
+                            {t(categoryKey(slice.category))}
+                          </span>
+                          <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2">
+                            <span
+                              className={`block h-full rounded-full ${
+                                activeBreakdownKind === 'income' ? 'bg-success' : 'bg-danger/60'
+                              }`}
+                              style={{ width: `${Math.max(2, slice.share * 100)}%` }}
+                            />
+                          </span>
+                        </>
+                      )}
                       <span
-                        aria-hidden="true"
-                        className="h-2.5 w-2.5 shrink-0 rounded-full"
-                        style={{ background: financePieColor(index, slices.length) }}
-                      />
-                      <span className="min-w-0 flex-1 truncate text-muted">
-                        {t(categoryKey(slice.category))}
+                        title={`${money(slice.amount)} · ${Math.round(slice.share * 100)}%`}
+                        className="w-28 shrink-0 truncate text-right tabular-nums text-fg"
+                      >
+                        {money(slice.amount)} · {Math.round(slice.share * 100)}%
                       </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="w-14 shrink-0 truncate text-muted">
-                        {t(categoryKey(slice.category))}
-                      </span>
-                      <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2">
-                        <span
-                          className="block h-full rounded-full bg-danger/60"
-                          style={{ width: `${Math.max(2, slice.share * 100)}%` }}
-                        />
-                      </span>
-                    </>
-                  )}
-                  <span
-                    title={`${money(slice.amount)} · ${Math.round(slice.share * 100)}%`}
-                    className="w-28 shrink-0 truncate text-right tabular-nums text-fg"
-                  >
-                    {money(slice.amount)} · {Math.round(slice.share * 100)}%
-                  </span>
-                </li>
-              ))}
-            </ul>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </>
         )}
       </section>

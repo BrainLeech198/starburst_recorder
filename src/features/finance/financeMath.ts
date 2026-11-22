@@ -4,7 +4,7 @@
  * 金额一律按正数存，方向看 kind；汇总只认未删除的记录。
  * 这里不碰存储和 i18n，方便单测和以后复用到月报。
  */
-import type { FinanceEntry } from '@/core/db/schema'
+import type { FinanceEntry, FinanceKind } from '@/core/db/schema'
 
 /** Fields consumed by finance summaries and lists; photo bytes are optional. */
 export type FinanceRow = Omit<FinanceEntry, 'photo'> & {
@@ -142,24 +142,24 @@ export function summarizeFinance(entries: FinanceRow[]): FinanceSummary {
   }
 }
 
-/** 本月支出按分类切出来的一块 */
+/** 收支按分类切出来的一块 */
 export interface CategorySlice {
   /** 分类 id，页面再翻译成名称 */
   category: string
   amount: number
-  /** 占本月总支出的比例，0–1 */
+  /** 占当前方向总额的比例，0–1 */
   share: number
 }
 
 /**
- * 支出按分类汇总，金额从大到小。
- * 没有支出时返回空数组，页面据此整块不显示。
+ * 按收支方向汇总分类，金额从大到小。
+ * 没有该方向的记录时返回空数组。
  */
-export function expenseByCategory(entries: FinanceRow[]): CategorySlice[] {
+export function financeByCategory(entries: FinanceRow[], kind: FinanceKind): CategorySlice[] {
   let total = 0
   const byCategory = new Map<string, number>()
   for (const entry of entries) {
-    if (entry.deletedAt !== null || entry.kind !== 'expense') continue
+    if (entry.deletedAt !== null || entry.kind !== kind) continue
     total += entry.amount
     byCategory.set(entry.category, (byCategory.get(entry.category) ?? 0) + entry.amount)
   }
@@ -171,4 +171,14 @@ export function expenseByCategory(entries: FinanceRow[]): CategorySlice[] {
       share: amount / total,
     }))
     .sort((a, b) => b.amount - a.amount)
+}
+
+/** 支出按分类汇总。 */
+export function expenseByCategory(entries: FinanceRow[]): CategorySlice[] {
+  return financeByCategory(entries, 'expense')
+}
+
+/** 收入按分类汇总。 */
+export function incomeByCategory(entries: FinanceRow[]): CategorySlice[] {
+  return financeByCategory(entries, 'income')
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useI18n } from '@/shared/i18n/context'
+import { financeTrendScale } from './financeTrendScale'
 
 const WIDTH = 360
 const HEIGHT = 188
@@ -19,27 +20,6 @@ export interface FinanceTrendPoint {
   expense: number
 }
 
-function niceMaximum(value: number) {
-  if (value <= 0) return 1
-  const power = 10 ** Math.floor(Math.log10(value))
-  const fraction = value / power
-  const niceFraction = fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10
-  return niceFraction * power
-}
-
-function compressedTicks(maximum: number, unit: number) {
-  const candidates: number[] = []
-  for (let value = unit; value < maximum; value *= 10) candidates.push(value)
-  const selected =
-    candidates.length <= 3
-      ? candidates
-      : Array.from({ length: 3 }, (_, index) => {
-          const candidateIndex = Math.round((index * (candidates.length - 1)) / 2)
-          return candidates[candidateIndex]
-        })
-  return [maximum, ...selected.reverse(), 0]
-}
-
 export default function FinanceTrendChart({
   points,
   ariaLabel,
@@ -57,30 +37,18 @@ export default function FinanceTrendChart({
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [focusedKey, setFocusedKey] = useState<string | null>(null)
   const values = points.flatMap((point) => [point.income, point.expense])
-  const maxValue = Math.max(0, ...values)
-  const scaleMaximum = niceMaximum(maxValue)
-  const positiveValues = values.filter((value) => value > 0).sort((a, b) => a - b)
-  // 用较低四分位数估算日常金额，避免单个大额把其他点压到零轴附近。
-  const typicalValue = positiveValues[Math.floor((positiveValues.length - 1) / 4)] ?? 0
-  const compressed = positiveValues.length > 1 && maxValue >= typicalValue * 8
-  const compressionUnit = compressed ? niceMaximum(typicalValue / 4) : 1
-  const scaleValue = (value: number) =>
-    compressed ? Math.log1p(value / compressionUnit) : value
-  const plottedMaximum = scaleValue(scaleMaximum)
+  const { compressed, plottedMaximum, ticks, scaleAmount } = financeTrendScale(values)
   const baseline = PLOT_BOTTOM
   const x = (index: number) =>
     points.length === 1
       ? (PLOT_LEFT + PLOT_RIGHT) / 2
       : PLOT_LEFT + (index * (PLOT_RIGHT - PLOT_LEFT)) / (points.length - 1)
   const y = (value: number) =>
-    PLOT_BOTTOM - (scaleValue(value) / plottedMaximum) * (PLOT_BOTTOM - PLOT_TOP)
+    PLOT_BOTTOM - (scaleAmount(value) / plottedMaximum) * (PLOT_BOTTOM - PLOT_TOP)
   const incomePoints = points.map((point, index) => `${x(index)},${y(point.income)}`).join(' ')
   const expensePoints = points.map((point, index) => `${x(index)},${y(point.expense)}`).join(' ')
   const incomeArea = `${x(0)},${baseline} ${incomePoints} ${x(points.length - 1)},${baseline}`
   const expenseArea = `${x(0)},${baseline} ${expensePoints} ${x(points.length - 1)},${baseline}`
-  const ticks = compressed
-    ? compressedTicks(scaleMaximum, compressionUnit)
-    : [scaleMaximum, scaleMaximum / 2, 0]
   const selectedIndex = selectedKey ? points.findIndex((point) => point.key === selectedKey) : -1
   const selectedPoint = selectedIndex >= 0 ? points[selectedIndex] : null
   const axisMoney = (value: number) =>
