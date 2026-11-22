@@ -72,6 +72,8 @@ export const de: Record<MessageKey, string> = {
   'health.weighToday': 'Heute ist Wiegetag — nüchtern auf die Waage.',
   'health.weighDayLabel': 'Wiegetag',
   'health.weighTimeLabel': 'Erinnerungszeit',
+  'health.weighReminderInexact': 'Exakte Alarme sind nicht erlaubt. Die Erinnerung ist geplant, kann sich aber verzögern.',
+  'health.weighReminderEnableExact': 'Genaue Alarme erlauben',
   'health.weighRecord': 'Gewicht eintragen',
   'health.weighSaved': 'Gewicht gespeichert: {value} kg',
   'health.weighUnit': 'kg',

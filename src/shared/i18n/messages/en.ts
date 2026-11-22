@@ -72,6 +72,8 @@ export const en: Record<MessageKey, string> = {
   'health.weighToday': 'Today is weigh-in day — step on the scale while fasting.',
   'health.weighDayLabel': 'Weigh-in day',
   'health.weighTimeLabel': 'Reminder time',
+  'health.weighReminderInexact': 'Exact alarms are off. The reminder is scheduled but may be delayed.',
+  'health.weighReminderEnableExact': 'Enable exact alarms',
   'health.weighRecord': 'Record weight',
   'health.weighSaved': 'Weight recorded: {value} kg',
   'health.weighUnit': 'kg',

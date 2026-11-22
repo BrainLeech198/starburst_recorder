@@ -72,6 +72,8 @@ export const ja: Record<MessageKey, string> = {
   'health.weighToday': '今日は測定日です。空腹で体重を記録しましょう。',
   'health.weighDayLabel': '測定日',
   'health.weighTimeLabel': 'リマインダー時刻',
+  'health.weighReminderInexact': '正確なアラームは許可されていません。通知は設定済みですが、遅れることがあります。',
+  'health.weighReminderEnableExact': '正確なアラームを許可',
   'health.weighRecord': '体重を記録',
   'health.weighSaved': '体重を記録しました：{value} kg',
   'health.weighUnit': 'kg',

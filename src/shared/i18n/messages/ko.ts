@@ -72,6 +72,8 @@ export const ko: Record<MessageKey, string> = {
   'health.weighToday': '오늘은 측정일이에요. 공복으로 체중을 재보세요.',
   'health.weighDayLabel': '측정일',
   'health.weighTimeLabel': '알림 시각',
+  'health.weighReminderInexact': '정확한 알람 권한이 없어 알림이 지연될 수 있습니다.',
+  'health.weighReminderEnableExact': '정확한 알람 허용',
   'health.weighRecord': '체중 기록',
   'health.weighSaved': '체중을 기록했어요: {value} kg',
   'health.weighUnit': 'kg',

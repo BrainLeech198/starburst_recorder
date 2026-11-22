@@ -334,7 +334,7 @@ AI 模型是独立备份分区。导出时可分别选择「加密模型 API Key
 - **推算 TDEE**（`derivedTdeeEstimate` / `derivedTdee`，`features/health/healthMath.ts` 纯函数 + 单测）：能量收支法 `窗口内有记录日的日均摄入 − 体重线性回归斜率 × 7700`；摄入与称重分别在同一日期窗口取样，不要求同日配对。摄入少于 7 天、称重少于 4 次或称重跨度不足 7 天时，`derivedTdeeEstimate` 返回样本数和 `value: null`，兼容入口 `derivedTdee` 返回 `null`；结果按 50 千卡取整并在区间概览显示样本数与「仅供参考」。称重趋势页必须把当前 30 / 90 天窗口传入，结束日期不含今天；称重卡使用近 14 个完整日。每天用自己的真实数据反推，越用越贴合本人。
 - **称重**：档案行 `HealthProfile` 加 `weighDay`（1=周一…7=周日，null=不提醒）、`weighTime`（HH:MM，默认 07:00）、`weighIns`（`{dateKey, weightKg, createdAt}` 数组，最多 120 条，同一天只留最后一次）。**没有建新表**：这是单行档案的附属数据，建表会把并行改动面放大，也没必要。
 - **称重卡**（`WeighInCard`）直接落库、不走档案表单草稿；记一次体重同时把档案里的 `weightKg` / `weightAt` 更新成最新值。
-- **系统通知**：桌面/浏览器走 Web Notification（`weighNotify.maybeNotifyWeighDay`，每次打开应用后每分钟查一次，当天只提醒一次）；安卓走 `@capacitor/local-notifications` 按「每周 + 时刻」排一条（`syncWeighReminder`，改设置就重排）。Manifest 已声明 `POST_NOTIFICATIONS`。应用内横幅由称重卡自己显示。
+- **系统通知**：全局壳层 `WeighReminderHost` 在启动、称重设置变化和从系统设置返回时同步安卓本地通知；`/health/weights` 的用户操作负责申请通知权限并即时重排。Android 12+ 精确闹钟未授权时仍排不精确通知，并在称重设置页说明可能延迟。桌面/浏览器由全局宿主每分钟检查（`weighNotify.maybeNotifyWeighDay`），当天只提醒一次。Manifest 已声明 `POST_NOTIFICATIONS`；应用内横幅由称重卡自己显示。
 - **摄入条三条线**：目标热量（细实线）/ 参考 TDEE（粗实线）/ 推算 TDEE（主题色细线，无数据不画），图例文案分别是「目标热量 / 参考TDEE / 推算TDEE」。
 - **「问 ai 一下」**（`AskAiDialog`，入口在「记一笔摄入」按钮下面）：5 个预设（这一笔合适吗 / 接下来吃什么 / 今天怎么样 / 还剩多少额度 / 你看着说）+ 自由追问；当天数据（摄入明细、三大营养素合计、三条线的数值、档案、剩余额度）拼进用户消息当上下文，并带本会话的对话记忆（`turns` 作为多轮消息回传）。**只读不写库**——写数据要等「AI 助手 + 改动预览确认」那一版。模型输出固定走 `aiClient.chat()`，换 seed 避免套模板。
 

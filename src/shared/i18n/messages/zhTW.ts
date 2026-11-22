@@ -72,6 +72,8 @@ export const zhTW: Record<MessageKey, string> = {
   'health.weighToday': '今天是稱重日，記得空腹上秤記一筆。',
   'health.weighDayLabel': '稱重日',
   'health.weighTimeLabel': '提醒時刻',
+  'health.weighReminderInexact': '系統未允許精確鬧鐘，提醒已排程但可能延遲。',
+  'health.weighReminderEnableExact': '開啟精確提醒',
   'health.weighRecord': '記體重',
   'health.weighSaved': '體重已記下：{value} kg',
   'health.weighUnit': 'kg',

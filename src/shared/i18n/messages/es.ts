@@ -72,6 +72,8 @@ export const es: Record<MessageKey, string> = {
   'health.weighToday': 'Hoy es día de pesaje — en ayunas, a la báscula.',
   'health.weighDayLabel': 'Día de pesaje',
   'health.weighTimeLabel': 'Hora del recordatorio',
+  'health.weighReminderInexact': 'Las alarmas exactas están desactivadas. El recordatorio está programado, pero puede retrasarse.',
+  'health.weighReminderEnableExact': 'Permitir alarmas exactas',
   'health.weighRecord': 'Registrar peso',
   'health.weighSaved': 'Peso registrado: {value} kg',
   'health.weighUnit': 'kg',

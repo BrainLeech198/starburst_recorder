@@ -9,8 +9,10 @@
  * 每天最多提醒一次（localStorage 记到今天的日期），免得开一次弹一次。
  */
 import { translate } from '@/shared/i18n/context'
-import { notifyNow } from '@/platform/notify'
+import { Capacitor } from '@capacitor/core'
+import { notifyNow, requestNotificationPermission } from '@/platform/notify'
 import { isWeighDay } from './healthMath'
+import { weighNotificationSchedule } from './weighReminderMath'
 import { todayKey } from '@/core/utils/dateKey'
 import type { HealthProfile } from '@/core/db/schema'
 
@@ -74,35 +76,93 @@ export function maybeNotifyWeighDay(profile: HealthProfile | undefined): void {
     })
 }
 
-/**
- * 安卓：按「每周 + 时刻」排一条系统通知。设了就重排，取消设置就删掉。
- * 桌面 / 浏览器没有这个插件，这里直接不动。
- */
-export async function syncWeighReminder(profile: HealthProfile | undefined): Promise<void> {
+export type WeighReminderPermission = 'granted' | 'denied' | 'failed'
+export type WeighReminderSyncResult =
+  | 'not-native'
+  | 'pending'
+  | 'cancelled'
+  | 'permission-denied'
+  | 'scheduled'
+  | 'scheduled-inexact'
+  | 'failed'
+
+type WeighReminderSettings = Pick<HealthProfile, 'weighDay' | 'weighTime'>
+let syncQueue: Promise<void> = Promise.resolve()
+
+/** 用户点选称重日 / 时间时调用，确保权限请求发生在明确的用户操作中。 */
+export async function requestWeighReminderPermission(): Promise<WeighReminderPermission> {
   try {
-    const { Capacitor } = await import('@capacitor/core')
-    if (!Capacitor.isNativePlatform()) return
-    const { LocalNotifications } = await import('@capacitor/local-notifications')
-    const permission = await LocalNotifications.checkPermissions()
-    if (permission.display !== 'granted') return
-    if (!profile?.weighDay) {
-      await LocalNotifications.cancel({ notifications: [{ id: WEIGH_NOTIFICATION_ID }] })
-      return
+    if (!Capacitor.isNativePlatform()) {
+      return (await requestNotificationPermission()) ? 'granted' : 'denied'
     }
-    const { hour, minute } = hourMinute(profile.weighTime)
-    await LocalNotifications.schedule({
+
+    const { LocalNotifications } = await import('@capacitor/local-notifications')
+    let permission = await LocalNotifications.checkPermissions()
+    if (permission.display !== 'granted') permission = await LocalNotifications.requestPermissions()
+    return permission.display === 'granted' ? 'granted' : 'denied'
+  } catch {
+    return 'failed'
+  }
+}
+
+/**
+ * 安卓：按「每周 + 时刻」排一条系统通知。权限检查、取消旧项、排程结果都明确返回，
+ * 供页面提示用户；应用壳会在启动、档案设置变化和从系统设置返回时自动调用。
+ */
+export function syncWeighReminder(
+  settings: WeighReminderSettings | null | undefined,
+  options: { requestExactAlarm?: boolean } = {},
+): Promise<WeighReminderSyncResult> {
+  const pending = syncQueue.then(
+    () => performWeighReminderSync(settings, options),
+    () => performWeighReminderSync(settings, options),
+  )
+  syncQueue = pending.then(() => undefined, () => undefined)
+  return pending
+}
+
+async function performWeighReminderSync(
+  settings: WeighReminderSettings | null | undefined,
+  options: { requestExactAlarm?: boolean },
+): Promise<WeighReminderSyncResult> {
+  try {
+    if (!Capacitor.isNativePlatform()) return 'not-native'
+    if (settings === undefined) return 'pending'
+
+    const { LocalNotifications } = await import('@capacitor/local-notifications')
+    // 先取消旧排程，避免权限关闭或新排程失败时仍在旧时间响。
+    await LocalNotifications.cancel({ notifications: [{ id: WEIGH_NOTIFICATION_ID }] })
+    if (!settings?.weighDay) return 'cancelled'
+
+    const permission = await LocalNotifications.checkPermissions()
+    if (permission.display !== 'granted') return 'permission-denied'
+
+    const schedule = weighNotificationSchedule(settings.weighDay, settings.weighTime)
+    if (!schedule) return 'failed'
+    let isExactNotification: boolean | undefined
+    if (Capacitor.getPlatform() === 'android') {
+      let exactPermission = await LocalNotifications.checkExactNotificationSetting()
+      if (exactPermission.exact_alarm !== 'granted' && options.requestExactAlarm) {
+        exactPermission = await LocalNotifications.changeExactNotificationSetting()
+      }
+      // 启动时不擅自打开系统设置；精确闹钟不可用时仍排一个可送达的非精确提醒。
+      isExactNotification = exactPermission.exact_alarm === 'granted'
+    }
+
+    const result = await LocalNotifications.schedule({
       notifications: [
         {
           id: WEIGH_NOTIFICATION_ID,
           title: weighTitle(),
           body: weighBody(),
-          // 插件的 weekday 是 1=周日；我们的 weighDay 是 1=周一，取个模换算
-          schedule: { every: 'week', on: { weekday: (profile.weighDay % 7) + 1, hour, minute } },
+          schedule,
+          ...(isExactNotification === undefined ? {} : { isExactNotification }),
         },
       ],
     })
+    return result.warning || isExactNotification === false ? 'scheduled-inexact' : 'scheduled'
   } catch {
-    // 插件不可用（没装、模拟器不支持）就静默：应用内横幅还在
+    return 'failed'
   }
 }
 

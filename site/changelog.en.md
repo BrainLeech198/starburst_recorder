@@ -1,3 +1,17 @@
+## 0.23.7 · 2026-11-22
+
+Fixes Android weigh reminders that were not being scheduled reliably.
+
+### Fixes
+
+- **Sync weigh reminders automatically** — reminders are resynced at app launch, when the weigh day or time changes, and when returning from system settings. The app requests notification permission when you first set a reminder.
+- **Show exact-alarm status** — a reminder is still scheduled when exact alarms are unavailable, with a note that delivery may be delayed and a shortcut to system settings.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.7-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.7/starburst-recorder-0.23.7-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.7/starburst-recorder-0.23.7-setup.exe)
+- Android 10+: [starburst-recorder-0.23.7.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.7/starburst-recorder-0.23.7.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.7/starburst-recorder-0.23.7.apk)
+
 ## 0.23.6 · 2026-11-22
 
 Fixes the weight trend chart not reflecting recent readings.

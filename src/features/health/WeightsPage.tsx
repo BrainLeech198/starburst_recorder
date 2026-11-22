@@ -5,8 +5,9 @@
  * 不在首页铺「最近称重」列表。称重日 / 提醒时刻这类「管理」也搬到这里。
  */
 import TimeMeta from '@/shared/ui/TimeMeta'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { Link, useSearchParams } from 'react-router'
 import type { HealthProfile, WeighIn } from '@/core/db/schema'
 import { useLiveQuery } from '@/core/db/live'
@@ -46,6 +47,9 @@ import {
   recordsCount,
 } from '@/features/records/recordImport'
 import { describeSave, saveTextFile } from '@/platform/saveFile'
+import { requestWeighReminderPermission, syncWeighReminder } from './weighNotify'
+
+type NativeReminderState = 'loading' | 'needs-permission' | 'denied' | 'granted' | 'inexact' | 'failed'
 
 /** 1=周一 … 7=周日；date.weekdayShortN 的编号是 JS 的 0=周日，取个模对上 */
 function weighDayLabelKey(day: number): MessageKey {
@@ -69,6 +73,7 @@ function withWeighIns(base: HealthProfile, list: WeighIn[]): HealthProfile {
 export default function WeightsPage() {
   const { t } = useI18n()
   const { showToast } = useToast()
+  const native = Capacitor.isNativePlatform()
   const [searchParams, setSearchParams] = useSearchParams()
   const dateParam = searchParams.get('date')
   const dayKey = isDateKey(dateParam) ? dateParam : todayKey()
@@ -85,6 +90,29 @@ export default function WeightsPage() {
   const batch = useBatchSelect()
   const [batchDeleting, setBatchDeleting] = useState(false)
   const importInputRef = useRef<HTMLInputElement | null>(null)
+  const [reminderState, setReminderState] = useState<NativeReminderState>('loading')
+
+  useEffect(() => {
+    if (!native) return
+    let active = true
+    void (async () => {
+      const { LocalNotifications } = await import('@capacitor/local-notifications')
+      const permission = await LocalNotifications.checkPermissions()
+      if (permission.display !== 'granted') {
+        if (active) setReminderState(permission.display === 'denied' ? 'denied' : 'needs-permission')
+        return
+      }
+      if (Capacitor.getPlatform() === 'android') {
+        const exact = await LocalNotifications.checkExactNotificationSetting()
+        if (active) setReminderState(exact.exact_alarm === 'granted' ? 'granted' : 'inexact')
+        return
+      }
+      if (active) setReminderState('granted')
+    })().catch(() => {
+      if (active) setReminderState('failed')
+    })
+    return () => { active = false }
+  }, [native])
 
   const weighIns = profileWeighIns(profile)
   const entry = weighIns.find((item) => item.dateKey === dayKey) ?? null
@@ -140,7 +168,42 @@ export default function WeightsPage() {
 
   async function saveSettings(patch: Partial<HealthProfile>) {
     if (!profile) return
-    await saveHealthProfile({ ...profile, ...patch })
+    const updated = { ...profile, ...patch }
+    const changesReminder = patch.weighDay !== undefined || patch.weighTime !== undefined
+    const permission = changesReminder && updated.weighDay
+      ? await requestWeighReminderPermission()
+      : null
+    await saveHealthProfile(updated)
+    if (!changesReminder) return
+
+    const result = await syncWeighReminder(updated, {
+      // 首次启用时可在用户点击链中打开 Android「闹钟和提醒」系统设置。
+      requestExactAlarm: Boolean(updated.weighDay && !profile.weighDay),
+    })
+    if (permission === 'denied' || result === 'permission-denied') {
+      setReminderState('denied')
+      showToast({ message: t('push.stateDenied') })
+    } else if (permission === 'failed' || result === 'failed') {
+      setReminderState('failed')
+      showToast({ message: t('push.enableFailed') })
+    } else if (result === 'scheduled-inexact') {
+      setReminderState('inexact')
+      showToast({ message: t('health.weighReminderInexact') })
+    } else if (result === 'scheduled') {
+      setReminderState('granted')
+    }
+  }
+
+  async function enableExactWeighReminder() {
+    if (!profile?.weighDay) return
+    const result = await syncWeighReminder(profile, { requestExactAlarm: true })
+    if (result === 'scheduled') setReminderState('granted')
+    else if (result === 'scheduled-inexact') showToast({ message: t('health.weighReminderInexact') })
+    else if (result === 'permission-denied') setReminderState('denied')
+    else {
+      setReminderState('failed')
+      showToast({ message: t('push.enableFailed') })
+    }
   }
 
   /** 单条称重导出：结构和「挑选记录导出」的 JSON 一样 */
@@ -458,6 +521,28 @@ export default function WeightsPage() {
               className={INPUT + ' w-36'}
             />
           </div>
+          {native && profile.weighDay && reminderState !== 'loading' && reminderState !== 'granted' && (
+            <div className="mt-3 rounded-xl border border-line px-3 py-2.5">
+              <p className="m-0 text-xs text-muted">
+                {reminderState === 'inexact'
+                  ? t('health.weighReminderInexact')
+                  : reminderState === 'denied'
+                    ? t('push.stateDenied')
+                    : reminderState === 'failed'
+                      ? t('push.enableFailed')
+                      : t('push.stateOff')}
+              </p>
+              {reminderState === 'inexact' ? (
+                <button type="button" onClick={() => void enableExactWeighReminder()} className={`${OUTLINE_BUTTON} mt-2`}>
+                  {t('health.weighReminderEnableExact')}
+                </button>
+              ) : (
+                <Link to="/me/settings/reminders" className={`${OUTLINE_BUTTON} mt-2`}>
+                  {t('push.enable')}
+                </Link>
+              )}
+            </div>
+          )}
         </section>
       )}
 

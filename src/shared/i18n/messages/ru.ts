@@ -72,6 +72,8 @@ export const ru: Record<MessageKey, string> = {
   'health.weighToday': 'Сегодня день взвешивания — натощак на весы.',
   'health.weighDayLabel': 'День взвешивания',
   'health.weighTimeLabel': 'Время напоминания',
+  'health.weighReminderInexact': 'Точные будильники не разрешены. Напоминание запланировано, но может задержаться.',
+  'health.weighReminderEnableExact': 'Разрешить точные будильники',
   'health.weighRecord': 'Записать вес',
   'health.weighSaved': 'Вес записан: {value} кг',
   'health.weighUnit': 'кг',

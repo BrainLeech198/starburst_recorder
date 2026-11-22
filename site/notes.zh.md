@@ -1,5 +1,19 @@
 本地优先的个人记录工具，内置 AI：随手记一句今天，AI 会把它整理成一篇完整的日记。不用注册、没有云端，每一条记录都留在这台设备上。AI 用的是你自己准备的模型和 Key。
 
+## 0.23.7 · 2026-11-22
+
+修复 Android 称重提醒没有稳定排程的问题。
+
+### 修复
+
+- **称重提醒自动同步**：应用启动、称重日 / 时间变化，以及从系统设置返回时都会重新同步提醒；首次设置时会请求通知权限。
+- **精确闹钟状态可见**：未获准精确闹钟时仍会安排提醒，并提示可能延迟；可从体重页继续打开系统授权。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.23.7-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.7/starburst-recorder-0.23.7-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.7/starburst-recorder-0.23.7-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.7.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.7/starburst-recorder-0.23.7.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.7/starburst-recorder-0.23.7.apk)
+
 ## 0.23.6 · 2026-11-22
 
 修复体重趋势图未反映最近称重的问题。

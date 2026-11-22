@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useLiveQuery } from '@/core/db/live'
 import { formatDate, isDateKey, shiftDay, todayKey } from '@/core/utils/dateKey'
@@ -14,7 +14,6 @@ import WeighInCard from './WeighInCard'
 import SleepBar from './SleepBar'
 import { intakeReviewKey, sleepReviewKey, sleepWakeMessage } from './healthViz'
 import { useDerivedTdee } from './useDerivedTdee'
-import { maybeNotifyWeighDay, syncWeighReminder } from './weighNotify'
 import SleepDialog from './SleepDialog'
 import HealthDeviceImportDialog from './HealthDeviceImportDialog'
 import { canImportFromHealthApp } from './deviceHealth'
@@ -60,11 +59,6 @@ export default function HealthPage() {
   /** 这一夜的睡眠；null = 没记，undefined = 还在查 */
   const sleep = useLiveQuery(async () => (await sleepOfDay(dayKey)) ?? null, [dayKey])
   const derivedTdee = useDerivedTdee(profile)
-  // 称重日提醒：应用内横幅由 WeighInCard 负责，这里补系统通知（桌面到点弹、安卓排本地通知）
-  useEffect(() => {
-    maybeNotifyWeighDay(profile)
-    void syncWeighReminder(profile)
-  }, [profile])
   const [sleepDialogOpen, setSleepDialogOpen] = useState(false)
   /** 手机健康应用导入的弹窗；只在安卓原生端有入口 */
   const [importOpen, setImportOpen] = useState(false)

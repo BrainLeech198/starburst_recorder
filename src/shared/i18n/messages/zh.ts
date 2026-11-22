@@ -73,6 +73,8 @@ export const zh = {
   'health.weighToday': '今天是称重日，记得空腹上秤记一笔。',
   'health.weighDayLabel': '称重日',
   'health.weighTimeLabel': '提醒时刻',
+  'health.weighReminderInexact': '系统没有精确闹钟权限，提醒已安排但可能延迟。',
+  'health.weighReminderEnableExact': '开启精确提醒',
   'health.weighRecord': '记体重',
   'health.weighSaved': '体重已记下：{value} kg',
   'health.weighUnit': 'kg',

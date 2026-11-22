@@ -4,6 +4,7 @@ import FloatingAssistant from '@/features/assistant/FloatingAssistant'
 import ScheduleReminderHost from '@/features/schedule/ScheduleReminderHost'
 import PushReminderHost from '@/features/notifications/PushReminderHost'
 import TrainingReminderHost from '@/features/training/TrainingReminderHost'
+import WeighReminderHost from '@/features/health/WeighReminderHost'
 import NoticePopup from '@/features/notices/NoticePopup'
 import { useI18n } from '@/shared/i18n/context'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
@@ -311,6 +312,7 @@ export default function AppShell() {
       <ScheduleReminderHost />
       <PushReminderHost />
       <TrainingReminderHost />
+      <WeighReminderHost />
     </div>
   )
 }
