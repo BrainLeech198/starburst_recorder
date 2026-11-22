@@ -1,3 +1,18 @@
+## 0.23.8 · 2026-11-22
+
+Food calories stand out in the library; changing an intake portion recalculates nutrition, and the food picker stays interactive while photos load.
+
+### Improvements
+
+- **Show calories per serving** — food cards calculate calories from the configured serving, or clearly show the per-100 g value when no serving is set. Meal cards highlight calories for the saved recipe as one serving.
+- **Recalculate edited portions** — changing grams on a regular intake updates untouched nutrition values in proportion to the original entry and the daily calorie total; manually edited fields stay as entered.
+- **Keep the picker responsive** — photo placeholders in the intake food library can be clicked while images are loading, so the interface does not wait for photo reads.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.8-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.8/starburst-recorder-0.23.8-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.8/starburst-recorder-0.23.8-setup.exe)
+- Android 10+: [starburst-recorder-0.23.8.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.8/starburst-recorder-0.23.8.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.8/starburst-recorder-0.23.8.apk)
+
 ## 0.23.7 · 2026-11-22
 
 Fixes Android weigh reminders that were not being scheduled reliably.

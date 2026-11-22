@@ -537,15 +537,19 @@ export default function FoodLibraryPage() {
                         <span className="truncate">{food.name}</span>
                         <span className="shrink-0 font-mono text-[10px] text-muted">{food.code}</span>
                       </p>
+                      <p className="m-0 mt-1 text-sm font-semibold tabular-nums text-brand">
+                        {food.servingGrams && food.servingGrams > 0
+                          ? t('foods.servingKcal', {
+                              name: food.servingName || t('foods.standardServing'),
+                              grams: formatNum(food.servingGrams),
+                              kcal: formatNum((food.kcal * food.servingGrams) / 100),
+                            })
+                          : t('foods.kcalPer100', { kcal: formatNum(food.kcal) })}
+                      </p>
                       <p className="m-0 mt-0.5 text-xs text-muted">
-                        {formatNum(food.kcal)} kcal / 100g · {t('foods.protein')} {formatNum(food.protein)} ·{' '}
+                        {t('foods.per100')} · {t('foods.protein')} {formatNum(food.protein)} ·{' '}
                         {t('foods.carbs')} {formatNum(food.carbs)} · {t('foods.fat')} {formatNum(food.fat)}
                       </p>
-                      {food.servingName && food.servingGrams && (
-                        <p className="m-0 mt-0.5 text-xs text-muted">
-                          {food.servingName} · {food.servingGrams} g
-                        </p>
-                      )}
                     </button>
                     {food.tags.length > 0 && (
                       <TagEditor tags={food.tags} onTagClick={setTagFilter} className="mt-1" />
@@ -661,11 +665,13 @@ export default function FoodLibraryPage() {
                         </span>
                       )}
                     </p>
+                    <p className="m-0 mt-1 text-sm font-semibold tabular-nums text-brand">
+                      {t('foods.mealServingKcal', { kcal: formatNum(totals.kcal) })}
+                    </p>
                     <p className="m-0 mt-0.5 text-xs text-muted">
-                      {t('foods.mealTotal', {
-                        kcal: totals.kcal,
-                        protein: totals.protein,
-                        grams: totals.grams,
+                      {t('foods.mealMacros', {
+                        protein: formatNum(totals.protein),
+                        grams: formatNum(totals.grams),
                       })}
                     </p>
                   </button>

@@ -1,8 +1,8 @@
 /**
  * 编辑单条摄入：名称、时间、份量与四项营养值。
  *
- * 普通食物直接改数值；套餐记录改的是成分克数，营养和合计按原比例重算，
- * 这样历史快照不会在编辑后和成分对不上。
+ * 普通记录改份量时按原快照比例重算未手动调整的营养值；套餐记录改成分克数，
+ * 营养和合计按每项原比例重算，这样历史快照不会在编辑后和成分对不上。
  */
 import { useState } from 'react'
 import type { HealthFood, HealthIntake, IntakeComponent } from '@/core/db/schema'
@@ -21,6 +21,8 @@ interface ComponentDraft {
   base: IntakeComponent
   text: string
 }
+
+type IntakeMacroField = 'kcal' | 'protein' | 'carbs' | 'fat'
 
 function isClock(value: string) {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(value)
@@ -59,6 +61,12 @@ export default function IntakeEditDialog({
   const [proteinText, setProteinText] = useState(String(intake.protein))
   const [carbsText, setCarbsText] = useState(String(intake.carbs))
   const [fatText, setFatText] = useState(String(intake.fat))
+  const [manualMacros, setManualMacros] = useState<Record<IntakeMacroField, boolean>>({
+    kcal: false,
+    protein: false,
+    carbs: false,
+    fat: false,
+  })
   const [componentDrafts, setComponentDrafts] = useState<ComponentDraft[]>(
     (intake.components ?? []).map((component) => ({
       base: component,
@@ -81,6 +89,26 @@ export default function IntakeEditDialog({
     }
   })
   const componentTotals = sumMacros(components)
+
+  function handleMacroChange(field: IntakeMacroField, value: string) {
+    setManualMacros((current) => ({ ...current, [field]: true }))
+    if (field === 'kcal') setKcalText(value)
+    else if (field === 'protein') setProteinText(value)
+    else if (field === 'carbs') setCarbsText(value)
+    else setFatText(value)
+  }
+
+  function handleGramsChange(value: string) {
+    setGramsText(value)
+    const nextGrams = positiveNumber(value)
+    if (nextGrams === null || intake.grams <= 0) return
+
+    const ratio = nextGrams / intake.grams
+    if (!manualMacros.kcal) setKcalText(String(round2(intake.kcal * ratio)))
+    if (!manualMacros.protein) setProteinText(String(round2(intake.protein * ratio)))
+    if (!manualMacros.carbs) setCarbsText(String(round2(intake.carbs * ratio)))
+    if (!manualMacros.fat) setFatText(String(round2(intake.fat * ratio)))
+  }
 
   const grams = positiveNumber(gramsText)
   const kcal = macroNumber(kcalText)
@@ -177,7 +205,7 @@ export default function IntakeEditDialog({
             <span className="text-xs text-muted">{t('intake.grams')}</span>
             <input
               value={gramsText}
-              onChange={(event) => setGramsText(event.target.value)}
+              onChange={(event) => handleGramsChange(event.target.value)}
               inputMode="decimal"
               className={INPUT + ' mt-1 w-full tabular-nums'}
             />
@@ -228,7 +256,7 @@ export default function IntakeEditDialog({
               <span className="text-xs text-muted">{t('foods.kcal')}</span>
               <input
                 value={kcalText}
-                onChange={(event) => setKcalText(event.target.value)}
+                onChange={(event) => handleMacroChange('kcal', event.target.value)}
                 inputMode="decimal"
                 className={INPUT + ' mt-1 w-full tabular-nums'}
               />
@@ -237,7 +265,7 @@ export default function IntakeEditDialog({
               <span className="text-xs text-muted">{t('foods.protein')}</span>
               <input
                 value={proteinText}
-                onChange={(event) => setProteinText(event.target.value)}
+                onChange={(event) => handleMacroChange('protein', event.target.value)}
                 inputMode="decimal"
                 className={INPUT + ' mt-1 w-full tabular-nums'}
               />
@@ -246,7 +274,7 @@ export default function IntakeEditDialog({
               <span className="text-xs text-muted">{t('foods.carbs')}</span>
               <input
                 value={carbsText}
-                onChange={(event) => setCarbsText(event.target.value)}
+                onChange={(event) => handleMacroChange('carbs', event.target.value)}
                 inputMode="decimal"
                 className={INPUT + ' mt-1 w-full tabular-nums'}
               />
@@ -255,7 +283,7 @@ export default function IntakeEditDialog({
               <span className="text-xs text-muted">{t('foods.fat')}</span>
               <input
                 value={fatText}
-                onChange={(event) => setFatText(event.target.value)}
+                onChange={(event) => handleMacroChange('fat', event.target.value)}
                 inputMode="decimal"
                 className={INPUT + ' mt-1 w-full tabular-nums'}
               />

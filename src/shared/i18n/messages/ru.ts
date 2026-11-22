@@ -152,7 +152,7 @@ export const ru: Record<MessageKey, string> = {
   'health.intakeEditComponents': 'Состав набора',
   'health.intakeEditTotal': 'Итого {grams} г · {kcal} ккал · белки {protein} г',
   'health.intakeEditHint':
-    'При изменении порции пищевая ценность не пересчитывается автоматически — проверьте её.',
+    'При изменении порции значения, не изменённые вручную, пересчитываются пропорционально; ручные правки сохраняются.',
   'health.intakeEditComponentHint':
     'Изменение граммовки компонента пересчитывает ценность и итог пропорционально.',
   'health.intakeEditSave': 'Сохранить',
@@ -344,6 +344,11 @@ export const ru: Record<MessageKey, string> = {
   'foods.mealSearch': 'Поиск продуктов…',
   'foods.mealNoMatch': 'Ничего не найдено. Сначала создайте продукт во вкладке «Продукты».',
   'foods.mealTotal': 'Итого {kcal} ккал · белки {protein} г · всего {grams} г',
+  'foods.standardServing': 'Стандартная порция',
+  'foods.servingKcal': '{name} ({grams} г): {kcal} ккал',
+  'foods.kcalPer100': 'На 100 г: {kcal} ккал',
+  'foods.mealServingKcal': 'Одна порция: {kcal} ккал',
+  'foods.mealMacros': 'Белки {protein} г · всего {grams} г',
   'foods.mealMissing': 'Не хватает: {n} шт.',
   'foods.mealMissingBlocked': 'Некоторые продукты ({n} шт.) удалены — уберите их перед сохранением.',
   'foods.mealNameRequired': 'Сначала дайте набору название.',

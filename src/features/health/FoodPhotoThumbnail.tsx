@@ -84,12 +84,29 @@ export default function FoodPhotoThumbnail({
     )
   }
   if (!photo) {
-    return (
+    const placeholder = (
       <span
         ref={ref}
         aria-hidden="true"
         className={`${className} shrink-0 rounded-lg border border-line bg-surface-2`}
       />
+    )
+    if (onClick) {
+      return (
+        <span className={`inline-flex shrink-0 ${wrapperClassName}`}>
+          <button
+            type="button"
+            onClick={onClick}
+            aria-label={t('photo.view')}
+            className="overflow-hidden rounded-lg border border-line transition-opacity hover:opacity-80"
+          >
+            {placeholder}
+          </button>
+        </span>
+      )
+    }
+    return (
+      <span className={`inline-flex shrink-0 ${wrapperClassName}`}>{placeholder}</span>
     )
   }
   if (onClick) {

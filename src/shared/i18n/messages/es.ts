@@ -152,7 +152,7 @@ export const es: Record<MessageKey, string> = {
   'health.intakeEditComponents': 'Componentes del conjunto',
   'health.intakeEditTotal': 'Total {grams} g · {kcal} kcal · proteína {protein} g',
   'health.intakeEditHint':
-    'Cambiar la porción no recalcula los valores nutricionales; revísalos también.',
+    'Al cambiar la porción, se recalculan proporcionalmente los valores no editados; los cambios manuales se conservan.',
   'health.intakeEditComponentHint':
     'Cambiar los gramos de un componente recalcula los valores y el total en proporción.',
   'health.intakeEditSave': 'Guardar',
@@ -346,6 +346,11 @@ export const es: Record<MessageKey, string> = {
   'foods.mealSearch': 'Buscar alimentos…',
   'foods.mealNoMatch': 'Sin resultados. Créalo antes en «Alimentos».',
   'foods.mealTotal': 'Total {kcal} kcal · proteína {protein} g · {grams} g',
+  'foods.standardServing': 'Porción estándar',
+  'foods.servingKcal': '{name} ({grams} g): {kcal} kcal',
+  'foods.kcalPer100': 'Por 100 g: {kcal} kcal',
+  'foods.mealServingKcal': 'Una ración: {kcal} kcal',
+  'foods.mealMacros': 'Proteína {protein} g · total {grams} g',
   'foods.mealMissing': 'Faltan {n}',
   'foods.mealMissingBlocked': 'Hay {n} alimentos que ya no existen. Quítalos antes de guardar.',
   'foods.mealNameRequired': 'Primero ponle un nombre al menú.',

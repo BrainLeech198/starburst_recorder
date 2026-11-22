@@ -152,7 +152,7 @@ export const de: Record<MessageKey, string> = {
   'health.intakeEditComponents': 'Menü-Bestandteile',
   'health.intakeEditTotal': 'Gesamt {grams} g · {kcal} kcal · Protein {protein} g',
   'health.intakeEditHint':
-    'Eine geänderte Portion berechnet die Nährwerte nicht automatisch neu – bitte mitprüfen.',
+    'Bei Portionsänderung werden nicht manuell geänderte Nährwerte proportional neu berechnet; manuelle Werte bleiben erhalten.',
   'health.intakeEditComponentHint':
     'Geänderte Grammzahlen der Bestandteile berechnen Nährwerte und Summe im gleichen Verhältnis neu.',
   'health.intakeEditSave': 'Speichern',
@@ -345,6 +345,11 @@ export const de: Record<MessageKey, string> = {
   'foods.mealSearch': 'Lebensmittel suchen …',
   'foods.mealNoMatch': 'Nichts gefunden, erstelle eins unter „Lebensmittel“.',
   'foods.mealTotal': 'Gesamt {kcal} kcal · Protein {protein} g · {grams} g',
+  'foods.standardServing': 'Standardportion',
+  'foods.servingKcal': '{name} ({grams} g): {kcal} kcal',
+  'foods.kcalPer100': 'Pro 100 g: {kcal} kcal',
+  'foods.mealServingKcal': 'Eine Portion: {kcal} kcal',
+  'foods.mealMacros': 'Protein {protein} g · insgesamt {grams} g',
   'foods.mealMissing': '{n} fehlen',
   'foods.mealMissingBlocked': '{n} Lebensmittel wurden gelöscht. Entferne sie vor dem Speichern.',
   'foods.mealNameRequired': 'Gib dem Menü zuerst einen Namen.',

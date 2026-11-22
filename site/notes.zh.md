@@ -1,5 +1,20 @@
 本地优先的个人记录工具，内置 AI：随手记一句今天，AI 会把它整理成一篇完整的日记。不用注册、没有云端，每一条记录都留在这台设备上。AI 用的是你自己准备的模型和 Key。
 
+## 0.23.8 · 2026-11-22
+
+食物库热量更醒目；编辑记录份量会自动重算营养，记录时图片加载期间也能继续操作。
+
+### 改进
+
+- **一份热量突出显示**：食物卡片按常用份量折算热量，未设置常用份量时显示每 100g；套餐卡片突出显示整份配方的热量。
+- **编辑份量自动重算**：普通摄入记录改克数后，未手动调整的营养值会按原记录比例更新并计入当天热量；手动改过的字段会保留。
+- **照片加载时继续交互**：记录页食物库的照片占位加载中即可点击查看，不必等图片读取完成才能操作。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.23.8-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.8/starburst-recorder-0.23.8-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.8/starburst-recorder-0.23.8-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.8.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.8/starburst-recorder-0.23.8.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.8/starburst-recorder-0.23.8.apk)
+
 ## 0.23.7 · 2026-11-22
 
 修复 Android 称重提醒没有稳定排程的问题。
