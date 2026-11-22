@@ -21,8 +21,8 @@ Record cards now include a QR code to the official download page, where recipien
 
 ### Downloads
 
-- Windows 10/11: [starburst-recorder-0.23.4-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4-setup.exe)
-- Android 10+: [starburst-recorder-0.23.4.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4.apk)
+- Windows 10/11: **The v0.23.4 Windows installer can open to a black window. Use v0.23.5 instead.** [Download the fix](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.5/starburst-recorder-0.23.5-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.5/starburst-recorder-0.23.5-setup.exe)
+- Android 10+: [starburst-recorder-0.23.4.apk](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4.apk) (release-signed)
 
 ## 0.23.3 · 2026-11-21
 

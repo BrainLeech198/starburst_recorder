@@ -23,8 +23,8 @@
 
 ### 下载
 
-- Windows 10/11：[starburst-recorder-0.23.4-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4-setup.exe)
-- Android 10 以上：[starburst-recorder-0.23.4.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4.apk)
+- Windows 10/11：**此版本的 Windows 安装包会启动黑屏，请改用 v0.23.5。**[下载修复版](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.5/starburst-recorder-0.23.5-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.5/starburst-recorder-0.23.5-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.4.apk](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4.apk)（正式签名）
 
 ## 0.23.3 · 2026-11-21
 
