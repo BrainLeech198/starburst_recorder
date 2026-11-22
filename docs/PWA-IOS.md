@@ -408,7 +408,7 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
 
 ---
 
-## 10. 当前部署状态（2026-11-21）
+## 10. 当前部署状态（2026-11-22）
 
 | 项目 | 值 |
 | --- | --- |
@@ -506,3 +506,4 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
 - **2026-11-21 v0.23.3**：标签 `v0.23.3`（产品提交 `b182915`）已部署到生产 Pages，地址 `https://1e32ebd2.starburst-recorder.pages.dev`，部署 ID `1e32ebd2-5186-4c04-affb-266118b8d4a6`，构建号 `mwqbkosb`；正式域名线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并控制页面，推送鉴权与 `/health` 通过，测试订阅已删除。部署使用 Wrangler 4.150.0。
 
 - **2026-11-22 v0.23.4**：标签 `v0.23.4`（发布准备提交 `17fd213`）已部署到生产 Pages，地址 `https://00efce37.starburst-recorder.pages.dev`，部署 ID `00efce37-c3e5-4047-a0b1-06612ad6eabe`，构建号 `mwrmtady`；正式域名线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并控制页面，推送鉴权与 `/health` 通过，测试订阅已删除。Wrangler 4.161.0。
+- **2026-11-22 v0.23.5**：标签 `v0.23.5`（发布准备提交 `77ae046`）已部署到生产 Pages，地址 `https://cd91c583.starburst-recorder.pages.dev`，部署 ID `cd91c583-9521-439e-8220-f4f874cf427f`，构建号 `mwrozk1t`；正式域名线上验收 10/10、本地 PWA 探针 20/20；Service Worker 已激活并控制页面，推送鉴权与 `/health` 通过，测试订阅已删除。Wrangler 4.161.0。
