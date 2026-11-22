@@ -10,6 +10,7 @@ import { GHOST_BUTTON, OUTLINE_BUTTON, SOLID_BUTTON } from '@/shared/ui/buttonSt
 import { Icon } from '@/shared/ui/icons'
 import { useToast } from '@/app/providers/ToastProvider'
 import { useI18n } from '@/shared/i18n/context'
+import { SITE_URL } from '@/core/links'
 import { describeSave, saveBinaryFile, saveTextFile } from '@/platform/saveFile'
 import { renderSVG } from 'uqr'
 import {
@@ -25,6 +26,16 @@ type QrState = { kind: 'ready'; svg: string } | { kind: 'tooLarge' } | null
 type RecordImageState =
   | { doc: ShareDoc; kind: 'ready'; bytes: Uint8Array; url: string }
   | { doc: ShareDoc; kind: 'error' }
+
+function createDownloadQrSvg(): string {
+  return renderSVG(new URL('#download', SITE_URL).toString(), {
+    ecc: 'H',
+    border: 4,
+    pixelSize: 3,
+    whiteColor: '#ffffff',
+    blackColor: '#111111',
+  })
+}
 
 async function svgToPng(svg: string): Promise<Uint8Array> {
   const image = new Image()
@@ -121,15 +132,15 @@ export default function ShareDialog({ doc, onClose }: { doc: ShareDoc; onClose: 
   useEffect(() => {
     let cancelled = false
     let imageUrl: string | null = null
-    void renderRecordCardImage(doc, t)
-      .then((bytes) => {
-        if (cancelled) return
-        imageUrl = URL.createObjectURL(new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer], { type: 'image/png' }))
-        setRecordImageState({ doc, kind: 'ready', bytes, url: imageUrl })
-      })
-      .catch(() => {
-        if (!cancelled) setRecordImageState({ doc, kind: 'error' })
-      })
+    void (async () => {
+      const downloadQrSvg = createDownloadQrSvg()
+      const bytes = await renderRecordCardImage(doc, t, downloadQrSvg)
+      if (cancelled) return
+      imageUrl = URL.createObjectURL(new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer], { type: 'image/png' }))
+      setRecordImageState({ doc, kind: 'ready', bytes, url: imageUrl })
+    })().catch(() => {
+      if (!cancelled) setRecordImageState({ doc, kind: 'error' })
+    })
     return () => {
       cancelled = true
       if (imageUrl) URL.revokeObjectURL(imageUrl)

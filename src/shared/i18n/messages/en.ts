@@ -461,6 +461,7 @@ export const en: Record<MessageKey, string> = {
   'share.saveQrImage': 'Save QR image',
   'share.saveRecordImage': 'Save record card image',
   'share.recordImageFailed': 'Could not create the record image. Try again.',
+  'share.cardQrHint': 'Scan to get Starburst Recorder',
   'share.recordPreview': '{date} · {detail}',
   'share.intakePreview': '{date} {time} · {name} {grams}g · {kcal} kcal',
   'share.financePreview': '{date} · {kind} · {name} · {amount}',

@@ -448,6 +448,7 @@ export const ja: Record<MessageKey, string> = {
   'share.saveQrImage': 'QR画像を保存',
   'share.saveRecordImage': '記録カード画像を保存',
   'share.recordImageFailed': '記録画像を作成できませんでした。もう一度お試しください。',
+  'share.cardQrHint': 'スキャンしてアプリを入手',
   'share.recordPreview': '{date} · {detail}',
   'share.intakePreview': '{date} {time} · {name} {grams}g · {kcal} kcal',
   'share.financePreview': '{date} · {kind} · {name} · {amount}',

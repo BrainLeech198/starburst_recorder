@@ -8,6 +8,7 @@ const CARD_INSET = 56
 const TEXT_LEFT = 112
 const TEXT_WIDTH = WIDTH - TEXT_LEFT * 2
 const BODY_MAX_LINES = 10
+const CARD_QR_SIZE = 159
 
 const CARD_THEMES: Record<ShareKind, { accent: string; panel: string; start: string; end: string }> = {
   diary: { accent: '#765acb', panel: '#f6f1ff', start: '#f5efff', end: '#eaf4f2' },
@@ -117,8 +118,21 @@ async function drawCover(
   context.restore()
 }
 
+async function drawDownloadQr(context: CanvasRenderingContext2D, svg: string): Promise<number> {
+  const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }))
+  try {
+    const image = await loadImage(url)
+    const x = WIDTH - CARD_INSET - 18 - CARD_QR_SIZE
+    const y = HEIGHT - CARD_INSET - 18 - CARD_QR_SIZE
+    context.drawImage(image, x, y, CARD_QR_SIZE, CARD_QR_SIZE)
+    return x
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
 /** Render a compact, text-first image from the same localized preview used for sharing. */
-export async function renderRecordCardImage(doc: ShareDoc, t: Translate): Promise<Uint8Array> {
+export async function renderRecordCardImage(doc: ShareDoc, t: Translate, downloadQrSvg: string): Promise<Uint8Array> {
   const canvas = document.createElement('canvas')
   canvas.width = WIDTH
   canvas.height = HEIGHT
@@ -190,7 +204,7 @@ export async function renderRecordCardImage(doc: ShareDoc, t: Translate): Promis
 
   y += 24
   const panelTop = cover ? 760 : y
-  const panelBottom = HEIGHT - 222
+  const panelBottom = HEIGHT - 233
   const panelHeight = panelBottom - panelTop
   context.strokeStyle = '#e9e8f1'
   context.lineWidth = 2
@@ -227,11 +241,15 @@ export async function renderRecordCardImage(doc: ShareDoc, t: Translate): Promis
   context.strokeStyle = '#e9e8f1'
   context.beginPath()
   context.moveTo(TEXT_LEFT, HEIGHT - 192)
-  context.lineTo(WIDTH - TEXT_LEFT, HEIGHT - 192)
+  context.lineTo(WIDTH - CARD_INSET - 18 - CARD_QR_SIZE - 32, HEIGHT - 192)
   context.stroke()
   context.fillStyle = '#7d7a8a'
   context.font = '500 24px system-ui, sans-serif'
   context.fillText(t('app.name'), TEXT_LEFT, HEIGHT - 154)
+  const qrLeft = await drawDownloadQr(context, downloadQrSvg)
+  context.fillStyle = theme.accent
+  context.font = '500 22px system-ui, sans-serif'
+  context.fillText(t('share.cardQrHint'), TEXT_LEFT, HEIGHT - 118, qrLeft - TEXT_LEFT - 48)
 
   const blob = await toBlob(canvas)
   return new Uint8Array(await blob.arrayBuffer())

@@ -449,6 +449,7 @@ export const de: Record<MessageKey, string> = {
   'share.saveQrImage': 'QR-Bild speichern',
   'share.saveRecordImage': 'Eintragskarte als Bild speichern',
   'share.recordImageFailed': 'Das Eintragsbild konnte nicht erstellt werden. Bitte versuche es erneut.',
+  'share.cardQrHint': 'Scannen, um Starburst Recorder zu erhalten',
   'share.recordPreview': '{date} · {detail}',
   'share.intakePreview': '{date} {time} · {name} {grams}g · {kcal} kcal',
   'share.financePreview': '{date} · {kind} · {name} · {amount}',
