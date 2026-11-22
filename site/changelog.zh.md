@@ -1,3 +1,16 @@
+## 0.23.4 · 2026-11-22
+
+分享记录卡片新增官网二维码，收到图片的人扫码即可查看网页版、Windows 和 Android 获取入口。
+
+### 改进
+
+- **分享图片增加下载入口**：记录卡片右下角的二维码会打开官网下载安装区，只包含下载页地址；弹窗里的分享二维码仍用于导入记录。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.23.4-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.4.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4.apk)
+
 ## 0.23.3 · 2026-11-21
 
 今日体重会及时进入趋势图；趋势详情默认展示全部保留记录，可左右滑动浏览，并提供体重总览。

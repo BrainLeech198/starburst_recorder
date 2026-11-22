@@ -1,3 +1,16 @@
+## 0.23.4 · 2026-11-22
+
+Record cards now include a QR code to the official download page, where recipients can choose the web app, Windows installer, or Android app.
+
+### Improvements
+
+- **Add a download QR to record cards** — the QR in the lower-right corner opens the official download page and contains only its URL; the share QR in the dialog still imports records.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.4-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4-setup.exe)
+- Android 10+: [starburst-recorder-0.23.4.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.4/starburst-recorder-0.23.4.apk)
+
 ## 0.23.3 · 2026-11-21
 
 Today’s weight now appears in the trend chart. The detail page opens with all retained readings, supports horizontal browsing, and includes a weight overview.
