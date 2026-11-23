@@ -9,7 +9,7 @@ import { Link, useNavigate } from 'react-router'
 import type { HealthProfile } from '@/core/db/schema'
 import { saveHealthProfile } from './healthRepo'
 import { formatNum, isWeighDay, round2 } from './healthMath'
-import { todayKey } from '@/core/utils/dateKey'
+import { shiftDay, todayKey } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import { useToast } from '@/app/providers/ToastProvider'
 import { INPUT } from '@/shared/ui/inputStyles'
@@ -127,14 +127,14 @@ export default function WeighInCard({
             >
               {t('health.trendTitle')} ›
             </Link>
-            <div className="flex items-center gap-1">
+            <div className="flex max-w-full flex-wrap items-center justify-end gap-1">
               {TREND_RANGES.map((item) => (
                 <button
                   key={item}
                   type="button"
                   aria-pressed={range === item}
                   onClick={() => setRange(item)}
-                  className={choiceTile(range === item, 'px-2 py-1 text-[11px]')}
+                  className={choiceTile(range === item, 'min-h-11 px-2 py-1 text-[11px]')}
                 >
                   {t('health.trendDays', { n: item })}
                 </button>
@@ -145,6 +145,7 @@ export default function WeighInCard({
           <WeightTrendChart
             items={trend}
             outlierContext={completedWeighIns}
+            dateRange={{ startDateKey: shiftDay(today, -(range - 1)), endDateKey: today }}
             onSelect={(dateKey) => navigate(`/health/weights/trend?date=${dateKey}`)}
           />
         </div>

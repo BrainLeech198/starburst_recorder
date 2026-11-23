@@ -138,7 +138,8 @@ export function weightTrendStats(items: WeighIn[], context: WeighIn[] = items): 
   const sorted = filterWeightOutliers(raw, context)
   if (sorted.length === 0) return null
   const cleanContext = filterWeightOutliers(context)
-  const smoothed = rollingWeightAverages(sorted, cleanContext)
+  // 今天的称重不在 completed context 里，但它必须计入当天自己的 7 日均值。
+  const smoothed = rollingWeightAverages(sorted, [...cleanContext, ...sorted])
   const values = smoothed.map((item) => item.weightKg)
   const first = sorted[0].weightKg
   const latest = sorted[sorted.length - 1].weightKg

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { formatMonthDay } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import type { WeighIn } from '@/core/db/schema'
-import { weightChartGeometry } from './weightTrendChartMath'
+import { weightChartGeometry, type WeightChartDateRange } from './weightTrendChartMath'
 import { filterWeightOutliers, formatNum, rollingWeightAverages } from './healthMath'
 
 /** 折线图的内部分辨率；外层用 w-full 拉伸，手机上也不会糊 */
@@ -24,6 +24,7 @@ export default function WeightTrendChart({
   onSelect,
   tall = false,
   scrollable = false,
+  dateRange,
   className = 'mt-2',
 }: {
   items: WeighIn[]
@@ -37,6 +38,8 @@ export default function WeightTrendChart({
   tall?: boolean
   /** 详情页按点数展开画布，触屏可横向滑动查看完整历史 */
   scrollable?: boolean
+  /** 可见时间范围；有范围时横轴按范围内的真实日历日期定位。 */
+  dateRange?: WeightChartDateRange
   className?: string
 }) {
   const { t } = useI18n()
@@ -58,6 +61,7 @@ export default function WeightTrendChart({
     chartWidth,
     height,
     pad,
+    dateRange,
   )
   const line = trendPoints.map((point) => `${point.x},${point.y}`).join(' ')
   const area =
@@ -67,7 +71,7 @@ export default function WeightTrendChart({
   const midValue = (min + max) / 2
   /** 点少时直接标出每个点的数值，点多时只标最高/最低，选中点另有完整标签 */
   const showAllValues = smoothedItems.length <= 8
-  const middleItem = rawItems[Math.floor((rawItems.length - 1) / 2)]
+  const tickIndices = [...new Set([0, Math.floor((rawItems.length - 1) / 2), rawItems.length - 1])]
   const selectedIndex = selected ? rawItems.findIndex((item) => item.dateKey === selected) : -1
   const selectedPoint = selectedIndex >= 0 ? rawPoints[selectedIndex] : null
   const selectedItem = selectedIndex >= 0 ? rawItems[selectedIndex] : null
@@ -317,18 +321,32 @@ export default function WeightTrendChart({
           </span>
         )}
       </div>
+      {/* 日期刻度与圆点使用同一比例尺；长历史时也跟着图一起横向滚动。 */}
+      <div className="relative mt-1 h-4 text-[11px] tabular-nums text-muted">
+        {tickIndices.map((index, tickIndex) => {
+          const alignment =
+            tickIndices.length === 1 || (tickIndices.length === 3 && tickIndex === 1)
+              ? '-50%'
+              : tickIndex === 0
+                ? '0'
+                : '-100%'
+          return (
+            <span
+              key={rawItems[index].dateKey}
+              className="absolute top-0 whitespace-nowrap"
+              style={{
+                left: percent(rawPoints[index].x, chartWidth),
+                transform: `translateX(${alignment})`,
+              }}
+            >
+              {formatMonthDay(rawItems[index].dateKey, t)}
+            </span>
+          )
+        })}
+      </div>
       </div>
     </div>
-      {/* 两行摊开：第一行只放首尾日期，第二行放最新体重和区间，窄屏不会三个数字挤成一团 */}
-      <div className="mt-1 flex items-center justify-between text-[11px] tabular-nums text-muted">
-        <span className="whitespace-nowrap">{formatMonthDay(rawItems[0].dateKey, t)}</span>
-        {rawItems.length > 2 && (
-          <span className="whitespace-nowrap text-center">
-            {formatMonthDay(middleItem.dateKey, t)}
-          </span>
-        )}
-        <span className="whitespace-nowrap">{formatMonthDay(rawItems[rawItems.length - 1].dateKey, t)}</span>
-      </div>
+      {/* 第二行留给最新记录和纵轴范围，避免和时间刻度挤在一起。 */}
       <div className="mt-0.5 flex items-center justify-between gap-2 text-[11px] tabular-nums">
         <span className="whitespace-nowrap text-fg">
           {formatNum(rawItems[rawItems.length - 1].weightKg)} {t('health.weighUnit')}

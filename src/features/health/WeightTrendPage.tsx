@@ -239,14 +239,14 @@ export default function WeightTrendPage() {
           <section className="mt-3 rounded-2xl border border-line bg-surface p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs text-muted">{t('health.trendTitle')}</span>
-              <div className="flex items-center gap-1">
+              <div className="flex max-w-full flex-wrap items-center justify-end gap-1">
                 {DETAIL_TREND_RANGES.map((item) => (
                   <button
                     key={item}
                     type="button"
                     aria-pressed={range === item}
                     onClick={() => setRange(item)}
-                    className={choiceTile(range === item, 'px-2 py-1 text-[11px]')}
+                    className={choiceTile(range === item, 'min-h-11 px-2 py-1 text-[11px]')}
                   >
                     {item === 'all' ? t('diary.allRecords') : t('health.trendDays', { n: item })}
                   </button>
@@ -260,6 +260,10 @@ export default function WeightTrendPage() {
               scrollable
               selected={selectedKey}
               onSelect={selectDay}
+              dateRange={{
+                startDateKey: range === 'all' ? (rangeItems[0]?.dateKey ?? today) : shiftDay(today, -(range - 1)),
+                endDateKey: range === 'all' ? (rangeItems[rangeItems.length - 1]?.dateKey ?? today) : today,
+              }}
             />
             {rangeItems.length > 0 && (
               <p className="m-0 mt-1 text-[11px] text-muted">{t('health.trendTapHint')}</p>

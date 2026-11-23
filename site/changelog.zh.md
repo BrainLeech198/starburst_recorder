@@ -1,3 +1,18 @@
+## 0.23.12 · 2026-11-23
+
+体重趋势按真实日期间隔绘制，今天记录与趋势总览采用一致的均值口径；7/30/90 天筛选按钮更容易在手机上点选。
+
+### 改进
+
+- **按真实时间看折线**：日期间隔长短会体现在横轴上，日期刻度与圆点对齐，完整历史仍可左右滑动。
+- **统一今日数据口径**：当天称重同时进入当天七日均值与趋势总览；记录圆点仍显示原始体重。
+- **改善区间切换**：7/30/90 天按钮扩大触控区域并支持窄屏换行。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.23.12-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.12/starburst-recorder-0.23.12-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.12/starburst-recorder-0.23.12-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.12.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.12/starburst-recorder-0.23.12.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.12/starburst-recorder-0.23.12.apk)
+
 ## 0.23.11 · 2026-11-23
 
 体重趋势图现在同时显示每次称重的实际记录值和七日平滑趋势；可以横向浏览完整历史，点选日期对照记录与趋势均值。

@@ -1,5 +1,20 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
+## 0.23.12 · 2026-11-23
+
+Weight trends now use real calendar spacing, and today’s reading is included consistently in the daily average and overview. Range buttons are easier to tap on phones.
+
+### Improvements
+
+- **Follow real dates** — gaps between weigh-ins are reflected on the horizontal axis, date labels align with the chart, and full history remains horizontally scrollable.
+- **Keep today’s data consistent** — today’s reading contributes to its seven-day average and the trend overview; raw dots still show the recorded weight.
+- **Easier range switching** — 7/30/90-day buttons have larger touch targets and wrap on narrow screens.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.12-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.12/starburst-recorder-0.23.12-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.12/starburst-recorder-0.23.12-setup.exe)
+- Android 10+: [starburst-recorder-0.23.12.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.12/starburst-recorder-0.23.12.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.12/starburst-recorder-0.23.12.apk)
+
 ## 0.23.11 · 2026-11-23
 
 The weight chart now shows each recorded value alongside its seven-day smoothed trend. Browse the full history horizontally and select a date to compare the reading with its trend average.

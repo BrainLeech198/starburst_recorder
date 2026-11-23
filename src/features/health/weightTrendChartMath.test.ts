@@ -28,6 +28,42 @@ describe('体重趋势图坐标', () => {
     expect(result.max).toBe(63.5)
   })
 
+  it('按日历间隔放置称重点，不把间隔长短不同的日期画成等距', () => {
+    const result = weightChartGeometry(
+      [
+        { dateKey: '2026-09-22', weightKg: 63 },
+        { dateKey: '2026-10-29', weightKg: 62.5 },
+        { dateKey: '2026-11-23', weightKg: 62.3 },
+      ],
+      [],
+      320,
+      172,
+      24,
+    )
+
+    expect(result.rawPoints[0].x).toBe(24)
+    expect(result.rawPoints[1].x).toBeCloseTo(24 + (37 / 62) * 272, 5)
+    expect(result.rawPoints[1].x).not.toBe(160)
+    expect(result.rawPoints[2].x).toBe(296)
+  })
+
+  it('过滤视图按所选日历窗口定位，包含窗口首尾日期', () => {
+    const result = weightChartGeometry(
+      [
+        { dateKey: '2026-11-17', weightKg: 62.8 },
+        { dateKey: '2026-11-20', weightKg: 62.5 },
+        { dateKey: '2026-11-23', weightKg: 62.3 },
+      ],
+      [],
+      320,
+      172,
+      24,
+      { startDateKey: '2026-11-17', endDateKey: '2026-11-23' },
+    )
+
+    expect(result.rawPoints.map((point) => point.x)).toEqual([24, 160, 296])
+  })
+
   it('保留单条记录的中心位置和常量值范围', () => {
     const result = weightChartGeometry(
       [{ dateKey: '2026-11-22', weightKg: 62 }],
