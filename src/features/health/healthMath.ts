@@ -360,7 +360,7 @@ export interface WeighPoint {
   weightKg: number
 }
 
-/** 趋势和 TDEE 都使用相同的 7 日滚动均值口径。 */
+/** 推算 TDEE 使用 7 日滚动均值；体重趋势折线仍直接绘制原始称重值。 */
 export const WEIGHT_SMOOTHING_DAYS = 7
 /** 前后邻点或两条后续邻点支持时，偏离中位数超过 1 kg 才视为突变。 */
 export const WEIGHT_OUTLIER_THRESHOLD_KG = 1
@@ -434,7 +434,7 @@ export function rollingWeightAverages(
   })
 }
 
-/** 与体重趋势卡片共用的线性趋势斜率（kg/day）。 */
+/** 推算 TDEE 使用的线性体重变化斜率（kg/day）。 */
 export function weightSlopePerDay(points: WeighPoint[]): number | null {
   const sorted = uniqueSortedWeights(points)
   if (sorted.length < 2) return null

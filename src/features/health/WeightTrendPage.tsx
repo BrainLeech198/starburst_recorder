@@ -3,12 +3,12 @@
  *
  * 结构按「先看走势，再看那一天的细节」排：
  *   1. 区间切换 + 可点的折线图（点一下选一天，选中点放大并拉竖线）
- *   2. 体重摘要：最新实测 / 平滑趋势变化 / 周均趋势 / 平均与范围
+ *   2. 体重摘要：最新 / 首尾变化 / 回归周均 / 平均与高低
  *   3. 区间健康概览：日均摄入、日均睡眠、蛋白达标天数、推算 TDEE
  *   4. 选中那天的体重、能量差、蛋白达成、睡眠达标，以及摄入 / 睡眠明细
  *   5. 区间内的称重记录，兼作图表的无障碍替代（键盘也能选日期）
  *
- * 首页卡片只放短区间；这里可看 7/30/90 天或全部保留称重，
+ * 首页卡片只放 3/5/7/30 天，这里放宽到 90 天；体重来自身体档案的 weighIns，
  * 摄入和睡眠走区间批量查询，不逐日打库、也不额外落表。
  */
 import EmptyState from '@/shared/ui/EmptyState'
@@ -21,15 +21,7 @@ import { formatDate, formatMonthDay, isDateKey, shiftDay, todayKey } from '@/cor
 import { useI18n } from '@/shared/i18n/context'
 import { NAV_BACK_BUTTON, choiceTile } from '@/shared/ui/buttonStyles'
 import { Icon } from '@/shared/ui/icons'
-import {
-  dayTargets,
-  derivedTdeeEstimate,
-  filterWeightOutliers,
-  formatNum,
-  minimumPlausibleTdee,
-  round2,
-  sumMacros,
-} from './healthMath'
+import { dayTargets, derivedTdeeEstimate, formatNum, round2, sumMacros } from './healthMath'
 import {
   DETAIL_TREND_RANGES,
   profileWeighIns,
@@ -39,7 +31,7 @@ import {
   trendWeighIns,
   weightTrendStats,
 } from './healthViz'
-import type { DetailTrendRange } from './healthViz'
+import type { TrendRange } from './healthViz'
 import { sleepMinutes, sleepParts, sleepWakeStats } from './sleepMath'
 import {
   healthProfile,
@@ -103,16 +95,13 @@ function MetricChip({
 export default function WeightTrendPage() {
   const { t } = useI18n()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [range, setRange] = useState<DetailTrendRange>('all')
+  const [range, setRange] = useState<TrendRange>(30)
 
   const profile = useLiveQuery(() => healthProfile(), [])
   const weighIns = profileWeighIns(profile)
   const today = todayKey()
-  const completedWeighIns = weighIns.filter((item) => item.dateKey < today)
   const rangeItems = trendWeighIns(weighIns, range, today)
-  const cleanRangeItems = filterWeightOutliers(rangeItems, completedWeighIns)
-  const cleanDateKeys = new Set(cleanRangeItems.map((item) => item.dateKey))
-  const stats = weightTrendStats(rangeItems, completedWeighIns)
+  const stats = weightTrendStats(rangeItems)
   const bmi = stats ? bmiValue(stats.latest, profile?.heightCm) : null
 
   // 选中日期放 URL：刷新、返回都还停在那天；区间外的旧日期自动退回最新一条
@@ -120,11 +109,7 @@ export default function WeightTrendPage() {
   const selectedKey =
     isDateKey(dateParam) && rangeItems.some((item) => item.dateKey === dateParam)
       ? dateParam
-      : (
-          cleanRangeItems[cleanRangeItems.length - 1]?.dateKey ??
-          rangeItems[rangeItems.length - 1]?.dateKey ??
-          null
-        )
+      : (rangeItems[rangeItems.length - 1]?.dateKey ?? null)
 
   const selected = selectedKey
     ? (weighIns.find((item) => item.dateKey === selectedKey) ?? null)
@@ -154,16 +139,14 @@ export default function WeightTrendPage() {
   const wakeMessage = wakeStats ? sleepWakeMessage(wakeStats.count, wakeStats.minutes) : null
 
   // 区间内的摄入与睡眠一次取回，用来算日均、蛋白达标和推算 TDEE
-  const rangeStart =
-    range === 'all' ? (rangeItems[0]?.dateKey ?? today) : shiftDay(today, -(range - 1))
-  const rangeEnd = shiftDay(today, -1)
+  const rangeStart = shiftDay(today, -(range - 1))
   const rangeData = useLiveQuery(async () => {
     const [entries, nights] = await Promise.all([
-      intakesBetween(rangeStart, rangeEnd),
-      sleepsBetween(rangeStart, rangeEnd),
+      intakesBetween(rangeStart, today),
+      sleepsBetween(rangeStart, today),
     ])
     return { intakes: entries, sleeps: nights }
-  }, [rangeStart, rangeEnd])
+  }, [rangeStart, today])
   const summary = healthRangeSummary({
     intakes: rangeData?.intakes ?? [],
     sleeps: rangeData?.sleeps ?? [],
@@ -177,11 +160,10 @@ export default function WeightTrendPage() {
     profile === undefined
       ? null
       : derivedTdeeEstimate({
-          weighIns,
+          weighIns: profile.weighIns,
           intakeKcalByDay,
           startDateKey: rangeStart,
           endDateKeyExclusive: today,
-          minimumTdee: minimumPlausibleTdee(profile, weighIns, today),
         })
   const avgSleepHours =
     summary.avgSleepMinutes === null
@@ -239,31 +221,25 @@ export default function WeightTrendPage() {
           <section className="mt-3 rounded-2xl border border-line bg-surface p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs text-muted">{t('health.trendTitle')}</span>
-              <div className="flex max-w-full flex-wrap items-center justify-end gap-1">
+              <div className="flex items-center gap-1">
                 {DETAIL_TREND_RANGES.map((item) => (
                   <button
                     key={item}
                     type="button"
                     aria-pressed={range === item}
                     onClick={() => setRange(item)}
-                    className={choiceTile(range === item, 'min-h-11 px-2 py-1 text-[11px]')}
+                    className={choiceTile(range === item, 'px-2 py-1 text-[11px]')}
                   >
-                    {item === 'all' ? t('diary.allRecords') : t('health.trendDays', { n: item })}
+                    {t('health.trendDays', { n: item })}
                   </button>
                 ))}
               </div>
             </div>
             <WeightTrendChart
               items={rangeItems}
-              outlierContext={completedWeighIns}
               tall
-              scrollable
               selected={selectedKey}
               onSelect={selectDay}
-              dateRange={{
-                startDateKey: range === 'all' ? (rangeItems[0]?.dateKey ?? today) : shiftDay(today, -(range - 1)),
-                endDateKey: range === 'all' ? (rangeItems[rangeItems.length - 1]?.dateKey ?? today) : today,
-              }}
             />
             {rangeItems.length > 0 && (
               <p className="m-0 mt-1 text-[11px] text-muted">{t('health.trendTapHint')}</p>
@@ -271,37 +247,34 @@ export default function WeightTrendPage() {
           </section>
 
           {stats && (
-            <section className="mt-3">
-              <h2 className="m-0 mb-2 text-xs text-muted">{t('health.trendWeightOverview')}</h2>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                <StatCell
-                  label={t('health.trendStatLatest')}
-                  value={formatNum(stats.latest)}
-                  unit={t('health.weighUnit')}
-                  hint={bmi === null ? null : `${t('health.trendBmi')} ${formatNum(bmi)}`}
-                />
-                <StatCell
-                  label={t('health.trendStatChange')}
-                  value={signed(stats.delta)}
-                  unit={t('health.weighUnit')}
-                  hint={t('health.trendStatSpan', { n: stats.spanDays })}
-                />
-                <StatCell
-                  label={t('health.trendStatWeekly')}
-                  value={stats.weekly === null ? '—' : signed(stats.weekly)}
-                  unit={stats.weekly === null ? '' : t('health.trendWeekUnit')}
-                />
-                <StatCell
-                  label={t('health.trendStatAverage')}
-                  value={formatNum(stats.average)}
-                  unit={t('health.weighUnit')}
-                  hint={
-                    stats.min === stats.max
-                      ? null
-                      : `${formatNum(stats.min)} – ${formatNum(stats.max)}`
-                  }
-                />
-              </div>
+            <section className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <StatCell
+                label={t('health.trendStatLatest')}
+                value={formatNum(stats.latest)}
+                unit={t('health.weighUnit')}
+                hint={bmi === null ? null : `${t('health.trendBmi')} ${formatNum(bmi)}`}
+              />
+              <StatCell
+                label={t('health.trendStatChange')}
+                value={signed(stats.delta)}
+                unit={t('health.weighUnit')}
+                hint={t('health.trendStatSpan', { n: stats.spanDays })}
+              />
+              <StatCell
+                label={t('health.trendStatWeekly')}
+                value={stats.weekly === null ? '—' : signed(stats.weekly)}
+                unit={stats.weekly === null ? '' : t('health.trendWeekUnit')}
+              />
+              <StatCell
+                label={t('health.trendStatAverage')}
+                value={formatNum(stats.average)}
+                unit={t('health.weighUnit')}
+                hint={
+                  stats.min === stats.max
+                    ? null
+                    : `${formatNum(stats.min)} – ${formatNum(stats.max)}`
+                }
+              />
             </section>
           )}
 
@@ -527,11 +500,6 @@ export default function WeightTrendPage() {
                         <span className="shrink-0 tabular-nums text-fg">
                           {formatNum(item.weightKg)} {t('health.weighUnit')}
                         </span>
-                        {!cleanDateKeys.has(item.dateKey) && (
-                          <span className="shrink-0 text-[10px] text-warning">
-                            {t('health.trendOutlierTag')}
-                          </span>
-                        )}
                         <span className="w-16 shrink-0 text-right tabular-nums text-muted">
                           {before
                             ? `${signed(item.weightKg - before.weightKg)} ${t('health.weighUnit')}`

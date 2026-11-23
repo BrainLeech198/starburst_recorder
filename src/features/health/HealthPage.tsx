@@ -19,6 +19,8 @@ import HealthDeviceImportDialog from './HealthDeviceImportDialog'
 import { canImportFromHealthApp } from './deviceHealth'
 import { sleepMinutes, sleepParts, sleepWakeStats, sortWakeEvents } from './sleepMath'
 import IntakeDialog from './IntakeDialog'
+import IntakeDayAiReviewDialog from './IntakeDayAiReviewDialog'
+import IntakeDaySummaryShareDialog from './IntakeDaySummaryShareDialog'
 import HealthEstimateNote, { HealthDisclaimerDialog } from './HealthDisclaimer'
 import { hasAcknowledgedDisclaimer } from './disclaimerAck'
 import { dayTargets, emptyProfile, formatNum, missingProfileFields, remainingKcal, sumMacros } from './healthMath'
@@ -54,6 +56,8 @@ export default function HealthPage() {
   const profile = useLiveQuery(() => healthProfile(), [])
   const intakes = useLiveQuery(() => intakesOfDay(dayKey), [dayKey])
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [intakeAiOpen, setIntakeAiOpen] = useState(false)
+  const [intakeShareOpen, setIntakeShareOpen] = useState(false)
   // 第一次进健康页先说明「这些数字都是估算」，确认过就不再弹
   const [disclaimerOpen, setDisclaimerOpen] = useState(() => !hasAcknowledgedDisclaimer())
   /** 这一夜的睡眠；null = 没记，undefined = 还在查 */
@@ -216,6 +220,27 @@ export default function HealthPage() {
         />
         <ProteinBar value={totals.protein} target={targets.proteinTarget} />
         <HealthEstimateNote interactive className="mt-2" />
+
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setIntakeShareOpen(true)}
+            disabled={intakes === undefined || intakes.length === 0}
+            className={`${OUTLINE_BUTTON} justify-center disabled:opacity-40`}
+          >
+            <Icon name="share" />
+            {t('health.shareDay')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setIntakeAiOpen(true)}
+            disabled={intakes === undefined}
+            className={`${OUTLINE_BUTTON} justify-center disabled:opacity-40`}
+          >
+            <Icon name="sparkles" />
+            {t('health.aiDayReview')}
+          </button>
+        </div>
 
         <button
           type="button"
@@ -385,6 +410,25 @@ export default function HealthPage() {
           intakes={intakes ?? []}
           derived={derivedTdee ?? null}
           onClose={() => setDialogOpen(false)}
+        />
+      )}
+
+      {intakeShareOpen && intakes !== undefined && (
+        <IntakeDaySummaryShareDialog
+          dayKey={dayKey}
+          intakes={intakes}
+          totals={totals}
+          onClose={() => setIntakeShareOpen(false)}
+        />
+      )}
+
+      {intakeAiOpen && intakes !== undefined && (
+        <IntakeDayAiReviewDialog
+          dayKey={dayKey}
+          intakes={intakes}
+          totals={totals}
+          targets={targets}
+          onClose={() => setIntakeAiOpen(false)}
         />
       )}
 

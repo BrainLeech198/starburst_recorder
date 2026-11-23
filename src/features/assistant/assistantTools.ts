@@ -29,7 +29,7 @@ import { formatDateCn, isDateKey, shiftDay } from '@/core/utils/dateKey'
 import { isDoneOn, occurrencesOn } from '@/features/schedule/scheduleMath'
 import { expenseByCategory, isMonthKey, shiftMonth, summarizeFinance } from '@/features/finance/financeMath'
 import { FINANCE_CATEGORIES } from '@/features/finance/financeCategories'
-import { bmiValue, trendWeighIns, weightTrendStats, type TrendRange } from '@/features/health/healthViz'
+import { bmiValue, profileWeighIns, trendWeighIns, weightTrendStats, type TrendRange } from '@/features/health/healthViz'
 import { healthRangeSummary } from '@/features/health/healthViz'
 import { derivedTdee, formatNum, mealTotals, minimumPlausibleTdee } from '@/features/health/healthMath'
 import { isMonthKey as isReviewMonthKey, monthRange } from '@/features/calendar/calendarData'
@@ -1235,14 +1235,13 @@ function financeChart(month: string, data: AssistantDataSource) {
 function weightChart(range: TrendRange, today: string, data: AssistantDataSource) {
   const profile = data.profile
   if (!profile) return '用户还没有填写身体档案。'
-  const weighIns = profile.weighIns ?? []
-  const items = trendWeighIns(weighIns, range, today, { excludeToday: true })
-  const completedWeighIns = weighIns.filter((item) => item.dateKey < today)
-  const stats = weightTrendStats(items, completedWeighIns)
+  const weighIns = profileWeighIns(profile)
+  const items = trendWeighIns(weighIns, range, today)
+  const stats = weightTrendStats(items)
   if (!stats) return `近 ${range} 天没有称重记录。`
   const bmi = bmiValue(stats.latest, profile.heightCm)
   return [
-    `近 ${range} 天体重趋势：${items.length} 个点，最新 ${stats.latest} kg，趋势变化 ${stats.delta} kg，平均 ${stats.average} kg，最低 ${stats.min} kg，最高 ${stats.max} kg；排除突变点 ${stats.excludedCount} 个。`,
+    `近 ${range} 天体重趋势：${items.length} 个点，最新 ${stats.latest} kg，首尾变化 ${stats.delta} kg，平均 ${stats.average} kg，最低 ${stats.min} kg，最高 ${stats.max} kg。`,
     `首尾相隔 ${stats.spanDays} 天；每周趋势：${stats.weekly === null ? '数据不足' : `${stats.weekly} kg/周`}；BMI：${bmi === null ? '身高数据不足' : bmi}。`,
     '图上称重点（从旧到新）：',
     ...items.slice(-30).map((item) => `${item.dateKey} ${item.weightKg} kg`),

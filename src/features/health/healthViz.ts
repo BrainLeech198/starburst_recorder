@@ -8,7 +8,6 @@ import type { HealthIntake, HealthProfile, HealthSleep, WeighIn } from '@/core/d
 import { isDateKey, shiftDay, toDateKey } from '@/core/utils/dateKey'
 import type { MessageKey } from '@/shared/i18n/messages/zh'
 import { sleepMinutes, sleepWakeStats } from './sleepMath'
-import { filterWeightOutliers, rollingWeightAverages, weightSlopePerDay } from './healthMath'
 
 /** 体重趋势的区间，单位是天（30 天在界面上叫「近一月」） */
 export type TrendRange = 3 | 5 | 7 | 30 | 90
@@ -16,9 +15,8 @@ export type TrendRange = 3 | 5 | 7 | 30 | 90
 /** 健康首页小卡片上只放短区间 */
 export const TREND_RANGES: TrendRange[] = [3, 5, 7, 30]
 
-/** 趋势详情页可看全部保留记录，也可聚焦近 7 / 30 / 90 天 */
-export type DetailTrendRange = TrendRange | 'all'
-export const DETAIL_TREND_RANGES: DetailTrendRange[] = ['all', 7, 30, 90]
+/** 趋势详情页提供近 7 / 30 / 90 天区间 */
+export const DETAIL_TREND_RANGES: TrendRange[] = [7, 30, 90]
 
 const MAX_WEIGHT_HISTORY = 120
 
@@ -52,17 +50,17 @@ export function upsertWeighIn(weighIns: WeighIn[], next: WeighIn): WeighIn[] {
     .slice(0, MAX_WEIGHT_HISTORY)
 }
 
-/** 取区间内的称重，按日期从早到晚；详情页的 all 会返回完整留存历史。 */
+/** 取区间内（含今天）的称重，按日期从早到晚；区间外的旧记录不画。 */
 export function trendWeighIns(
   weighIns: WeighIn[],
-  range: DetailTrendRange,
+  range: TrendRange,
   today: string,
   options: { excludeToday?: boolean } = {},
 ): WeighIn[] {
-  const from = range === 'all' ? null : shiftDay(today, -(range - 1))
+  const from = shiftDay(today, -(range - 1))
   const to = options.excludeToday ? shiftDay(today, -1) : today
   return weighIns
-    .filter((item) => (from === null || item.dateKey >= from) && item.dateKey <= to)
+    .filter((item) => item.dateKey >= from && item.dateKey <= to)
     .sort((a, b) => (a.dateKey < b.dateKey ? -1 : a.dateKey > b.dateKey ? 1 : 0))
 }
 
@@ -110,17 +108,15 @@ export interface WeightTrendStats {
   latest: number
   /** 区间内第一次称重 */
   first: number
-  /** 平滑趋势线在区间跨度内的变化；正数是涨 */
+  /** 首尾读数差；正数是涨 */
   delta: number
   min: number
   max: number
   average: number
   /** 首尾相隔几天；同一天为 0 */
   spanDays: number
-  /** 同一条 7 日平滑趋势线折出来的每周变化；跨度不到一周时为 null */
+  /** 线性回归折出来的每周变化；不到 3 天或点全在同一天时为 null */
   weekly: number | null
-  /** 未参与趋势的孤立突变点数；原始记录仍保留在列表中 */
-  excludedCount: number
 }
 
 /** 按日期升序排一份副本，称重历史本身的顺序不作数 */
@@ -128,35 +124,42 @@ function ascending(items: WeighIn[]): WeighIn[] {
   return [...items].sort((a, b) => (a.dateKey < b.dateKey ? -1 : a.dateKey > b.dateKey ? 1 : 0))
 }
 
-/**
- * 区间摘要：真实首尾读数单独显示，区间变化与周均变化共用 7 日均值回归斜率。
- * 这样保留原始记录，同时避免原始端点与平滑趋势使用两套算法、方向相反。
- */
-export function weightTrendStats(items: WeighIn[], context: WeighIn[] = items): WeightTrendStats | null {
+/** 每天变化多少公斤；点数不够或横轴跨度为 0 时返回 null */
+function dailySlope(items: WeighIn[]): number | null {
+  if (items.length < 2) return null
+  const first = items[0].dateKey
+  const xs = items.map((item) => daysBetween(first, item.dateKey))
+  const ys = items.map((item) => item.weightKg)
+  const meanX = xs.reduce((sum, value) => sum + value, 0) / xs.length
+  const meanY = ys.reduce((sum, value) => sum + value, 0) / ys.length
+  let numerator = 0
+  let denominator = 0
+  xs.forEach((x, index) => {
+    numerator += (x - meanX) * (ys[index] - meanY)
+    denominator += (x - meanX) ** 2
+  })
+  return denominator === 0 ? null : numerator / denominator
+}
+
+/** 区间摘要：最新、首尾差、平均、最高最低，以及按线性回归折出的周均变化。 */
+export function weightTrendStats(items: WeighIn[]): WeightTrendStats | null {
   if (items.length === 0) return null
-  const raw = ascending(items)
-  const sorted = filterWeightOutliers(raw, context)
-  if (sorted.length === 0) return null
-  const cleanContext = filterWeightOutliers(context)
-  // 今天的称重不在 completed context 里，但它必须计入当天自己的 7 日均值。
-  const smoothed = rollingWeightAverages(sorted, [...cleanContext, ...sorted])
-  const values = smoothed.map((item) => item.weightKg)
-  const first = sorted[0].weightKg
-  const latest = sorted[sorted.length - 1].weightKg
+  const sorted = ascending(items)
+  const values = sorted.map((item) => item.weightKg)
+  const first = values[0]
+  const latest = values[values.length - 1]
   const spanDays = daysBetween(sorted[0].dateKey, sorted[sorted.length - 1].dateKey)
-  const slope = weightSlopePerDay(smoothed)
+  const slope = dailySlope(sorted)
   return {
     latest,
     first,
-    // 区间变化与周均变化来自同一条 7 日平滑回归线，避免两套算法给出相反方向。
-    delta: slope === null ? 0 : Math.round(slope * spanDays * 100) / 100,
+    delta: Math.round((latest - first) * 100) / 100,
     min: Math.min(...values),
     max: Math.max(...values),
     average: Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 100) / 100,
     spanDays,
-    // 跨不到一周时，不把短期水分波动外推成周趋势。
-    weekly: slope === null || spanDays < 7 ? null : Math.round(slope * 7 * 100) / 100,
-    excludedCount: raw.length - sorted.length,
+    // 跨不到 3 天时，一天的波动会被放大成「一周掉几公斤」，不如不给
+    weekly: slope === null || spanDays < 3 ? null : Math.round(slope * 7 * 100) / 100,
   }
 }
 
