@@ -480,3 +480,13 @@ GitHub 普通 Release https://github.com/BrainLeech198/starburst_recorder/releas
 标签 v0.23.11 固定指向产品提交 540be87210cadf35fd2b8a06dac08cd945af68d6；Gitee origin/main 与 GitHub 镜像 main 随后前进到包含该产品提交的发布记录提交，版本标签保持不动。GitHub 主线 CI 45105671091、tag CI 45105671111 与官网 Pages 工作流 45105671148 均成功。npm test（102 个文件、996 项）、npm run typecheck、npm run lint、npm run build、npx cap sync android、Android assembleRelease 与 Windows 安装包构建均通过；Android 版本与签名核验通过，Windows 打包脚本确认 app.asar 含页面入口与 JS bundle。未连接 Android 真机。
 
 生产 PWA 地址 https://5418b3d8.starburst-recorder.pages.dev，部署 ID 5418b3d8-2567-4eaa-9eb4-ddf0af35c3e0，构建号 mwspfhij；本地 PWA 探针 20/20、生产域名线上验收 10/10。Service Worker 已激活并控制页面，推送鉴权与 /health 通过，测试订阅已删除。部署使用 Wrangler 4.161.0。构建提示包括 npm 镜像配置项弃用、Vite 大 chunk、Android 第三方 Kotlin 元数据版本差异与 Gradle 9 弃用，均未阻断构建。
+
+`0.23.12` 正式版：标签 `v0.23.12` 指向产品提交 `d0c981b4fee7300db2412f1a9c6ea11c05fc8d9f`。体重趋势横轴按真实日历间隔定位，日期刻度与数据点对齐；7/30/90 天筛选扩大触控区域并允许窄屏换行；当天称重纳入当天七日均值和趋势总览，原始记录点仍显示用户实际录入值。
+
+APK 为 61,985,850 字节、`versionCode=2312999`、`versionName=0.23.12`、SHA-256 `DF01C1453172D9AFDE7C32350449ED0409D7D743576671917E61BF2EB0319DDF`；签名证书 SHA-256 `2eb0978a6abad455b55aa06dc86d2ccd73816aa68059ce6e4289c35533f94b05` 与 §2.2 一致。Windows 安装包为 100,204,716 字节、ProductVersion `0.23.12`、SHA-256 `6FB6969F71BD7E37BD51006F824C79A8A1E9A6E3AB10C08D2DF3E8AE3E28FEA9`，低于 Gitee 单附件 100 MiB 上限。
+
+GitHub 普通 Release [v0.23.12](https://github.com/BrainLeech198/starburst_recorder/releases/tag/v0.23.12) 与 Gitee Release（API ID `1356545`）均含本版 APK / EXE；GitHub asset digest、Gitee 回下载文件的大小和 SHA-256 均与本地一致。Gitee 当前附件 ID 为 `3798201`（APK）与 `3798210`（EXE）；上一正式版 Gitee Release `v0.23.11`（ID `1356200`）的附件 ID `3797134` / `3797138` 已在新版回下载核验后移除（HTTP 204），旧 Release、tag 与源码归档保留。Gitee 与 GitHub 最新正式版均为 `v0.23.12`；Gitee 本版两项附件合计 162,190,566 字节，低于 1 GiB 限额。官网首页与更新日志均返回 HTTP 200 并显示本版。
+
+标签 `v0.23.12` 固定指向产品提交 `d0c981b`；Gitee `origin/main` 与 GitHub 镜像 `main` 已同步产品提交。GitHub 主线 CI `45113728468`、tag CI `45113728508` 与官网 Pages 工作流 `45113728485` 均成功。`npm test`（102 个文件、1000 项）、`npm run typecheck`、`npm run lint`、`npm run build`、`npx cap sync android`、Android `assembleRelease` 与 Windows 安装包构建均通过；APK 版本与签名核验通过，Windows 构建脚本确认 `app.asar` 含页面入口和 JS bundle。未连接 Android 真机。构建提示包括 npm 镜像配置项弃用、Vite 大 chunk、Android 第三方 Kotlin 元数据版本差异与 Gradle 9 弃用，均未阻断构建。
+
+生产 PWA 地址 `https://1f62feac.starburst-recorder.pages.dev`，部署 ID `1f62feac-3bb7-43ba-a07c-a2170a2ca544`，构建号 `mwsseoqx`；本地 PWA 探针 20/20、生产域名线上验收 10/10。Service Worker 已激活并控制页面，推送鉴权与 `/health` 通过，测试订阅已删除。部署使用 Wrangler 4.161.0。
