@@ -1,3 +1,17 @@
+## 0.23.15 · 2026-11-23
+
+摄入食物库新增「常用」标签，按历史摄入频次列出常用食物和套餐，方便快速选择。
+
+### 新增
+
+- **常用食物与套餐**：切换「食物 / 套餐 / 常用」标签；常用项按使用次数排序，次数相同则最近使用的排在前面。
+- **直接继续记录**：常用项根据未删除的摄入记录统计，不另存收藏数据；搜索与份量编辑沿用原有流程。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.23.15-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.15/starburst-recorder-0.23.15-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.15/starburst-recorder-0.23.15-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.15.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.15/starburst-recorder-0.23.15.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.15/starburst-recorder-0.23.15.apk)
+
 ## 0.23.14 · 2026-11-23
 
 体重趋势恢复按真实称重记录绘制并修复区间切换；摄入卡新增当天汇总图分享，以及 AI 饮食评价和下一餐建议。

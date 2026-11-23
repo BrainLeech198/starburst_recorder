@@ -1,5 +1,19 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
+## 0.23.15 · 2026-11-23
+
+The intake food library now has a Common tab that surfaces frequently logged foods and meals for quicker selection.
+
+### Added
+
+- **Find common foods and meals** — switch between Foods, Meals, and Common; common items are sorted by usage count, with recent use breaking ties.
+- **Continue recording as usual** — common items are derived from non-deleted intake history, with no separate favorites data; search and serving entry keep their existing flow.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.15-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.15/starburst-recorder-0.23.15-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.15/starburst-recorder-0.23.15-setup.exe)
+- Android 10+: [starburst-recorder-0.23.15.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.15/starburst-recorder-0.23.15.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.15/starburst-recorder-0.23.15.apk)
+
 ## 0.23.14 · 2026-11-23
 
 Weight trends now plot recorded readings directly, and range switching is restored. The intake card can share a daily summary image and request an AI nutrition review with a next-meal idea.
