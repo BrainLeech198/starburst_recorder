@@ -2607,8 +2607,8 @@ export const ko: Record<MessageKey, string> = {
   'finance.aiRetry': '다시 입력',
   'finance.aiConfirm': '기록하기',
   'intake.cost': '함께 지출 기록',
-  'intake.costPlaceholder': '1인분 가격(선택)',
-  'intake.costHint': '1인분 가격에 기록한 인분 수를 곱해 지출을 계산해요. 비우면 식사만 기록해요.',
+  'intake.costPlaceholder': '이번 지출 총액(선택)',
+  'intake.costHint': '이번 식사에서 실제로 지출한 금액을 입력해요. 비우면 식사만 기록해요.',
 
   // ─────────── 전체 검색과 태그 ───────────
   'nav.search': '검색',

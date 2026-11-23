@@ -2607,8 +2607,8 @@ export const zh = {
   'finance.aiRetry': '重新输入',
   'finance.aiConfirm': '确认记下',
   'intake.cost': '顺便记支出',
-  'intake.costPlaceholder': '单份价格（可不填）',
-  'intake.costHint': '填写单份价格，支出会按食录份数计算；留空只记饮食。',
+  'intake.costPlaceholder': '本次支出金额（可不填）',
+  'intake.costHint': '填写这次实际支出金额；留空只记饮食。',
 
   // ─────────── 全局搜索与标签 ───────────
   'nav.search': '搜索',

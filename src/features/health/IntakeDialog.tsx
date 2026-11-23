@@ -77,6 +77,7 @@ import FoodSortControls from './FoodSortControls'
 import type { FoodSortDirection, FoodSortKey } from './foodSort'
 import { sortFoodCatalog } from './foodSort'
 import FoodPhotoThumbnail from './FoodPhotoThumbnail'
+import { parseIntakeExpenseAmount } from './intakeExpense'
 
 
 /** 这一笔里的一项：普通食物，或者一个套餐（成分快照先算好） */
@@ -88,7 +89,7 @@ interface DraftItem {
   name: string
   /** 合计克数：套餐是各成分之和 */
   grams: number
-  /** 这项食物对应的份数，用于按单份价计算联动支出 */
+  /** 这项食物对应的摄入份数；不用于换算联动支出 */
   servings: number
   source: 'library' | 'manual'
   /** 来自套餐时记下套餐 id，普通食物为空 */
@@ -222,7 +223,7 @@ export default function IntakeDialog({
   const [step, setStep] = useState<Step>('list')
   const [items, setItems] = useState<DraftItem[]>([])
   const [time, setTime] = useState(currentLocalTime)
-  /** 顺便记一笔支出：单份价乘以份数；留空就只记饮食 */
+  /** 顺便记一笔支出：本次实际金额；留空就只记饮食 */
   const [costText, setCostText] = useState('')
 
   /** 正在配份量的那一项（普通食物） */
@@ -931,10 +932,9 @@ export default function IntakeDialog({
       deletedAt: null,
     })
     showToast({ message: t('intake.saved') })
-    // 联动记一笔经济：单份价乘各项份数之和，分类固定「餐饮」
-    const cost = Number(costText.replace(/,/g, ''))
-    if (costText.trim() !== '' && Number.isFinite(cost) && cost > 0) {
-      const totalServings = round2(items.reduce((total, item) => total + item.servings, 0))
+    // 联动记一笔经济：直接使用输入的本次实际支出金额，不按摄入份数换算
+    const expenseAmount = parseIntakeExpenseAmount(costText)
+    if (expenseAmount !== null) {
       const name = items
         .slice(0, 2)
         .map((item) =>
@@ -949,7 +949,7 @@ export default function IntakeDialog({
         kind: 'expense',
         category: 'food',
         name,
-        amount: Math.round(cost * totalServings * 100) / 100,
+        amount: expenseAmount,
         photo: null,
         note: '',
         createdAt: now,

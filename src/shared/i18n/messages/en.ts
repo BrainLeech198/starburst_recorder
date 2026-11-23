@@ -2684,9 +2684,9 @@ export const en: Record<MessageKey, string> = {
   'finance.aiRetry': 'Re-enter',
   'finance.aiConfirm': 'Confirm',
   'intake.cost': 'Also log spending',
-  'intake.costPlaceholder': 'Price per serving (optional)',
+  'intake.costPlaceholder': 'Total spent (optional)',
   'intake.costHint':
-    'Spending is calculated as the price per serving times the total servings recorded; leave empty to log only the meal.',
+    'Enter the actual amount spent for this intake entry; leave empty to log only the meal.',
 
   // ─────────── Global search & tags ───────────
   'nav.search': 'Search',

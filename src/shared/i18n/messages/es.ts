@@ -2635,9 +2635,9 @@ export const es: Record<MessageKey, string> = {
   'finance.aiRetry': 'Volver a escribir',
   'finance.aiConfirm': 'Registrar',
   'intake.cost': 'Registrar también el gasto',
-  'intake.costPlaceholder': 'Precio por ración (opcional)',
+  'intake.costPlaceholder': 'Gasto total real (opcional)',
   'intake.costHint':
-    'El gasto se calcula multiplicando el precio por ración por las raciones registradas; déjalo vacío para registrar solo la comida.',
+    'Introduce el importe total gastado en esta comida; déjalo vacío para registrar solo la comida.',
 
   // ─────────── Búsqueda global y etiquetas ───────────
   'nav.search': 'Buscar',

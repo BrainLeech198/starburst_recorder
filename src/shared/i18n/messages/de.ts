@@ -2586,9 +2586,9 @@ export const de: Record<MessageKey, string> = {
   'finance.aiRetry': 'Neu eingeben',
   'finance.aiConfirm': 'Erfassen',
   'intake.cost': 'Ausgabe miterfassen',
-  'intake.costPlaceholder': 'Preis pro Portion (optional)',
+  'intake.costPlaceholder': 'Tatsächlicher Gesamtbetrag (optional)',
   'intake.costHint':
-    'Die Ausgabe entspricht dem Portionspreis multipliziert mit den erfassten Portionen; leer lassen, um nur die Mahlzeit zu speichern.',
+    'Gib den tatsächlich ausgegebenen Gesamtbetrag für diesen Eintrag ein; leer lassen, um nur die Mahlzeit zu speichern.',
 
   // ─────────── Globale Suche & Tags ───────────
   'nav.search': 'Suche',
