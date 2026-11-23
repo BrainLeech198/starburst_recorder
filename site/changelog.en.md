@@ -1,3 +1,18 @@
+## 0.23.14 · 2026-11-23
+
+Weight trends now plot recorded readings directly, and range switching is restored. The intake card can share a daily summary image and request an AI nutrition review with a next-meal idea.
+
+### Added and fixed
+
+- **Check recorded weights** — the chart and statistics use the saved readings without smoothing or removing spikes; the detail page switches between 7, 30, and 90 days.
+- **Share a daily intake summary** — save an image on this device with the day’s food entries, calories, and macronutrient totals.
+- **Get practical food guidance** — request a concise review and next-meal suggestion based on that day’s intake and targets. An AI model must be configured, and the user starts the request.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.14-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.14/starburst-recorder-0.23.14-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.14/starburst-recorder-0.23.14-setup.exe)
+- Android 10+: [starburst-recorder-0.23.14.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.14/starburst-recorder-0.23.14.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.14/starburst-recorder-0.23.14.apk)
+
 ## 0.23.13 · 2026-11-23
 
 Intake-linked spending now uses the actual amount entered, regardless of the number of servings.
