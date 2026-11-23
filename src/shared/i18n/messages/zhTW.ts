@@ -2587,8 +2587,8 @@ export const zhTW: Record<MessageKey, string> = {
   'finance.aiRetry': '重新輸入',
   'finance.aiConfirm': '確認記下',
   'intake.cost': '順便記支出',
-  'intake.costPlaceholder': '每份價格（可不填）',
-  'intake.costHint': '填寫每份價格，支出會依食錄份數計算；留空只記飲食。',
+  'intake.costPlaceholder': '本次支出金額（可不填）',
+  'intake.costHint': '填寫這次實際支出金額；留空只記飲食。',
 
   // ─────────── 全域搜尋與標籤 ───────────
   'nav.search': '搜尋',

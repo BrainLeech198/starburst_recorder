@@ -2598,8 +2598,8 @@ export const ja: Record<MessageKey, string> = {
   'finance.aiRetry': '入力し直す',
   'finance.aiConfirm': '記録する',
   'intake.cost': '支出も記録',
-  'intake.costPlaceholder': '1人前の価格（任意）',
-  'intake.costHint': '1人前の価格に記録した食数を掛けて支出を計算します。空欄なら食事だけ記録します。',
+  'intake.costPlaceholder': '今回の支出額（任意）',
+  'intake.costHint': '今回実際に支払った金額を入力します。空欄の場合は食事記録のみ保存します。',
 
   // ─────────── 全体検索とタグ ───────────
   'nav.search': '検索',

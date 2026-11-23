@@ -2576,9 +2576,9 @@ export const fr: Record<MessageKey, string> = {
   'finance.aiRetry': 'Ressaisir',
   'finance.aiConfirm': 'Enregistrer',
   'intake.cost': 'Enregistrer aussi la dépense',
-  'intake.costPlaceholder': 'Prix par portion (facultatif)',
+  'intake.costPlaceholder': 'Montant total dépensé (facultatif)',
   'intake.costHint':
-    'La dépense correspond au prix par portion multiplié par le nombre de portions enregistrées ; laisse vide pour ne noter que le repas.',
+    'Saisissez le montant réellement dépensé pour ce repas ; laissez vide pour enregistrer uniquement le repas.',
 
   // ─────────── Recherche globale & étiquettes ───────────
   'nav.search': 'Recherche',
