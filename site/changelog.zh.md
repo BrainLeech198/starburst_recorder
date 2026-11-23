@@ -1,3 +1,18 @@
+## 0.23.11 · 2026-11-23
+
+体重趋势图现在同时显示每次称重的实际记录值和七日平滑趋势；可以横向浏览完整历史，点选日期对照记录与趋势均值。
+
+### 改进
+
+- **记录值与趋势线分开看**：每次称重都显示为独立数据点；七日平滑值仍显示为趋势线，并配有图例。
+- **完整历史可横向浏览**：详情图按记录日期展开，长时间记录可左右滑动查看。
+- **选中日期可核对数值**：点选后同时显示原始称重和七日均值；被判定为孤立突变的记录仍保留，并标明未纳入平滑计算。
+
+### 下载
+
+- Windows 10/11：[starburst-recorder-0.23.11-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.11/starburst-recorder-0.23.11-setup.exe) · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.11/starburst-recorder-0.23.11-setup.exe)
+- Android 10 以上：[starburst-recorder-0.23.11.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.11/starburst-recorder-0.23.11.apk)（正式签名） · [GitHub 备用](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.11/starburst-recorder-0.23.11.apk)
+
 ## 0.23.10 · 2026-11-22
 
 助手会提示检索覆盖范围并统一套餐营养算法；食物和套餐操作卡片能查看细节、修改后再确认，悬浮助手多选也能清楚导出所选消息。

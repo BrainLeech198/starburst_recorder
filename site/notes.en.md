@@ -1,5 +1,20 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
+## 0.23.11 · 2026-11-23
+
+The weight chart now shows each recorded value alongside its seven-day smoothed trend. Browse the full history horizontally and select a date to compare the reading with its trend average.
+
+### Improvements
+
+- **See readings and trend separately** — every weigh-in appears as its own point, while the seven-day smoothed values remain as a clearly labeled line.
+- **Browse the full history** — the detail chart expands by date and scrolls horizontally for longer records.
+- **Check a selected date** — selection shows both the recorded weight and seven-day average. Isolated spikes remain visible and are marked when excluded from smoothing.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.11-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.11/starburst-recorder-0.23.11-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.11/starburst-recorder-0.23.11-setup.exe)
+- Android 10+: [starburst-recorder-0.23.11.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.11/starburst-recorder-0.23.11.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.11/starburst-recorder-0.23.11.apk)
+
 ## 0.23.10 · 2026-11-22
 
 The assistant now reports search coverage and uses consistent meal nutrition. Food and meal action cards show details for review and edits before confirmation; multi-select export is clearer in the floating assistant.

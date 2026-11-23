@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { formatMonthDay } from '@/core/utils/dateKey'
 import { useI18n } from '@/shared/i18n/context'
 import type { WeighIn } from '@/core/db/schema'
-import { trendPoints } from './healthViz'
+import { weightChartGeometry } from './weightTrendChartMath'
 import { filterWeightOutliers, formatNum, rollingWeightAverages } from './healthMath'
 
 /** 折线图的内部分辨率；外层用 w-full 拉伸，手机上也不会糊 */
@@ -11,8 +11,8 @@ const SMALL_HEIGHT = 104
 const TALL_HEIGHT = 172
 
 /**
- * 体重趋势折线：绘制排除孤立突变点后的七日滚动均值。
- * 纵轴不标具体刻度，只在右侧标出最高/最低值——四五个点看的是走势，不是读数。
+ * 图表同时绘制原始称重点与排除孤立突变点后的七日滚动均值。
+ * 原始点和趋势线共用日期轴与数值范围，避免把平滑值误认成记录值。
  *
  * 详情页传 `onSelect` 时每个点都可点、可 Tab 聚焦，选中点会加一圈高亮和一条竖线；
  * 首页小卡片不传，行为跟以前一样。
@@ -41,36 +41,37 @@ export default function WeightTrendChart({
 }) {
   const { t } = useI18n()
 
-  const cleanItems = filterWeightOutliers(items, outlierContext)
+  const rawItems = [...items].sort((a, b) => (a.dateKey < b.dateKey ? -1 : a.dateKey > b.dateKey ? 1 : 0))
+  const cleanItems = filterWeightOutliers(rawItems, outlierContext)
   const cleanContext = filterWeightOutliers(outlierContext)
   // 区间外的历史用于补足均值，但图内的当天记录也必须参与自己的滚动均值。
   const smoothedItems = rollingWeightAverages(cleanItems, [...cleanContext, ...cleanItems])
+  const cleanDateKeys = new Set(cleanItems.map((item) => item.dateKey))
 
   const height = tall ? TALL_HEIGHT : SMALL_HEIGHT
   /** 左侧留出纵轴刻度的地方，刻度用 HTML 叠在图上，字号不跟着 SVG 一起缩 */
   const pad = tall ? 24 : 16
-  const chartWidth = scrollable ? Math.max(WIDTH, (smoothedItems.length - 1) * 48 + pad * 2) : WIDTH
-  const { points, min, max } = trendPoints(
-    smoothedItems.map((item) => item.weightKg),
+  const chartWidth = scrollable ? Math.max(WIDTH, (rawItems.length - 1) * 48 + pad * 2) : WIDTH
+  const { rawPoints, trendPoints, min, max } = weightChartGeometry(
+    rawItems,
+    smoothedItems,
     chartWidth,
     height,
     pad,
   )
-  const line = points.map((point) => `${point.x},${point.y}`).join(' ')
+  const line = trendPoints.map((point) => `${point.x},${point.y}`).join(' ')
   const area =
-    points.length === 0
+    trendPoints.length === 0
       ? ''
-      : `${points[0].x},${height - pad} ${line} ${points[points.length - 1].x},${height - pad}`
+      : `${trendPoints[0].x},${height - pad} ${line} ${trendPoints[trendPoints.length - 1].x},${height - pad}`
   const midValue = (min + max) / 2
   /** 点少时直接标出每个点的数值，点多时只标最高/最低，选中点另有完整标签 */
   const showAllValues = smoothedItems.length <= 8
-  const middleItem = smoothedItems[Math.floor((smoothedItems.length - 1) / 2)]
-  const selectedIndex = selected ? smoothedItems.findIndex((item) => item.dateKey === selected) : -1
-  const selectedPoint = selectedIndex >= 0 ? points[selectedIndex] : null
-  const selectedItem = selectedIndex >= 0 ? smoothedItems[selectedIndex] : null
-  const selectedLabel = selectedItem
-    ? `${formatMonthDay(selectedItem.dateKey, t)} · ${formatNum(selectedItem.weightKg)} ${t('health.weighUnit')}`
-    : ''
+  const middleItem = rawItems[Math.floor((rawItems.length - 1) / 2)]
+  const selectedIndex = selected ? rawItems.findIndex((item) => item.dateKey === selected) : -1
+  const selectedPoint = selectedIndex >= 0 ? rawPoints[selectedIndex] : null
+  const selectedItem = selectedIndex >= 0 ? rawItems[selectedIndex] : null
+  const selectedTrend = selected ? smoothedItems.find((item) => item.dateKey === selected) : null
   const percent = (value: number, total: number) => `${(value / total) * 100}%`
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -84,7 +85,7 @@ export default function WeightTrendChart({
     )
   }, [chartWidth, scrollable, selectedPoint?.x])
 
-  if (smoothedItems.length === 0) {
+  if (rawItems.length === 0) {
     return <p className="m-0 mt-2 text-xs text-muted">{t('health.trendEmpty')}</p>
   }
 
@@ -94,6 +95,18 @@ export default function WeightTrendChart({
 
   return (
     <div className={className}>
+      {tall && (
+        <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-fg" aria-hidden="true" />
+            {t('health.trendLegendReading')}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-0.5 w-4 rounded bg-brand" aria-hidden="true" />
+            {t('health.trendLegendAverage')}
+          </span>
+        </div>
+      )}
       {/* 图上的数字用 HTML 叠在 SVG 上：SVG 随窄屏整体缩小，HTML 字号不会跟着缩成看不清 */}
       <div
         ref={scrollRef}
@@ -119,7 +132,7 @@ export default function WeightTrendChart({
           className="text-line"
           strokeWidth={1}
         />
-        {points.length > 1 && (
+        {trendPoints.length > 1 && (
           <polygon points={area} fill="currentColor" className="text-brand/10" stroke="none" />
         )}
         {/* 详情页补上纵向参考线与刻度，避免只看见一条折线 */}
@@ -177,10 +190,11 @@ export default function WeightTrendChart({
             vectorEffect="non-scaling-stroke"
           />
         )}
-        {points.map((point, index) => {
-          const item = smoothedItems[index]
+        {rawPoints.map((point, index) => {
+          const item = rawItems[index]
           const active = item.dateKey === selected
           const interactive = onSelect !== undefined
+          const outlier = !cleanDateKeys.has(item.dateKey)
           return (
             <g
               key={item.dateKey}
@@ -221,13 +235,13 @@ export default function WeightTrendChart({
               <circle
                 cx={point.x}
                 cy={point.y}
-                r={active ? 4.5 : 3}
+                r={active ? 4.5 : 3.5}
                 fill="currentColor"
-                className={active ? 'text-brand' : 'text-brand/80'}
+                className={outlier ? 'text-warning' : active ? 'text-fg' : 'text-fg/80'}
                 vectorEffect="non-scaling-stroke"
               />
               <title>
-                {`${formatMonthDay(item.dateKey, t)} · ${formatNum(item.weightKg)} ${t('health.weighUnit')}`}
+                {`${formatMonthDay(item.dateKey, t)} · ${formatNum(item.weightKg)} ${t('health.weighUnit')}${outlier ? ` · ${t('health.trendOutlierTag')}` : ''}`}
               </title>
             </g>
           )
@@ -255,7 +269,7 @@ export default function WeightTrendChart({
             ))}
           </>
         )}
-        {points.map((point, index) => {
+        {trendPoints.map((point, index) => {
           const item = smoothedItems[index]
           if (item.dateKey === selected) return null
           if (!showAllValues && max !== min && item.weightKg !== max && item.weightKg !== min) {
@@ -293,7 +307,13 @@ export default function WeightTrendChart({
                 (selectedPoint.y < 34 ? '10px)' : 'calc(-100% - 8px))'),
             }}
           >
-            {selectedLabel}
+            <span>{formatMonthDay(selectedItem.dateKey, t)}</span>
+            <span>{t('health.trendSelectedReading', { value: formatNum(selectedItem.weightKg) })}</span>
+            {selectedTrend ? (
+              <span>{t('health.trendSelectedAverage', { value: formatNum(selectedTrend.weightKg) })}</span>
+            ) : (
+              <span className="text-warning">{t('health.trendSelectedExcluded')}</span>
+            )}
           </span>
         )}
       </div>
@@ -301,17 +321,17 @@ export default function WeightTrendChart({
     </div>
       {/* 两行摊开：第一行只放首尾日期，第二行放最新体重和区间，窄屏不会三个数字挤成一团 */}
       <div className="mt-1 flex items-center justify-between text-[11px] tabular-nums text-muted">
-        <span className="whitespace-nowrap">{formatMonthDay(smoothedItems[0].dateKey, t)}</span>
-        {smoothedItems.length > 2 && (
+        <span className="whitespace-nowrap">{formatMonthDay(rawItems[0].dateKey, t)}</span>
+        {rawItems.length > 2 && (
           <span className="whitespace-nowrap text-center">
             {formatMonthDay(middleItem.dateKey, t)}
           </span>
         )}
-        <span className="whitespace-nowrap">{formatMonthDay(smoothedItems[smoothedItems.length - 1].dateKey, t)}</span>
+        <span className="whitespace-nowrap">{formatMonthDay(rawItems[rawItems.length - 1].dateKey, t)}</span>
       </div>
       <div className="mt-0.5 flex items-center justify-between gap-2 text-[11px] tabular-nums">
         <span className="whitespace-nowrap text-fg">
-          {formatNum(cleanItems[cleanItems.length - 1].weightKg)} {t('health.weighUnit')}
+          {formatNum(rawItems[rawItems.length - 1].weightKg)} {t('health.weighUnit')}
         </span>
         <span className="whitespace-nowrap text-muted">
           {max === min ? '' : `${formatNum(min)} – ${formatNum(max)} ${t('health.weighUnit')}`}
