@@ -408,7 +408,7 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
 
 ---
 
-## 10. 当前部署状态（2026-11-22）
+## 10. 当前部署状态（2026-11-23）
 
 | 项目 | 值 |
 | --- | --- |
@@ -513,3 +513,4 @@ Web Push 只覆盖网页版 / PWA。**安卓与 Windows 安装包的用户收不
 - **2026-11-22 v0.23.8**：标签 `v0.23.8`（产品提交 `a97f4ee`）已部署到生产 Pages，地址 `https://5a7b536d.starburst-recorder.pages.dev`，部署 ID `5a7b536d-52b8-43bb-997f-194af0dd480c`，构建号 `mwrxihug`；正式域名线上验收 10/10、本地 PWA 探针 20/20，Service Worker 已激活并控制页面，推送鉴权与 `/health` 通过，测试订阅已删除。首次紧随部署运行时 Service Worker 尚未激活，稍后重跑全部通过。Wrangler 4.161.0。
 - **2026-11-22 v0.23.9**：标签 `v0.23.9`（产品提交 `3d5c209`）已部署到生产 Pages，地址 `https://f8c2293f.starburst-recorder.pages.dev`，部署 ID `f8c2293f-a4db-4f84-8563-5351f6e6e7ae`，构建号 `mwryuh8u`；本地 PWA 探针 20/20。线上探针首次运行时 Service Worker 尚在安装，等待 6 秒时 8/10；延长激活等待后 10/10，Service Worker 已激活并控制页面，推送鉴权与 `/health` 通过，测试订阅已删除。Wrangler 4.161.0。
 - **2026-11-22 v0.23.10**：标签 `v0.23.10`（产品提交 `a02932c`）已部署到生产 Pages，地址 `https://f98a8456.starburst-recorder.pages.dev`，部署 ID `f98a8456-9436-479f-86b0-0c76fe06919c`，构建号 `mwrzxy4i`；正式域名 `https://starburst-recorder.pages.dev` 线上验收 10/10，本地 PWA 探针 20/20；Service Worker 已激活并控制页面，推送鉴权与 `/health` 通过，测试订阅已删除。首次紧随部署检查时 Service Worker 尚在安装，等待 13 秒后复测全部通过。Wrangler 4.161.0。
+- **2026-11-23 v0.23.11**：标签 v0.23.11（产品提交 540be87）已部署到生产 Pages，地址 https://5418b3d8.starburst-recorder.pages.dev，部署 ID 5418b3d8-2567-4eaa-9eb4-ddf0af35c3e0，构建号 mwspfhij；正式域名线上验收 10/10、本地 PWA 探针 20/20，Service Worker 已激活并控制页面，推送鉴权与 /health 通过，测试订阅已删除。Wrangler 4.161.0。
