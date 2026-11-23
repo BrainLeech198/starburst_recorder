@@ -4,7 +4,7 @@
  * 一笔 = 若干项食物，所以这里是个三层小流程，全部在同一个 Modal 里换内容层：
  *   1. list   本次摄入：时间、已加的食物列表、增加一项、存为套餐
  *   2. source 增加一份食物：来自食物库 / 新的食物 / 图片分析，选好后调份量
- *   3. picker 食物库选择（食物与套餐混排，带搜索）；newFood 复用食物库的新增表单；image 交给视觉模型
+ *   3. picker 食物库选择（食物 / 套餐 / 常用标签页，带搜索）；newFood 复用食物库新增表单；image 交给视觉模型
  *
  * 套餐在食物库里只存「食物 id + 克数」，这里选套餐时按份数等比缩放，
  * 展开后可以逐项改克数，也允许替换掉已经删除的成分。
@@ -36,6 +36,7 @@ import ImageSourceDialog from '@/shared/ui/ImageSourceDialog'
 import { takeNativePhoto, usesNativeCamera } from '@/platform/camera'
 import { INPUT, INPUT_NARROW, INPUT_NUM } from '@/shared/ui/inputStyles'
 import { SOLID_BUTTON, OUTLINE_BUTTON, BAR_BUTTON } from '@/shared/ui/buttonStyles'
+import Tab from '@/shared/ui/Tab'
 import { Icon } from '@/shared/ui/icons'
 import ImageViewer from '@/features/diary/ImageViewer'
 import HealthEstimateNote from './HealthDisclaimer'
@@ -69,6 +70,7 @@ import {
   healthMealBriefs,
   healthMealById,
   healthProfile,
+  intakesBetween,
   saveHealthFood,
   saveHealthMeal,
 } from './healthRepo'
@@ -100,6 +102,16 @@ interface DraftItem {
   unitNote?: string
 }
 
+type PickerTab = 'foods' | 'meals' | 'common'
+
+interface CommonPickerEntry {
+  kind: 'food' | 'meal'
+  id: string
+  name: string
+  uses: number
+  lastUsed: string
+}
+
 /** 正在配份量的套餐：foodId 始终保留原 id，食物被删时靠它判断「缺」 */
 interface DraftMealPart {
   foodId: string
@@ -112,6 +124,7 @@ type Step = 'list' | 'source' | 'picker' | 'newFood' | 'newMeal' | 'image' | 'me
 
 const FOOD_PAGE_SIZE = 40
 const MEAL_PAGE_SIZE = 20
+const COMMON_PAGE_SIZE = 40
 
 /** Local wall-clock time for a newly opened intake form. */
 function currentLocalTime() {
@@ -218,6 +231,7 @@ export default function IntakeDialog({
   const { showToast } = useToast()
   const foods = useLiveQuery(() => healthFoodBriefs(), [])
   const meals = useLiveQuery(() => healthMealBriefs(), [])
+  const intakeHistory = useLiveQuery(() => intakesBetween('0000-01-01', '9999-12-31'), [])
   const profile = useLiveQuery(() => healthProfile(), [])
 
   const [step, setStep] = useState<Step>('list')
@@ -244,10 +258,12 @@ export default function IntakeDialog({
 
   /** picker 的搜索与选中 */
   const [query, setQuery] = useState('')
+  const [pickerTab, setPickerTab] = useState<PickerTab>('foods')
   const [sortKey, setSortKey] = useState<FoodSortKey>('name')
   const [sortDirection, setSortDirection] = useState<FoodSortDirection>('asc')
   const [foodPage, setFoodPage] = useState({ key: '', count: FOOD_PAGE_SIZE })
   const [mealPage, setMealPage] = useState({ key: '', count: MEAL_PAGE_SIZE })
+  const [commonPage, setCommonPage] = useState({ key: '', count: COMMON_PAGE_SIZE })
   const [pickedId, setPickedId] = useState<string | null>(null)
   const [pickedMealId, setPickedMealId] = useState<string | null>(null)
   /** 点开的食物照片：同时带上可左右翻的图片列表；null 表示关着 */
@@ -301,11 +317,78 @@ export default function IntakeDialog({
     () => sortedMeals.filter((item) => item.name.toLowerCase().includes(keyword)),
     [sortedMeals, keyword],
   )
+  const commonUsage = useMemo(() => {
+    const foodUses = new Map<string, { count: number; lastUsed: string }>()
+    const mealUses = new Map<string, { count: number; lastUsed: string }>()
+    const recordUse = (
+      uses: Map<string, { count: number; lastUsed: string }>,
+      id: string,
+      at: string,
+    ) => {
+      const previous = uses.get(id)
+      uses.set(id, {
+        count: (previous?.count ?? 0) + 1,
+        lastUsed: previous && previous.lastUsed > at ? previous.lastUsed : at,
+      })
+    }
+
+    for (const intake of intakeHistory ?? []) {
+      const at = `${intake.dateKey} ${intake.time}`
+      const foodIds = new Set<string>()
+      if (intake.foodId) foodIds.add(intake.foodId)
+      for (const component of intake.components ?? []) {
+        if (component.foodId) foodIds.add(component.foodId)
+      }
+      for (const id of foodIds) recordUse(foodUses, id, at)
+      if (intake.mealId) recordUse(mealUses, intake.mealId, at)
+    }
+
+    return { foodUses, mealUses }
+  }, [intakeHistory])
+  const commonItems = useMemo<CommonPickerEntry[]>(() => {
+    const entries: CommonPickerEntry[] = []
+    for (const [id, usage] of commonUsage.foodUses) {
+      const item = foodIndex.get(id)
+      if (item && item.name.toLowerCase().includes(keyword)) {
+        entries.push({
+          kind: 'food',
+          id,
+          name: item.name,
+          uses: usage.count,
+          lastUsed: usage.lastUsed,
+        })
+      }
+    }
+    for (const [id, usage] of commonUsage.mealUses) {
+      const item = mealIndex.get(id)
+      if (item && item.name.toLowerCase().includes(keyword)) {
+        entries.push({
+          kind: 'meal',
+          id,
+          name: item.name,
+          uses: usage.count,
+          lastUsed: usage.lastUsed,
+        })
+      }
+    }
+    return entries.sort(
+      (a, b) =>
+        b.uses - a.uses ||
+        b.lastUsed.localeCompare(a.lastUsed) ||
+        a.name.localeCompare(b.name),
+    )
+  }, [commonUsage, foodIndex, keyword, mealIndex])
   const pickerResultKey = `${keyword}\u0000${sortKey}\u0000${sortDirection}`
   const visibleFoodCount = foodPage.key === pickerResultKey ? foodPage.count : FOOD_PAGE_SIZE
   const visibleMealCount = mealPage.key === pickerResultKey ? mealPage.count : MEAL_PAGE_SIZE
+  const commonResultKey = `${keyword}\u0000common`
+  const visibleCommonCount = commonPage.key === commonResultKey ? commonPage.count : COMMON_PAGE_SIZE
   const visibleFoods = list.slice(0, visibleFoodCount)
   const visibleMeals = mealList.slice(0, visibleMealCount)
+  const visibleCommonItems = commonItems.slice(0, visibleCommonCount)
+  const commonPhotoIds = commonItems
+    .filter((item) => item.kind === 'food' && foodIndex.get(item.id)?.hasPhoto)
+    .map((item) => item.id)
   const picked = pickedId ? foodIndex.get(pickedId) ?? null : null
   const pickedMeal = (meals ?? []).find((item) => item.id === pickedMealId) ?? null
 
@@ -424,6 +507,108 @@ export default function IntakeDialog({
       .slice(0, targetPosition + 1)
       .filter((photo) => Boolean(photo)).length - 1
     if (images.length > 0 && index >= 0) setLightbox({ images, index })
+  }
+
+  function renderFoodPickerRow(
+    item: HealthFoodBrief,
+    photoIds: string[],
+    uses?: number,
+    showFoodKind = false,
+  ) {
+    return (
+      <li key={item.id}>
+        <div
+          className={`flex items-center gap-2 rounded-lg border p-2 transition-colors ${
+            pickedId === item.id ? 'border-brand' : 'border-line hover:border-brand/50'
+          }`}
+        >
+          <FoodPhotoThumbnail
+            kind="food"
+            id={item.id}
+            hasPhoto={item.hasPhoto}
+            refreshKey={item.updatedAt}
+            onClick={item.hasPhoto ? () => void openFoodPhotoGallery(photoIds, item.id) : undefined}
+            className="h-10 w-10 object-contain"
+            wrapperClassName="shrink-0"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setPickedId(item.id)
+              setPickedMealId(null)
+            }}
+            className="min-w-0 flex-1 text-left"
+          >
+            <span className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 truncate text-sm text-fg">{item.name}</span>
+              {showFoodKind && (
+                <span className="shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">
+                  {t('foods.tabFoods')}
+                </span>
+              )}
+            </span>
+            <span className="mt-0.5 block text-xs text-muted">
+              {uses !== undefined && `${t('intake.commonUses', { count: uses })} · `}
+              {t('intake.per100', { kcal: formatNum(item.kcal) })}
+              {item.servingName && item.servingGrams
+                ? ` · ${item.servingName} · ${formatNum(item.servingGrams)} g`
+                : ''}
+            </span>
+          </button>
+        </div>
+      </li>
+    )
+  }
+
+  function renderMealPickerRow(item: HealthMealBrief, uses?: number) {
+    const totals = mealTotalsFromMap(item.items, foodIndex)
+    const hasPhoto = item.hasPhoto || item.items.some((part) => foodIndex.get(part.foodId)?.hasPhoto)
+    return (
+      <li key={item.id}>
+        <button
+          type="button"
+          onClick={() => {
+            setPickedMealId(item.id)
+            setPickedId(null)
+          }}
+          className={`flex w-full items-center gap-2 rounded-lg border p-2 text-left transition-colors ${
+            pickedMealId === item.id ? 'border-brand' : 'border-line hover:border-brand/50'
+          }`}
+        >
+          <FoodPhotoThumbnail
+            kind="meal"
+            id={item.id}
+            hasPhoto={hasPhoto}
+            refreshKey={item.updatedAt}
+            className="h-10 w-10 rounded-md border border-line"
+            wrapperClassName="shrink-0"
+          />
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 truncate text-sm text-fg">{item.name}</span>
+              <span className="shrink-0 rounded bg-brand/10 px-1.5 py-0.5 text-[10px] text-brand">
+                {t('intake.mealTag')}
+              </span>
+            </span>
+            <span className="mt-0.5 block text-xs text-muted">
+              {uses !== undefined && `${t('intake.commonUses', { count: uses })} · `}
+              {t('intake.mealItemCount', { n: totals.count, kcal: totals.kcal })}
+              {totals.missing > 0 && (
+                <span className="ml-2 text-danger">
+                  {t('intake.mealMissing', { n: totals.missing })}
+                </span>
+              )}
+            </span>
+          </span>
+        </button>
+      </li>
+    )
+  }
+
+  function switchPickerTab(tab: PickerTab) {
+    setPickerTab(tab)
+    setPickedId(null)
+    setPickedMealId(null)
   }
 
   function onServings(text: string) {
@@ -607,6 +792,7 @@ export default function IntakeDialog({
     })
     setPickedId(saved.id)
     setPickedMealId(null)
+    setPickerTab('foods')
     setQuery('')
     setStep('picker')
   }
@@ -1471,76 +1657,85 @@ export default function IntakeDialog({
           </div>
         )}
 
-        {/* 第 3 层 a：从食物库里挑（食物与套餐混排） */}
+        {/* 第 3 层 a：按食物、套餐或常用记录切换选择 */}
         {step === 'picker' && (
           <div className="mt-3 space-y-2">
+            {!pickingReplacement && (
+              <div
+                role="tablist"
+                aria-label={t('intake.fromLibrary')}
+                className="flex gap-3 overflow-x-auto border-b border-line"
+              >
+                <Tab active={pickerTab === 'foods'} onClick={() => switchPickerTab('foods')}>
+                  {t('foods.tabFoods')}
+                </Tab>
+                <Tab active={pickerTab === 'meals'} onClick={() => switchPickerTab('meals')}>
+                  {t('foods.tabMeals')}
+                </Tab>
+                <Tab active={pickerTab === 'common'} onClick={() => switchPickerTab('common')}>
+                  {t('intake.tabCommon')}
+                </Tab>
+              </div>
+            )}
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t('intake.search')}
               className={INPUT}
             />
-            <FoodSortControls
-              sortKey={sortKey}
-              direction={sortDirection}
-              onSortKeyChange={setSortKey}
-              onDirectionToggle={() =>
-                setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
-              }
-            />
+            {pickerTab !== 'common' && (
+              <FoodSortControls
+                sortKey={sortKey}
+                direction={sortDirection}
+                onSortKeyChange={setSortKey}
+                onDirectionToggle={() =>
+                  setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
+                }
+              />
+            )}
 
-            {!pickingReplacement && mealList.length > 0 && (
-              <div>
-                <p className="m-0 mb-1 text-xs text-muted">{t('intake.mealTag')}</p>
-                <ul className="m-0 max-h-40 list-none space-y-1 overflow-y-auto p-0">
-                  {visibleMeals.map((item) => {
-                    const totals = mealTotalsFromMap(item.items, foodIndex)
-                    const hasPhoto =
-                      item.hasPhoto || item.items.some((part) => foodIndex.get(part.foodId)?.hasPhoto)
-                    return (
-                      <li key={item.id}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setPickedMealId(item.id)
-                            setPickedId(null)
-                          }}
-                          className={`flex w-full items-center gap-2 rounded-lg border p-2 text-left transition-colors ${
-                            pickedMealId === item.id ? 'border-brand' : 'border-line hover:border-brand/50'
-                          }`}
-                        >
-                          <FoodPhotoThumbnail
-                            kind="meal"
-                            id={item.id}
-                            hasPhoto={hasPhoto}
-                            refreshKey={item.updatedAt}
-                            className="h-10 w-10 rounded-md border border-line"
-                            wrapperClassName="shrink-0"
-                          />
-                          <span className="min-w-0 flex-1">
-                            <span className="flex items-center gap-2">
-                              <span className="min-w-0 flex-1 truncate text-sm text-fg">
-                                {item.name}
-                              </span>
-                              <span className="shrink-0 rounded bg-brand/10 px-1.5 py-0.5 text-[10px] text-brand">
-                                {t('intake.mealTag')}
-                              </span>
-                            </span>
-                            <span className="mt-0.5 block text-xs text-muted">
-                              {t('intake.mealItemCount', { n: totals.count, kcal: totals.kcal })}
-                              {totals.missing > 0 && (
-                                <span className="ml-2 text-danger">
-                                  {t('intake.mealMissing', { n: totals.missing })}
-                                </span>
-                              )}
-                            </span>
-                          </span>
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
-                {mealList.length > visibleMeals.length && (
+            {pickerTab === 'foods' && (
+              <>
+                {foods === undefined ? null : list.length === 0 ? (
+                  <p className="m-0 text-xs text-muted">
+                    {foods.length === 0 ? t('intake.foodEmpty') : t('intake.noMatch')}
+                  </p>
+                ) : (
+                  <ul className="m-0 max-h-56 list-none space-y-1 overflow-y-auto p-0">
+                    {visibleFoods.map((item) => renderFoodPickerRow(item, photoFoods.map((food) => food.id)))}
+                  </ul>
+                )}
+                {foods !== undefined && list.length > visibleFoods.length && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFoodPage((current) => ({
+                        key: pickerResultKey,
+                        count:
+                          (current.key === pickerResultKey ? current.count : FOOD_PAGE_SIZE) +
+                          FOOD_PAGE_SIZE,
+                      }))
+                    }
+                    className={`${OUTLINE_BUTTON} w-full justify-center`}
+                  >
+                    {t('records.loadMore', { count: list.length - visibleFoods.length })}
+                  </button>
+                )}
+              </>
+            )}
+
+            {!pickingReplacement && pickerTab === 'meals' && (
+              <>
+                {meals === undefined ? null : mealList.length === 0 ? (
+                  <p className="m-0 text-xs text-muted">
+                    {meals.length === 0 ? t('foods.mealEmpty') : t('foods.mealNoMatch')}
+                  </p>
+                ) : (
+                  <ul className="m-0 max-h-56 list-none space-y-1 overflow-y-auto p-0">
+                    {visibleMeals.map((item) => renderMealPickerRow(item))}
+                  </ul>
+                )}
+                {meals !== undefined && mealList.length > visibleMeals.length && (
                   <button
                     type="button"
                     onClick={() =>
@@ -1551,81 +1746,58 @@ export default function IntakeDialog({
                           MEAL_PAGE_SIZE,
                       }))
                     }
-                    className={`${OUTLINE_BUTTON} mt-2 w-full justify-center`}
+                    className={`${OUTLINE_BUTTON} w-full justify-center`}
                   >
                     {t('records.loadMore', { count: mealList.length - visibleMeals.length })}
                   </button>
                 )}
-              </div>
+              </>
             )}
 
-            {!pickingReplacement && mealList.length > 0 && (
-              <p className="m-0 text-xs text-muted">{t('foods.tabFoods')}</p>
-            )}
-
-            {foods === undefined ? null : list.length === 0 ? (
-              <p className="m-0 text-xs text-muted">
-                {(foods ?? []).length === 0 ? t('intake.foodEmpty') : t('intake.noMatch')}
-              </p>
-            ) : (
-              <ul className="m-0 max-h-56 list-none space-y-1 overflow-y-auto p-0">
-                {visibleFoods.map((item) => (
-                  <li key={item.id}>
-                    <div
-                      className={`flex items-center gap-2 rounded-lg border p-2 transition-colors ${
-                        pickedId === item.id ? 'border-brand' : 'border-line hover:border-brand/50'
-                      }`}
-                    >
-                      <FoodPhotoThumbnail
-                        kind="food"
-                        id={item.id}
-                        hasPhoto={item.hasPhoto}
-                        refreshKey={item.updatedAt}
-                        onClick={item.hasPhoto ? () =>
-                            void openFoodPhotoGallery(
-                              photoFoods.map((entry) => entry.id),
-                              item.id,
+            {!pickingReplacement && pickerTab === 'common' && (
+              <>
+                {intakeHistory === undefined || foods === undefined || meals === undefined ? (
+                  <p className="m-0 text-xs text-muted">{t('common.loading')}</p>
+                ) : commonItems.length === 0 ? (
+                  <p className="m-0 text-xs text-muted">
+                    {keyword ? t('intake.noMatch') : t('intake.commonEmpty')}
+                  </p>
+                ) : (
+                  <ul className="m-0 max-h-56 list-none space-y-1 overflow-y-auto p-0">
+                    {visibleCommonItems.map((entry) => {
+                      if (entry.kind === 'food') {
+                        const item = foodIndex.get(entry.id)
+                        return item
+                          ? renderFoodPickerRow(
+                              item,
+                              commonPhotoIds,
+                              entry.uses,
+                              true,
                             )
-                          : undefined}
-                        className="h-10 w-10 object-contain"
-                        wrapperClassName="shrink-0"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPickedId(item.id)
-                          setPickedMealId(null)
-                        }}
-                        className="min-w-0 flex-1 text-left"
-                      >
-                        <span className="block truncate text-sm text-fg">{item.name}</span>
-                        <span className="mt-0.5 block text-xs text-muted">
-                          {t('intake.per100', { kcal: formatNum(item.kcal) })}
-                          {item.servingName && item.servingGrams
-                            ? ` · ${item.servingName} · ${formatNum(item.servingGrams)} g`
-                            : ''}
-                        </span>
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {foods !== undefined && list.length > visibleFoods.length && (
-              <button
-                type="button"
-                onClick={() =>
-                  setFoodPage((current) => ({
-                    key: pickerResultKey,
-                    count:
-                      (current.key === pickerResultKey ? current.count : FOOD_PAGE_SIZE) +
-                      FOOD_PAGE_SIZE,
-                  }))
-                }
-                className={`${OUTLINE_BUTTON} w-full justify-center`}
-              >
-                {t('records.loadMore', { count: list.length - visibleFoods.length })}
-              </button>
+                          : null
+                      }
+                      const item = mealIndex.get(entry.id)
+                      return item ? renderMealPickerRow(item, entry.uses) : null
+                    })}
+                  </ul>
+                )}
+                {commonItems.length > visibleCommonItems.length && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCommonPage((current) => ({
+                        key: commonResultKey,
+                        count:
+                          (current.key === commonResultKey ? current.count : COMMON_PAGE_SIZE) +
+                          COMMON_PAGE_SIZE,
+                      }))
+                    }
+                    className={`${OUTLINE_BUTTON} w-full justify-center`}
+                  >
+                    {t('records.loadMore', { count: commonItems.length - visibleCommonItems.length })}
+                  </button>
+                )}
+              </>
             )}
 
             <div className="flex justify-end gap-2 pt-1">
@@ -1710,6 +1882,7 @@ export default function IntakeDialog({
                             setReplaceIndex(index)
                             setPickedId(null)
                             setPickedMealId(null)
+                            setPickerTab('foods')
                             setQuery('')
                             setStep('picker')
                           }}
