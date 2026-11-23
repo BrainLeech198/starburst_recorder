@@ -1,5 +1,19 @@
 A local-first personal recorder with built-in AI: jot down today and AI turns it into a full diary entry. No sign-up, no cloud — everything stays on your device. AI runs on your own model and key.
 
+## 0.23.13 · 2026-11-23
+
+Intake-linked spending now uses the actual amount entered, regardless of the number of servings.
+
+### Improvements
+
+- **Record the actual total** — the amount is recorded as entered, rounded to cents, without multiplying by food or meal servings.
+- **Clarify the optional field** — it now asks for this entry's actual spending; leaving it empty still logs only the intake.
+
+### Downloads
+
+- Windows 10/11: [starburst-recorder-0.23.13-setup.exe](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.13/starburst-recorder-0.23.13-setup.exe) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.13/starburst-recorder-0.23.13-setup.exe)
+- Android 10+: [starburst-recorder-0.23.13.apk](https://gitee.com/Mr_brainleech/starburst_recorder/releases/download/v0.23.13/starburst-recorder-0.23.13.apk) (release-signed) · [GitHub fallback](https://github.com/BrainLeech198/starburst_recorder/releases/download/v0.23.13/starburst-recorder-0.23.13.apk)
+
 ## 0.23.12 · 2026-11-23
 
 Weight trends now use real calendar spacing, and today’s reading is included consistently in the daily average and overview. Range buttons are easier to tap on phones.
